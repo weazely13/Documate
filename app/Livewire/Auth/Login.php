@@ -51,7 +51,7 @@ class Login extends Component
         }
 
         // NORMAL USER FLOW
-        return $this->redirect('/student/dashboard', navigate: true);
+        return $this->redirect('/student/new-transaction', navigate: true);
     }
 
     public function render()

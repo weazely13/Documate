@@ -10,7 +10,12 @@ class StudentDocumentWorkspaceController extends Controller
 {
     public function downloadPdf(StudentDocumentWorkspace $workspace)
     {
-        abort_unless((int) $workspace->user_id === (int) auth()->id(), 403);
+        $role = auth()->user()?->role?->role_name;
+
+        abort_unless(
+            (int) $workspace->user_id === (int) auth()->id() || $role === 'Admin',
+            403
+        );
         abort_unless($workspace->generated_pdf_path, 404);
         abort_unless(Storage::disk('public')->exists($workspace->generated_pdf_path), 404);
 

@@ -196,12 +196,6 @@
                                     bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm">
                                     View
                                 </button>
-
-                                <button wire:click.stop="confirmDelete({{ $user->id }})"
-                                    class="text-xs font-medium px-4 py-1.5 rounded-xl 
-                                    bg-red-50 text-red-600 hover:bg-red-100 transition border border-red-100 shadow-sm">
-                                    Delete
-                                </button>
                             </div>
                         </td>
 

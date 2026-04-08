@@ -23,6 +23,7 @@
         $studentClearanceStatusActive = request()->routeIs('student.clearance-status');
         $profileActive = request()->routeIs('profile');
         $clearanceMonitoringActive = request()->routeIs('admin.clearance-monitoring');
+        $adminTransactionsActive = request()->routeIs('admin.transactions.*');
         $officerClearanceTaggingActive = request()->routeIs('officer.clearance');
         $profileUrl = route('profile');
         $clearanceStatusUrl = route('student.clearance-status');
@@ -148,7 +149,7 @@
                         <span>Dashboard</span>
                     </a>
 
-                    <a href="/admin/transactions" class="sidebar-link" data-tooltip="Transactions">
+                    <a href="{{ route('admin.transactions.index') }}" class="sidebar-link {{ $adminTransactionsActive ? 'active' : '' }}" data-tooltip="Transactions">
                         <i class='bx bx-transfer'></i>
                         <span>Transactions</span>
                     </a>
@@ -235,10 +236,6 @@
         </div>
         <div>
 
-            {{-- RIGHT: USER --}}
-            <div class="user-info">
-                {{ $fullName }}
-            </div>
 
         </div>
         @if($inactive)

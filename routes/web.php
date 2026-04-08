@@ -5,8 +5,11 @@ use App\Livewire\Auth\Register;
 use App\Livewire\Auth\Login;
 use App\Livewire\Admin\ClearanceMonitoring;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\AdminTransactionDocumentController;
 use App\Http\Controllers\StudentDocumentWorkspaceController;
 use App\Livewire\Admin\ManageUsers;
+use App\Livewire\Admin\TransactionRecordShow;
+use App\Livewire\Admin\TransactionRecords;
 use App\Livewire\Officer\ClearanceTagging;
 use App\Livewire\Student\ClearanceStatusPage;
 use App\Livewire\Student\Dashboard as StudentDashboard;
@@ -65,6 +68,18 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/admin/users', ManageUsers::class)
             ->name('admin.users');
+
+        Route::get('/admin/transactions', TransactionRecords::class)
+            ->name('admin.transactions.index');
+
+        Route::get('/admin/transactions/{workspace}', TransactionRecordShow::class)
+            ->name('admin.transactions.show');
+
+        Route::get('/admin/transactions/{workspace}/download-pdf', [StudentDocumentWorkspaceController::class, 'downloadPdf'])
+            ->name('admin.transactions.download-pdf');
+
+        Route::get('/admin/transactions/verification/{verification}/download', [AdminTransactionDocumentController::class, 'downloadVerification'])
+            ->name('admin.transactions.download-verification');
 
         Route::get('/admin/clearance-monitoring', ClearanceMonitoring::class)
             ->name('admin.clearance-monitoring');

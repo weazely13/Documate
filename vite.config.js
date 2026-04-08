@@ -12,9 +12,9 @@ export default defineConfig({
         }),
     ],
     server: {
-        host: devHost === '127.0.0.1' ? '127.0.0.1' : '0.0.0.0',
+        host: '0.0.0.0',
         hmr: {
-            host: '192.168.1.23' // Replace this with your computer's actual local IP
+            host: '192.168.1.9' // Replace this with your computer's actual local IP
         },
     },
 });

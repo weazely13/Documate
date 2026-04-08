@@ -361,7 +361,7 @@ class Register extends Component
         Auth::login($user);
 
         // ✅ FIX REDIRECT (IMPORTANT)
-        return $this->redirect('/student/dashboard', navigate: true);
+        return $this->redirect('/student/new-transaction', navigate: true);
     }
 
     public function render()

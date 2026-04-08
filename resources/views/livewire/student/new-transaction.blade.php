@@ -431,133 +431,146 @@
         }
     </script>
 @else
-    <div x-data="{ view: 'grid' }" class="space-y-6">
-        <section class="rounded-[28px] border border-blue-100 bg-gradient-to-r from-[#EAF2FF] via-white to-[#EAF2FF] p-6 shadow-sm">
-            <div class="flex flex-col gap-4">
-                <div>
-                    <p class="text-sm font-medium uppercase tracking-[0.28em] text-[#2A57B4]">Transaction Summary</p>
-                    <h1 class="mt-2 text-3xl font-semibold text-slate-900">Dashboard</h1>
+    <div x-data="{ view: 'grid' }" class="mx-auto max-w-6xl space-y-8">
+        <section class="space-y-5">
+            <div>
+                <h2 class="text-[2rem] font-semibold tracking-tight text-slate-900">Transactions Summary</h2>
+            </div>
+
+            <div class="grid gap-4 xl:grid-cols-[repeat(3,150px),minmax(0,1fr)]">
+                <div class="rounded-[16px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                    <div class="text-center text-6xl font-semibold leading-none text-[#2A57B4]">{{ $this->dashboardStats['pending_transactions'] }}</div>
+                    <p class="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Pending</p>
                 </div>
 
-                <div class="grid gap-4 xl:grid-cols-4">
-                    <div class="rounded-[24px] border border-blue-100 bg-white p-5 shadow-sm">
-                        <p class="text-sm font-medium text-slate-500">Pending Transactions</p>
-                        <div class="mt-4 text-4xl font-semibold text-[#2A57B4]">{{ $this->dashboardStats['pending_transactions'] }}</div>
-                    </div>
+                <div class="rounded-[16px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                    <div class="text-center text-6xl font-semibold leading-none text-[#2A57B4]">{{ $this->dashboardStats['completed_transactions'] }}</div>
+                    <p class="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Completed</p>
+                </div>
 
-                    <div class="rounded-[24px] border border-blue-100 bg-white p-5 shadow-sm">
-                        <p class="text-sm font-medium text-slate-500">Completed Transactions</p>
-                        <div class="mt-4 text-4xl font-semibold text-[#2A57B4]">{{ $this->dashboardStats['completed_transactions'] }}</div>
-                    </div>
+                <div class="rounded-[16px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                    <div class="text-center text-6xl font-semibold leading-none text-[#2A57B4]">{{ $this->dashboardStats['upcoming_appointments'] }}</div>
+                    <p class="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Upcoming Appointments</p>
+                </div>
 
-                    <div class="rounded-[24px] border border-blue-100 bg-white p-5 shadow-sm">
-                        <p class="text-sm font-medium text-slate-500">Upcoming Appointments</p>
-                        <div class="mt-4 text-4xl font-semibold text-[#2A57B4]">{{ $this->dashboardStats['upcoming_appointments'] }}</div>
-                    </div>
-
-                    <div class="rounded-[24px] border border-[#2A57B4] bg-[#2A57B4] p-5 text-white shadow-[0_18px_36px_rgba(42,87,180,0.22)]">
-                        <p class="text-sm font-medium text-blue-100">Recent Transaction</p>
-                        @if($this->dashboardStats['recent_transaction'])
-                            <div class="mt-4 text-lg font-semibold">{{ $this->dashboardStats['recent_transaction']['name'] }}</div>
-                            <p class="mt-2 text-sm text-blue-50">{{ $this->dashboardStats['recent_transaction']['status'] }}</p>
-                            <p class="mt-1 text-xs uppercase tracking-[0.16em] text-blue-200">
-                                {{ $this->dashboardStats['recent_transaction']['updated_at'] }}
-                            </p>
-                        @else
-                            <div class="mt-4 text-lg font-semibold">No recent transactions</div>
-                            <p class="mt-2 text-sm text-blue-50">Start your first document request below.</p>
-                        @endif
-                    </div>
+                <div class="rounded-[16px] bg-[#2A57B4] px-5 py-4 text-white shadow-[0_16px_34px_rgba(42,87,180,0.22)]">
+                    <p class="text-xs font-medium text-blue-100">Recent Transaction :</p>
+                    @if($this->dashboardStats['recent_transaction'])
+                        <div class="mt-2 truncate text-[2rem] font-semibold leading-tight">
+                            {{ $this->dashboardStats['recent_transaction']['name'] }}
+                        </div>
+                        <p class="mt-1 text-sm text-blue-50">{{ $this->dashboardStats['recent_transaction']['status'] }}</p>
+                        <p class="mt-1 text-xs text-blue-100">{{ $this->dashboardStats['recent_transaction']['updated_at'] }}</p>
+                    @else
+                        <div class="mt-3 text-2xl font-semibold leading-tight">No recent transaction</div>
+                        <p class="mt-1 text-sm text-blue-100">Start a document request below.</p>
+                    @endif
                 </div>
             </div>
         </section>
 
-        <section class="rounded-[28px] border border-blue-100 bg-white p-6 shadow-sm">
-            <div>
-                <h2 class="text-2xl font-semibold text-slate-900">Start a new Document transaction.</h2>
-                <p class="mt-2 text-sm text-slate-500">
-                    Select a document card and download your prefilled form.
-                </p>
+        <section class="space-y-6">
+            <div class="text-center">
+                <h2 class="text-[2.05rem] font-semibold tracking-tight text-slate-900">Start a New Document Transaction</h2>
+                <p class="mt-2 text-sm text-slate-500">Select a document type and download your pre-filled form</p>
             </div>
 
-            <div class="mt-6">
-                <input
-                    wire:model.live.debounce.250ms="search"
-                    type="text"
-                    placeholder="Search public documents"
-                    class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#2A57B4] focus:ring-4 focus:ring-blue-100"
-                >
+            <div class="mx-auto max-w-4xl">
+                <label class="relative block">
+                    <svg class="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="m20 20-3.5-3.5"></path>
+                    </svg>
+                    <input
+                        wire:model.live.debounce.250ms="search"
+                        type="text"
+                        placeholder="Search"
+                        class="w-full rounded-full border border-transparent bg-[#F2F2F2] py-4 pl-14 pr-5 text-sm text-slate-900 outline-none transition focus:border-[#2A57B4] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    >
+                </label>
             </div>
 
-            <div class="mt-5 flex items-center justify-between gap-4">
-                <div class="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
                     <button
                         type="button"
                         @click="view = 'grid'"
-                        :class="view === 'grid' ? 'bg-[#2A57B4] text-white shadow-sm' : 'text-slate-600'"
-                        class="rounded-xl px-4 py-2 text-sm font-medium transition"
+                        class="inline-flex items-center gap-2 text-sm text-slate-700"
                     >
-                        Grid view
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <rect x="3" y="4" width="18" height="4"></rect>
+                            <rect x="3" y="10" width="18" height="4"></rect>
+                            <rect x="3" y="16" width="18" height="4"></rect>
+                        </svg>
+                        <span class="font-medium">Grid View</span>
                     </button>
+
                     <button
                         type="button"
                         @click="view = 'list'"
-                        :class="view === 'list' ? 'bg-[#2A57B4] text-white shadow-sm' : 'text-slate-600'"
-                        class="rounded-xl px-4 py-2 text-sm font-medium transition"
+                        class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
                     >
-                        List view
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M8 6h13"></path>
+                            <path d="M8 12h13"></path>
+                            <path d="M8 18h13"></path>
+                            <circle cx="4" cy="6" r="1"></circle>
+                            <circle cx="4" cy="12" r="1"></circle>
+                            <circle cx="4" cy="18" r="1"></circle>
+                        </svg>
+                        <span>List View</span>
                     </button>
                 </div>
 
                 <p class="text-sm text-slate-500">{{ count($templates) }} active document{{ count($templates) === 1 ? '' : 's' }}</p>
             </div>
 
-            <div class="mt-6" :class="view === 'grid' ? 'grid gap-5 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'">
+            <div class="mt-2" :class="view === 'grid' ? 'grid gap-8 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'">
                 @forelse($templates as $template)
                     <a
                         href="{{ route('student.new-transaction', ['template' => $template['template_id']]) }}"
                         wire:navigate
-                        class="group overflow-hidden rounded-[26px] border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_18px_40px_rgba(42,87,180,0.14)]"
+                        class="group overflow-hidden rounded-[10px] border border-slate-300 bg-white text-left shadow-sm transition hover:-translate-y-1 hover:border-[#2A57B4] hover:shadow-[0_14px_30px_rgba(42,87,180,0.12)]"
                         :class="view === 'list' ? 'flex w-full items-stretch' : 'block'"
                     >
-                        <div :class="view === 'list' ? 'w-56 shrink-0 border-r border-slate-200 bg-slate-50' : 'border-b border-slate-200 bg-slate-50'">
+                        <div :class="view === 'list' ? 'w-64 shrink-0 border-r border-slate-300 bg-white' : 'border-b border-slate-300 bg-white'">
                             @if($template['preview_url'])
                                 <img
                                     src="{{ $template['preview_url'] }}"
                                     alt="{{ $template['name'] }}"
-                                    class="h-52 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                                    class="h-72 w-full object-contain bg-white transition duration-300 group-hover:scale-[1.01]"
                                 >
                             @else
-                                <div class="flex h-52 items-center justify-center bg-blue-50 text-sm font-medium text-[#2A57B4]">
+                                <div class="flex h-72 items-center justify-center bg-white text-sm font-medium text-slate-400">
                                     No preview available
                                 </div>
                             @endif
                         </div>
 
-                        <div class="flex flex-1 flex-col p-5">
+                        <div class="flex flex-1 flex-col border-t border-slate-300 p-4" :class="view === 'list' ? 'border-t-0' : ''">
                             <div class="flex items-start justify-between gap-3">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-slate-900">{{ $template['name'] }}</h3>
-                                    <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">
+                                <div class="min-w-0">
+                                    <h3 class="truncate text-base font-semibold text-slate-900">{{ $template['name'] }}</h3>
+                                    <p class="mt-1 truncate text-xs text-slate-400">
                                         {{ $template['document_size'] }} - {{ ucfirst($template['orientation']) }}
                                     </p>
                                 </div>
 
-                                <span class="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2A57B4]">
+                                <span class="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2A57B4]">
                                     Public
                                 </span>
                             </div>
 
-                            <p class="mt-4 flex-1 text-sm leading-6 text-slate-600">{{ $template['description'] }}</p>
+                            <p class="mt-3 flex-1 text-sm leading-6 text-slate-600">{{ $template['description'] }}</p>
 
-                            <div class="mt-5 flex items-center justify-between text-sm text-slate-500">
+                            <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
                                 <span>{{ number_format($template['access_count']) }} accessed</span>
-                                <span class="font-medium text-[#2A57B4]">Open document</span>
+                                <span>Last Updated -</span>
                             </div>
                         </div>
                     </a>
                 @empty
-                    <div class="rounded-[24px] border border-dashed border-blue-200 bg-blue-50 p-8 text-center text-sm text-slate-600">
+                    <div class="rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">
                         No active documents matched your search.
                     </div>
                 @endforelse
