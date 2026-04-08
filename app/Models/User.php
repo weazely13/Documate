@@ -64,4 +64,21 @@ class User extends Authenticatable
     {
         return $this->hasOne(StudentVerification::class)->latestOfMany();
     }
+
+    public function clearanceStatus()
+    {
+        return $this->hasOne(ClearanceStatus::class)->latestOfMany();
+    }
+
+    public function clearanceStatuses()
+    {
+        return $this->hasMany(ClearanceStatus::class)
+            ->orderByDesc('tagged_at')
+            ->orderByDesc('id');
+    }
+
+    public function taggedClearanceStatuses()
+    {
+        return $this->hasMany(ClearanceStatus::class, 'tagged_by');
+    }
 }

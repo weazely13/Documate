@@ -158,6 +158,7 @@ class VerifyStudent extends Component
         StudentVerification::create([
             'user_id' => $user->id,
             'student_number' => $user->student_number,
+            'e_slip_path' => $path,
             'semester' => currentSemester(),
             'academic_year' => currentAcademicYear(),
             'status' => $this->isVerified
@@ -177,7 +178,7 @@ class VerifyStudent extends Component
     }
     public function goToSystem()
     {
-        return $this->redirect('/student/new-transaction', navigate: true);
+        return $this->redirect('/student/dashboard', navigate: true);
     }
 
     public function render()

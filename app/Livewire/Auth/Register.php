@@ -26,7 +26,6 @@ class Register extends Component
 
     // STEP 3
     public $profile_picture, $password, $password_confirmation;
-    public $programSuggestions = [];    
     public $orgSuggestions = [];
     public $e_slip;
 
@@ -59,25 +58,6 @@ class Register extends Component
         'email.regex' => 'Only Gmail, Yahoo, or Outlook emails are allowed.',
         'contact_number.regex' => 'Enter a valid PH number (09XXXXXXXXX or +639XXXXXXXXX).',
     ];
-    public function updatedProgram()
-    {
-        if (!$this->program) {
-            $this->programSuggestions = [];
-            return;
-        }
-
-        $this->programSuggestions = collect($this->allPrograms)
-            ->filter(fn($p) => stripos($p, $this->program) !== false)
-            ->take(5)
-            ->values()
-            ->toArray();
-    }
-
-    public function selectProgram($value)
-    {
-        $this->program = $value;
-        $this->programSuggestions = [];
-    }
 
     public function updatedOrganization()
     {
@@ -381,7 +361,7 @@ class Register extends Component
         Auth::login($user);
 
         // ✅ FIX REDIRECT (IMPORTANT)
-        return $this->redirect('/student/new-transaction', navigate: true);
+        return $this->redirect('/student/dashboard', navigate: true);
     }
 
     public function render()

@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('users', 'verification_version')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->integer('verification_version')->default(0)->after('account_status');
         });
@@ -15,6 +19,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (!Schema::hasColumn('users', 'verification_version')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('verification_version');
         });

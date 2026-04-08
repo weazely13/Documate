@@ -139,23 +139,20 @@
                         <label>Program <span class="text-red-500">*</span></label>
 
                         <input wire:model.live="program"
-                            placeholder="e.g. BS Information Technology"
+                            list="program-options"
+                            placeholder="Select or type your program"
                             class="input
                             @error('program') border-red-500 @enderror
                             @if($program && !$errors->has('program')) border-green-500 @endif">
 
-                        @error('program') <p class="error">{{ $message }}</p> @enderror
+                        <datalist id="program-options">
+                            @foreach($allPrograms as $programOption)
+                                <option value="{{ $programOption }}"></option>
+                            @endforeach
+                        </datalist>
 
-                        @if(!empty($programSuggestions))
-                            <div class="absolute z-10 bg-white border w-full rounded shadow mt-1">
-                                @foreach($programSuggestions as $item)
-                                    <div wire:click="selectProgram('{{ $item }}')"
-                                        class="p-2 hover:bg-gray-100 cursor-pointer">
-                                        {{ $item }}
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
+                        @error('program') <p class="error">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-xs text-gray-400">Choose from the list or type your own program.</p>
                     </div>
 
                     <div>

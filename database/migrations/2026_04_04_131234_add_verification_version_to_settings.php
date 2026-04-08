@@ -6,23 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        if (Schema::hasColumn('settings', 'verification_version')) {
+            return;
+        }
+
         Schema::table('settings', function (Blueprint $table) {
             $table->integer('verification_version')->default(1);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        if (!Schema::hasColumn('settings', 'verification_version')) {
+            return;
+        }
+
         Schema::table('settings', function (Blueprint $table) {
-            //
+            $table->dropColumn('verification_version');
         });
     }
 };

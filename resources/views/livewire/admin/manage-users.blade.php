@@ -63,6 +63,19 @@
                 </select>
             </div>
 
+            {{-- Year Sort --}}
+            <div class="relative">
+                <select wire:model.live="yearFilter"
+                    class="px-4 py-2 pr-10 rounded-xl border border-gray-200 bg-white/60 backdrop-blur text-sm appearance-none focus:ring-2 focus:ring-gray-900/20 outline-none">
+
+                    <option value="">Year Level</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                </select>
+            </div>
+
         </div>
     </div>
 
@@ -79,9 +92,10 @@
                     <th class="px-4 py-4 text-left font-medium">Student No.</th>
                     <th class="px-4 py-4 text-left font-medium">Program</th>
                     <th class="px-4 py-4 text-left font-medium">Organization</th>
+                    <th class="px-4 py-4 text-left font-medium">Year</th>
+                    <th class="px-4 py-4 text-left font-medium">Status</th>
                     <th class="px-4 py-4 text-left font-medium">Role</th>
                     <th class="px-4 py-4 text-left font-medium">Modify</th>
-                    <th class="px-4 py-4 text-left font-medium">Status</th>
                     <th class="px-4 py-4 text-left font-medium">Action</th>
                 </tr>
             </thead>
@@ -137,6 +151,21 @@
                             {{ $user->organization ?? '-' }}
                         </td>
 
+                        {{-- Year --}}
+                        <td class="px-4 py-4 text-gray-600">
+                            {{ $user->year_level ?? '-' }}
+                        </td>
+
+                        {{-- Status --}}
+                        <td class="px-4 py-4">
+                            <span class="text-xs font-medium px-2 py-1 rounded-full 
+                                {{ $user->account_status === 'active'
+                                    ? 'bg-[#2A57B4]/10 text-[#2A57B4]'
+                                    : 'bg-red-50 text-red-600' }}">
+                                {{ ucfirst($user->account_status ?? 'inactive') }}
+                            </span>
+                        </td>
+
                         {{-- Role --}}
                         <td class="px-4 py-4">
                             <span class="px-3 py-1 rounded-full text-xs font-medium {{ $colors[$roleName] ?? 'bg-gray-100 text-gray-600' }}">
@@ -159,23 +188,21 @@
                             </select>
                         </td>
 
-                        {{-- Status --}}
-                        <td class="px-4 py-4">
-                            <span class="text-xs font-medium px-2 py-1 rounded-full 
-                                {{ $user->account_status === 'active'
-                                    ? 'bg-[#2A57B4]/10 text-[#2A57B4]'
-                                    : 'bg-red-50 text-red-600' }}">
-                                {{ ucfirst($user->account_status ?? 'inactive') }}
-                            </span>
-                        </td>
-
                         {{-- Action --}}
-                        <td class="px-4 py-4 text-right">
-                            <button wire:click.stop="openModal({{ $user->id }})"
-                                class="text-xs font-medium px-4 py-1.5 rounded-xl 
-                                bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm">
-                                View
-                            </button>
+                        <td class="px-4 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                <button wire:click.stop="openModal({{ $user->id }})"
+                                    class="text-xs font-medium px-4 py-1.5 rounded-xl 
+                                    bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm">
+                                    View
+                                </button>
+
+                                <button wire:click.stop="confirmDelete({{ $user->id }})"
+                                    class="text-xs font-medium px-4 py-1.5 rounded-xl 
+                                    bg-red-50 text-red-600 hover:bg-red-100 transition border border-red-100 shadow-sm">
+                                    Delete
+                                </button>
+                            </div>
                         </td>
 
                     </tr>
@@ -277,6 +304,48 @@
 
                 </div>
 
+            </div>
+        </div>
+    @endif
+
+    @if($showDeleteModal && $userPendingDeletion)
+        <div class="fixed top-0 left-0 z-[10000] flex h-screen w-screen items-center justify-center bg-black/60 px-4" wire:click.self="cancelDelete">
+            <div class="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+                <button wire:click="cancelDelete"
+                    class="absolute right-4 top-4 text-lg text-gray-400 transition hover:text-gray-700">
+                    ×
+                </button>
+
+                <div class="flex items-start gap-4">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-2xl text-red-500">
+                        !
+                    </div>
+
+                    <div class="min-w-0">
+                        <h3 class="text-xl font-semibold text-gray-900">
+                            Remove User
+                        </h3>
+                        <p class="mt-2 text-sm leading-6 text-gray-500">
+                            Are you sure you want to remove this user?
+                        </p>
+                        <p class="mt-3 rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                            <span class="font-semibold text-gray-900">{{ trim(($userPendingDeletion->first_name ?? '') . ' ' . ($userPendingDeletion->last_name ?? '')) ?: ('User #' . $userPendingDeletion->id) }}</span>
+                            will be permanently deleted from the system.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button wire:click="cancelDelete"
+                        class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">
+                        Cancel
+                    </button>
+
+                    <button wire:click="deleteUser"
+                        class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+                        Yes, Remove User
+                    </button>
+                </div>
             </div>
         </div>
     @endif

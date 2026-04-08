@@ -18,6 +18,25 @@
 <div class="layout">
     @php
         $inactive = auth()->check() && auth()->user()->account_status !== 'active';
+        $role = auth()->user()->role->role_name ?? null;
+        $studentDashboardActive = request()->routeIs('dashboard') || request()->routeIs('student.dashboard');
+        $studentClearanceStatusActive = request()->routeIs('student.clearance-status');
+        $profileActive = request()->routeIs('profile');
+        $clearanceMonitoringActive = request()->routeIs('admin.clearance-monitoring');
+        $officerClearanceTaggingActive = request()->routeIs('officer.clearance');
+        $profileUrl = route('profile');
+        $clearanceStatusUrl = route('student.clearance-status');
+        $clearanceTaggingUrl = route('officer.clearance');
+        $fullName = trim(preg_replace('/\s+/', ' ', implode(' ', array_filter([
+            auth()->user()->first_name ?? null,
+            auth()->user()->middle_name ?? null,
+            auth()->user()->last_name ?? null,
+        ]))));
+        $sidebarFirstName = auth()->user()->first_name ?: ($fullName ?: 'User');
+        $roleLabel = auth()->user()->role->role_name ?? 'User';
+        $sidebarSub = auth()->user()->student_number
+            ? auth()->user()->student_number . ' | ' . $roleLabel
+            : (auth()->user()->email ? auth()->user()->email . ' | ' . $roleLabel : $roleLabel);
     @endphp
 
     {{-- SIDEBAR --}}
@@ -38,10 +57,6 @@
         <div class="sidebar-content">
 
             {{-- STUDENT --}}
-            @php
-                $role = auth()->user()->role->role_name ?? null;
-            @endphp
-
             @if($role === 'Student')
 
                 <div class="sidebar-section">
@@ -62,9 +77,14 @@
                         <span>Documents</span>
                     </a>
 
-                    <a href="/clearance-status" class="sidebar-link">
+                    <a href="{{ $clearanceStatusUrl }}" class="sidebar-link {{ $studentClearanceStatusActive ? 'active' : '' }}">
                         <i class='bx bx-check-circle'></i>
                         <span>Clearance Status</span>
+                    </a>
+
+                    <a href="{{ $profileUrl }}" class="sidebar-link {{ $profileActive ? 'active' : '' }}">
+                        <i class='bx bx-user-circle'></i>
+                        <span>Profile</span>
                     </a>
 
                     <a href="/handbook" class="sidebar-link">
@@ -74,12 +94,6 @@
                 </div>
 
             @endif
-
-
-            {{-- STUDENT OFFICER --}}
-            @php
-                $role = auth()->user()->role->role_name ?? null;
-            @endphp
 
             @if($role === 'Officer')
 
@@ -101,14 +115,19 @@
                         <span>Documents</span>
                     </a>
 
-                    <a href="/clearance-status" class="sidebar-link" data-tooltip="Clearance Status">
+                    <a href="{{ $clearanceStatusUrl }}" class="sidebar-link {{ $studentClearanceStatusActive ? 'active' : '' }}" data-tooltip="Clearance Status">
                         <i class='bx bx-check-circle'></i>
                         <span>Clearance Status</span>
                     </a>
 
-                    <a href="/clearance-tagging" class="sidebar-link" data-tooltip="Clearance Tagging">
+                    <a href="{{ $clearanceTaggingUrl }}" class="sidebar-link {{ $officerClearanceTaggingActive ? 'active' : '' }}" data-tooltip="Clearance Tagging">
                         <i class='bx bx-check-shield'></i>
                         <span>Clearance Tagging</span>
+                    </a>
+
+                    <a href="{{ $profileUrl }}" class="sidebar-link {{ $profileActive ? 'active' : '' }}" data-tooltip="Profile">
+                        <i class='bx bx-user-circle'></i>
+                        <span>Profile</span>
                     </a>
 
                     <a href="/handbook" class="sidebar-link" data-tooltip="Handbook">
@@ -118,12 +137,6 @@
                 </div>
 
             @endif
-
-
-            {{-- ADMIN --}}
-            @php
-                $role = auth()->user()->role->role_name ?? null;
-            @endphp
 
             @if($role === 'Admin')
 
@@ -145,8 +158,8 @@
                         <span>Appointments</span>
                     </a>
 
-                    <a href="/admin/clearance-monitoring" class="sidebar-link" data-tooltip="Clearance Monitoring">
-                        <i class='bx bx-shield'></i>
+                    <a href="{{ route('admin.clearance-monitoring') }}" class="sidebar-link {{ $clearanceMonitoringActive ? 'active' : '' }}" data-tooltip="Clearance Monitoring">
+                        <i class='bx bx-clipboard'></i>
                         <span>Clearance Monitoring</span>
                     </a>
 
@@ -164,6 +177,11 @@
                         <i class='bx bx-file'></i>
                         <span>Document Templates</span>
                     </a>
+
+                    <a href="{{ $profileUrl }}" class="sidebar-link {{ $profileActive ? 'active' : '' }}" data-tooltip="Profile">
+                        <i class='bx bx-user-circle'></i>
+                        <span>Profile</span>
+                    </a>
                 </div>
 
             @endif
@@ -171,7 +189,7 @@
         </div>
         {{-- PROFILE --}}
         <div class="sidebar-profile">
-            <a href="{{ auth()->user()->role->role_name === 'admin' ? '/admin/profile' : '/profile' }}" class="profile-row" data-tooltip="Profile">
+            <a href="{{ $profileUrl }}" class="profile-row {{ $profileActive ? 'active' : '' }}" data-tooltip="Profile">
 
                 <img src="{{ auth()->user()->profile_picture 
                     ? asset('storage/' . auth()->user()->profile_picture) 
@@ -179,13 +197,8 @@
                 class="profile-img">
 
                 <div class="profile-info">
-                    <p class="name">{{ auth()->user()->first_name }}</p>
-
-                    @if(auth()->user()->role->role_name === 'admin')
-                        <p class="sub">{{ auth()->user()->email }}</p>
-                    @else
-                        <p class="sub">{{ auth()->user()->student_number }}</p>
-                    @endif
+                    <p class="name">{{ $sidebarFirstName }}</p>
+                    <p class="sub">{{ $sidebarSub }}</p>
                 </div>
             </a>
         </div>
@@ -224,7 +237,7 @@
 
             {{-- RIGHT: USER --}}
             <div class="user-info">
-                {{ auth()->user()->firstname }}
+                {{ $fullName }}
             </div>
 
         </div>

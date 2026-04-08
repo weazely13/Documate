@@ -2,40 +2,71 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('student_verifications', function (Blueprint $table) {
-            $table->id();
+        if (!Schema::hasTable('student_verifications')) {
+            Schema::create('student_verifications', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->string('student_number')->nullable();
+                $table->string('e_slip_path')->nullable();
+                $table->json('ocr_data')->nullable();
+                $table->enum('status', ['pending', 'verified', 'rejected'])->default('pending');
+                $table->string('semester');
+                $table->string('academic_year');
+                $table->timestamp('verified_at')->nullable();
+                $table->timestamps();
+            });
 
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            return;
+        }
 
-            $table->string('student_number');
+        Schema::table('student_verifications', function (Blueprint $table) {
+            if (!Schema::hasColumn('student_verifications', 'student_number')) {
+                $table->string('student_number')->nullable()->after('user_id');
+            }
 
-            $table->string('semester');
-            $table->string('academic_year');
+            if (!Schema::hasColumn('student_verifications', 'e_slip_path')) {
+                $table->string('e_slip_path')->nullable()->after('student_number');
+            }
 
-            $table->enum('status', ['verified', 'rejected']);
-
-            $table->json('ocr_data')->nullable();
-
-            $table->timestamp('verified_at')->nullable();
-
-            $table->timestamps();
+            if (!Schema::hasColumn('student_verifications', 'ocr_data')) {
+                $table->json('ocr_data')->nullable()->after('e_slip_path');
+            }
         });
+
+        if (
+            Schema::hasColumn('student_verifications', 'ocr_extracted_data') &&
+            Schema::hasColumn('student_verifications', 'ocr_data')
+        ) {
+            DB::table('student_verifications')
+                ->whereNull('ocr_data')
+                ->update(['ocr_data' => DB::raw('ocr_extracted_data')]);
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('student_verifications');
+        if (!Schema::hasTable('student_verifications')) {
+            return;
+        }
+
+        $columnsToDrop = array_values(array_filter([
+            Schema::hasColumn('student_verifications', 'student_number') ? 'student_number' : null,
+            Schema::hasColumn('student_verifications', 'ocr_data') ? 'ocr_data' : null,
+        ]));
+
+        if ($columnsToDrop === []) {
+            return;
+        }
+
+        Schema::table('student_verifications', function (Blueprint $table) use ($columnsToDrop) {
+            $table->dropColumn($columnsToDrop);
+        });
     }
 };
