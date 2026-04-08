@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\Auth\Register;
 use App\Livewire\Auth\Login;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\StudentDocumentWorkspaceController;
 use App\Livewire\Admin\ManageUsers;
 use App\Livewire\Student\NewTransaction;
 use App\Livewire\Admin\Templates\TemplateManager;
@@ -14,6 +15,9 @@ use App\Livewire\Admin\Dashboard;
 
 // Public
 Route::get('/', fn () => view('welcome'));
+Route::get('/check-gd', function () {
+    dd(extension_loaded('gd'), gd_info());
+});
 
 Route::get('/register', Register::class)->name('register');
 Route::get('/login', Login::class)->name('login');
@@ -36,8 +40,10 @@ Route::middleware(['auth'])->group(function () {
 
     // STUDENT
     Route::middleware('role:student,officer')->group(function () {
-        Route::get('/student/new-transaction', NewTransaction::class)
+        Route::get('/student/new-transaction/{template?}', NewTransaction::class)
             ->name('student.new-transaction');
+        Route::get('/student/workspaces/{workspace}/download-pdf', [StudentDocumentWorkspaceController::class, 'downloadPdf'])
+            ->name('student.workspaces.download-pdf');
 
 
     });

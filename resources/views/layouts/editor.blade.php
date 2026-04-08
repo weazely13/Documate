@@ -17,177 +17,196 @@
 
     @livewireScripts
     <script>
+        window.fieldMeta = window.fieldMeta || {};
+        window.constraintVersion = 0;
+        window.fieldConstraints = window.fieldConstraints || {};
+        window.fieldState = window.fieldState || {};
+        window.fieldInstances = window.fieldInstances || {};
+        window.imageState = window.imageState || {
+            preview: null
+        };
+        window.previewValues = window.previewValues || {};
+        window.typographyState = window.typographyState || {};
+        document.addEventListener('livewire:load', () => {
+            Livewire.on('refreshCanvas', () => {
+                location.reload(); // simplest safe sync
+            });
+        });
+
+
+        function defaultTypography() {
+            return {
+                fontFamily: 'Arial',
+                fontWeight: 'normal',
+                fontStyle: 'normal',
+                fontSize: 12,
+                color: '#000000',
+                textAlign: 'left',
+                lineHeight: 1.4,
+                letterSpacing: 0,
+            };
+        };
+        function defaultConstraints() {
+            return {
+                maxLength: null,
+                maxLines: null,
+                required: false,
+                dateMode: 'current',   // 'current' | 'user'
+            };
+        }
+
+
         function fieldInteraction(config) {
             return {
                 dragging: false,
                 resizing: false,
                 direction: null,
-
                 zoom: 100,
+                offsetX: 0, offsetY: 0,
+                startX: 0, startY: 0,
+                startW: 0, startH: 0,
+                startLeft: 0, startTop: 0,
+                localX: 100, localY: 100,
+                localW: 150, localH: 50,
 
-                offsetX: 0,
-                offsetY: 0,
-
-                startX: 0,
-                startY: 0,
-                startW: 0,
-                startH: 0,
-                startLeft: 0,
-                startTop: 0,
-
-                localX: 100,
-                localY: 100,
-                localW: 150,
-                localH: 50,
+                // Store bound references so removeEventListener works correctly
+                _boundDrag: null,
+                _boundResize: null,
+                _boundStop: null,
 
                 init() {
                     const root = this.$el.closest('[x-data]');
                     this.zoom = root.__x.$data.zoom;
+                    this.$watch(() => root.__x.$data.zoom, val => { this.zoom = val; });
 
-                    this.$watch(() => root.__x.$data.zoom, val => {
-                        this.zoom = val;
-                    });
+                    let id    = config.index;
+                    let field = config.field || {};
 
-                    let field = config.field;
+                    window.fieldInstances[id] = this;
 
-                    // ✅ PREVENT RESET IF ALREADY MOVED
-                    if (this.localX === 100 && this.localY === 100) {
-                        this.localX = (field.x !== undefined && field.x !== null) ? field.x : 100;
-                        this.localY = (field.y !== undefined && field.y !== null) ? field.y : 100;
-                        this.localW = (field.width !== undefined && field.width !== null) ? field.width : 150;
-                        this.localH = (field.height !== undefined && field.height !== null) ? field.height : 50;
-                    }
+                    this.localX = field.x     !== undefined ? field.x     : 100;
+                    this.localY = field.y     !== undefined ? field.y     : 100;
+                    this.localW = field.width !== undefined ? field.width : 150;
+                    this.localH = field.height!== undefined ? field.height: 50;
+
+                    window.fieldState[id] = {
+                        x: this.localX, y: this.localY,
+                        width: this.localW, height: this.localH
+                    };
                 },
 
-                getScale() {
-                    return this.zoom / 100;
-                },
+                getScale() { return this.zoom / 100; },
+
+                getCanvas() { return document.querySelector('[data-editor-canvas]'); },
 
                 startDrag(e) {
                     if (this.resizing) return;
-
                     document.body.style.userSelect = 'none';
-
                     this.dragging = true;
 
-                    let canvas = document.querySelector('[data-editor-canvas]');
-                    let rect = canvas.getBoundingClientRect();
+                    let rect  = this.getCanvas().getBoundingClientRect();
                     let scale = this.getScale();
-
                     this.offsetX = (e.clientX - rect.left) / scale - this.localX;
-                    this.offsetY = (e.clientY - rect.top) / scale - this.localY;
+                    this.offsetY = (e.clientY - rect.top)  / scale - this.localY;
 
-                    this._onDrag = (e) => this.onDrag(e);
-                    this._stop = () => this.stopAll();
+                    // Create fresh bound references
+                    this._boundDrag = (e) => this.onDrag(e);
+                    this._boundStop = ()  => this.stopAll('drag');
 
-                    window.addEventListener('mousemove', this._onDrag);
-                    window.addEventListener('mouseup', this._stop);
+                    window.addEventListener('mousemove', this._boundDrag);
+                    window.addEventListener('mouseup',   this._boundStop);
                 },
 
                 startResize(e, dir) {
                     e.preventDefault();
-
                     document.body.style.userSelect = 'none';
-
-                    this.resizing = true;
+                    this.resizing  = true;
                     this.direction = dir;
 
-                    let canvas = document.querySelector('[data-editor-canvas]');
-                    let rect = canvas.getBoundingClientRect();
+                    let rect  = this.getCanvas().getBoundingClientRect();
                     let scale = this.getScale();
-
-                    this.startX = (e.clientX - rect.left) / scale;
-                    this.startY = (e.clientY - rect.top) / scale;
-
-                    this.startW = this.localW;
-                    this.startH = this.localH;
+                    this.startX    = (e.clientX - rect.left) / scale;
+                    this.startY    = (e.clientY - rect.top)  / scale;
+                    this.startW    = this.localW;
+                    this.startH    = this.localH;
                     this.startLeft = this.localX;
-                    this.startTop = this.localY;
+                    this.startTop  = this.localY;
 
-                    this._onResize = (e) => this.onResize(e);
-                    this._stop = () => this.stopAll();
+                    // Create fresh bound references
+                    this._boundResize = (e) => this.onResize(e);
+                    this._boundStop   = ()  => this.stopAll('resize');
 
-                    window.addEventListener('mousemove', this._onResize);
-                    window.addEventListener('mouseup', this._stop);
+                    window.addEventListener('mousemove', this._boundResize);
+                    window.addEventListener('mouseup',   this._boundStop);
                 },
 
                 onDrag(e) {
                     if (!this.dragging) return;
-
-                    let canvas = document.querySelector('[data-editor-canvas]');
-                    let rect = canvas.getBoundingClientRect();
+                    let rect  = this.getCanvas().getBoundingClientRect();
                     let scale = this.getScale();
-
                     this.localX = (e.clientX - rect.left) / scale - this.offsetX;
-                    this.localY = (e.clientY - rect.top) / scale - this.offsetY;
+                    this.localY = (e.clientY - rect.top)  / scale - this.offsetY;
+                    this._syncToParent();
                 },
 
                 onResize(e) {
                     if (!this.resizing) return;
-
-                    let canvas = document.querySelector('[data-editor-canvas]');
-                    let rect = canvas.getBoundingClientRect();
+                    let rect  = this.getCanvas().getBoundingClientRect();
                     let scale = this.getScale();
-
                     let dx = ((e.clientX - rect.left) / scale) - this.startX;
-                    let dy = ((e.clientY - rect.top) / scale) - this.startY;
+                    let dy = ((e.clientY - rect.top)  / scale) - this.startY;
 
-                    let newW = this.startW;
-                    let newH = this.startH;
-                    let newX = this.startLeft;
-                    let newY = this.startTop;
+                    let newW = this.startW, newH = this.startH;
+                    let newX = this.startLeft, newY = this.startTop;
 
                     if (this.direction.includes('e')) newW = this.startW + dx;
-                    if (this.direction.includes('w')) {
-                        newW = this.startW - dx;
-                        newX = this.startLeft + dx;
-                    }
-
+                    if (this.direction.includes('w')) { newW = this.startW - dx; newX = this.startLeft + dx; }
                     if (this.direction.includes('s')) newH = this.startH + dy;
-                    if (this.direction.includes('n')) {
-                        newH = this.startH - dy;
-                        newY = this.startTop + dy;
-                    }
+                    if (this.direction.includes('n')) { newH = this.startH - dy; newY = this.startTop + dy; }
 
                     if (newW < 50 || newH < 30) return;
 
-                    this.localW = newW;
-                    this.localH = newH;
-                    this.localX = newX;
-                    this.localY = newY;
+                    this.localW = newW; this.localH = newH;
+                    this.localX = newX; this.localY = newY;
+                    this._syncToParent();
                 },
 
-                stopAll() {
+                stopAll(source) {
                     document.body.style.userSelect = '';
+                    this.dragging  = false;
+                    this.resizing  = false;
 
-                    this.dragging = false;
-                    this.resizing = false;
-
-                    this.syncToLivewire();
-
-                    window.removeEventListener('mousemove', this._onDrag);
-                    window.removeEventListener('mousemove', this._onResize);
-                    window.removeEventListener('mouseup', this._stop);
-                },
-
-                syncToLivewire() {
-                    let lw = window.Livewire.find(
-                        document.querySelector('[wire\\:id]').getAttribute('wire:id')
-                    );
-
-                    let updatedField = {
-                        ...config.field,
-                        x: this.localX,
-                        y: this.localY,
-                        width: this.localW,
-                        height: this.localH
+                    let id = config.index;
+                    window.fieldState[id] = {
+                        x: this.localX, y: this.localY,
+                        width: this.localW, height: this.localH
                     };
 
-                    config.field = updatedField;
+                    // Remove only the listeners we actually added
+                    if (source === 'drag') {
+                        window.removeEventListener('mousemove', this._boundDrag);
+                    } else {
+                        window.removeEventListener('mousemove', this._boundResize);
+                    }
+                    window.removeEventListener('mouseup', this._boundStop);
 
-                    lw.set(`fields.${config.index}`, updatedField);
-                }
-            }
+                    // This triggers scheduleAutosave via @field-drag-end.window on the canvas
+                    this.$el.dispatchEvent(new CustomEvent('field-drag-end', { bubbles: true }));
+                },
+
+                _syncToParent() {
+                    let id   = config.index;
+                    let root = this.$el.closest('[x-data]');
+                    if (!root || !root.__x) return;
+                    let parent = root.__x.$data;
+                    if (parent.selectedFieldData && parent.selectedFieldData.id === id) {
+                        parent.selectedFieldState.x      = Math.round(this.localX);
+                        parent.selectedFieldState.y      = Math.round(this.localY);
+                        parent.selectedFieldState.width  = Math.round(this.localW);
+                        parent.selectedFieldState.height = Math.round(this.localH);
+                    }
+                },
+            };
         }
     </script>
 </body>

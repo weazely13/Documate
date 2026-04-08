@@ -16,6 +16,10 @@ class TemplateVersion extends Model
         'image_path',
         'document_size',
         'orientation',
+        'custom_width',
+        'custom_height',
+        'version_number',
+        'is_active',
     ];
 
     /*

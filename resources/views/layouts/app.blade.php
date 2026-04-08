@@ -272,46 +272,101 @@
 
 {{-- JS --}}
 <script>
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('toggleSidebar');
+    (() => {
+        let tooltipBound = false;
 
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-        });
-    }
+        function bindSidebarToggle() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('toggleSidebar');
 
-    const chatbotBtn = document.getElementById('chatbotBtn');
-    const chatbotPanel = document.getElementById('chatbotPanel');
-    const closeChatbot = document.getElementById('closeChatbot');
+            if (!sidebar || !toggleBtn || toggleBtn.dataset.bound === 'true') {
+                return;
+            }
 
-    chatbotBtn.addEventListener('click', () => {
-        chatbotPanel.style.display =
-            chatbotPanel.style.display === 'flex' ? 'none' : 'flex';
-    });
+            const savedState = localStorage.getItem('documate-sidebar-collapsed');
+            if (savedState === 'true') {
+                sidebar.classList.add('collapsed');
+            }
 
-    closeChatbot.addEventListener('click', () => {
-        chatbotPanel.style.display = 'none';
-    });
-    const tooltip = document.getElementById('tooltip');
+            toggleBtn.addEventListener('click', () => {
+                const collapsed = sidebar.classList.toggle('collapsed');
+                localStorage.setItem('documate-sidebar-collapsed', collapsed ? 'true' : 'false');
+            });
 
-    document.querySelectorAll('[data-tooltip]').forEach(el => {
+            toggleBtn.dataset.bound = 'true';
+        }
 
-        el.addEventListener('mouseenter', (e) => {
-            tooltip.textContent = el.getAttribute('data-tooltip');
-            tooltip.style.opacity = '1';
-        });
+        function bindChatbot() {
+            const chatbotBtn = document.getElementById('chatbotBtn');
+            const chatbotPanel = document.getElementById('chatbotPanel');
+            const closeChatbot = document.getElementById('closeChatbot');
 
-        el.addEventListener('mousemove', (e) => {
-            tooltip.style.left = (e.clientX + 12) + 'px';
-            tooltip.style.top = (e.clientY + 12) + 'px';
-        });
+            if (!chatbotBtn || !chatbotPanel || !closeChatbot) {
+                return;
+            }
 
-        el.addEventListener('mouseleave', () => {
-            tooltip.style.opacity = '0';
-        });
+            if (chatbotBtn.dataset.bound !== 'true') {
+                chatbotBtn.addEventListener('click', () => {
+                    chatbotPanel.style.display =
+                        chatbotPanel.style.display === 'flex' ? 'none' : 'flex';
+                });
 
-    });
+                chatbotBtn.dataset.bound = 'true';
+            }
+
+            if (closeChatbot.dataset.bound !== 'true') {
+                closeChatbot.addEventListener('click', () => {
+                    chatbotPanel.style.display = 'none';
+                });
+
+                closeChatbot.dataset.bound = 'true';
+            }
+        }
+
+        function bindTooltips() {
+            const tooltip = document.getElementById('tooltip');
+            if (!tooltip || tooltipBound) {
+                return;
+            }
+
+            document.addEventListener('mouseenter', (event) => {
+                const el = event.target.closest('[data-tooltip]');
+                if (!el) {
+                    return;
+                }
+
+                tooltip.textContent = el.getAttribute('data-tooltip');
+                tooltip.style.opacity = '1';
+            }, true);
+
+            document.addEventListener('mousemove', (event) => {
+                const el = event.target.closest('[data-tooltip]');
+                if (!el) {
+                    return;
+                }
+
+                tooltip.style.left = (event.clientX + 12) + 'px';
+                tooltip.style.top = (event.clientY + 12) + 'px';
+            }, true);
+
+            document.addEventListener('mouseleave', (event) => {
+                if (event.target.closest('[data-tooltip]')) {
+                    tooltip.style.opacity = '0';
+                }
+            }, true);
+
+            tooltipBound = true;
+        }
+
+        function initializeLayoutUi() {
+            bindSidebarToggle();
+            bindChatbot();
+            bindTooltips();
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeLayoutUi);
+        document.addEventListener('livewire:navigated', initializeLayoutUi);
+    })();
 </script>
 
 </body>

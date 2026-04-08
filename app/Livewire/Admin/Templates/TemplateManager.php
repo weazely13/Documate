@@ -140,6 +140,18 @@ class TemplateManager extends Component
         return redirect()->route('admin.templates.editor', $id);
     }
 
+    public function deleteTemplate($id)
+    {
+        $template = Template::findOrFail($id);
+        // Delete associated image files
+        if ($template->currentVersion && $template->currentVersion->image_path) {
+            \Storage::disk('public')->delete($template->currentVersion->image_path);
+        }
+        $template->versions()->delete();
+        $template->delete();
+        $this->loadTemplates();
+    }
+
     public function render()
     {
         return view('livewire.admin.templates.template-manager')

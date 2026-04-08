@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('version_id');
 
             $table->string('label');
-            $table->string('name'); // ✅ REQUIRED (variable identifier)
+            $table->string('name')->nullable()->change();
 
             $table->enum('source_type', ['system', 'input']);
             $table->string('system_key')->nullable();
