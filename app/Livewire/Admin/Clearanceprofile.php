@@ -21,7 +21,7 @@ class ClearanceProfile extends Component
     public function mount(int $studentId): void
     {
         if (! $this->monitoredUsersQuery()->whereKey($studentId)->exists()) {
-            abort(403, 'You are not allowed to view this student.');
+            abort(403, 'You are not allowed to view this student account.');
         }
 
         $this->studentId = $studentId;
