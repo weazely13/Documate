@@ -30,8 +30,9 @@ class StudentVerificationController extends Controller
 
         StudentVerification::create([
             'user_id' => auth()->id(),
+            'student_number' => auth()->user()->student_number,
             'e_slip_path' => $path,
-            'ocr_extracted_data' => $ocrData,
+            'ocr_data' => $ocrData,
             'status' => $status,
             'semester' => currentSemester(),
             'academic_year' => currentAcademicYear(),

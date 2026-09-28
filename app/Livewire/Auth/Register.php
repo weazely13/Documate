@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Auth;
 
+use App\Models\Organization;
+use App\Models\Program;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\User;
@@ -9,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use App\Services\GeminiOCRService;
+use App\Support\NameMatcher;
+use App\Models\StudentVerification;
 
 
 class Register extends Component
@@ -22,13 +26,14 @@ class Register extends Component
     public $sex, $date_of_birth, $email, $contact_number;
 
     // STEP 2
-    public $college, $program, $year_level, $academic_status, $organization;
+    public $college, $year_level, $academic_status;
+    public ?int $program_id = null;
+    public ?int $organization_id = null;
 
     // STEP 3
     public $profile_picture, $password, $password_confirmation;
-    public $programSuggestions = [];    
-    public $orgSuggestions = [];
     public $e_slip;
+    public $e_slip_path;   
 
     public $isVerified = false;
     public $ocrResult = [];
@@ -37,66 +42,34 @@ class Register extends Component
     public $matchDetails = [];
     public $fieldStatus = [];
 
-    public $allPrograms = [
-        'Bachelor of Science in Information Technology',
-        'Bachelor of Science in Computer Science',
-        'Bachelor of Science in Information Systems',
-        'Bachelor of Science in Accountancy',
-        'Bachelor of Science in Business Administration'
-    ];
-
-    public $allOrganizations = [
-        'DIGITS Organization',
-        'Mathindig Quadrilateral (Math Students Society)',
-        'Association of Political Science Students (APSS)',
-        'Tourism Circle',
-        'English',
-        'Science Questers Unlimited (SQU)',
-    ];
-    
-
     protected $messages = [
         'email.regex' => 'Only Gmail, Yahoo, or Outlook emails are allowed.',
         'contact_number.regex' => 'Enter a valid PH number (09XXXXXXXXX or +639XXXXXXXXX).',
+        'date_of_birth.before_or_equal' => 'You must be at least 15 years old to register.',
     ];
-    public function updatedProgram()
-    {
-        if (!$this->program) {
-            $this->programSuggestions = [];
-            return;
-        }
 
-        $this->programSuggestions = collect($this->allPrograms)
-            ->filter(fn($p) => stripos($p, $this->program) !== false)
-            ->take(5)
-            ->values()
-            ->toArray();
+    /**
+     * Bachelor's programs, pulled live from the admin-curated list.
+     */
+    public function getBachelorProgramsProperty()
+    {
+        return Program::active()->bachelor()->orderBy('name')->get();
     }
 
-    public function selectProgram($value)
+    /**
+     * Master's programs, pulled live from the admin-curated list.
+     */
+    public function getMasterProgramsProperty()
     {
-        $this->program = $value;
-        $this->programSuggestions = [];
+        return Program::active()->master()->orderBy('name')->get();
     }
 
-    public function updatedOrganization()
+    /**
+     * Organizations available to select at registration.
+     */
+    public function getOrganizationOptionsProperty()
     {
-        if (!$this->organization) {
-            $this->orgSuggestions = [];
-            return;
-        }
-
-        $this->orgSuggestions = collect($this->allOrganizations)
-            ->filter(fn($o) => stripos($o, $this->organization) !== false)
-            ->take(5)
-            ->values()
-            ->toArray();
-    }
-
-    public function selectOrg($value)
-    {
-        $this->organization = $value;
-        $this->orgSuggestions = [];
+        return Organization::active()->orderBy('name')->get();
     }
 
     public function nextStep()
@@ -109,16 +82,18 @@ class Register extends Component
                     'first_name' => 'required',
                     'last_name' => 'required',
                     'sex' => 'required',
-                    'date_of_birth' => 'required|date',
+                    'date_of_birth' => $this->dobRules(),
                     'email' => ['required', 'email', 'regex:/^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook)\.com$/','unique:users,email'],
                     'contact_number' => ['required', 'regex:/^(09|\+639)\d{9}$/'],
+                    
                 ]);
             }
 
             if ($this->step == 2) {
                 $this->validate([
                     'college' => 'required',
-                    'program' => 'required',
+                    'program_id' => 'required|exists:programs,id',
+                    'organization_id' => 'nullable|exists:organizations,id',
                     'year_level' => 'required',
                     'academic_status' => 'required',
                 ]);
@@ -153,7 +128,7 @@ class Register extends Component
             'last_name' => $this->last_name,
             'birth_date' => $this->date_of_birth,
             'college' => $this->college,
-            'course' => $this->program,
+            'course' => optional(Program::find($this->program_id))->name,
             'year' => $this->year_level,
             'section' => null,
             'semester' => currentSemester(),
@@ -173,6 +148,7 @@ class Register extends Component
         ]);
 
         $path = $this->e_slip->store('e_slips');
+        $this->e_slip_path = $path;
 
         $ocrData = GeminiOCRService::extractText($path);
 
@@ -225,6 +201,7 @@ class Register extends Component
         $inputStudent = preg_replace('/\D/', '', $this->student_number);
         $inputFirst = $normalize($this->first_name);
         $inputLast = $normalize($this->last_name);
+        $inputProgramName = optional(Program::find($this->program_id))->name;
 
         // OCR
         $ocrStudent = preg_replace('/\D/', '', $ocrData['student_number'] ?? '');
@@ -240,38 +217,54 @@ class Register extends Component
         $systemYear = $currentYear;
         $ocrYearLevel = $normalizeYear($ocrData['year'] ?? '');
         $inputYearLevel = $normalizeYear($this->year_level);
+
+        $firstMatch = NameMatcher::match($ocrData['first_name'] ?? '', $this->first_name);
+        $lastMatch  = NameMatcher::match($ocrData['last_name'] ?? '', $this->last_name);
+        $filled = fn($v) => filled(trim((string) $v));
+
+        if (!$firstMatch || !$lastMatch) {
+            $fullMatch = NameMatcher::match(
+                trim($this->first_name . ' ' . $this->middle_name . ' ' . $this->last_name),
+                $ocrData['full_name'] ?? ($ocrData['first_name'] . ' ' . $ocrData['last_name'])
+            );
+            $firstMatch = $firstMatch || $fullMatch;
+            $lastMatch  = $lastMatch || $fullMatch;
+        }
         // 🔥 MATCH CHECKS
         $checks = [
             'Student Number' => $ocrStudent === $inputStudent,
-            'First Name' => $ocrFirst === $inputFirst,
-            'Last Name' => $ocrLast === $inputLast,
+            'First Name' => $firstMatch,
+            'Last Name' => $lastMatch,
 
-            // 🔥 NEW
+            // NEW
             'Semester' => $ocrSemester === $systemSemester,
             'Academic Year' => $ocrYear === $systemYear,
 
             'College' => $normalize($ocrData['college'] ?? '') === $normalize($this->college),
-            'Course' => $normalize($ocrData['course'] ?? '') === $normalize($this->program),
+            'Course' => $normalize($ocrData['course'] ?? '') === $normalize((string) $inputProgramName),
             'Year Level' => $ocrYearLevel === $inputYearLevel,
 
             'Enrolled Stamp' => $ocrData['officially_enrolled'] ?? false,
+            'Processed By'          => $filled($ocrData['processed_by'] ?? null),
+            'Processor Signature'   => (bool) ($ocrData['has_signature'] ?? false),
+            'Processed Date & Time' => $filled($ocrData['processed_date'] ?? null)
+                                    && $filled($ocrData['processed_time'] ?? null),
         ];
         $this->fieldStatus = [
             'student_number' => $checks['Student Number'] ? 'match' : 'mismatch',
             'first_name' => $checks['First Name'] ? 'match' : 'mismatch',
             'last_name' => $checks['Last Name'] ? 'match' : 'mismatch',
-
             'semester' => $checks['Semester'] ? 'match' : 'mismatch',
             'academic_year' => $checks['Academic Year'] ? 'match' : 'mismatch',
-
             'college' => $checks['College'] ? 'match' : 'mismatch',
             'course' => $checks['Course'] ? 'match' : 'mismatch',
             'year' => $checks['Year Level'] ? 'match' : 'mismatch',
-
-            // optional fields
             'enrollment_date' => 'neutral',
             'birth_date' => 'neutral',
             'section' => 'neutral',
+            'processed_by'   => $checks['Processed By'] ? 'match' : 'mismatch',
+            'has_signature'  => $checks['Processor Signature'] ? 'match' : 'mismatch',
+            'processed_at'   => $checks['Processed Date & Time'] ? 'match' : 'mismatch',
         ];
 
         $this->matchDetails = $checks;
@@ -288,12 +281,26 @@ class Register extends Component
             $checks['Semester'] &&
             $checks['Academic Year'] &&
             $checks['Enrolled Stamp']&& 
-            $checks['Year Level'];
-        $this->activateAccountIfVerified();
+            $checks['Year Level']&&
+            $checks['Processed By'] &&
+            $checks['Processor Signature'] &&
+            $checks['Processed Date & Time'];
         if (!$this->isVerified) {
             $this->dispatch('alert', type: 'error', message: 'Verification failed. Please upload a valid enrollment slip.');
         }
         $this->showOcrModal = true;
+    }
+    protected function dobRules(): array
+    {
+        return [
+            'required',
+            'date',
+            'before_or_equal:' . now()->subYears(15)->toDateString(),
+        ];
+    }
+    public function updatedDateOfBirth()
+    {
+        $this->validateOnly('date_of_birth', ['date_of_birth' => $this->dobRules()]);
     }
     public function verifyESlip()
     {
@@ -303,7 +310,6 @@ class Register extends Component
 
         $path = $this->e_slip->store('e_slips');
 
-        // 🔥 TEMP OCR
         $ocrData = [
             'student_number' => '2100200',
             'name' => 'Juan Dela Cruz'
@@ -321,14 +327,6 @@ class Register extends Component
         $this->showOcrModal = true;
     }
 
-    public function activateAccountIfVerified()
-    {
-        if ($this->isVerified && auth()->check()) {
-            auth()->user()->update([
-                'account_status' => 'active'
-            ]);
-        }
-    }
     public function register()
     {
         if (!$this->isVerified) {
@@ -340,9 +338,10 @@ class Register extends Component
             'first_name' => 'required',
             'last_name' => 'required',
             'sex' => 'required',
-            'date_of_birth' => 'required|date',
+            'date_of_birth' => $this->dobRules(),
             'college' => 'required',
-            'program' => 'required',
+            'program_id' => 'required|exists:programs,id',
+            'organization_id' => 'nullable|exists:organizations,id',
             'year_level' => 'required',
             'academic_status' => 'required',
             'password' => ['required', 'confirmed'],
@@ -350,9 +349,7 @@ class Register extends Component
             'contact_number' => ['required', 'regex:/^(09|\+639)\d{9}$/'],
         ]);
 
-        // ✅ Handle profile upload
         $profilePath = null;
-
         if ($this->profile_picture) {
             $profilePath = $this->profile_picture->store('profiles', 'public');
         }
@@ -368,25 +365,37 @@ class Register extends Component
             'email' => $this->email,
             'contact_number' => $this->contact_number,
             'college' => $this->college,
-            'program' => $this->program,
+            'program_id' => $this->program_id,
             'year_level' => $this->year_level,
             'academic_status' => $this->academic_status,
-            'organization' => $this->organization,
+            'organization_id' => $this->organization_id,
             'password' => Hash::make($this->password),
             'role_id' => \App\Models\Role::where('role_name', 'Student')->value('id'),
             'profile_picture' => $profilePath,
             'account_status' => 'active',
         ]);
 
+        $currentPeriod = \App\Models\Setting::query()->latest('id')->first();
+            StudentVerification::create([
+            'user_id' => $user->id,
+            'setting_id' => $currentPeriod?->id,
+            'student_number' => $user->student_number,
+            'e_slip_path' => $this->e_slip_path,
+            'semester' => currentSemester(),
+            'academic_year' => currentAcademicYear(),
+            'status' => StudentVerification::STATUS_VERIFIED,
+            'ocr_data' => $this->ocrResult,
+            'verified_at' => now(),
+        ]);
         Auth::login($user);
 
-        // ✅ FIX REDIRECT (IMPORTANT)
-        return $this->redirect('/student/new-transaction', navigate: true);
+
+        return $this->redirect('/student/dashboard', navigate: true);
     }
 
     public function render()
     {
         return view('livewire.auth.register')
-            ->layout('layouts.auth-full'); // IMPORTANT
+            ->layout('layouts.auth-full');
     }
 }

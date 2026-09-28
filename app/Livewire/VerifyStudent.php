@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Services\GeminiOCRService;
 use App\Models\StudentVerification;
+use App\Support\NameMatcher;
 
 class VerifyStudent extends Component
 {
@@ -19,8 +20,18 @@ class VerifyStudent extends Component
     public $matchDetails = [];
     public $fieldStatus = [];
     public $showOcrModal = false;
-
     
+
+    public function mount()
+    {
+        if (session()->has('verification_result')) {
+            $result = session('verification_result');
+            $this->ocrResult    = $result['ocrResult'];
+            $this->isVerified   = $result['isVerified'];
+            $this->matchScore   = $result['matchScore'];
+            $this->matchDetails = $result['matchDetails'];
+        }
+    }
     public function getUserDataProperty()
     {
         $user = auth()->user();
@@ -119,24 +130,45 @@ class VerifyStudent extends Component
         $systemAY = currentAcademicYear();
 
         $inputCollege = $normalize($user->college);
-        $inputCourse = $normalize($user->program);
+        $inputCourse = $normalize(optional($user->program)->name ?? '');
 
         $ocrCollege = $normalize($ocrData['college'] ?? '');
         $ocrCourse = $normalize($ocrData['course'] ?? '');
-        // 🔥 CHECKS
+
+        // Individual field match, tolerant of middle initials / word order
+        $firstMatch = NameMatcher::match($ocrData['first_name'] ?? '', $user->first_name);
+        $lastMatch  = NameMatcher::match($ocrData['last_name'] ?? '', $user->last_name);
+
+        $filled = fn($v) => filled(trim((string) $v));
+
+        // Fallback: if OCR split the name differently than your form did,
+        // fall back to comparing the whole name against the combined DB name.
+        if (!$firstMatch || !$lastMatch) {
+            $fullMatch = NameMatcher::match(
+                trim($user->first_name . ' ' . $user->middle_name . ' ' . $user->last_name),
+                $ocrData['full_name'] ?? ($ocrData['first_name'] . ' ' . $ocrData['last_name'])
+            );
+            $firstMatch = $firstMatch || $fullMatch;
+            $lastMatch  = $lastMatch || $fullMatch;
+        }
+
         $checks = [
             'Student Number' => $ocrStudent === $inputStudent,
-            'First Name' => $ocrFirst === $inputFirst,
-            'Last Name' => $ocrLast === $inputLast,
+            'First Name' => $firstMatch,
+            'Last Name' => $lastMatch,
 
-            'College' => $ocrCollege === $inputCollege, // ✅ ADD
-            'Course' => $ocrCourse === $inputCourse,   // ✅ ADD
+            'College' => $ocrCollege === $inputCollege, 
+            'Course' => $ocrCourse === $inputCourse,   
 
             'Semester' => $ocrSemester === $systemSemester,
             'Academic Year' => $ocrAY === $systemAY,
             'Year Level' => $ocrYear === $inputYear,
 
             'Enrolled Stamp' => $ocrData['officially_enrolled'] ?? false,
+            'Processed By'         => $filled($ocrData['processed_by'] ?? null),
+            'Processor Signature'  => (bool) ($ocrData['has_signature'] ?? false),
+            'Processed Date & Time'=> $filled($ocrData['processed_date'] ?? null)
+                                    && $filled($ocrData['processed_time'] ?? null),
         ];
 
         $this->matchDetails = $checks;
@@ -153,11 +185,16 @@ class VerifyStudent extends Component
             $checks['Semester'] &&
             $checks['Academic Year'] &&
             $checks['Year Level'] &&
-            $checks['Enrolled Stamp'];
-
+            $checks['Enrolled Stamp']&&
+            $checks['Processed By'] &&
+            $checks['Processor Signature'] &&
+            $checks['Processed Date & Time'];
+        $currentPeriod = \App\Models\Setting::query()->latest('id')->first();
         StudentVerification::create([
             'user_id' => $user->id,
+            'setting_id' => $currentPeriod?->id,   // <-- add this
             'student_number' => $user->student_number,
+            'e_slip_path' => $path,
             'semester' => currentSemester(),
             'academic_year' => currentAcademicYear(),
             'status' => $this->isVerified
@@ -169,15 +206,25 @@ class VerifyStudent extends Component
         // 🔥 ACTIVATE ACCOUNT
         if ($this->isVerified) {
             $user->update(['account_status' => 'active']);
-
             $this->dispatch('alert', type: 'success', message: 'Verification successful!');
         } else {
             $this->dispatch('alert', type: 'error', message: 'Verification failed.');
         }
+
+        session()->flash('verification_result', [
+            'ocrResult'    => $this->ocrResult,
+            'isVerified'   => $this->isVerified,
+            'matchScore'   => $this->matchScore,
+            'matchDetails' => $this->matchDetails,
+        ]);
+
+        $this->dispatch('account-status-updated'); 
+
+
     }
     public function goToSystem()
     {
-        return $this->redirect('/student/new-transaction', navigate: true);
+        return $this->redirect('/student/dashboard', navigate: true);
     }
 
     public function render()

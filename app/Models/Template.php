@@ -14,6 +14,7 @@ class Template extends Model
     protected $fillable = [
         'name',
         'created_by',
+        'status',  
         'current_version_id',
     ];
 
@@ -39,5 +40,10 @@ class Template extends Model
     public function currentVersion()
     {
         return $this->belongsTo(TemplateVersion::class, 'current_version_id', 'version_id');
+    }
+
+    public function studentWorkspaces()
+    {
+        return $this->hasMany(StudentDocumentWorkspace::class, 'template_id', 'template_id');
     }
 }

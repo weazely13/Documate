@@ -36,6 +36,13 @@ return [
     ],
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
+        'document_ocr_key' => env('GEMINI_DOCUMENT_OCR_KEY'),
+        'review_key' => env('GEMINI_REVIEW_API_KEY'), 
+        'review_model' => env('GEMINI_REVIEW_MODEL', 'gemini-3.6-flash'),
+    ],
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+        'model' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),
     ],
 
 ];
