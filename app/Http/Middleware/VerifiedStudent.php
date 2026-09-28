@@ -15,30 +15,16 @@ class VerifiedStudent
             return redirect()->route('login');
         }
 
-        // 🔥 Admin bypass
+        // Admin bypass
         if ($user->role->role_name === 'Admin') {
             return $next($request);
         }
-        $latest = $user->latestVerification;
 
-        $isValid =
-            $latest &&
-            $latest->status === 'verified' &&
-            $latest->semester === currentSemester() &&
-            $latest->academic_year === currentAcademicYear();
-
-        if (!$isValid && $user->account_status !== 'inactive') {
-            $user->update(['account_status' => 'inactive']);
-        }
-
-        if ($isValid && $user->account_status !== 'active') {
-            $user->update(['account_status' => 'active']);
-        }
-
-        // 🔥 If inactive → force verify page
-        if ($user->account_status !== 'active') {
-
-            // allow access ONLY to verify page
+        // account_status is only ever changed by: the scheduled
+        // verification:enforce-deadline command, a successful
+        // VerifyStudent::verify() call, or an admin's manual toggle.
+        // This middleware just reacts to whatever it currently is.
+        if ($user->account_status === 'inactive') {
             if (!$request->routeIs('verify.page')) {
                 return redirect()->route('verify.page');
             }

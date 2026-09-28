@@ -12,6 +12,9 @@ class ManageUsers extends Component
 {
     use WithPagination;
 
+    // Tabs: 'users' (existing table) | 'org-roles' (new organization/role manager)
+    public string $activeTab = 'users';
+
     public $search = '';
     public $roleFilter = '';
     public $statusFilter = '';
@@ -29,7 +32,11 @@ class ManageUsers extends Component
     public function updatingStatusFilter() { $this->resetPage(); }
     public function updatingYearFilter() { $this->resetPage(); }
 
-    
+    public function setActiveTab(string $tab): void
+    {
+        $this->activeTab = in_array($tab, ['users', 'org-roles'], true) ? $tab : 'users';
+    }
+
     public function openModal($userId)
     {
         $this->selectedUser = User::find($userId);
@@ -52,8 +59,8 @@ class ManageUsers extends Component
             return;
         }
 
-        if ($this->isLastAdmin($user)) {
-            session()->flash('message', 'You cannot delete the last administrator account.');
+        if ($this->isAdmin($user)) {
+            session()->flash('message', 'The administrator account cannot be deleted.');
 
             return;
         }
@@ -90,9 +97,9 @@ class ManageUsers extends Component
             return;
         }
 
-        if ($this->isLastAdmin($user)) {
+        if ($this->isAdmin($user)) {
             $this->cancelDelete();
-            session()->flash('message', 'You cannot delete the last administrator account.');
+            session()->flash('message', 'The administrator account cannot be deleted.');
 
             return;
         }
@@ -112,10 +119,23 @@ class ManageUsers extends Component
 
     public function updateRole($userId, $roleId)
     {
-        $user = User::findOrFail($userId);
+        $user = User::with('role')->findOrFail($userId);
+        $targetRole = Role::findOrFail($roleId);
 
         if ($user->id === auth()->id()) {
             session()->flash('message', 'You cannot change your own role.');
+            return;
+        }
+
+        // The admin account itself can never be touched...
+        if ($this->isAdmin($user)) {
+            session()->flash('message', 'The administrator account cannot be modified.');
+            return;
+        }
+
+        // ...and no other account may ever become the admin.
+        if (Str::lower($targetRole->role_name) === 'admin') {
+            session()->flash('message', 'Only one administrator account is allowed. You cannot assign the Admin role to another user.');
             return;
         }
 
@@ -127,10 +147,15 @@ class ManageUsers extends Component
 
     public function toggleStatus($userId)
     {
-        $user = User::findOrFail($userId);
+        $user = User::with('role')->findOrFail($userId);
 
         if ($user->id === auth()->id()) {
             session()->flash('message', 'You cannot disable your own account.');
+            return;
+        }
+
+        if ($this->isAdmin($user)) {
+            session()->flash('message', 'The administrator account cannot be modified.');
             return;
         }
 
@@ -140,9 +165,14 @@ class ManageUsers extends Component
         session()->flash('message', 'Status updated.');
     }
 
+    protected function isAdmin(User $user): bool
+    {
+        return Str::lower((string) ($user->role->role_name ?? '')) === 'admin';
+    }
+
     protected function isLastAdmin(User $user): bool
     {
-        if (Str::lower((string) ($user->role->role_name ?? '')) !== 'admin') {
+        if (! $this->isAdmin($user)) {
             return false;
         }
 
@@ -166,14 +196,14 @@ class ManageUsers extends Component
     {
         $currentPage = $this->getPage();
 
-        if ($currentPage > 1 && ! $this->getUsersQuery()->forPage($currentPage, 15)->exists()) {
+        if ($currentPage > 1 && ! $this->getUsersQuery()->forPage($currentPage, 30)->exists()) {  // was 15
             $this->previousPage();
         }
     }
 
     protected function getUsersQuery()
     {
-        return User::with('role')
+        return User::with(['role', 'organization', 'program', 'officerRecord.position'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('first_name', 'like', '%' . $this->search . '%')
@@ -181,14 +211,18 @@ class ManageUsers extends Component
                     ->orWhere('last_name', 'like', '%' . $this->search . '%')
                     ->orWhere('email', 'like', '%' . $this->search . '%')
                     ->orWhere('student_number', 'like', '%' . $this->search . '%')
-                    ->orWhere('program', 'like', '%' . $this->search . '%')
-                    ->orWhere('organization', 'like', '%' . $this->search . '%')
                     ->orWhere('college', 'like', '%' . $this->search . '%')
                     ->orWhere('year_level', 'like', '%' . $this->search . '%')
                     ->orWhere('academic_status', 'like', '%' . $this->search . '%')
                     ->orWhere('account_status', 'like', '%' . $this->search . '%')
                     ->orWhereHas('role', function ($q2) {
                         $q2->where('role_name', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('organization', function ($q3) {
+                        $q3->where('name', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('program', function ($q4) {
+                        $q4->where('name', 'like', '%' . $this->search . '%');
                     });
                 });
             })
@@ -202,7 +236,6 @@ class ManageUsers extends Component
             ->when($this->yearFilter !== '', function ($query) {
                 $query->where('year_level', $this->yearFilter);
             })
-            ->orderBy('organization')
             ->orderByRaw("CASE WHEN year_level REGEXP '^[0-9]+$' THEN CAST(year_level AS UNSIGNED) ELSE 999 END ASC")
             ->orderBy('last_name')
             ->orderBy('first_name');
@@ -210,7 +243,7 @@ class ManageUsers extends Component
 
     public function render()
     {
-        $users = $this->getUsersQuery()->paginate(15);
+        $users = $this->getUsersQuery()->paginate(30);
 
         $roles = Role::orderBy('role_name')->get();
 

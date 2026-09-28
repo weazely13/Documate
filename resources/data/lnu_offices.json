@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Registrar's Office",
+    "aliases": ["registrar", "records office"],
+    "building": "Main Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["transcript of records", "certificate of enrollment", "diploma release", "grade correction"],
+    "contact": "registrar@lnu.edu.ph"
+  },
+  {
+    "name": "Cashier's Office",
+    "aliases": ["cashier", "billing"],
+    "building": "Main Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["tuition payment", "assessment of fees", "official receipts"],
+    "contact": "cashier@lnu.edu.ph"
+  },
+  {
+    "name": "Office of Student Affairs (OSA)",
+    "aliases": ["osa", "student affairs"],
+    "building": "Student Center",
+    "floor": "Ground Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["clearance", "good moral certificate", "student organizations", "disciplinary concerns"],
+    "contact": "osa@lnu.edu.ph"
+  }
+]

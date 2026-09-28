@@ -12,33 +12,76 @@ use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Renderless;
 use Livewire\Component;
+use Livewire\Attributes\Url;
 
+#[Layout('layouts.app')]
 class NewTransaction extends Component
 {
-    public $templates = [];
-    public $selectedTemplateId = null;
-    public $selectedTemplate = null;
-    public $selectedWorkspaceId = null;
-    public $fields = [];
-    public $formValues = [];
-    public $instructions = [];
-    public $savedMessage = null;
-    public $pdfUrl = null;
-    public $lastSavedAt = null;
-    public $search = '';
+    public array $templates = [];
+    public ?int $selectedTemplateId = null;
+    public ?array $selectedTemplate = null;
+    public ?int $selectedWorkspaceId = null;
+    public array $fields = [];
+    public array $formValues = [];
+    public array $formData = [];
+    public array $instructions = [];
+    public ?string $savedMessage = null;
+    public ?string $pdfUrl = null;
+    public ?string $lastSavedAt = null;
+    public string $viewMode = 'grid';
+    public ?int $editingWorkspaceId = null;
 
-    public function mount($template = null): void
+    //-- for searching templates --//
+    #[Url(except: '')]
+    public string $search = '';
+
+    
+
+    public function mount($template = null, $workspace = null): void
     {
         $this->loadTemplates();
 
         if ($template) {
-            $this->selectTemplate((int) $template);
+            $this->selectTemplate((int) $template, $workspace ? (int) $workspace : null);
         }
     }
+    //-- for searching templates --//
 
-    public function updatedSearch(): void
+    public function getFilteredTemplatesProperty()
     {
-        $this->loadTemplates();
+        if (empty(trim($this->search))) {
+            return $this->templates;
+        }
+
+        $term = strtolower(trim($this->search));
+
+        return array_filter($this->templates, function ($template) use ($term) {
+            return str_contains(strtolower($template['name'] ?? ''), $term)
+                || str_contains(strtolower($template['document_size'] ?? ''), $term);
+        });
+    }
+    public function formatTitle(?string $text): string
+    {
+        if (!$text) {
+            return '';
+        }
+
+        $cleaned = str_replace(['_', '-'], ' ', $text);
+        $words = explode(' ', Str::title(Str::lower($cleaned)));
+        $minorWords = ['to', 'of', 'the'];
+
+        return collect($words)->map(function ($word, $index) use ($minorWords) {
+            $lower = Str::lower($word);
+            if ($index > 0 && in_array($lower, $minorWords, true)) {
+                return $lower;
+            }
+            return $word;
+        })->implode(' ');
+    }
+    public function formatToSentenceCase(string $text): string
+    {
+        $cleaned = strtolower(trim(preg_replace('/[_\-]+/', ' ', $text)));
+        return ucfirst($cleaned);
     }
 
     public function openTemplate(int $templateId)
@@ -54,55 +97,50 @@ class NewTransaction extends Component
     #[Renderless]
     public function saveWorkspace(array $values = []): void
     {
-        foreach ($values as $key => $value) {
-            $this->formValues[$key] = $value;
-        }
+        $this->syncFormValues($values);
 
-        $this->validate($this->rules(), $this->messages());
+        try {
+            $this->validate($this->rules(), $this->messages());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('validation-error', [
+                'message' => 'Please fix the highlighted fields before saving.',
+                'fields' => $this->errorFieldNames($e),
+            ]);
+            return;
+        }
 
         $workspace = $this->currentWorkspace();
         $workspace->update([
             'field_values' => $this->normalizedFieldValues(),
         ]);
 
-        $savedAt = optional($workspace->fresh()->updated_at)->diffForHumans();
-
         $this->dispatch('workspace-saved', [
             'message' => 'Workspace saved.',
-            'savedAt' => $savedAt,
+            'savedAt' => optional($workspace->fresh()->updated_at)->diffForHumans(),
         ]);
+
+        $this->redirect(route('student.documents.index'), navigate: true);
     }
 
     #[Renderless]
     public function savePdf(array $values = []): void
     {
-        \Log::info('savePdf called', ['values' => $values]);
+        $this->syncFormValues($values);
 
-        foreach ($values as $key => $value) {
-            $this->formValues[$key] = $value;
-        }
-
-        // ↓ Replace your old $this->validate() line with this block
         try {
             $this->validate($this->rules(), $this->messages());
-            \Log::info('validation passed');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('validation failed', ['error' => $e->getMessage()]);
-            $this->dispatch('pdf-error', message: $e->getMessage());
+            $this->dispatch('validation-error', [
+                'message' => 'Please fix the highlighted fields before generating the PDF.',
+                'fields' => $this->errorFieldNames($e),
+            ]);
             return;
         }
 
         try {
-            \Log::info('starting pdf generation');
-
             $pdfService = app(StudentDocumentPdfService::class);
             $workspace = $this->currentWorkspace();
             $template = Template::with('currentVersion')->findOrFail($this->selectedTemplateId);
-                \Log::info('image path', [
-                    'image_path'  => $template->currentVersion->image_path,
-                    'full_path'   => Storage::disk('public')->path($template->currentVersion->image_path),
-                    'exists'      => file_exists(Storage::disk('public')->path($template->currentVersion->image_path)),
-                ]);
             $fieldValues = $this->normalizedFieldValues();
 
             $workspace->update(['field_values' => $fieldValues]);
@@ -123,15 +161,28 @@ class NewTransaction extends Component
             ]);
 
             $url = Storage::disk('public')->url($fileName);
-            \Log::info('dispatching pdf-ready', ['url' => $url]);
 
             $this->dispatch('pdf-ready', url: $url, savedAt: optional($workspace->fresh()->updated_at)->diffForHumans());
-
         } catch (\Throwable $e) {
-            \Log::error('pdf generation failed', ['error' => $e->getMessage()]);
             $this->dispatch('pdf-error', message: $e->getMessage());
         }
     }
+
+    private function syncFormValues(array $values): void
+    {
+        foreach ($values as $key => $value) {
+            $this->formValues[$key] = $value;
+        }
+    }
+
+    private function errorFieldNames(\Illuminate\Validation\ValidationException $e): array
+    {
+        return collect(array_keys($e->errors()))
+            ->map(fn ($key) => str_replace('formValues.', '', $key))
+            ->values()
+            ->all();
+    }
+
     #[Computed]
     public function dashboardStats(): array
     {
@@ -148,7 +199,7 @@ class NewTransaction extends Component
             ->count();
 
         $recentWorkspace = StudentDocumentWorkspace::query()
-            ->with('template')
+            ->with('template:template_id,name')
             ->where('user_id', $userId)
             ->latest('updated_at')
             ->first();
@@ -166,7 +217,7 @@ class NewTransaction extends Component
     }
 
     #[Computed]
-    public function inputFields()
+    public function inputFields(): \Illuminate\Support\Collection
     {
         return collect($this->fields)
             ->filter(fn (array $field) => $this->showsStudentInput($field))
@@ -182,14 +233,25 @@ class NewTransaction extends Component
             ->all();
     }
 
+    #[Computed]
+    public function filledFieldsSummary(): array
+    {
+        $studentFields = collect($this->fields)->filter(fn ($f) => $this->showsStudentInput($f));
+        $total = $studentFields->count();
+
+        $filled = $studentFields->filter(function ($field) {
+            $value = $this->formValues[$field['name']] ?? null;
+            return $value !== null && trim((string) $value) !== '';
+        })->count();
+
+        return ['filled' => $filled, 'total' => $total];
+    }
+
     public function render()
     {
-        $title = $this->selectedTemplate
-            ? 'New Transaction > ' . $this->selectedTemplate['name']
-            : 'New Transaction';
-
-        return view('livewire.student.new-transaction')
-            ->layout('layouts.app', ['title' => $title]);
+        return view('livewire.student.new-transaction', [
+            'filteredTemplates' => $this->filteredTemplates,
+        ])->layout('layouts.app'); // Direct Livewire to your layout file
     }
 
     protected function rules(): array
@@ -241,18 +303,10 @@ class NewTransaction extends Component
 
     private function loadTemplates(): void
     {
-        $search = trim($this->search);
-
         $templates = Template::query()
             ->where('status', 'active')
             ->whereNotNull('current_version_id')
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($innerQuery) use ($search) {
-                    $innerQuery->where('name', 'like', '%' . $search . '%');
-                });
-            })
             ->with([
-                'currentVersion.fields' => fn ($query) => $query->orderBy('y_position')->orderBy('x_position'),
                 'currentVersion.instructions' => fn ($query) => $query->orderBy('step_number'),
             ])
             ->withCount('studentWorkspaces')
@@ -262,6 +316,8 @@ class NewTransaction extends Component
         $this->templates = $templates->map(function (Template $template) {
             $description = $template->currentVersion?->instructions?->pluck('description')->filter()->implode(' ');
             $description = trim(Str::limit($description ?: ('Prefilled form for ' . $template->name . '.'), 120));
+
+            $lastUpdated = $template->currentVersion?->updated_at ?? $template->updated_at;
 
             return [
                 'template_id' => $template->template_id,
@@ -274,11 +330,12 @@ class NewTransaction extends Component
                     : null,
                 'description' => $description,
                 'access_count' => (int) $template->student_workspaces_count,
+                'updated_at' => $lastUpdated ? $lastUpdated->diffForHumans() : null,
             ];
         })->values()->all();
     }
 
-    private function selectTemplate(int $templateId): void
+    private function selectTemplate(int $templateId, ?int $workspaceId = null): void
     {
         $template = Template::query()
             ->where('template_id', $templateId)
@@ -291,16 +348,18 @@ class NewTransaction extends Component
 
         abort_if(!$template->currentVersion, 404);
 
-        $workspace = StudentDocumentWorkspace::firstOrCreate(
-            [
-                'user_id' => Auth::id(),
-                'template_id' => $template->template_id,
-                'version_id' => $template->currentVersion->version_id,
-            ],
-            [
-                'field_values' => [],
-            ]
-        );
+        $workspace = null;
+
+        if ($workspaceId) {
+            $workspace = StudentDocumentWorkspace::where('workspace_id', $workspaceId)
+                ->where('user_id', Auth::id())
+                ->where('template_id', $template->template_id)
+                ->firstOrFail();
+
+            $this->editingWorkspaceId = $workspace->workspace_id;
+        } else {
+            $this->editingWorkspaceId = null;
+        }
 
         $this->selectedTemplateId = $template->template_id;
         $this->selectedTemplate = [
@@ -310,18 +369,28 @@ class NewTransaction extends Component
             'document_size' => $template->currentVersion->document_size,
             'orientation' => $template->currentVersion->orientation,
             'canvas' => $this->canvasDimensions($template->currentVersion),
+            'updated_at' => optional($template->currentVersion->updated_at)->diffForHumans(),
         ];
-        $this->selectedWorkspaceId = $workspace->workspace_id;
+        $this->selectedWorkspaceId = $workspace?->workspace_id;
         $this->instructions = $template->currentVersion->instructions->map(fn ($instruction) => [
             'step_number' => $instruction->step_number,
             'description' => $instruction->description,
         ])->values()->all();
 
+        // IMPORTANT: field "name" is derived from the label via Str::slug(). Two
+        // fields with the same/similar label used to collide on the exact same
+        // slug, which meant they silently shared one entry in $formValues and
+        // typing in one box changed the other. We now guarantee uniqueness by
+        // falling back to a name suffixed with the field's own (always unique)
+        // database id whenever a slug has already been used on this template.
         $this->fields = $template->currentVersion->fields->map(function ($field) {
-            return [
+        $name = $field->name ? Str::slug($field->name, '_') : ('field_' . $field->field_id);
+
+        return [
                 'id' => (string) $field->field_id,
-                'name' => $field->name ?: ('field_' . $field->field_id),
+                'name' => $name,
                 'label' => $field->label,
+                'group_name' => $field->group_name,
                 'type' => $field->field_type === 'paragraph' ? 'paragraph' : $field->data_type,
                 'source_type' => $field->source_type,
                 'system_key' => $field->system_key,
@@ -341,26 +410,43 @@ class NewTransaction extends Component
                 'alignment' => $field->alignment,
                 'line_height' => (float) ($field->line_height ?? 1.3),
                 'letter_spacing' => (float) ($field->letter_spacing ?? 0),
+                'text_case' => $field->text_case ?? 'none',
             ];
         })->values()->all();
 
         $this->formValues = [];
         foreach ($this->fields as $field) {
-            $savedValue = data_get($workspace->field_values, $field['name']);
+            $savedValue = $workspace
+                ? data_get($workspace->field_values, $field['name'])
+                : null;
             $this->formValues[$field['name']] = $savedValue ?? $this->defaultValueForField($field);
         }
 
-        $this->pdfUrl = $workspace->generated_pdf_path
+        $this->pdfUrl = $workspace?->generated_pdf_path
             ? Storage::disk('public')->url($workspace->generated_pdf_path)
             : null;
-        $this->lastSavedAt = optional($workspace->updated_at)->diffForHumans();
+        $this->lastSavedAt = optional($workspace?->updated_at)->diffForHumans();
         $this->savedMessage = null;
         $this->resetValidation();
     }
 
     private function currentWorkspace(): StudentDocumentWorkspace
     {
-        return StudentDocumentWorkspace::findOrFail($this->selectedWorkspaceId);
+        if ($this->selectedWorkspaceId) {
+            return StudentDocumentWorkspace::findOrFail($this->selectedWorkspaceId);
+        }
+
+        $workspace = StudentDocumentWorkspace::create([
+            'user_id' => Auth::id(),
+            'template_id' => $this->selectedTemplateId,
+            'version_id' => Template::find($this->selectedTemplateId)->current_version_id,
+            'field_values' => [],
+            'status' => 'pending',
+        ]);
+
+        $this->selectedWorkspaceId = $workspace->workspace_id;
+
+        return $workspace;
     }
 
     private function normalizedFieldValues(): array
@@ -405,7 +491,8 @@ class NewTransaction extends Component
     private function displayValueForField(array $field, array $fieldValues): string
     {
         if (($field['source_type'] ?? 'input') === 'system') {
-            return $this->resolveSystemValue((string) $field['system_key']);
+            $value = $this->resolveSystemValue((string) $field['system_key']);
+            return $this->applyTextCase($value, $field);
         }
 
         if (($field['type'] ?? 'text') === 'date' && ($field['date_mode'] ?? 'current') === 'current') {
@@ -414,7 +501,7 @@ class NewTransaction extends Component
 
         $value = $fieldValues[$field['name']] ?? null;
         if ($value === null || $value === '') {
-            return (string) ($field['placeholder'] ?? '');
+            return '';
         }
 
         if (($field['type'] ?? 'text') === 'date') {
@@ -425,7 +512,17 @@ class NewTransaction extends Component
             }
         }
 
-        return (string) $value;
+        return $this->applyTextCase((string) $value, $field);
+    }
+
+    private function applyTextCase(string $value, array $field): string
+    {
+        return match ($field['text_case'] ?? 'none') {
+            'uppercase' => Str::upper($value),
+            'smallcaps' => Str::lower($value),
+            'sentence' => Str::ucfirst(Str::lower($value)),
+            default => $value,
+        };
     }
 
     private function resolveSystemValue(string $key): string
@@ -438,9 +535,9 @@ class NewTransaction extends Component
             $user->last_name,
             $user->suffix,
         ])));
-        $programPrefix = $this->programDegreePrefix((string) ($user->program ?? ''));
+        $programPrefix = $this->programDegreePrefix((string) ($user->program?->name ?? ''));
         $ordinalYear = $this->ordinalYearLevel((string) ($user->year_level ?? ''));
-        $programName = $this->normalizedProgramName((string) ($user->program ?? ''));
+        $programName = $this->normalizedProgramName((string) ($user->program?->name ?? ''));
         $programYearSection = trim(implode(' ', array_filter([
             trim($programPrefix . ' ' . $programName),
             $ordinalYear ? $ordinalYear . '-' . (string) ($user->section ?? '') : (string) ($user->section ?? ''),
@@ -448,8 +545,7 @@ class NewTransaction extends Component
 
         return match ($key) {
             'student_number' => (string) ($user->student_number ?? ''),
-            'full_name' => $formattedFullName,
-            'formatted_full_name' => $formattedFullName,
+            'full_name', 'formatted_full_name' => $formattedFullName,
             'program_year_section' => $programYearSection,
             'first_name' => (string) ($user->first_name ?? ''),
             'middle_name' => (string) ($user->middle_name ?? ''),
@@ -460,11 +556,13 @@ class NewTransaction extends Component
             'email' => (string) ($user->email ?? ''),
             'contact_number' => (string) ($user->contact_number ?? ''),
             'college' => (string) ($user->college ?? ''),
-            'program' => (string) ($user->program ?? ''),
+            'program' => (string) ($user->program?->name ?? ''),
             'section' => (string) ($user->section ?? ''),
-            'organization' => (string) ($user->organization ?? ''),
+            'organization' => (string) ($user->organization?->name ?? ''),
             'year_level' => (string) ($user->year_level ?? ''),
             'academic_status' => (string) ($user->academic_status ?? ''),
+            'current_semester' => function_exists('currentSemester') ? (string) currentSemester() : '',
+            'current_academic_year' => function_exists('currentAcademicYear') ? (string) currentAcademicYear() : '',
             default => '',
         };
     }
@@ -552,8 +650,8 @@ class NewTransaction extends Component
         ];
 
         if ($version->document_size === 'Custom' && $version->custom_width && $version->custom_height) {
-            $width = round($version->custom_width * 37.8);
-            $height = round($version->custom_height * 37.8);
+            $width = (int) round($version->custom_width * 37.8);
+            $height = (int) round($version->custom_height * 37.8);
         } else {
             [$width, $height] = $sizes[$version->document_size] ?? $sizes['A4'];
         }

@@ -1,580 +1,576 @@
-@if($selectedTemplate)
-    <div
-        x-data="documentWorkspace({
-            initialValues: @js($formValues),
-            fields: @js($fields),
-            systemValues: @js($this->systemPreviewValues),
-            initialSavedMessage: @js($savedMessage),
-            initialLastSavedAt: @js($lastSavedAt),
-        })"
-        class="space-y-4"
-    >
-        <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div class="min-h-[40px]">
-                <template x-if="savedMessage">
-                    <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-[#2A57B4]" x-text="savedMessage"></div>
-                </template>
+<div>
+    @if($selectedTemplate)
+        @php
+            $groupedFields = collect($fields)->groupBy(fn($f) => $f['group_name'] ?: 'Other');
+            $groupNames = $groupedFields->keys()->values();
+        @endphp
+
+        <div
+            x-data="documentWorkspace({
+                initialValues: @js($formValues),
+                fields: @js($fields),
+                systemValues: @js($this->systemPreviewValues),
+                initialSavedMessage: @js($savedMessage),
+                initialLastSavedAt: @js($lastSavedAt),
+                groups: @js($groupNames),
+                canvasWidth: {{ $selectedTemplate['canvas']['width'] }},
+                canvasHeight: {{ $selectedTemplate['canvas']['height'] }},
+            })"
+            class="mx-auto w-full max-w-6xl space-y-4"
+        >
+            {{-- Top Action Bar: Instructions, Back, Save PDF, Save — Icon-Only + Compact on Mobile, Full Labels from sm: Up --}}
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2">
+                    <button
+                        type="button"
+                        @click="showInstructions = true"
+                        title="How to Fill out This Form"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 active:scale-[0.97] sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2.5"
+                    >
+                        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path stroke-linecap="round" d="M12 11v5"></path>
+                            <path stroke-linecap="round" d="M12 8h.01"></path>
+                        </svg>
+                        <span class="hidden text-sm font-medium sm:inline">Instructions</span>
+                    </button>
+
+                    <template x-if="savedMessage">
+                        <div class="inline-flex min-w-0 items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700 sm:px-4 sm:py-2 sm:text-sm">
+                            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4.5 4.5L19 7" />
+                            </svg>
+                            <span x-text="savedMessage" class="truncate"></span>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="flex shrink-0 items-center gap-1.5 sm:gap-3">
+                    <a
+                        href="{{ route('student.new-transaction') }}"
+                        wire:navigate
+                        title="Back to Documents"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 active:scale-[0.97] sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2.5"
+                    >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6" />
+                        </svg>
+                        <span class="hidden text-sm font-medium sm:inline">Back to Documents</span>
+                    </a>
+
+                    <button
+                        type="button"
+                        @click="savePdf()"
+                        :disabled="pdfLoading"
+                        title="Save as PDF"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 active:scale-[0.97] disabled:opacity-50 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-2.5"
+                    >
+                        <svg x-show="!pdfLoading" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6" />
+                        </svg>
+                        <svg x-show="pdfLoading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" d="M12 3a9 9 0 1 0 9 9" />
+                        </svg>
+                        <span class="hidden text-sm font-medium sm:inline" x-text="pdfLoading ? 'Generating…' : 'Save as PDF'"></span>
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="saveWorkspace()"
+                        title="Save Workspace"
+                        class="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[#2A57B4] px-3 text-sm font-medium text-white transition hover:bg-[#24499A] active:scale-[0.97] sm:h-auto sm:px-4 sm:py-2.5"
+                    >
+                        <svg class="h-4 w-4 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-8H7v8M7 3v5h8" />
+                        </svg>
+                        <span>Save<span class="hidden sm:inline"> Workspace</span></span>
+                    </button>
+                </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-end gap-3">
+            {{-- Mobile-Only: Swipe Between Form Inputs and Document Preview --}}
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-2 xl:hidden">
                 <button
                     type="button"
-                    @click="saveWorkspace()"
-                    class="rounded-xl bg-[#2A57B4] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#24499A]"
+                    @click="mobileTab = 'form'"
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
+                    aria-label="Show Form Inputs"
                 >
-                    Save workspace
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6" />
+                    </svg>
                 </button>
+
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-slate-700" x-text="mobileTab === 'form' ? 'Form Inputs' : 'Document Preview'"></span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="h-1.5 rounded-full transition-all" :class="mobileTab === 'form' ? 'w-5 bg-[#2A57B4]' : 'w-1.5 bg-slate-200'"></span>
+                        <span class="h-1.5 rounded-full transition-all" :class="mobileTab === 'preview' ? 'w-5 bg-[#2A57B4]' : 'w-1.5 bg-slate-200'"></span>
+                    </span>
+                </div>
 
                 <button
                     type="button"
-                    @click="savePdf()"
-                    :disabled="pdfLoading"
-                    class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    @click="mobileTab = 'preview'"
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
+                    aria-label="Show Document Preview"
                 >
-                    <span x-show="!pdfLoading">Save as PDF</span>
-                    <span x-show="pdfLoading">Generating…</span>
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6" />
+                    </svg>
                 </button>
-
-                <a
-                    href="{{ route('student.new-transaction') }}"
-                    wire:navigate
-                    class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                    Back to documents
-                </a>
             </div>
-        </div>
 
-        <div class="grid gap-5 xl:grid-cols-[360px,minmax(0,1fr)]">
-            <aside class="space-y-5">
-                <section class="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm">
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Document details</p>
-                            <h2 class="mt-2 text-lg font-semibold text-slate-900">{{ $selectedTemplate['name'] }}</h2>
-                            <p class="mt-2 text-sm text-slate-500">
-                                Workspace #{{ $selectedWorkspaceId }}<span x-show="lastSavedAt" x-text="lastSavedAt ? ' - Updated ' + lastSavedAt : ''"></span>
-                            </p>
-                        </div>
-
-                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                            {{ $selectedTemplate['document_size'] }}
-                        </div>
-                    </div>
-
-                    <div class="mt-4 grid grid-cols-3 gap-3 text-sm">
-                        <div class="rounded-xl bg-slate-50 px-3 py-3">
-                            <div class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Orientation</div>
-                            <div class="mt-1 font-medium text-slate-900">{{ ucfirst($selectedTemplate['orientation']) }}</div>
-                        </div>
-                        <div class="rounded-xl bg-slate-50 px-3 py-3">
-                            <div class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Fields</div>
-                            <div class="mt-1 font-medium text-slate-900">{{ count($fields) }}</div>
-                        </div>
-                        <div class="rounded-xl bg-slate-50 px-3 py-3">
-                            <div class="text-[11px] uppercase tracking-[0.16em] text-slate-500">PDF</div>
-                            <div class="mt-1 font-medium text-slate-900">{{ $pdfUrl ? 'Saved' : 'Draft' }}</div>
-                        </div>
-                    </div>
-
-                    @if($pdfUrl)
-                        <a
-                            href="{{ $pdfUrl }}"
-                            target="_blank"
-                            class="mt-4 inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                        >
-                            Open saved PDF
-                        </a>
-                    @endif
-                </section>
-
-                <section class="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm">
-                    <div class="flex items-center justify-between gap-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-slate-900">Form inputs</h3>
-                            <p class="mt-1 text-sm text-slate-500">
-                                Every template field is listed below. System values stay locked.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 space-y-4">
-                        @forelse($fields as $field)
-                            <div class="space-y-2">
-                                <div class="flex min-w-0 items-center justify-between gap-3">
-                                    <label class="block min-w-0 flex-1 truncate text-sm font-medium text-slate-700" title="{{ $field['name'] ?: $field['label'] }}">
-                                        {{ $field['name'] ?: $field['label'] }}
-                                    </label>
-                                    @if($field['required'])
-                                        <span class="rounded-full bg-rose-500/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-300">Required</span>
-                                    @elseif($field['source_type'] === 'system')
-                                        <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">System</span>
-                                    @endif
-                                </div>
-
-                                @php
-                                    $disabledField = $field['source_type'] === 'system' || ($field['type'] === 'date' && $field['date_mode'] === 'current');
-                                @endphp
-
-                                @if($field['type'] === 'paragraph')
-                                    <textarea
-                                        x-model="values['{{ $field['name'] }}']"
-                                        rows="{{ max((int) ($field['max_lines'] ?? 4), 3) }}"
-                                        maxlength="{{ $field['max_length'] ?: '' }}"
-                                        placeholder="{{ $field['placeholder'] ?: 'Enter ' . strtolower($field['label']) }}"
-                                        @disabled($disabledField)
-                                        class="w-full rounded-xl border px-4 py-3 text-sm outline-none transition {{ $disabledField ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-300 bg-white text-slate-900 focus:border-[#2A57B4] focus:ring-4 focus:ring-blue-100' }}"
-                                    ></textarea>
-                                @else
-                                    <input
-                                        x-model="values['{{ $field['name'] }}']"
-                                        type="{{ $disabledField && $field['type'] === 'date' ? 'text' : ($field['type'] === 'number' ? 'number' : ($field['type'] === 'date' ? 'date' : 'text')) }}"
-                                        maxlength="{{ $field['type'] === 'text' && $field['max_length'] ? $field['max_length'] : '' }}"
-                                        placeholder="{{ $field['type'] === 'date' ? '' : ($field['placeholder'] ?: 'Enter ' . strtolower($field['label'])) }}"
-                                        @disabled($disabledField)
-                                        class="w-full rounded-xl border px-4 py-3 text-sm outline-none transition {{ $disabledField ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-300 bg-white text-slate-900 focus:border-[#2A57B4] focus:ring-4 focus:ring-blue-100' }}"
-                                    >
-                                @endif
-
-                                @error('formValues.' . $field['name'])
-                                    <p class="text-sm text-rose-500">{{ $message }}</p>
-                                @enderror
-
-                                <p class="text-xs text-slate-400">
-                                    {{ strtoupper($field['type']) }} / {{ strtoupper($field['alignment']) }} / {{ $field['font_size'] }}px
+            <div class="grid gap-5 xl:grid-cols-[360px,minmax(0,1fr)]">
+                <aside class="space-y-4 sm:space-y-5" :class="mobileTab === 'form' ? '' : 'hidden xl:block'">
+                    <section class="rounded-[14px] border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="min-w-0">
+                                <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400 sm:text-[11px]">Document Details</p>
+                               <h2>{{ $this->formatTitle($selectedTemplate['name']) }}</h2>
+                                <p class="mt-1.5 text-xs text-slate-500 sm:mt-2 sm:text-sm">
+                                    Last Updated {{ $selectedTemplate['updated_at'] ?? 'Recently' }}
                                 </p>
                             </div>
-                        @empty
-                            <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-                                This template does not contain any fields yet.
-                            </div>
-                        @endforelse
-                    </div>
-                </section>
 
-                <section class="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm">
-                    <h3 class="text-lg font-semibold text-slate-900">Instructions</h3>
-                    <div class="mt-4 space-y-3">
-                        @forelse($instructions as $instruction)
-                            <div class="flex gap-3 rounded-xl bg-slate-50 p-3">
-                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2A57B4] text-sm font-semibold text-white">
-                                    {{ $instruction['step_number'] }}
+                            <div class="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 sm:px-3 sm:py-2 sm:text-[11px]">
+                                {{ $selectedTemplate['document_size'] }}
+                            </div>
+                        </div>
+
+                        <div class="mt-3 grid grid-cols-3 gap-2 text-sm sm:mt-4 sm:gap-3">
+                            <div class="rounded-xl bg-slate-50 px-2.5 py-2.5 sm:px-3 sm:py-3">
+                                <div class="text-[10px] uppercase tracking-[0.16em] text-slate-500 sm:text-[11px]">Orientation</div>
+                                <div class="mt-1 truncate text-sm font-medium text-slate-900">{{ ucfirst($selectedTemplate['orientation']) }}</div>
+                            </div>
+                            <div class="rounded-xl bg-slate-50 px-2.5 py-2.5 sm:px-3 sm:py-3">
+                                <div class="text-[10px] uppercase tracking-[0.16em] text-slate-500 sm:text-[11px]">Fields</div>
+                                <div class="mt-1 text-sm font-medium text-slate-900">{{ count($fields) }}</div>
+                            </div>
+                            <div class="rounded-xl bg-slate-50 px-2.5 py-2.5 sm:px-3 sm:py-3">
+                                <div class="text-[10px] uppercase tracking-[0.16em] text-slate-500 sm:text-[11px]">Filled</div>
+                                <div class="mt-1 text-sm font-medium text-slate-900" x-text="filledCount + ' / ' + totalCount"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {{-- Form Inputs, Grouped, Paginated by Back/Next --}}
+                    <section class="rounded-[14px] border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 sm:text-[11px]">Form Inputs</p>
+                                <h3 class="mt-1 truncate text-lg font-semibold text-slate-900 sm:text-xl" x-text="groups[activeGroupIndex] ? groups[activeGroupIndex].replace(/_/g, ' ').replace(/\b\w+/g, (w, i) => i > 0 && ['to','of','the'].includes(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : 'Fields'"></h3>
+                            </div>
+                            <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500" x-show="groups.length">
+                                <span x-text="activeGroupIndex + 1"></span> / <span x-text="groups.length"></span>
+                            </span>
+                        </div>
+
+                        <div class="mt-4">
+                            @forelse($groupedFields as $groupName => $groupFields)
+                                <div x-show="activeGroupIndex === {{ $loop->index }}" x-cloak class="space-y-4">
+                                    @foreach($groupFields as $field)
+                                        <div class="space-y-2">
+                                            <div class="flex min-w-0 items-center justify-between gap-3">
+                                                <label class="block min-w-0 flex-1 truncate text-sm font-medium text-slate-700" title="{{ $this->formatTitle($field['name']) }}">
+                                                    {{ $this->formatTitle($field['name']) }}
+                                                </label>
+                                                @if($field['required'])
+                                                    <span class="shrink-0 rounded-full bg-rose-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-500">Required</span>
+                                                @elseif($field['source_type'] === 'system')
+                                                    <span class="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">System</span>
+                                                @endif
+                                            </div>
+
+                                            @php
+                                                $disabledField = $field['source_type'] === 'system' || ($field['type'] === 'date' && $field['date_mode'] === 'current');
+                                                $formattedTitlePlaceholder = 'Enter ' . $this->formatTitle($field['label'] ?? $field['name']);
+                                            @endphp
+
+                                            @if($field['type'] === 'paragraph')
+                                                <textarea
+                                                    x-model="values[{{ Illuminate\Support\Js::from($field['name']) }}]"
+                                                    @focus="setActiveField({{ Illuminate\Support\Js::from($field['name']) }})"
+                                                    @blur="clearActiveField()"
+                                                    rows="{{ max((int) ($field['max_lines'] ?? 4), 3) }}"
+                                                    maxlength="{{ $field['max_length'] ?: '' }}"
+                                                    placeholder="{{ $field['placeholder'] ?: $formattedTitlePlaceholder }}"
+                                                    @disabled($disabledField)
+                                                    class="w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
+                                                    :class="inputClasses({{ Illuminate\Support\Js::from($field['name']) }}, {{ $disabledField ? 'true' : 'false' }})"
+                                                ></textarea>
+                                            @else
+                                                <input
+                                                    x-model="values[{{ Illuminate\Support\Js::from($field['name']) }}]"
+                                                    @focus="setActiveField({{ Illuminate\Support\Js::from($field['name']) }})"
+                                                    @blur="clearActiveField()"
+                                                    type="{{ $disabledField && $field['type'] === 'date' ? 'text' : ($field['type'] === 'number' ? 'number' : ($field['type'] === 'date' ? 'date' : 'text')) }}"
+                                                    maxlength="{{ $field['type'] === 'text' && $field['max_length'] ? $field['max_length'] : '' }}"
+                                                    placeholder="{{ $field['type'] === 'date' ? '' : ($field['placeholder'] ?: $formattedTitlePlaceholder) }}"
+                                                    @disabled($disabledField)
+                                                    class="w-full rounded-xl border px-4 py-3 text-sm outline-none transition"
+                                                    :class="inputClasses({{ Illuminate\Support\Js::from($field['name']) }}, {{ $disabledField ? 'true' : 'false' }})"
+                                                >
+                                            @endif
+
+                                            @error('formValues.' . $field['name'])
+                                                <p class="text-sm text-rose-500">{{ $message }}</p>
+                                            @enderror
+
+                                            <template x-if="errorModal.fields[{{ Illuminate\Support\Js::from($field['name']) }}]">
+                                                <p class="flex items-center gap-1 text-xs font-medium text-rose-500">
+                                                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <circle cx="12" cy="12" r="9"></circle>
+                                                        <path stroke-linecap="round" d="M12 8v5"></path>
+                                                        <path stroke-linecap="round" d="M12 16h.01"></path>
+                                                    </svg>
+                                                    This Field Needs Your Attention.
+                                                </p>
+                                            </template>
+                                        </div>
+                                    @endforeach
                                 </div>
-                                <p class="text-sm leading-6 text-slate-600">{{ $instruction['description'] }}</p>
+                            @empty
+                                <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                                    This Template Does not Contain Any Fields Yet.
+                                </div>
+                            @endforelse
+                        </div>
+
+                        @if($groupedFields->count() > 1)
+                            <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+                                <button
+                                    type="button"
+                                    @click="prevGroup()"
+                                    :disabled="activeGroupIndex === 0"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6" />
+                                    </svg>
+                                    Back
+                                </button>
+
+                                <div class="flex items-center gap-1.5">
+                                    <template x-for="(g, i) in groups" :key="i">
+                                        <span
+                                            class="h-1.5 rounded-full transition-all"
+                                            :class="activeGroupIndex === i ? 'w-5 bg-[#2A57B4]' : 'w-1.5 bg-slate-200'"
+                                        ></span>
+                                    </template>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    @click="nextGroup()"
+                                    :disabled="activeGroupIndex === groups.length - 1"
+                                    class="inline-flex items-center gap-1 rounded-lg bg-[#2A57B4] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#24499A] disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Next
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6" />
+                                    </svg>
+                                </button>
                             </div>
-                        @empty
-                            <p class="text-sm text-slate-500">No extra instructions were added for this form.</p>
-                        @endforelse
-                    </div>
-                </section>
-            </aside>
+                        @endif
+                    </section>
+                </aside>
 
-            <section class="min-h-[75vh] bg-white">
-                <div class="mb-4 flex items-center justify-between gap-4">
-                    <div>
-                        <h3 class="text-lg font-semibold text-slate-900">Document preview</h3>
-                        <p class="mt-1 text-sm text-slate-500">
-                            The page below keeps the saved paper size, exact field positions, and text styling from the template editor.
-                        </p>
+                <section class="min-h-[50vh] bg-white xl:min-h-[75vh]" :class="mobileTab === 'preview' ? '' : 'hidden xl:block'">
+                    <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <div class="min-w-0">
+                            <h3 class="text-lg font-semibold text-slate-900">Document Preview</h3>
+                            <p class="mt-1 text-sm text-slate-500">
+                                The page below keeps the saved paper size, exact field positions, and text styling from the template editor.
+                            </p>
+                        </div>
+                        <div class="shrink-0 self-start rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium uppercase tracking-[0.16em] text-slate-500 sm:self-auto">
+                            {{ $selectedTemplate['document_size'] }} / {{ ucfirst($selectedTemplate['orientation']) }}
+                        </div>
                     </div>
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-                        {{ $selectedTemplate['document_size'] }} / {{ ucfirst($selectedTemplate['orientation']) }}
-                    </div>
-                </div>
 
-                <div class="overflow-auto bg-white p-0">
-                    <div
-                        class="relative mx-auto overflow-hidden bg-white"
-                        style="width: {{ $selectedTemplate['canvas']['width'] }}px; height: {{ $selectedTemplate['canvas']['height'] }}px;"
-                    >
-                        <img
-                            src="{{ $selectedTemplate['image_url'] }}"
-                            alt="{{ $selectedTemplate['name'] }}"
-                            class="absolute inset-0 w-full h-full pointer-events-none select-none"
+                    <div class="-mx-4 overflow-x-auto bg-white px-4 pb-4 sm:mx-0 sm:px-0 sm:pb-0">
+                        <div
+                            x-ref="previewFrame"
+                            class="mx-auto flex max-h-[65vh] w-full items-start justify-center overflow-hidden xl:max-h-none xl:w-auto xl:justify-start xl:overflow-visible"
+                            style="touch-action: pinch-zoom;"
                         >
-
-                        @foreach($fields as $field)
-                            <div
-                                class="absolute"
-                                x-bind:style="fieldBoxStyle(@js($field))"
-                            >
+                            <div :style="`width: ${canvasWidth * previewScale}px; height: ${canvasHeight * previewScale}px;`">
                                 <div
-                                    class="w-full px-2 py-1 pointer-events-none"
-                                    x-bind:style="fieldTextStyle(@js($field))"
-                                    x-text="displayValue(@js($field))"
-                                ></div>
+                                    class="relative origin-top-left overflow-visible bg-white shadow-sm ring-1 ring-slate-200"
+                                    :style="`width: ${canvasWidth}px; height: ${canvasHeight}px; transform: scale(${previewScale});`"
+                                >
+                                    <img
+                                        src="{{ $selectedTemplate['image_url'] }}"
+                                        alt="{{ $this->formatTitle($selectedTemplate['name']) }}"
+                                        class="absolute inset-0 w-full h-full pointer-events-none select-none"
+                                    >
+
+                                    @foreach($fields as $field)
+                                        <div
+                                            class="absolute rounded-md transition-all duration-150"
+                                            x-bind:style="fieldBoxStyle(@js($field))"
+                                            :class="activeField === {{ Illuminate\Support\Js::from($field['name']) }} ? 'ring-2 ring-[#2A57B4] ring-offset-2 z-10' : (errorModal.fields[{{ Illuminate\Support\Js::from($field['name']) }}] ? 'ring-2 ring-rose-400 ring-offset-2 z-10' : '')"
+                                        >
+                                            <div
+                                                class="w-full px-2 py-1 pointer-events-none"
+                                                x-bind:style="fieldTextStyle(@js($field))"
+                                                x-text="displayValue(@js($field))"
+                                            ></div>
+
+                                            <template x-if="activeField === {{ Illuminate\Support\Js::from($field['name']) }}">
+                                                <div class="pointer-events-none absolute top-1/2 -left-2 -translate-x-full -translate-y-1/2">
+                                                    <div class="h-0 w-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-[#2A57B4]"></div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
-                        @endforeach
+                        </div>
                     </div>
-                </div>
-            </section>
-        </div>
-    </div>
-
-    <script>
-        function documentWorkspace(config) {
-            return {
-                values: config.initialValues || {},
-                fields: config.fields || [],
-                systemValues: config.systemValues || {},
-                savedMessage: config.initialSavedMessage || null,
-                lastSavedAt: config.initialLastSavedAt || null,
-                pdfLoading: false,
-                init() {
-                    window.addEventListener('pdf-ready', (event) => {
-                        const detail = event.detail?.[0] || event.detail || {};
-                        this.pdfLoading = false;
-                        this.savedMessage = detail.message || 'PDF generated.';
-                        this.lastSavedAt = detail.savedAt || this.lastSavedAt;
-
-                        if (detail.url) {
-                            setTimeout(() => window.open(detail.url, '_blank'), 100);
-                        }
-                    });
-
-                    window.addEventListener('pdf-error', (event) => {
-                        console.log('pdf-error raw detail:', event.detail); // debug
-                        const detail = event.detail || {};
-                        this.pdfLoading = false;
-                        alert('PDF Error: ' + (detail.message || 'Unknown error'));
-                    });
-
-                    this.$wire.on('validation-error', () => {
-                        this.pdfLoading = false;
-                    });
-                    this.fields.forEach((field) => {
-                        if (field.source_type === 'system' || (field.type === 'date' && field.date_mode === 'current')) {
-                            this.values[field.name] = this.displayValue(field);
-                        }
-                    });
-
-                    window.addEventListener('workspace-saved', (event) => {
-                        const detail = event.detail?.[0] || event.detail || {};
-                        this.savedMessage = detail.message || 'Workspace saved.';
-                        this.lastSavedAt = detail.savedAt || this.lastSavedAt;
-                    });
-                    window.addEventListener('livewire:dispatched', (event) => {
-                        console.log('livewire dispatched:', event.detail);
-                    });
-
-                },
-                saveWorkspace() {
-                    this.$wire.call('saveWorkspace', this.values);
-                },
-                savePdf() {
-                    if (this.pdfLoading) return;
-                    this.pdfLoading = true;
-                    this.$wire.call('savePdf', this.values)
-                        .then(() => {
-                            // pdfLoading will be reset by the event handler
-                            // but set a fallback timeout in case the event never fires
-                            setTimeout(() => { this.pdfLoading = false; }, 8000);
-                        })
-                        .catch(() => {
-                            this.pdfLoading = false;
-                        });
-                },
-                displayValue(field) {
-                    if (field.source_type === 'system') {
-                        return this.systemValues[field.name] || '';
-                    }
-
-                    if (field.type === 'date' && field.date_mode === 'current') {
-                        const now = new Date();
-                        return `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
-                    }
-
-                    const raw = this.values[field.name];
-                    if (raw === null || raw === undefined || raw === '') {
-                        return field.placeholder || '';
-                    }
-
-                    if (field.type === 'date') {
-                        const parsed = new Date(raw);
-                        if (!Number.isNaN(parsed.getTime())) {
-                            return `${String(parsed.getMonth() + 1).padStart(2, '0')}/${String(parsed.getDate()).padStart(2, '0')}/${parsed.getFullYear()}`;
-                        }
-                    }
-
-                    return raw;
-                },
-                fieldTextStyle(field) {
-                    const value = this.displayValue(field);
-                    const fontSize = this.fitFontSize(field, value);
-                    const lineHeight = parseFloat(field.line_height || 1.3);
-                    const maxLines = parseInt(field.max_lines || 0, 10);
-                    const maxHeight = maxLines > 0 ? (maxLines * fontSize * lineHeight) + 8 : null;
-                    const isParagraph = field.type === 'paragraph';
-
-                    return `
-                        font-family: '${field.font_family}', sans-serif;
-                        font-size: ${fontSize}px;
-                        font-weight: ${field.font_weight};
-                        color: ${field.text_color};
-                        text-align: ${field.alignment};
-                        line-height: ${lineHeight};
-                        letter-spacing: ${field.letter_spacing}px;
-                        display: block;
-                        width: 100%;
-                        overflow: hidden;
-                        overflow-wrap: ${isParagraph ? 'break-word' : 'normal'};
-                        word-break: ${isParagraph ? 'break-word' : 'normal'};
-                        white-space: ${isParagraph ? 'pre-wrap' : 'nowrap'};
-                        text-overflow: ${isParagraph ? 'clip' : 'ellipsis'};
-                        max-height: ${maxHeight ? `${maxHeight}px` : 'none'};
-                    `;
-                },
-                fieldBoxStyle(field) {
-                    const baseHeight = parseFloat(field.height || 0);
-                    const fontSize = this.fitFontSize(field, this.displayValue(field));
-                    const lineHeight = parseFloat(field.line_height || 1.3);
-                    const maxLines = parseInt(field.max_lines || 0, 10);
-                    const computedHeight = maxLines > 0
-                        ? Math.max(baseHeight, (maxLines * fontSize * lineHeight) + 8)
-                        : baseHeight;
-
-                    return `
-                        left: ${field.x}px;
-                        top: ${field.y}px;
-                        width: ${field.width}px;
-                        min-height: ${computedHeight}px;
-                        height: ${computedHeight}px;
-                        box-sizing: border-box;
-                        border: 1px solid transparent;
-                        background: transparent;
-                        overflow: hidden;
-                    `;
-                },
-                fitFontSize(field, value) {
-                    const baseSize = parseFloat(field.font_size || 12);
-                    const minSize = 6;
-
-                    if (field.type === 'paragraph') {
-                        return baseSize;
-                    }
-
-                    const width = Math.max((field.width || 0) - 16, 10);
-                    const lineHeightRatio = parseFloat(field.line_height || 1.3);
-                    const maxLines = parseInt(field.max_lines || 0, 10);
-                    const heightFromLines = maxLines > 0 ? (maxLines * baseSize * lineHeightRatio) : 0;
-                    const height = Math.max(Math.max((field.height || 0) - 8, heightFromLines), 10);
-                    const text = `${value || ''}`.trim();
-
-                    if (!text) {
-                        return baseSize;
-                    }
-
-                    for (let size = baseSize; size >= minSize; size -= 0.5) {
-                        if (this.textFits(field, text, width, height, size)) {
-                            return size;
-                        }
-                    }
-
-                    return minSize;
-                },
-                textFits(field, text, width, height, fontSize) {
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    const weight = field.font_weight || 'normal';
-                    const family = field.font_family || 'Arial';
-                    const lineHeightRatio = parseFloat(field.line_height || 1.3);
-                    const letterSpacing = parseFloat(field.letter_spacing || 0);
-                    const maxLines = parseInt(field.max_lines || 0, 10);
-
-                    context.font = `${weight} ${fontSize}px ${family}`;
-
-                    const paragraphs = text.split(/\r\n|\r|\n/);
-                    const lines = [];
-
-                    for (const paragraph of paragraphs) {
-                        const words = paragraph.split(/\s+/).filter(Boolean);
-
-                        if (!words.length) {
-                            lines.push('');
-                            continue;
-                        }
-
-                        let current = '';
-                        for (const word of words) {
-                            const candidate = current ? `${current} ${word}` : word;
-                            const candidateWidth = context.measureText(candidate).width + (candidate.length * letterSpacing);
-
-                            if (candidateWidth <= width || !current) {
-                                current = candidate;
-                                continue;
-                            }
-
-                            lines.push(current);
-                            current = word;
-                        }
-
-                        if (current) {
-                            lines.push(current);
-                        }
-                    }
-
-                    const totalHeight = lines.length * fontSize * lineHeightRatio;
-                    if (totalHeight > height) {
-                        return false;
-                    }
-
-                    if (maxLines > 0 && lines.length > maxLines) {
-                        return false;
-                    }
-
-                    return lines.every((line) => {
-                        const measured = context.measureText(line).width + (line.length * letterSpacing);
-                        return measured <= width;
-                    });
-                }
-            };
-        }
-    </script>
-@else
-    <div x-data="{ view: 'grid' }" class="mx-auto max-w-6xl space-y-8">
-        <section class="space-y-5">
-            <div>
-                <h2 class="text-[2rem] font-semibold tracking-tight text-slate-900">Transactions Summary</h2>
+                    <p class="mt-2 text-center text-xs text-slate-400 xl:hidden">Pinch to Zoom in for Detail</p>
+                </section>
             </div>
 
-            <div class="grid gap-4 xl:grid-cols-[repeat(3,150px),minmax(0,1fr)]">
-                <div class="rounded-[16px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                    <div class="text-center text-6xl font-semibold leading-none text-[#2A57B4]">{{ $this->dashboardStats['pending_transactions'] }}</div>
-                    <p class="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Pending</p>
-                </div>
-
-                <div class="rounded-[16px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                    <div class="text-center text-6xl font-semibold leading-none text-[#2A57B4]">{{ $this->dashboardStats['completed_transactions'] }}</div>
-                    <p class="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Completed</p>
-                </div>
-
-                <div class="rounded-[16px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                    <div class="text-center text-6xl font-semibold leading-none text-[#2A57B4]">{{ $this->dashboardStats['upcoming_appointments'] }}</div>
-                    <p class="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Upcoming Appointments</p>
-                </div>
-
-                <div class="rounded-[16px] bg-[#2A57B4] px-5 py-4 text-white shadow-[0_16px_34px_rgba(42,87,180,0.22)]">
-                    <p class="text-xs font-medium text-blue-100">Recent Transaction :</p>
-                    @if($this->dashboardStats['recent_transaction'])
-                        <div class="mt-2 truncate text-[2rem] font-semibold leading-tight">
-                            {{ $this->dashboardStats['recent_transaction']['name'] }}
+            {{-- Instructions Modal --}}
+            <template x-teleport="body">
+                <div
+                    x-show="showInstructions"
+                    x-cloak
+                    x-transition.opacity
+                    x-teleport-owner="instructions-modal"
+                    class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    style="background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);"
+                    @click.self="showInstructions = false"
+                    @keydown.escape.window="showInstructions = false"
+                >
+                    <div
+                        x-show="showInstructions"
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        class="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
+                    >
+                        <div class="flex items-start justify-between gap-4 border-b border-slate-100 bg-gradient-to-br from-[#2A57B4] to-[#1E4090] px-6 py-5 text-white">
+                            <div class="flex items-start gap-3">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
+                                    <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="9"></circle>
+                                        <path stroke-linecap="round" d="M12 11v5"></path>
+                                        <path stroke-linecap="round" d="M12 8h.01"></path>
+                                    </svg>
+                                </span>
+                                <div>
+                                    <h3 class="text-base font-semibold">How to Fill out This Form</h3>
+                                    <p class="mt-0.5 text-xs text-blue-100">
+                                        {{ count($instructions) }} Step{{ count($instructions) === 1 ? '' : 's' }} to Follow
+                                    </p>
+                                </div>
+                            </div>
+                            <button type="button" @click="showInstructions = false" class="shrink-0 rounded-full p-1.5 text-blue-100 transition hover:bg-white/15 hover:text-white">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" d="m6 6 12 12M18 6 6 18" />
+                                </svg>
+                            </button>
                         </div>
-                        <p class="mt-1 text-sm text-blue-50">{{ $this->dashboardStats['recent_transaction']['status'] }}</p>
-                        <p class="mt-1 text-xs text-blue-100">{{ $this->dashboardStats['recent_transaction']['updated_at'] }}</p>
+
+                        <div class="overflow-y-auto px-6 py-5">
+                            @forelse($instructions as $instruction)
+                                <div class="relative flex gap-4 pb-5 last:pb-0">
+                                    @if(!$loop->last)
+                                        <span class="absolute left-[13px] top-7 h-full w-px bg-slate-200"></span>
+                                    @endif
+                                    <div class="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2A57B4] text-xs font-semibold text-white ring-4 ring-white">
+                                        {{ $instruction['step_number'] }}
+                                    </div>
+                                    <p class="pt-0.5 text-sm leading-6 text-slate-600">{{ $instruction['description'] }}</p>
+                                </div>
+                            @empty
+                                <p class="text-sm text-slate-500">No Extra Instructions Were Added for This Form.</p>
+                            @endforelse
+                        </div>
+
+                        <div class="flex justify-end border-t border-slate-100 px-6 py-4">
+                            <button
+                                type="button"
+                                @click="showInstructions = false"
+                                class="rounded-xl bg-[#2A57B4] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#24499A]"
+                            >
+                                Got it, Thanks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            {{-- Error Modal --}}
+            <template x-teleport="body">
+                <div
+                    x-show="errorModal.open"
+                    x-cloak
+                    x-transition.opacity
+                    x-teleport-owner="error-modal"
+                    class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    style="background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);"
+                    @click.self="errorModal.open = false"
+                    @keydown.escape.window="errorModal.open = false"
+                >
+                    <div
+                        x-show="errorModal.open"
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        class="w-full max-w-md rounded-2xl border border-rose-100 bg-white p-6 shadow-2xl"
+                    >
+                        <div class="flex items-start gap-3">
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-500">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <h3 class="text-base font-semibold text-slate-900">We Couldn't Save This</h3>
+                                <p class="mt-1 text-sm text-slate-600" x-text="errorModal.message"></p>
+                            </div>
+                        </div>
+                        <div class="mt-5 flex justify-end">
+                            <button
+                                type="button"
+                                @click="errorModal.open = false"
+                                class="rounded-xl bg-[#2A57B4] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#24499A]"
+                            >
+                                Got it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    @else
+        <div class="mx-auto max-w-6xl space-y-8">
+            <div class="space-y-6">
+                <!-- Header Controls: Search Input & View Switcher (Single Line on Mobile) -->
+                <div class="flex flex-row items-center justify-between gap-2 sm:gap-3">
+                    
+                    <!-- Search Field -->
+                    <div class="relative flex-1 min-w-0">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 sm:pl-3 text-gray-400">
+                            <i class='bx bx-search text-base sm:text-lg'></i>
+                        </div>
+                        <input
+                            type="text"
+                            wire:model.live.debounce.250ms="search"
+                            placeholder="Search Templates..."
+                            class="w-full rounded-xl border border-gray-200 bg-white py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 sm:pr-8 text-xs sm:text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        @if($search)
+                            <button
+                                type="button"
+                                wire:click="$set('search', '')"
+                                class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600"
+                            >
+                                <i class='bx bx-x text-base sm:text-lg'></i>
+                            </button>
+                        @endif
+                    </div>
+
+                    <!-- View Mode Switcher -->
+                    <div class="inline-flex shrink-0 rounded-xl border border-gray-200 bg-white p-0.5 sm:p-1">
+                        <button
+                            type="button"
+                            wire:click="$set('viewMode', 'grid')"
+                            class="inline-flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-xs transition-colors {{ $viewMode === 'grid' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-500 hover:text-gray-800' }}"
+                            title="Grid View"
+                        >
+                            <i class='bx bx-grid-alt text-base'></i>
+                            <span class="hidden sm:inline">Grid</span>
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('viewMode', 'list')"
+                            class="inline-flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-xs transition-colors {{ $viewMode === 'list' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-500 hover:text-gray-800' }}"
+                            title="List View"
+                        >
+                            <i class='bx bx-list-ul text-base'></i>
+                            <span class="hidden sm:inline">List</span>
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Template Container -->
+                <div wire:key="view-mode-container">
+                    @if($viewMode === 'grid')
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6" wire:key="template-grid" wire:loading.class="opacity-60">
+                            @forelse($filteredTemplates as $template)
+                                <a
+                                    wire:key="grid-card-{{ $template['template_id'] }}"
+                                    href="{{ route('student.new-transaction', ['template' => $template['template_id']]) }}"
+                                    wire:navigate
+                                    class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white cursor-pointer transition-all duration-150 hover:border-blue-400 hover:shadow-md"
+                                >
+                                    @if(!empty($template['preview_url']))
+                                        <div class="relative w-full shrink-0 overflow-hidden border-b border-gray-200 bg-gray-100" style="padding-top: 129%;">
+                                            <img src="{{ $template['preview_url'] }}" alt="{{ $this->formatTitle($template['name']) }}" class="absolute inset-0 h-full w-full object-cover object-top">
+                                        </div>
+                                    @else
+                                        <div class="flex h-32 w-full items-center justify-center bg-gray-50 text-gray-300">
+                                            <i class='bx bx-file text-3xl'></i>
+                                        </div>
+                                    @endif
+
+                                    <div class="flex flex-1 flex-col justify-between p-3">
+                                        <div>
+                                            <p class="truncate text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-blue-600" title="{{ Str::title(str_replace('_', ' ', $template['name'])) }}">
+                                                {{ Str::title(str_replace('_', ' ', $template['name'])) }}
+                                            </p>
+                                            <p class="mt-0.5 truncate text-[11px] text-gray-400">
+                                                {{ $template['document_size'] ?? 'Standard Document' }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="col-span-full py-16 text-center text-gray-400">
+                                    <p class="text-sm">No Templates Found Matching "{{ $search }}".</p>
+                                </div>
+                            @endforelse
+                        </div>
                     @else
-                        <div class="mt-3 text-2xl font-semibold leading-tight">No recent transaction</div>
-                        <p class="mt-1 text-sm text-blue-100">Start a document request below.</p>
+                        <div class="flex flex-col space-y-3" wire:key="template-list" wire:loading.class="opacity-60">
+                            @forelse($filteredTemplates as $template)
+                                <a
+                                    wire:key="list-card-{{ $template['template_id'] }}"
+                                    href="{{ route('student.new-transaction', ['template' => $template['template_id']]) }}"
+                                    wire:navigate
+                                    class="group flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-3.5 cursor-pointer transition-all duration-150 hover:border-blue-400 hover:shadow-md"
+                                >
+                                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                            <i class='bx bx-file text-xl'></i>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="truncate text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-blue-600">
+                                                {{ Str::title(str_replace('_', ' ', $template['name'])) }}
+                                            </p>
+                                            <p class="mt-0.5 truncate text-[11px] text-gray-400">
+                                                {{ $template['document_size'] ?? 'Standard Document' }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="py-16 text-center text-gray-400">
+                                    <p class="text-sm">No Templates Found Matching "{{ $search }}".</p>
+                                </div>
+                            @endforelse
+                        </div>
                     @endif
                 </div>
             </div>
-        </section>
-
-        <section class="space-y-6">
-            <div class="text-center">
-                <h2 class="text-[2.05rem] font-semibold tracking-tight text-slate-900">Start a New Document Transaction</h2>
-                <p class="mt-2 text-sm text-slate-500">Select a document type and download your pre-filled form</p>
-            </div>
-
-            <div class="mx-auto max-w-4xl">
-                <label class="relative block">
-                    <svg class="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <circle cx="11" cy="11" r="7"></circle>
-                        <path d="m20 20-3.5-3.5"></path>
-                    </svg>
-                    <input
-                        wire:model.live.debounce.250ms="search"
-                        type="text"
-                        placeholder="Search"
-                        class="w-full rounded-full border border-transparent bg-[#F2F2F2] py-4 pl-14 pr-5 text-sm text-slate-900 outline-none transition focus:border-[#2A57B4] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                    >
-                </label>
-            </div>
-
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <button
-                        type="button"
-                        @click="view = 'grid'"
-                        class="inline-flex items-center gap-2 text-sm text-slate-700"
-                    >
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <rect x="3" y="4" width="18" height="4"></rect>
-                            <rect x="3" y="10" width="18" height="4"></rect>
-                            <rect x="3" y="16" width="18" height="4"></rect>
-                        </svg>
-                        <span class="font-medium">Grid View</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        @click="view = 'list'"
-                        class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
-                    >
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <path d="M8 6h13"></path>
-                            <path d="M8 12h13"></path>
-                            <path d="M8 18h13"></path>
-                            <circle cx="4" cy="6" r="1"></circle>
-                            <circle cx="4" cy="12" r="1"></circle>
-                            <circle cx="4" cy="18" r="1"></circle>
-                        </svg>
-                        <span>List View</span>
-                    </button>
-                </div>
-
-                <p class="text-sm text-slate-500">{{ count($templates) }} active document{{ count($templates) === 1 ? '' : 's' }}</p>
-            </div>
-
-            <div class="mt-2" :class="view === 'grid' ? 'grid gap-8 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'">
-                @forelse($templates as $template)
-                    <a
-                        href="{{ route('student.new-transaction', ['template' => $template['template_id']]) }}"
-                        wire:navigate
-                        class="group overflow-hidden rounded-[10px] border border-slate-300 bg-white text-left shadow-sm transition hover:-translate-y-1 hover:border-[#2A57B4] hover:shadow-[0_14px_30px_rgba(42,87,180,0.12)]"
-                        :class="view === 'list' ? 'flex w-full items-stretch' : 'block'"
-                    >
-                        <div :class="view === 'list' ? 'w-64 shrink-0 border-r border-slate-300 bg-white' : 'border-b border-slate-300 bg-white'">
-                            @if($template['preview_url'])
-                                <img
-                                    src="{{ $template['preview_url'] }}"
-                                    alt="{{ $template['name'] }}"
-                                    class="h-72 w-full object-contain bg-white transition duration-300 group-hover:scale-[1.01]"
-                                >
-                            @else
-                                <div class="flex h-72 items-center justify-center bg-white text-sm font-medium text-slate-400">
-                                    No preview available
-                                </div>
-                            @endif
-                        </div>
-
-                        <div class="flex flex-1 flex-col border-t border-slate-300 p-4" :class="view === 'list' ? 'border-t-0' : ''">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <h3 class="truncate text-base font-semibold text-slate-900">{{ $template['name'] }}</h3>
-                                    <p class="mt-1 truncate text-xs text-slate-400">
-                                        {{ $template['document_size'] }} - {{ ucfirst($template['orientation']) }}
-                                    </p>
-                                </div>
-
-                                <span class="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2A57B4]">
-                                    Public
-                                </span>
-                            </div>
-
-                            <p class="mt-3 flex-1 text-sm leading-6 text-slate-600">{{ $template['description'] }}</p>
-
-                            <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
-                                <span>{{ number_format($template['access_count']) }} accessed</span>
-                                <span>Last Updated -</span>
-                            </div>
-                        </div>
-                    </a>
-                @empty
-                    <div class="rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">
-                        No active documents matched your search.
-                    </div>
-                @endforelse
-            </div>
-        </section>
-    </div>
-@endif
+        </div>
+    @endif
+</div>

@@ -26,7 +26,58 @@
             preview: null
         };
         window.previewValues = window.previewValues || {};
+        window.systemPreviewValues = @json($systemPreviewValues);
         window.typographyState = window.typographyState || {};
+        //undo redo
+        window.editorHistory = { undoStack: [], redoStack: [], baseline: null, maxSize: 30 };
+
+        window.captureSnapshot = function(wire) {
+            let mergedFields = wire.fields.map(f => ({ ...f, ...(window.fieldMeta[f.id] || {}) }));
+            return {
+                positions:   JSON.parse(JSON.stringify(window.fieldState)),
+                fields:      JSON.parse(JSON.stringify(mergedFields)),
+                typography:  JSON.parse(JSON.stringify(window.typographyState)),
+                constraints: JSON.parse(JSON.stringify(window.fieldConstraints)),
+                name:        wire.templateName,
+            };
+        };
+
+        window.applySnapshot = function(wire, snap, alpineRoot) {
+            window.fieldState       = JSON.parse(JSON.stringify(snap.positions));
+            window.typographyState  = JSON.parse(JSON.stringify(snap.typography));
+            window.fieldConstraints = JSON.parse(JSON.stringify(snap.constraints));
+
+            wire.templateName = snap.name;
+            wire.fields = JSON.parse(JSON.stringify(snap.fields));
+
+            // Re-sync live field metadata used by dragging/resizing
+            window.fieldMeta = {};
+            snap.fields.forEach(f => { window.fieldMeta[f.id] = { ...f }; });
+
+            // Push corrected positions into any mounted drag instances
+            Object.keys(window.fieldState).forEach(id => {
+                let inst = window.fieldInstances[id];
+                if (inst) {
+                    inst.localX = window.fieldState[id].x;
+                    inst.localY = window.fieldState[id].y;
+                    inst.localW = window.fieldState[id].width;
+                    inst.localH = window.fieldState[id].height;
+                }
+            });
+
+            // Selection may point at a stale object shape or a deleted field — clear it to avoid the identity-mismatch bug
+            if (alpineRoot) {
+                alpineRoot.selectedFieldData = null;
+                alpineRoot.selectedField = null;
+                alpineRoot.previewTick++;
+                alpineRoot.typographyTick++;
+                alpineRoot.constraintTick++;
+            }
+        };
+
+        //undo redo on the up
+
+        
         document.addEventListener('livewire:load', () => {
             Livewire.on('refreshCanvas', () => {
                 location.reload(); // simplest safe sync
@@ -44,6 +95,7 @@
                 textAlign: 'left',
                 lineHeight: 1.4,
                 letterSpacing: 0,
+                textCase: 'none', // 'none' | 'uppercase' | 'sentence' | 'smallcaps'
             };
         };
         function defaultConstraints() {
@@ -54,6 +106,16 @@
                 dateMode: 'current',   // 'current' | 'user'
             };
         }
+
+        // Converts text to "Sentence case": first letter of each sentence capitalized,
+        // everything else lowercase. There's no CSS text-transform equivalent for this,
+        // so it's applied to the rendered string directly.
+        window.toSentenceCase = function(str) {
+            if (!str) return str;
+            return str
+                .toLowerCase()
+                .replace(/(^\s*\w|[.!?]\s+\w)/g, (match) => match.toUpperCase());
+        };
 
 
         function fieldInteraction(config) {
@@ -68,6 +130,7 @@
                 startLeft: 0, startTop: 0,
                 localX: 100, localY: 100,
                 localW: 150, localH: 50,
+                copied: false,
 
                 // Store bound references so removeEventListener works correctly
                 _boundDrag: null,
@@ -98,6 +161,18 @@
                 getScale() { return this.zoom / 100; },
 
                 getCanvas() { return document.querySelector('[data-editor-canvas]'); },
+
+                // Asks the server to clone this field (same type, typography,
+                // constraints, size, and position) and drop the copy directly
+                // on top of the original. The clone renders on top naturally
+                // since it's appended after the original in $wire.fields.
+                duplicateField(field) {
+                    if (!field?.id) return;
+                    this.$wire.duplicateField(field.id);
+
+                    this.copied = true;
+                    setTimeout(() => { this.copied = false; }, 1200);
+                },
 
                 startDrag(e) {
                     if (this.resizing) return;

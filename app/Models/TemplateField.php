@@ -28,12 +28,14 @@ class TemplateField extends Model
         'alignment',
         'line_height',
         'letter_spacing',
+        'text_case',        // ← add this
         'max_length',
         'max_lines',
         'required',
         'placeholder',
         'date_mode',
         'z_index',
+        'group_name',        // ← you're also saving this per the editor JS — check it's here too
     ];
 
     protected $casts = [

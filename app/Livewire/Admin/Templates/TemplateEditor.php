@@ -49,10 +49,12 @@ class TemplateEditor extends Component
             'contact_number'  => 'Contact Number',
             'college'         => 'College',
             'program'         => 'Program',
-            'section'               => 'Section',
+            'section'         => 'Section',
             'organization'    => 'Organization',
             'year_level'      => 'Year Level',
             'academic_status' => 'Academic Status',
+            'current_semester'      => 'Current Semester (Auto)',
+            'current_academic_year' => 'Current School Year (Auto)',
             
         ];
 
@@ -178,6 +180,7 @@ class TemplateEditor extends Component
             'id'             => (string) $field->field_id,
             'type'           => $this->mapBackType($field->data_type, $field->field_type),
             'text'           => $field->label,
+            'group_name'     => $field->group_name, 
             'x'              => (float) $field->x_position,
             'y'              => (float) $field->y_position,
             'width'          => (float) $field->width,
@@ -196,23 +199,42 @@ class TemplateEditor extends Component
             'alignment'      => $field->alignment,
             'line_height'    => $field->line_height,
             'letter_spacing' => $field->letter_spacing,
+            'text_case'      => $field->text_case ?? 'none',
             'placeholder'    => $field->placeholder,
         ])->values()->all();
     }
 
     #[Renderless]
-    public function addField($type)
+    public function addField($type, $x = null, $y = null)
     {
+        $systemFieldMap = [
+            'current_semester'    => ['key' => 'current_semester',      'label' => 'CURRENT SEMESTER'],
+            'current_school_year' => ['key' => 'current_academic_year',  'label' => 'CURRENT SCHOOL YEAR'],
+        ];
+
+        $isSystemAuto = array_key_exists($type, $systemFieldMap);
+        $baseType     = $isSystemAuto ? 'text' : $type;
+        $sourceType   = $isSystemAuto ? 'system' : 'input';
+        $systemKey    = $isSystemAuto ? $systemFieldMap[$type]['key'] : null;
+        $name         = $isSystemAuto ? $systemKey : ('field_' . substr(uniqid(), -8));
+        $label        = $isSystemAuto ? $systemFieldMap[$type]['label'] : strtoupper($type);
+
+        // Fall back to the old default when the client didn't supply a
+        // viewport-centered position (e.g. programmatic calls).
+        $posX = is_numeric($x) ? (float) $x : 100;
+        $posY = is_numeric($y) ? (float) $y : 100;
+
         $id = \DB::table('template_fields')->insertGetId([
             'version_id'     => $this->version->version_id,
-            'label'          => strtoupper($type),
-            'name'           => 'field_' . substr(uniqid(), -8),
-            'source_type'    => 'input',
-            'system_key'     => null,
-            'data_type'      => $this->mapDataType($type),
-            'field_type'     => $type === 'paragraph' ? 'paragraph' : 'single',
-            'x_position'     => 100,
-            'y_position'     => 100,
+            'label'          => $label,
+            'group_name'     => null,
+            'name'           => $name,
+            'source_type'    => $sourceType,
+            'system_key'     => $systemKey,
+            'data_type'      => $this->mapDataType($baseType),
+            'field_type'     => $baseType === 'paragraph' ? 'paragraph' : 'single',
+            'x_position'     => $posX,
+            'y_position'     => $posY,
             'width'          => 150,
             'height'         => 50,
             'font_family'    => 'Arial',
@@ -222,6 +244,7 @@ class TemplateEditor extends Component
             'alignment'      => 'left',
             'line_height'    => 1.4,
             'letter_spacing' => 0,
+            'text_case'      => 'none',
             'max_length'     => null,
             'max_lines'      => null,
             'required'       => false,
@@ -233,15 +256,16 @@ class TemplateEditor extends Component
 
         $newField = [
             'id'             => (string) $id,
-            'type'           => $type,
-            'x'              => 100,
-            'y'              => 100,
+            'type'           => $baseType,
+            'x'              => $posX,
+            'y'              => $posY,
             'width'          => 150,
             'height'         => 50,
-            'text'           => strtoupper($type),
-            'source_type'    => 'input',
-            'system_key'     => null,
-            'name'           => 'field_' . substr(uniqid(), -8),
+            'text'           => $label,
+            'group_name'     => null,
+            'source_type'    => $sourceType,
+            'system_key'     => $systemKey,
+            'name'           => $name,
             'required'       => false,
             'date_mode'      => 'current',
             'font_family'    => 'Arial',
@@ -251,12 +275,68 @@ class TemplateEditor extends Component
             'alignment'      => 'left',
             'line_height'    => 1.4,
             'letter_spacing' => 0,
+            'text_case'      => 'none',
             'max_length'     => null,
             'max_lines'      => null,
             'placeholder'    => null,
         ];
 
-        // Tell the client to add this field without a re-render
+        $this->dispatch('fieldAdded', field: $newField);
+    }
+
+    #[Renderless]
+    public function duplicateField($fieldId)
+    {
+        $source = \DB::table('template_fields')
+            ->where('version_id', $this->version->version_id)
+            ->where('field_id', $fieldId)
+            ->first();
+
+        if (!$source) return;
+
+        $data = (array) $source;
+        unset($data['field_id']);
+
+        // Input-sourced fields need a unique variable name so the duplicate
+        // doesn't silently collide with the original when students fill it
+        // in — everything else (position, size, typography, constraints)
+        // stays an exact copy, so the duplicate lands directly on top.
+        if ($data['source_type'] === 'input') {
+            $data['name'] = ($data['name'] ?: 'field') . '_copy_' . substr(uniqid(), -4);
+        }
+
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+
+        $newId = \DB::table('template_fields')->insertGetId($data);
+
+        $newField = [
+            'id'             => (string) $newId,
+            'type'           => $this->mapBackType($data['data_type'], $data['field_type']),
+            'text'           => $data['label'],
+            'group_name'     => $data['group_name'] ?? null,
+            'x'              => (float) $data['x_position'],
+            'y'              => (float) $data['y_position'],
+            'width'          => (float) $data['width'],
+            'height'         => (float) $data['height'],
+            'source_type'    => $data['source_type'],
+            'system_key'     => $data['system_key'],
+            'name'           => $data['name'],
+            'required'       => (bool) ($data['required'] ?? false),
+            'date_mode'      => $data['date_mode'] ?? 'current',
+            'font_family'    => $data['font_family'],
+            'font_weight'    => $data['font_weight'],
+            'font_size'      => $data['font_size'],
+            'text_color'     => $data['text_color'],
+            'alignment'      => $data['alignment'],
+            'line_height'    => $data['line_height'],
+            'letter_spacing' => $data['letter_spacing'],
+            'text_case'      => $data['text_case'] ?? 'none',
+            'max_length'     => $data['max_length'],
+            'max_lines'      => $data['max_lines'],
+            'placeholder'    => $data['placeholder'],
+        ];
+
         $this->dispatch('fieldAdded', field: $newField);
     }
 
@@ -322,6 +402,7 @@ class TemplateEditor extends Component
                 'alignment'      => $typo['textAlign']     ?? 'left',
                 'line_height'    => $typo['lineHeight']    ?? 1.4,
                 'letter_spacing' => $typo['letterSpacing'] ?? 0,
+                'text_case'      => $typo['textCase']      ?? 'none',
                 'max_length'     => $cons['maxLength']     ?? null,
                 'max_lines'      => $cons['maxLines']      ?? null,
                 'required'       => $cons['required']      ?? false,
@@ -329,6 +410,7 @@ class TemplateEditor extends Component
                 'placeholder'    => $field['placeholder']  ?? null,
                 'created_at'     => now(),
                 'updated_at'     => now(),
+                'group_name'     => $field['group_name'] ?? null,
             ]);
         }
 
@@ -381,8 +463,15 @@ class TemplateEditor extends Component
 
     public function render()
     {
+        $systemPreviewValues = [
+            'current_semester'      => currentSemester() ?? '—',
+            'current_academic_year' => currentAcademicYear() ?? '—',
+        ];
+
         return view('livewire.admin.templates.template-editor', [
             'canvasDimensions' => $this->getCanvasDimensions(),
-        ])->layout('layouts.editor');
+        ])->layout('layouts.editor', [
+            'systemPreviewValues' => $systemPreviewValues,
+        ]);
     }
 }

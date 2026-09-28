@@ -2,94 +2,168 @@
 
 namespace App\Livewire\Admin;
 
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
-use App\Models\Setting;
-use Illuminate\Validation\ValidationException;
-use App\Models\User;
 
 class Dashboard extends Component
 {
-    public $current_semester;
-    public $academic_year;
-    public $verification_start_date;
-    public $verification_end_date;
-    public function rules()
+    /**
+     * Dashboard KPIs.
+     *
+     * These values are intentionally kept focused on the
+     * administrative overview of the DocuMate system.
+     */
+    public function getKpisProperty(): array
     {
+        $totalStudents = DB::table('users')
+            ->join('roles', 'roles.id', '=', 'users.role_id')
+            ->whereIn('roles.role_name', ['Student', 'Officer'])
+            ->count();
+
+        $activeAccounts = DB::table('users')
+            ->where('account_status', 'active')
+            ->count();
+
+        $pendingVerification = DB::table('student_verifications')
+            ->where('status', 'pending')
+            ->count();
+
+        $pendingTransactions = DB::table('student_document_workspaces')
+            ->where('status', 'pending')
+            ->count();
+
+        $todaysAppointments = DB::table('appointments')
+            ->whereDate('appointment_date', today())
+            ->count();
+
+        $pendingAppointmentReview = DB::table('appointments')
+            ->where('status', 'pending')
+            ->count();
+
+        $clearanceTotal = DB::table('clearance_statuses')
+            ->count();
+
+        $clearedCount = DB::table('clearance_statuses')
+            ->where('status', 'Cleared')
+            ->count();
+
         return [
-            'current_semester' => 'required',
-            'academic_year' => 'required',
-            'verification_start_date' => 'required|date',
-            'verification_end_date' => 'required|date|after_or_equal:verification_start_date',
+            'total_students' => $totalStudents,
+            'active_accounts' => $activeAccounts,
+            'pending_verification' => $pendingVerification,
+            'pending_transactions' => $pendingTransactions,
+            'todays_appointments' => $todaysAppointments,
+            'pending_appointment_review' => $pendingAppointmentReview,
+            'clearance_rate' => $clearanceTotal > 0
+                ? round(($clearedCount / $clearanceTotal) * 100)
+                : 0,
         ];
     }
-    public function messages()
+
+    /**
+     * Recent activity across appointments and transactions.
+     *
+     * This gives the admin a quick view of what has recently
+     * happened in the system.
+     */
+    public function getRecentActivityProperty()
+    {
+        $appointments = DB::table('appointments as a')
+            ->join('users as u', 'u.id', '=', 'a.user_id')
+            ->select(
+                DB::raw("'appointment' as type"),
+                'a.appointment_id as id',
+                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
+                'a.status',
+                'a.created_at'
+            )
+            ->orderByDesc('a.created_at')
+            ->limit(5);
+
+        $transactions = DB::table('student_document_workspaces as w')
+            ->join('users as u', 'u.id', '=', 'w.user_id')
+            ->select(
+                DB::raw("'transaction' as type"),
+                'w.workspace_id as id',
+                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
+                'w.status',
+                'w.created_at'
+            )
+            ->orderByDesc('w.created_at')
+            ->limit(5);
+
+        return $appointments
+            ->unionAll($transactions)
+            ->orderByDesc('created_at')
+            ->limit(8)
+            ->get();
+    }
+
+    /**
+     * Quick action data.
+     *
+     * Keeps the Blade template clean while allowing the
+     * Action Center to dynamically reflect current workload.
+     */
+    public function getActionItemsProperty(): array
     {
         return [
-            'verification_end_date.after_or_equal' => 'End date must be after or equal to start date.',
+            [
+                'label' => 'Pending Verifications',
+                'count' => $this->kpis['pending_verification'],
+                'description' => 'Student accounts waiting for verification.',
+                'route' => 'admin.verification',
+                'icon' => 'bx-id-card',
+                'tone' => 'amber',
+            ],
+            [
+                'label' => 'Pending Transactions',
+                'count' => $this->kpis['pending_transactions'],
+                'description' => 'Transactions that still need attention.',
+                'route' => 'admin.transactions.index',
+                'icon' => 'bx-transfer',
+                'tone' => 'blue',
+            ],
+            [
+                'label' => 'Appointment Requests',
+                'count' => $this->kpis['pending_appointment_review'],
+                'description' => 'Appointments awaiting admin review.',
+                'route' => 'admin.appointments.index',
+                'icon' => 'bx-calendar-exclamation',
+                'tone' => 'red',
+            ],
         ];
     }
 
-    public function mount()
+    /**
+     * Today's appointment overview.
+     */
+    public function getTodaysAppointmentsProperty()
     {
-        $setting = systemSetting();
-
-        if ($setting) {
-            $this->current_semester = $setting->current_semester;
-            $this->academic_year = $setting->academic_year;
-            $this->verification_start_date = $setting->verification_start_date;
-            $this->verification_end_date = $setting->verification_end_date;
-        }
-        if (!$this->academic_year) {
-            $year = now()->year;
-            $this->academic_year = $year . '-' . ($year + 1);
-        }
-    }
-    public function updated($propertyName)
-    {
-        try {
-            $this->validateOnly($propertyName);
-        } catch (ValidationException $e) {
-            $this->dispatch(
-                'alert',
-                type: 'error',
-                message: collect($e->validator->errors()->all())->first()
-            );
-        }
+        return DB::table('appointments as a')
+            ->join('users as u', 'u.id', '=', 'a.user_id')
+            ->select(
+                'a.appointment_id',
+                'a.appointment_date',
+                'a.status',
+                'a.created_at',
+                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name")
+            )
+            ->whereDate('a.appointment_date', today())
+            ->orderBy('a.appointment_date')
+            ->limit(5)
+            ->get();
     }
 
-
-    public function save()
-        {
-            $this->validate();
-
-            if ($this->verification_start_date === $this->verification_end_date) {
-                session()->flash('warning', 'Verification is only open for 1 day.');
-                $this->dispatch('alert', type: 'warning', message: 'Verification is only open for 1 day.');
-            }
-            $latest = systemSetting();
-            $newVersion = $latest?->verification_version + 1 ?? 1;
-
-            Setting::create([
-                'current_semester' => $this->current_semester,
-                'academic_year' => $this->academic_year,
-                'verification_start_date' => $this->verification_start_date,
-                'verification_end_date' => $this->verification_end_date,
-                'verification_version' => $newVersion,
-            ]);
-
-            // 🔥 CORE LOGIC: deactivate all non-admin users
-            User::whereHas('role', function ($q) {
-                $q->where('role_name', '!=', 'Admin');
-            })->update([
-                'account_status' => 'inactive'
-            ]);
-
-            session()->flash('message', 'Settings updated & users reset for verification.');
-
-            $this->dispatch('alert', type: 'success', message: 'Verification period set. Users must re-verify.');
-        }
     public function render()
     {
-        return view('livewire.admin.dashboard')->layout('layouts.app', ['title' => 'Dashboard']);
+        return view('livewire.admin.dashboard', [
+            'kpis' => $this->kpis,
+            'recentActivity' => $this->recentActivity,
+            'actionItems' => $this->actionItems,
+            'todaysAppointments' => $this->todaysAppointments,
+        ])->layout('layouts.app', [
+            'title' => 'Dashboard',
+        ]);
     }
 }

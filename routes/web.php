@@ -20,6 +20,13 @@ use App\Livewire\VerifyStudent;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Profile\ProfilePage;
 use App\Http\Controllers\StudentVerificationController;
+use App\Livewire\Admin\VerificationManagement;
+use App\Livewire\Admin\ClearanceProfile as AdminClearanceProfile;
+use App\Livewire\Officer\ClearanceProfile as OfficerClearanceProfile;
+use App\Livewire\Student\StudentHandbook;
+use App\Livewire\Admin\SemesterManagement;
+use App\Livewire\Admin\Reports;
+
 
 
 // Public
@@ -55,6 +62,25 @@ Route::middleware(['auth'])->group(function () {
             ->name('student.new-transaction');
         Route::get('/student/workspaces/{workspace}/download-pdf', [StudentDocumentWorkspaceController::class, 'downloadPdf'])
             ->name('student.workspaces.download-pdf');
+        Route::get('/student/documents', \App\Livewire\Student\Documents\DocumentsIndex::class)
+            ->name('student.documents.index');
+        Route::get('/student/documents/{workspace}', \App\Livewire\Student\Documents\DocumentShow::class)
+            ->name('student.documents.show');
+        Route::get('/student/new-transaction/{template}/edit/{workspace}', NewTransaction::class)
+            ->name('student.new-transaction.edit');
+        Route::get('/student/appointments/new/{workspace?}', \App\Livewire\Student\Appointments\NewAppointment::class)
+            ->name('student.appointments.new');
+        Route::get('/student/appointments', \App\Livewire\Student\Appointments\AppointmentsIndex::class)
+            ->name('student.appointments.index');
+        Route::get('/student/appointments/{appointment}', \App\Livewire\Student\Appointments\AppointmentShow::class)
+            ->name('student.appointments.show');
+        Route::get('/student/appointments/{appointment}/reapply', \App\Livewire\Student\Appointments\ReapplyAppointment::class)
+            ->name('student.appointments.reapply');
+        Route::get('/clearance-tagging/{studentId}', OfficerClearanceProfile::class)
+            ->name('officer.clearance.show');
+        Route::get('/handbook', StudentHandbook::class)->name('handbook');
+      
+            
 
 
     });
@@ -93,6 +119,33 @@ Route::middleware(['auth'])->group(function () {
         
         Route::get('/admin/templates/{template}/editor', TemplateEditor::class)
             ->name('admin.templates.editor');
+
+        Route::get('/admin/appointments', \App\Livewire\Admin\Appointments\AppointmentsBoard::class)
+            ->name('admin.appointments.index');
+
+        Route::get('/admin/appointments/availability', \App\Livewire\Admin\Appointments\AvailabilityCalendar::class)
+            ->name('admin.appointments.availability');
+            
+        Route::get('/admin/appointments/{appointment}', \App\Livewire\Admin\Appointments\AppointmentShow::class)
+            ->name('admin.appointments.show');
+
+        Route::get('/admin/document-uploads', \App\Livewire\Admin\DocumentUploads\DocumentUploadsIndex::class)
+            ->name('admin.document-uploads.index');
+
+        Route::get('/admin/document-uploads/{workspace}', \App\Livewire\Admin\DocumentUploads\DocumentUploadShow::class)
+            ->name('admin.document-uploads.show');
+
+        Route::get('/admin/verification', VerificationManagement::class)
+            ->name('admin.verification');
+        
+        Route::get('/admin/reports', Reports::class)
+            ->name('admin.reports');
+
+        Route::get('/admin/clearance-monitoring/{studentId}', AdminClearanceProfile::class)
+            ->name('admin.clearance-monitoring.show');
+
+        Route::get('/admin/semesters', SemesterManagement::class)
+            ->name('admin.semesters');
     });
 
     // OFFICER

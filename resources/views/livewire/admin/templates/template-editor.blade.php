@@ -41,6 +41,8 @@
     <div class="flex flex-1 overflow-hidden"
         x-data="{
             zoom: 100, panX: 0, panY: 0,
+            isPanning: false,
+            panStart: { x: 0, y: 0 },
             activeTab: 'field',
             selectedField: null,
             selectedFieldData: null,
@@ -51,6 +53,8 @@
             previewTick: 0,
             typographyTick: 0,
             constraintTick: 0,
+            leftPanelOpen: true,
+            rightPanelOpen: true,
             imagePreview: window.imageState.preview || @js($version->image_path ? '/storage/'.$version->image_path : ''),
 
             init() {
@@ -83,6 +87,28 @@
                 });
 
             },
+            startCanvasPan(e) {
+                // Don't start a pan if the mousedown originated on a field or a resize handle
+                if (e.target.closest('.cursor-move') || e.target.closest('[data-resize]')) return;
+                this.isPanning = true;
+                document.body.style.userSelect = 'none';
+                this.panStart = { x: e.clientX - this.panX, y: e.clientY - this.panY };
+            },
+            onCanvasPan(e) {
+                if (!this.isPanning) return;
+                this.panX = e.clientX - this.panStart.x;
+                this.panY = e.clientY - this.panStart.y;
+            },
+            stopCanvasPan() {
+                this.isPanning = false;
+                document.body.style.userSelect = '';
+            },
+            onCanvasWheel(e) {
+                e.preventDefault();
+                const step = 5;
+                const delta = e.deltaY < 0 ? step : -step;
+                this.zoom = Math.min(150, Math.max(50, this.zoom + delta));
+            },
             setConstraint(key, value) {
                 let id = this.selectedFieldData?.id;
                 if (!id) return;
@@ -96,6 +122,10 @@
 
             get selectedSourceType() {
                 return this.selectedFieldData?.source_type ?? 'input';
+            },
+
+            get isSystemLocked() {
+                return ['current_semester', 'current_academic_year'].includes(this.selectedFieldData?.system_key);
             },
 
             getTypo() {
@@ -158,10 +188,33 @@
                     $wire.fields.splice(idx, 1, { ...$wire.fields[idx], ...this.selectedFieldData });
                 }
             },
+            addFieldAtCenter(type) {
+                // Compute the canvas-local coordinate that corresponds to the
+                // current center of the visible viewport (accounts for pan + zoom)
+                let canvasEl   = document.querySelector('[data-editor-canvas]');
+                let viewportEl = document.querySelector('[data-canvas]');
+                if (!canvasEl || !viewportEl) { this.$wire.addField(type); return; }
+
+                let canvasRect   = canvasEl.getBoundingClientRect();
+                let viewportRect = viewportEl.getBoundingClientRect();
+                let scale = this.zoom / 100;
+
+                let viewportCenterX = viewportRect.left + viewportRect.width / 2;
+                let viewportCenterY = viewportRect.top + viewportRect.height / 2;
+
+                let localX = (viewportCenterX - canvasRect.left) / scale;
+                let localY = (viewportCenterY - canvasRect.top) / scale;
+
+                // Default new-field size is 150x50 — center the box on that point
+                let x = Math.round(localX - 75);
+                let y = Math.round(localY - 25);
+
+                this.$wire.addField(type, x, y);
+            },
         }">
 
         <!-- 🟦 LEFT PANEL -->
-        <div class="w-80 bg-white border-r px-4 py-4 overflow-y-auto text-xs">
+        <div x-show="leftPanelOpen" x-cloak class="w-80 bg-white border-r px-4 py-4 overflow-y-auto text-xs">
 
             <div>
                 <!-- UPLOAD (CARD) -->
@@ -185,23 +238,6 @@
                 </div>
                 <input type="file" accept="image/*" class="hidden" x-ref="imageInput"
                     @change="handleImageUpload">
-
-                <!-- VIEW -->
-                <label class="font-semibold text-xs">V I E W</label>
-                <div class="mt-2 space-y-2">
-                    <div>
-                        <label class="text-[11px] text-gray-500">Zoom</label>
-                        <input type="range" min="50" max="150" x-model="zoom" class="w-full">
-                    </div>
-                    <div>
-                        <label class="text-[11px] text-gray-500">Horizontal</label>
-                        <input type="range" min="-800" max="800" x-model="panX" class="w-full">
-                    </div>
-                    <div>
-                        <label class="text-[11px] text-gray-500">Vertical</label>
-                        <input type="range" min="-800" max="800" x-model="panY" class="w-full">
-                    </div>
-                </div>
 
                 <hr class="my-4">
 
@@ -281,42 +317,76 @@
             <label class="font-semibold text-xs">T O O L B O X</label>
             <div class="grid grid-cols-2 gap-3 mt-2 mb-6 text-[11px] text-center">
                 <div class="border p-3 cursor-pointer hover:bg-blue-50 rounded"
-                     @click="$wire.addField('text')">
+                     @click="addFieldAtCenter('text')">
                     <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor">
                         <path d="M4 6h16M8 6v12"/>
                     </svg>
                     Text
                 </div>
                 <div class="border p-3 cursor-pointer hover:bg-blue-50 rounded"
-                    @click="$wire.addField('number')">
+                    @click="addFieldAtCenter('number')">
                     <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor">
                         <path d="M5 10h14M5 14h14"/>
                     </svg>
                     Number
                 </div>
                 <div class="border p-3 cursor-pointer hover:bg-blue-50 rounded"
-                    @click="$wire.addField('paragraph')">
+                    @click="addFieldAtCenter('paragraph')">
                     <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor">
                         <path d="M4 6h16M4 10h12M4 14h16"/>
                     </svg>
                     Paragraph
                 </div>
                 <div class="border p-3 cursor-pointer hover:bg-blue-50 rounded"
-                    @click="$wire.addField('date')">
+                    @click="addFieldAtCenter('date')">
                     <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor">
                         <rect x="3" y="5" width="18" height="16" rx="2"/>
                         <path d="M16 3v4M8 3v4"/>
                     </svg>
                     Date
                 </div>
+                <div class="border p-3 cursor-pointer hover:bg-blue-50 rounded"
+                    @click="addFieldAtCenter('current_semester')">
+                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 7v5l3 3"/>
+                    </svg>
+                    Semester
+                </div>
+                <div class="border p-3 cursor-pointer hover:bg-blue-50 rounded"
+                    @click="addFieldAtCenter('current_school_year')">
+                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor">
+                        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                    </svg>
+                    School Year
+                </div>
             </div>
 
         </div>
 
+        <!-- 🟦 LEFT PANEL HANDLE (lives outside the panel, on the border with the canvas) -->
+        <div class="relative w-0 z-30">
+            <button type="button"
+                @click="leftPanelOpen = !leftPanelOpen"
+                :title="leftPanelOpen ? 'Collapse panel' : 'Show panel'"
+                class="absolute top-1/2 -translate-y-1/2 -left-3 w-6 h-10 bg-white border rounded-r-md shadow flex items-center justify-center hover:bg-gray-50 text-gray-400 hover:text-gray-700">
+                <svg class="w-3.5 h-3.5 transition-transform" :class="leftPanelOpen ? '' : 'rotate-180'"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+        </div>
+
 
         <!-- 🟨 CANVAS -->
-        <div class="relative flex-1 bg-gray-100 flex items-center justify-center overflow-hidden" data-canvas 
-        @field-drag-end.window="scheduleAutosave()">
+        <div class="relative flex-1 bg-gray-100 flex items-center justify-center overflow-hidden" data-canvas
+            :class="isPanning ? 'cursor-grabbing' : 'cursor-grab'"
+            @mousedown="startCanvasPan($event)"
+            @mousemove.window="onCanvasPan($event)"
+            @mouseup.window="stopCanvasPan()"
+            @wheel="onCanvasWheel($event)"
+            @field-drag-end.window="scheduleAutosave()">
             <div class="max-w-[900px] max-h-[90%]">
                 <div
                     :style="'transform: translate(' + panX + 'px,' + panY + 'px) scale(' + (zoom/100) + ')'"
@@ -355,6 +425,7 @@
                                                 textAlign: field.alignment || 'left',
                                                 lineHeight: field.line_height || 1.4,
                                                 letterSpacing: field.letter_spacing || 0,
+                                                textCase: field.text_case || 'none',
                                             };
                                         }
                                         if (!window.fieldConstraints[field.id]) {
@@ -381,10 +452,10 @@
                                         selectedFieldData.system_key = selectedFieldData.system_key ?? null;
                                         selectedSourceType = selectedFieldData.source_type;
                                     "
-                                    class="absolute bg-transparent text-xs border cursor-move select-none"
+                                    class="absolute bg-transparent text-xs cursor-move select-none"
                                     :class="{
-                                        'border-blue-500 shadow-sm': $wire.selectedFieldId === field.id,
-                                        'border-gray-300': $wire.selectedFieldId !== field.id,
+                                        'border border-blue-500 shadow-sm': $wire.selectedFieldId === field.id,
+                                        'border border-transparent hover:border-gray-300': $wire.selectedFieldId !== field.id,
                                         'z-50': dragging || resizing
                                     }"
                                     :style="`
@@ -395,26 +466,44 @@
                                         height: auto;
                                     `">
 
-                                    <!-- TYPE BADGE + VARIABLE NAME -->
-                                    <div class="absolute -top-5 left-0 flex items-center gap-1 pointer-events-none">
-                                        <div class="text-[9px] font-semibold px-1 rounded-sm leading-4"
-                                            :class="{
-                                                'bg-blue-100 text-blue-700': field.type === 'text',
-                                                'bg-purple-100 text-purple-700': field.type === 'paragraph',
-                                                'bg-green-100 text-green-700': field.type === 'number',
-                                                'bg-orange-100 text-orange-700': field.type === 'date',
-                                            }"
-                                            x-text="field.type">
+                                    <!-- TYPE BADGE + VARIABLE NAME + COPY BUTTON (only visible when the field is selected) -->
+                                    <!-- Anchored with bottom-full + mb-1 (instead of a fixed negative top) so its
+                                         actual rendered height always sits above the field, never overlapping it -->
+                                    <div x-show="$wire.selectedFieldId === field.id" x-cloak
+                                        class="absolute bottom-full left-0 right-0 mb-1 flex items-center justify-between gap-1">
+                                        <div class="flex items-center gap-1 pointer-events-none">
+                                            <div class="text-[9px] font-semibold px-1 rounded-sm leading-4"
+                                                :class="{
+                                                    'bg-blue-100 text-blue-700': field.type === 'text',
+                                                    'bg-purple-100 text-purple-700': field.type === 'paragraph',
+                                                    'bg-green-100 text-green-700': field.type === 'number',
+                                                    'bg-orange-100 text-orange-700': field.type === 'date',
+                                                }"
+                                                x-text="field.type">
+                                            </div>
+                                            <div class="text-[9px] font-semibold px-1 rounded-sm leading-4 bg-gray-100 text-gray-500"
+                                               x-text="'@{{' + (field.source_type === 'system' ? (field.system_key || field.type) : (field.name || field.type)) + '}}'">
+                                            </div>
+
+                                            <!-- Required badge -->
+                                            <div x-show="field.required"
+                                                class="text-[9px] font-semibold px-1 rounded-sm leading-4 bg-red-100 text-red-600">
+                                                required
+                                            </div>
+                                            <div x-show="field.group_name"
+                                                class="text-[9px] font-semibold px-1 rounded-sm leading-4 bg-indigo-100 text-indigo-700"
+                                                x-text="field.group_name">
+                                            </div>
                                         </div>
-                                        <div class="text-[9px] font-semibold px-1 rounded-sm leading-4 bg-gray-100 text-gray-500"
-                                           x-text="'@{{' + (field.source_type === 'system' ? (field.system_key || field.type) : (field.name || field.type)) + '}}'">
-                                        </div>
-            
-                                        <!-- Required badge -->
-                                        <div x-show="field.required"
-                                            class="text-[9px] font-semibold px-1 rounded-sm leading-4 bg-red-100 text-red-600">
-                                            required
-                                        </div>
+
+                                        <!-- COPY BUTTON: duplicates this field box directly on top of itself -->
+                                        <button type="button"
+                                            @click.stop="duplicateField(field)"
+                                            title="Duplicate this field"
+                                            class="pointer-events-auto text-[9px] font-semibold px-1 rounded-sm leading-4 border bg-white hover:bg-gray-50"
+                                            :class="copied ? 'text-green-600 border-green-400' : 'text-gray-500 border-gray-300'">
+                                            <span x-text="copied ? '✓ Duplicated' : '⧉ Copy'"></span>
+                                        </button>
                                     </div>
 
                                     <!-- FIELD CONTENT -->
@@ -426,6 +515,9 @@
                                             let lineH = parseFloat(t.lineHeight) || 1.4;
                                             let fs = parseFloat(t.fontSize) || 12;
                                             let computedH = c.maxLines ? (c.maxLines * fs * lineH + 8) + 'px' : null;
+                                            let caseCss = '';
+                                            if (t.textCase === 'uppercase') caseCss = 'text-transform: uppercase;';
+                                            else if (t.textCase === 'smallcaps') caseCss = 'text-transform: lowercase; font-variant: small-caps;';
                                             return `
                                                 font-family: ${t.fontFamily};
                                                 font-weight: ${t.fontWeight};
@@ -441,68 +533,107 @@
                                                 width: 100%;
                                                 overflow-wrap: break-word;
                                                 word-break: break-word;
+                                                ${caseCss}
                                             `;
                                         })()"
                                         x-text="(() => {
                                             previewTick;
                                             let c = window.fieldConstraints[field.id] || {};
+                                            let t = window.typographyState[field.id] || defaultTypography();
 
-                                            if (field.type === 'date') {
+                                            let out;
+                                            if (field.source_type === 'system' && (field.system_key === 'current_semester' || field.system_key === 'current_academic_year')) {
+                                                    out = window.systemPreviewValues?.[field.system_key] ?? field.system_key;
+                                            } else if (field.type === 'date') {
                                                 if (c.dateMode === 'current') {
-                                                    return new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+                                                    out = new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
                                                 } else {
-                                                    return window.previewValues[field.id] || field.placeholder || 'MM/DD/YYYY';
+                                                    out = window.previewValues[field.id] || field.placeholder || 'MM/DD/YYYY';
+                                                }
+                                            } else {
+                                                let val = window.previewValues[field.id];
+                                                if (!val && field.placeholder) val = field.placeholder;
+
+                                                if (val) {
+                                                    // Enforce maxLines on the displayed value
+                                                    if (c.maxLines) {
+                                                        let lines = val.split('\n');
+                                                        if (lines.length > c.maxLines) val = lines.slice(0, c.maxLines).join('\n');
+                                                    }
+                                                    out = val;
+                                                } else {
+                                                    let name = field.name || field.system_key || field.type;
+                                                    let hint = [];
+                                                    if (c.maxLength) hint.push('max ' + c.maxLength + ' chars');
+                                                    if (c.maxLines)  hint.push('max ' + c.maxLines  + ' lines');
+                                                    out = hint.length ? name + ' (' + hint.join(', ') + ')' : name;
                                                 }
                                             }
 
-                                            let val = window.previewValues[field.id];
-                                            if (!val && field.placeholder) val = field.placeholder;
+                                            // 'sentence case' has no CSS equivalent, so it's applied to the text itself
+                                            if (t.textCase === 'sentence' && out) out = window.toSentenceCase(out);
 
-                                            if (val) {
-                                                // Enforce maxLines on the displayed value
-                                                if (c.maxLines) {
-                                                    let lines = val.split('\n');
-                                                    if (lines.length > c.maxLines) val = lines.slice(0, c.maxLines).join('\n');
-                                                }
-                                                return val;
-                                            }
-
-                                            let name = field.name || field.system_key || field.type;
-                                            let hint = [];
-                                            if (c.maxLength) hint.push('max ' + c.maxLength + ' chars');
-                                            if (c.maxLines)  hint.push('max ' + c.maxLines  + ' lines');
-                                            return hint.length ? name + ' (' + hint.join(', ') + ')' : name;
+                                            return out;
                                         })()">
                                     </div>
 
-                                    <!-- RESIZE HANDLES -->
-                                    <div data-resize class="absolute w-3 h-3 bg-blue-600 -top-1 -left-1 cursor-nw-resize z-10"
-                                        @mousedown.stop.prevent="startResize($event, 'nw')"></div>
-                                    <div data-resize class="absolute w-3 h-3 bg-blue-600 -top-1 -right-1 cursor-ne-resize z-10"
-                                        @mousedown.stop.prevent="startResize($event, 'ne')"></div>
-                                    <div data-resize class="absolute w-3 h-3 bg-blue-600 -bottom-1 -left-1 cursor-sw-resize z-10"
-                                        @mousedown.stop.prevent="startResize($event, 'sw')"></div>
-                                    <div data-resize class="absolute w-3 h-3 bg-blue-600 -bottom-1 -right-1 cursor-se-resize z-10"
-                                        @mousedown.stop.prevent="startResize($event, 'se')"></div>
-                                    <div data-resize class="absolute h-1.5 w-full top-0 left-0 cursor-n-resize z-10"
-                                        @mousedown.stop.prevent="startResize($event, 'n')"></div>
-                                    <div data-resize class="absolute h-1.5 w-full bottom-0 left-0 cursor-s-resize z-10"
-                                        @mousedown.stop.prevent="startResize($event, 's')"></div>
-                                    <div data-resize class="absolute w-1.5 h-full left-0 top-0 cursor-w-resize z-10"
-                                        @mousedown.stop.prevent="startResize($event, 'w')"></div>
-                                    <div data-resize class="absolute w-1.5 h-full right-0 top-0 cursor-e-resize z-10"
-                                        @mousedown.stop.prevent="startResize($event, 'e')"></div>
+                                    <!-- RESIZE HANDLES (only visible when the field is selected) -->
+                                    <div x-show="$wire.selectedFieldId === field.id" x-cloak>
+                                        <div data-resize class="absolute w-2 h-2 bg-blue-600 rounded-sm -top-1 -left-1 cursor-nw-resize z-10"
+                                            @mousedown.stop.prevent="startResize($event, 'nw')"></div>
+                                        <div data-resize class="absolute w-2 h-2 bg-blue-600 rounded-sm -top-1 -right-1 cursor-ne-resize z-10"
+                                            @mousedown.stop.prevent="startResize($event, 'ne')"></div>
+                                        <div data-resize class="absolute w-2 h-2 bg-blue-600 rounded-sm -bottom-1 -left-1 cursor-sw-resize z-10"
+                                            @mousedown.stop.prevent="startResize($event, 'sw')"></div>
+                                        <div data-resize class="absolute w-2 h-2 bg-blue-600 rounded-sm -bottom-1 -right-1 cursor-se-resize z-10"
+                                            @mousedown.stop.prevent="startResize($event, 'se')"></div>
+                                        <div data-resize class="absolute h-1 w-full top-0 left-0 cursor-n-resize z-10"
+                                            @mousedown.stop.prevent="startResize($event, 'n')"></div>
+                                        <div data-resize class="absolute h-1 w-full bottom-0 left-0 cursor-s-resize z-10"
+                                            @mousedown.stop.prevent="startResize($event, 's')"></div>
+                                        <div data-resize class="absolute w-1 h-full left-0 top-0 cursor-w-resize z-10"
+                                            @mousedown.stop.prevent="startResize($event, 'w')"></div>
+                                        <div data-resize class="absolute w-1 h-full right-0 top-0 cursor-e-resize z-10"
+                                            @mousedown.stop.prevent="startResize($event, 'e')"></div>
+                                    </div>
 
                                 </div>
                             </template>
                         </div>
                     </div>
                 </div>
+                <div class="absolute bottom-4 right-4 z-30 flex items-center gap-1 bg-white border rounded-lg shadow-md px-2 py-1 text-xs"
+                    @mousedown.stop>
+                    <button type="button"
+                        class="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded font-semibold"
+                        @click="zoom = Math.max(50, zoom - 10)">−</button>
+                    <span class="w-10 text-center font-medium" x-text="zoom + '%'"></span>
+                    <button type="button"
+                        class="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded font-semibold"
+                        @click="zoom = Math.min(150, zoom + 10)">+</button>
+                    <button type="button"
+                        class="ml-1 px-2 h-6 flex items-center justify-center hover:bg-gray-100 rounded text-[10px] text-gray-500"
+                        title="Reset view"
+                        @click="zoom = 100; panX = 0; panY = 0">Reset</button>
+                </div>
             </div>
         </div>
 
+        <!-- 🟩 RIGHT PANEL HANDLE (lives outside the panel, on the border with the canvas) -->
+        <div class="relative w-0 z-30">
+            <button type="button"
+                @click="rightPanelOpen = !rightPanelOpen"
+                :title="rightPanelOpen ? 'Collapse panel' : 'Show panel'"
+                class="absolute top-1/2 -translate-y-1/2 -right-3 w-6 h-10 bg-white border rounded-l-md shadow flex items-center justify-center hover:bg-gray-50 text-gray-400 hover:text-gray-700">
+                <svg class="w-3.5 h-3.5 transition-transform" :class="rightPanelOpen ? '' : 'rotate-180'"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+
         <!-- 🟩 RIGHT PANEL -->
-        <div class="w-80 bg-white border-l flex flex-col text-xs">
+        <div x-show="rightPanelOpen" x-cloak class="w-80 bg-white border-l flex flex-col text-xs">
 
             <!-- TABS -->
             <div class="flex border-b">
@@ -607,11 +738,39 @@
                                 <span x-text="selectedFieldData?.required ? '★ Required' : '☆ Optional'"></span>
                             </button>
                         </div>
+                        {{-- ── GROUP ── --}}
+                        <div class="mb-3">
+                            <label class="font-semibold text-xs">Group</label>
+                            <p class="text-[10px] text-gray-400 mb-1">
+                                Fields sharing a group name will be displayed together when the document is opened.
+                            </p>
+                            <input list="field-groups" type="text"
+                                class="w-full border rounded-md px-2 py-1"
+                                placeholder="e.g. Personal Information"
+                                :value="selectedFieldData?.group_name ?? ''"
+                                @input="
+                                    let id = selectedFieldData?.id;
+                                    if (!id) return;
+                                    if (!window.fieldMeta[id]) window.fieldMeta[id] = {};
+                                    window.fieldMeta[id].group_name = $event.target.value;
+                                    selectedFieldData.group_name = $event.target.value;
+                                    syncFieldToList(id);
+                                    scheduleAutosave();
+                                ">
+                            <datalist id="field-groups">
+                                <template x-for="g in [...new Set($wire.fields.map(f => f.group_name).filter(Boolean))]" :key="g">
+                                    <option :value="g"></option>
+                                </template>
+                            </datalist>
+                        </div>
 
                         <hr class="my-3">
 
                         {{-- ── DATA SOURCE ── --}}
                         <label class="font-semibold text-xs">Data Source</label>
+                        <div x-show="isSystemLocked" class="mt-1 text-[10px] text-gray-400 italic">
+                            This field is locked to a system value and can't be changed.
+                        </div>
 
                         {{-- Paragraph: system not available --}}
                         <div x-show="selectedFieldData?.type === 'paragraph'"
@@ -621,55 +780,67 @@
 
                         {{-- Data source radios — always show for non-paragraph --}}
                         <div x-show="selectedFieldData?.type !== 'paragraph'" class="mt-1 flex gap-3">
-                            <label class="flex items-center gap-1 cursor-pointer">
+                            <label class="flex items-center gap-1 cursor-pointer" :class="isSystemLocked ? 'opacity-40 pointer-events-none' : ''">
                                 <input type="radio" value="system"
+                                    :disabled="isSystemLocked"
                                     :checked="selectedFieldData?.source_type === 'system'"
                                     @change="
                                         let id = selectedFieldData.id;
-                                        selectedFieldData.source_type = 'system';
-                                        selectedFieldData.name = null;
-                                        selectedFieldData.placeholder = null;
-
-                                        {{-- // Reset constraints --}}
-                                        selectedConstraints = defaultConstraints();
-                                        {{-- // Reset preview value --}}
-                                        window.previewValues[id] = '';
-
-                                        {{-- // Sync to wire fields --}}
-                                        let idx = $wire.fields.findIndex(f => f.id === id);
-                                        if (idx !== -1) {
-                                            $wire.fields.splice(idx, 1, { ...$wire.fields[idx], placeholder: null });
-                                        }
+                                        let idx = $wire.fields.findIndex(f => String(f.id) === String(id));
+                                        if (idx === -1) return;
 
                                         let validKeys = window.getValidSystemKeys(selectedFieldData.type);
                                         let firstKey = validKeys[0]?.key ?? null;
-                                        selectedFieldData.system_key = firstKey;
-                                        selectedFieldData.name = firstKey;
+
+                                        let updated = {
+                                            ...$wire.fields[idx],
+                                            source_type: 'system',
+                                            system_key: firstKey,
+                                            name: firstKey,
+                                            placeholder: null,
+                                        };
+
+                                        $wire.fields.splice(idx, 1, updated);
+                                        selectedFieldData = updated;
+
                                         if (!window.fieldMeta[id]) window.fieldMeta[id] = {};
                                         window.fieldMeta[id].source_type = 'system';
                                         window.fieldMeta[id].system_key  = firstKey;
                                         window.fieldMeta[id].name        = firstKey;
                                         window.fieldMeta[id].placeholder = null;
 
+                                        selectedConstraints = defaultConstraints();
+                                        window.previewValues[id] = '';
+
                                         constraintTick++;
                                         previewTick++;
-                                        syncFieldToList(id);
                                         scheduleAutosave();
-                                    "
-                                    >
+                                    ">
                                 System
                             </label>
-                            <label class="flex items-center gap-1 cursor-pointer">
+                            <label class="flex items-center gap-1 cursor-pointer" :class="isSystemLocked ? 'opacity-40 pointer-events-none' : ''">
                                 <input type="radio" value="input"
+                                    :disabled="isSystemLocked"
                                     :checked="selectedFieldData?.source_type === 'input'"
                                     @change="
                                         let id = selectedFieldData.id;
-                                        selectedFieldData.source_type = 'input';
-                                        selectedFieldData.system_key  = null;
+                                        let idx = $wire.fields.findIndex(f => String(f.id) === String(id));
+                                        if (idx === -1) return;
+
+                                        let updated = {
+                                            ...$wire.fields[idx],
+                                            source_type: 'input',
+                                            system_key: null,
+                                        };
+
+                                        $wire.fields.splice(idx, 1, updated);
+                                        selectedFieldData = updated;
+
                                         if (!window.fieldMeta[id]) window.fieldMeta[id] = {};
                                         window.fieldMeta[id].source_type = 'input';
                                         window.fieldMeta[id].system_key  = null;
-                                        syncFieldToList(id);   
+
+                                        previewTick++;
                                         scheduleAutosave();
                                         $nextTick(() => { if($refs.variableInput) $refs.variableInput.focus(); });
                                     ">
@@ -681,15 +852,28 @@
                         <div x-show="selectedFieldData?.source_type === 'system' && selectedFieldData?.type !== 'paragraph'" class="mt-2">
                             <label class="text-[11px] text-gray-500">System Variable</label>
                             <select class="w-full border rounded-md px-2 py-1 mt-1"
+                                :disabled="isSystemLocked"
+                                :class="isSystemLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''"
                                 :value="selectedFieldData?.system_key"
                                 @change="
                                     let id = selectedFieldData.id;
-                                    selectedFieldData.system_key = $event.target.value;
-                                    selectedFieldData.name = $event.target.value;
+                                    let idx = $wire.fields.findIndex(f => String(f.id) === String(id));
+                                    if (idx === -1) return;
+
+                                    let updated = {
+                                        ...$wire.fields[idx],
+                                        system_key: $event.target.value,
+                                        name: $event.target.value,
+                                    };
+
+                                    $wire.fields.splice(idx, 1, updated);
+                                    selectedFieldData = updated;
+
                                     if (!window.fieldMeta[id]) window.fieldMeta[id] = {};
                                     window.fieldMeta[id].system_key = $event.target.value;
                                     window.fieldMeta[id].name = $event.target.value;
-                                    syncFieldToList(id);
+
+                                    previewTick++;
                                     scheduleAutosave();
                                 ">
                                 <template x-for="opt in window.getValidSystemKeys(selectedFieldData?.type)" :key="opt.key">
@@ -824,6 +1008,29 @@
                                             <path d="M3 6h12M7 10h8M3 14h12"/>
                                         </svg>
                                     </button>
+                                </div>
+                            </div>
+
+                            {{-- LETTER CASE --}}
+                            <div>
+                                <label class="text-[11px] text-gray-500 block">Letter Case</label>
+                                <div class="flex gap-1 mt-1">
+                                    <button type="button" class="border px-1.5 py-1 rounded flex-1 text-[10px]"
+                                        title="Normal"
+                                        :class="typographyTick >= 0 && getTypo().textCase === 'none' ? 'bg-blue-50 border-blue-400 font-semibold' : ''"
+                                        @click="setTypo('textCase', 'none')">Aa</button>
+                                    <button type="button" class="border px-1.5 py-1 rounded flex-1 text-[10px]"
+                                        title="All Caps"
+                                        :class="typographyTick >= 0 && getTypo().textCase === 'uppercase' ? 'bg-blue-50 border-blue-400 font-semibold' : ''"
+                                        @click="setTypo('textCase', 'uppercase')">AA</button>
+                                    <button type="button" class="border px-1.5 py-1 rounded flex-1 text-[10px]"
+                                        title="Sentence case"
+                                        :class="typographyTick >= 0 && getTypo().textCase === 'sentence' ? 'bg-blue-50 border-blue-400 font-semibold' : ''"
+                                        @click="setTypo('textCase', 'sentence')">Aa.</button>
+                                    <button type="button" class="border px-1.5 py-1 rounded flex-1 text-[9px]"
+                                        title="Small Caps"
+                                        :class="typographyTick >= 0 && getTypo().textCase === 'smallcaps' ? 'bg-blue-50 border-blue-400 font-semibold' : ''"
+                                        @click="setTypo('textCase', 'smallcaps')">SMALL</button>
                                 </div>
                             </div>
 
