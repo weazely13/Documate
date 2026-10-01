@@ -165,42 +165,29 @@
 
                     <div>
                         <label class="text-sm font-medium text-gray-700">College <span class="text-red-500">*</span></label>
-                        <select wire:model.live="college"
+                        <select wire:model.live="college_id"
                             class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30
-                            @error('college') border-red-500 @enderror
-                            @if($college && !$errors->has('college')) border-green-500 @endif">
+                            @error('college_id') border-red-500 @enderror
+                            @if($college_id && !$errors->has('college_id')) border-green-500 @endif">
                             <option value="">Select your college</option>
-                            <option>College of Arts and Sciences</option>
-                            <option>College of Education</option>
-                            <option>College of Management and Entrepreneurship</option>
+                            @foreach ($this->collegeOptions as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->code }})</option>
+                            @endforeach
                         </select>
-                        @error('college') <p class="error">{{ $message }}</p> @enderror
+                        @error('college_id') <p class="error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label class="text-sm font-medium text-gray-700">Program <span class="text-red-500">*</span></label>
-
-                        <select wire:model.live="program_id"
-                            class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30
+                        <select wire:model.live="program_id" @disabled(! $college_id)
+                            class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30 disabled:bg-gray-100
                             @error('program_id') border-red-500 @enderror
                             @if($program_id && !$errors->has('program_id')) border-green-500 @endif">
-                            <option value="">Select your program</option>
-                            @if ($this->bachelorPrograms->isNotEmpty())
-                                <optgroup label="Bachelor's">
-                                    @foreach ($this->bachelorPrograms as $p)
-                                        <option value="{{ $p->id }}">{{ $p->name }}</option>
-                                    @endforeach
-                                </optgroup>
-                            @endif
-                            @if ($this->masterPrograms->isNotEmpty())
-                                <optgroup label="Master's">
-                                    @foreach ($this->masterPrograms as $p)
-                                        <option value="{{ $p->id }}">{{ $p->name }}</option>
-                                    @endforeach
-                                </optgroup>
-                            @endif
+                            <option value="">{{ $college_id ? 'Select your program' : 'Select a college first' }}</option>
+                            @foreach ($this->programOptions as $p)
+                                <option value="{{ $p->id }}">{{ $p->name }}</option>
+                            @endforeach
                         </select>
-
                         @error('program_id') <p class="error">{{ $message }}</p> @enderror
                         <p class="mt-1 text-xs text-gray-400">Don't see your program? Ask the admin to add it.</p>
                     </div>
@@ -234,11 +221,10 @@
 
                     <div class="col-span-2">
                         <label class="text-sm font-medium text-gray-700">Organization</label>
-
-                        <select wire:model.live="organization_id"
-                            class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30
+                        <select wire:model.live="organization_id" @disabled(! $program_id)
+                            class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30 disabled:bg-gray-100
                             @if($organization_id && !$errors->has('organization_id')) border-green-500 @endif">
-                            <option value="">None / Not applicable</option>
+                            <option value="">{{ $program_id ? 'None / Not applicable' : 'Select a program first' }}</option>
                             @foreach ($this->organizationOptions as $org)
                                 <option value="{{ $org->id }}">{{ $org->name }}</option>
                             @endforeach

@@ -31,9 +31,10 @@ use App\Livewire\Admin\Reports;
 
 // Public
 Route::get('/', fn () => view('welcome'));
-Route::get('/check-gd', function () {
-    dd(extension_loaded('gd'), gd_info());
-});
+Route::view('/faqs', 'faqs')->name('faqs');
+if (app()->environment('local')) {
+    Route::get('/check-gd', fn () => dd(extension_loaded('gd'), gd_info()));
+}
 
 Route::get('/register', Register::class)->name('register');
 Route::get('/login', Login::class)->name('login');
@@ -114,7 +115,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.templates');
 
         Route::get('/admin/templates/{template}/editor', function ($templateId) {
-            return "Editor coming soon for Template ID: " . $templateId;
+            return "     for Template ID: " . $templateId;
         })->name('admin.templates.editor');
         
         Route::get('/admin/templates/{template}/editor', TemplateEditor::class)

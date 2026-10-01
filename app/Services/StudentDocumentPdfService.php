@@ -36,6 +36,7 @@ class StudentDocumentPdfService
 
         $fonts = $this->collectFonts($fields);
         $objects = [];
+        
 
         $addObject = function (string $body) use (&$objects): int {
             $objects[] = $body;
@@ -47,7 +48,9 @@ class StudentDocumentPdfService
 
         $fontObjectIds = [];
         foreach ($fonts as $fontKey => $baseFont) {
-            $fontObjectIds[$fontKey] = $addObject("<< /Type /Font /Subtype /Type1 /BaseFont /{$baseFont} >>");
+            $fontObjectIds[$fontKey] = $addObject(
+                "<< /Type /Font /Subtype /Type1 /BaseFont /{$baseFont} /Encoding /WinAnsiEncoding >>"
+            );
         }
 
         $imageId = $addObject($this->streamObject(
@@ -160,9 +163,11 @@ class StudentDocumentPdfService
                 };
 
                 [$r, $g, $b] = $this->hexToRgb((string) ($field['text_color'] ?? '#000000'));
+                $letterSpacingPt = $this->scaleX((float) ($field['letter_spacing'] ?? 0), $pageWidth, $canvasWidth);
 
                 $lines[] = 'BT';
                 $lines[] = sprintf('/%s %.3F Tf', $fontKey, $fontSize);
+                $lines[] = sprintf('%.3F Tc', $letterSpacingPt);
                 $lines[] = sprintf('%.3F %.3F %.3F rg', $r, $g, $b);
                 $lines[] = sprintf('1 0 0 1 %.3F %.3F Tm', $drawX, $y);
                 $lines[] = '(' . $this->escapePdfString($textLine) . ') Tj';
@@ -328,6 +333,57 @@ class StudentDocumentPdfService
         return [$raw, $width, $height];
     }
 
+    private function resolveFontStyle(array $field): array
+    {
+        $family = strtolower((string) ($field['font_family'] ?? 'helvetica'));
+        $weight = strtolower((string) ($field['font_weight'] ?? 'normal'));
+        $style  = strtolower((string) ($field['font_style'] ?? 'normal'));
+
+        // Closest built-in PDF family for whatever the editor used
+        $group = match (true) {
+            (bool) preg_match('/courier|consolas|monaco|lucida console|monospace/', $family) => 'Courier',
+            (bool) preg_match('/times|georgia|garamond|palatino|cambria|book antiqua/', $family)
+                || ($family === 'serif') => 'Times',
+            default => 'Helvetica',   // Arial, Verdana, Tahoma, Calibri, sans-serif, etc.
+        };
+
+        $bold   = $weight === 'bold' || $weight === 'bolder' || (is_numeric($weight) && (int) $weight >= 600);
+        $italic = in_array($style, ['italic', 'oblique'], true);
+
+        return [$group, $bold, $italic];
+    }
+
+    private function fontResourceKey(array $field): string
+    {
+        [$group, $bold, $italic] = $this->resolveFontStyle($field);
+
+        return $group . ($bold ? 'Bold' : '') . ($italic ? 'Italic' : '') ?: $group;
+    }
+
+    private function baseFontName(array $field): string
+    {
+        [$group, $bold, $italic] = $this->resolveFontStyle($field);
+
+        if ($group === 'Times') {
+            return match (true) {
+                $bold && $italic => 'Times-BoldItalic',
+                $bold            => 'Times-Bold',
+                $italic          => 'Times-Italic',
+                default          => 'Times-Roman',
+            };
+        }
+
+        // Helvetica and Courier use "Oblique" for italic
+        $name = $group === 'Courier' ? 'Courier' : 'Helvetica';
+
+        return match (true) {
+            $bold && $italic => "{$name}-BoldOblique",
+            $bold            => "{$name}-Bold",
+            $italic          => "{$name}-Oblique",
+            default          => $name,
+        };
+    }
+
     private function collectFonts(array $fields): array
     {
         $fonts = [];
@@ -336,34 +392,7 @@ class StudentDocumentPdfService
             $fonts[$this->fontResourceKey($field)] = $this->baseFontName($field);
         }
 
-        return $fonts ?: ['HelveticaRegular' => 'Helvetica'];
-    }
-
-    private function fontResourceKey(array $field): string
-    {
-        $family = strtolower((string) ($field['font_family'] ?? 'helvetica'));
-        $weight = strtolower((string) ($field['font_weight'] ?? 'normal'));
-
-        $familyKey = str_contains($family, 'times') ? 'Times'
-            : (str_contains($family, 'courier') ? 'Courier' : 'Helvetica');
-
-        return $weight === 'bold' ? $familyKey . 'Bold' : $familyKey . 'Regular';
-    }
-
-    private function baseFontName(array $field): string
-    {
-        $family = strtolower((string) ($field['font_family'] ?? 'helvetica'));
-        $weight = strtolower((string) ($field['font_weight'] ?? 'normal'));
-
-        if (str_contains($family, 'times')) {
-            return $weight === 'bold' ? 'Times-Bold' : 'Times-Roman';
-        }
-
-        if (str_contains($family, 'courier')) {
-            return $weight === 'bold' ? 'Courier-Bold' : 'Courier';
-        }
-
-        return $weight === 'bold' ? 'Helvetica-Bold' : 'Helvetica';
+        return $fonts ?: ['Helvetica' => 'Helvetica'];
     }
 
     private function wrapText(
@@ -482,9 +511,11 @@ class StudentDocumentPdfService
     {
         $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $width = 0.0;
+        $bold = $field ? $this->resolveFontStyle($field)[1] : false;
+        $factor = $bold ? 1.07 : 1.0;
 
         foreach ($characters as $character) {
-            $width += $fontSize * $this->characterWidthFactor($character, $field);
+            $width += $fontSize * $this->characterWidthFactor($character, $field) * $factor;
         }
 
         return $width + (max(count($characters) - 1, 0) * $letterSpacing);
@@ -544,6 +575,8 @@ class StudentDocumentPdfService
 
     private function escapePdfString(string $value): string
     {
+        $value = mb_convert_encoding($value, 'Windows-1252', 'UTF-8');
+
         return str_replace(
             ['\\', '(', ')', "\r", "\n"],
             ['\\\\', '\(', '\)', '', ' '],

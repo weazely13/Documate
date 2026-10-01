@@ -12,6 +12,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use App\Models\College;
 
 class ProfilePage extends Component
 {
@@ -34,6 +35,7 @@ class ProfilePage extends Component
 
     // Academic Profile
     public string $college = '';
+    public ?int $college_id = null;
     public ?int $program_id = null;
     public ?int $organization_id = null;
     public string $year_level = '';
@@ -120,11 +122,16 @@ class ProfilePage extends Component
             'photo' => ['nullable', 'image', 'max:2048'],
         ];
 
-        // Only enforce Academic field validation if the user is NOT an Admin
+
         if (! $this->isAdmin) {
-            $rules['college'] = ['required', 'string', 'max:255'];
-            $rules['program_id'] = ['required', Rule::exists('programs', 'id')->where('is_active', true)];
-            $rules['organization_id'] = ['nullable', Rule::exists('organizations', 'id')->where('is_active', true)];
+            $rules['college_id'] = ['required', 'exists:colleges,id'];
+            $rules['program_id'] = ['required', Rule::exists('programs', 'id')
+                ->where('college_id', $this->college_id)->where('is_active', true)];
+            $rules['organization_id'] = ['nullable', 'exists:organizations,id', function ($attribute, $value, $fail) {
+                if ($value && ! Organization::active()->forProgram($this->program_id)->whereKey($value)->exists()) {
+                    $fail('That organization is not available for your program.');
+                }
+            }];
             $rules['year_level'] = ['required', Rule::in(array_keys($this->yearLevelOptions))];
             $rules['section'] = ['nullable', 'string', 'max:50'];
             $rules['academic_status'] = ['required', Rule::in($this->academicStatusOptions)];
@@ -133,10 +140,16 @@ class ProfilePage extends Component
         $validated = $this->validate($rules);
         $validated['email'] = strtolower($validated['email']);
 
-        // Officers cannot change their organization — keep it pinned to whatever
-        // is currently on the record, regardless of what was submitted.
+
         if (! $this->isAdmin) {
+            // users.college stores the NAME, so keep it in sync with the selected college
+            $validated['college'] = College::find($this->college_id)?->name;
+            unset($validated['college_id']);
+
+            // Officers can't change college, program, or organization
             if ($this->isOfficerLocked) {
+                $validated['college'] = $user->college;
+                $validated['program_id'] = $user->program_id;
                 $validated['organization_id'] = $user->organization_id;
             }
         }
@@ -257,22 +270,33 @@ class ProfilePage extends Component
         };
     }
 
-    /**
-     * Available programs for the dropdown, grouped by level.
-     */
-    public function getBachelorProgramsProperty()
+    public function getCollegeOptionsProperty()
     {
-        return Program::active()->bachelor()->orderBy('name')->get();
+        return College::orderBy('code')->get();
     }
 
-    public function getMasterProgramsProperty()
+    public function getProgramOptionsProperty()
     {
-        return Program::active()->master()->orderBy('name')->get();
+        if (! $this->college_id) return collect();
+        return Program::active()->where('college_id', $this->college_id)->orderBy('name')->get();
     }
 
-    public function getOrganizationOptionsProperty()
+   public function getOrganizationOptionsProperty()
     {
-        return Organization::active()->orderBy('name')->get();
+        if (! $this->program_id) return collect();
+        return Organization::active()->forProgram($this->program_id)->orderBy('name')->get();
+    }
+
+    public function updatedCollegeId($value)
+    {
+        $this->college = $value ? (string) College::find($value)?->name : '';
+        $this->program_id = null;
+        $this->organization_id = null;
+    }
+
+    public function updatedProgramId()
+    {
+        $this->organization_id = null;
     }
 
     public function getSelectedProgramNameProperty(): ?string
@@ -296,6 +320,8 @@ class ProfilePage extends Component
         $this->date_of_birth = $user->date_of_birth ? (string) $user->date_of_birth : '';
         $this->contact_number = (string) ($user->contact_number ?? '');
         $this->college = (string) ($user->college ?? '');
+        $this->college_id = $user->program?->college_id
+            ?? College::where('name', $this->college)->value('id');
         $this->program_id = $user->program_id;
         $this->organization_id = $user->organization_id;
         $this->year_level = (string) ($user->year_level ?? '');

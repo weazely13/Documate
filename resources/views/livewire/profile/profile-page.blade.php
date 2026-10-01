@@ -239,10 +239,21 @@
                     <div class="p-5">
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div class="sm:col-span-2">
-                                <label for="college" class="block text-xs font-semibold uppercase tracking-wider text-gray-500">College</label>
-                                @if ($editing)
-                                    <input wire:model="college" id="college" type="text" class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]" />
-                                    @error('college') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                <label for="college_id" class="block text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    College
+                                    @if ($isOfficerLocked)
+                                        <span class="ml-1 normal-case font-normal text-amber-600">(locked — officer)</span>
+                                    @endif
+                                </label>
+                                @if ($editing && ! $isOfficerLocked)
+                                    <select wire:model.live="college_id" id="college_id"
+                                            class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]">
+                                        <option value="">Select…</option>
+                                        @foreach ($this->collegeOptions as $c)
+                                            <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->code }})</option>
+                                        @endforeach
+                                    </select>
+                                    @error('college_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 @else
                                     <div class="mt-1 truncate rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-900" title="{{ $college ?: '—' }}">
                                         {{ $college ?: '—' }}
@@ -252,24 +263,13 @@
 
                             <div class="sm:col-span-2">
                                 <label for="program_id" class="block text-xs font-semibold uppercase tracking-wider text-gray-500">Program</label>
-                                @if ($editing)
-                                    <select wire:model="program_id" id="program_id"
-                                            class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]">
-                                        <option value="">Select…</option>
-                                        @if ($this->bachelorPrograms->isNotEmpty())
-                                            <optgroup label="Bachelor's">
-                                                @foreach ($this->bachelorPrograms as $p)
-                                                    <option value="{{ $p->id }}">{{ $p->name }}</option>
-                                                @endforeach
-                                            </optgroup>
-                                        @endif
-                                        @if ($this->masterPrograms->isNotEmpty())
-                                            <optgroup label="Master's">
-                                                @foreach ($this->masterPrograms as $p)
-                                                    <option value="{{ $p->id }}">{{ $p->name }}</option>
-                                                @endforeach
-                                            </optgroup>
-                                        @endif
+                                @if ($editing && ! $isOfficerLocked)
+                                    <select wire:model.live="program_id" id="program_id" @disabled(! $college_id)
+                                            class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] disabled:bg-gray-100">
+                                        <option value="">{{ $college_id ? 'Select…' : 'Select a college first' }}</option>
+                                        @foreach ($this->programOptions as $p)
+                                            <option value="{{ $p->id }}">{{ $p->name }}</option>
+                                        @endforeach
                                     </select>
                                     @error('program_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 @else
@@ -329,9 +329,9 @@
                                         </div>
                                         <p class="mt-1 text-xs text-gray-400">You're an officer of this organization, so it can't be changed here. Contact the admin if this needs to change.</p>
                                     @else
-                                        <select wire:model="organization_id" id="organization_id"
-                                                class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]">
-                                            <option value="">None</option>
+                                        <select wire:model="organization_id" id="organization_id" @disabled(! $program_id)
+                                                class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] disabled:bg-gray-100">
+                                            <option value="">{{ $program_id ? 'None' : 'Select a program first' }}</option>
                                             @foreach ($this->organizationOptions as $org)
                                                 <option value="{{ $org->id }}">{{ $org->name }}</option>
                                             @endforeach

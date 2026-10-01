@@ -5,7 +5,7 @@
 
         $previewFields = $version->fields
             ->sortBy('x_position')
-            ->sortBy('y_position')
+            ->sortBy('y_position') // stable sort → effectively ORDER BY y_position, x_position
             ->map(function ($f) {
                 // Same-named fields intentionally share one value (see NewTransaction).
                 $name = $f->name ? \Illuminate\Support\Str::slug($f->name, '_') : ('field_' . $f->field_id);
@@ -21,56 +21,57 @@
                     'line_height' => (float) ($f->line_height ?? 1.3),
                     'letter_spacing' => (float) ($f->letter_spacing ?? 0),
                     'text_case' => $f->text_case ?? 'none',
+                    'source_type' => $f->source_type,
+                    'system_key'  => $f->system_key,
+                    'date_mode'   => $f->date_mode ?? 'current',
+                    'font_style'  => $f->font_style ?? 'normal',
+                    'max_lines' => $f->max_lines,
                 ];
             })
             ->values();
-
-        $cropRatio = $cropRatio ?? 0.5;
+        $owner = $workspace->user ?? \Illuminate\Support\Facades\Auth::user();
+        $systemValues = $owner
+            ? app(\App\Services\SystemValueResolver::class)->mapForFields($owner, $version->fields)
+            : [];
     @endphp
-    @include('livewire.admin.partials.preview-engine')
+    @include('livewire.student.partials.preview-engine')
     <div
         x-data="{
-            ...documentPreviewEngine(@js($previewFields), @js($workspace->field_values ?? [])),
+            ...positionedPreviewEngine(@js($previewFields), @js($workspace->field_values ?? []), @js($systemValues)),
             scale: 1,
-            ro: null,
             fit() {
-                const wrapper = this.$refs.scaleWrapper;
+                const wrapper = this.$refs?.scaleWrapper;
                 if (!wrapper || !wrapper.parentElement) return;
-
                 const available = wrapper.parentElement.clientWidth;
                 if (available > 0) {
-                    this.scale = available / {{ $canvas['width'] }};
-                } else {
-                    requestAnimationFrame(() => this.fit());
+                    this.scale = Math.min(available / {{ $canvas['width'] }}, 1);
                 }
-            },
-            initFit() {
-                this.$nextTick(() => {
-                    this.fit();
-                    if (this.$refs.scaleWrapper?.parentElement && !this.ro) {
-                        this.ro = new ResizeObserver(() => this.fit());
-                        this.ro.observe(this.$refs.scaleWrapper.parentElement);
-                    }
-                });
             }
         }"
-        x-init="initFit()"
+        x-init="$nextTick(() => fit())"
+        @resize.window="fit()"
         class="w-full"
     >
         <div
-            class="w-full overflow-hidden rounded-xl border border-slate-200 bg-white"
-            style="aspect-ratio: {{ $canvas['width'] }} / {{ $canvas['height'] * $cropRatio }};"
+            class="mx-auto overflow-hidden rounded-xl border border-slate-200 bg-white"
+            style="height: {{ $canvas['height'] }}px; transform: scale(1); "
+            x-bind:style="{
+                height: ({{ $canvas['height'] }} * scale) + 'px',
+            }"
         >
             <div
                 x-ref="scaleWrapper"
                 class="relative bg-white origin-top-left"
                 style="width: {{ $canvas['width'] }}px; height: {{ $canvas['height'] }}px;"
-                x-bind:style="{ transform: 'scale(' + scale + ')' }"
+                x-bind:style="{
+                    width: '{{ $canvas['width'] }}px',
+                    height: '{{ $canvas['height'] }}px',
+                    transform: 'scale(' + scale + ')',
+                }"
             >
                 <img
                     src="{{ Storage::disk('public')->url($version->image_path) }}"
-                    class="absolute inset-0 w-full h-full pointer-events-none select-none"
-                    @load="$data.fit()"
+                    class="absolute inset-0 !w-full !h-full pointer-events-none select-none"
                 >
                 @foreach($previewFields as $field)
                     <div class="absolute" x-bind:style="fieldBoxStyle(@js($field))">

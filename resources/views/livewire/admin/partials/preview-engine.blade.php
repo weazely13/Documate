@@ -11,10 +11,11 @@
             };
         }
 
-        function documentPreviewEngine(fields, values) {
-            return {
-                fields: fields || [],
-                values: values || {},
+        function documentPreviewEngine(fields, values, systemValues) {
+        return {
+            fields: fields || [],
+            values: values || {},
+            systemValues: systemValues || {},
 
                 displayValue(field) {
                     let value;
@@ -58,6 +59,7 @@
                         font-family: '${field.font_family}', sans-serif;
                         font-size: ${fontSize}px;
                         font-weight: ${field.font_weight};
+                        font-style: ${field.font_style || 'normal'};
                         color: ${field.text_color};
                         text-align: ${field.alignment};
                         line-height: ${lineHeight};
@@ -100,11 +102,8 @@
                     const minSize = 6;
                     if (field.type === 'paragraph') return baseSize;
 
-                    const width = Math.max((field.width || 0) - 16, 10);
-                    const lineHeightRatio = parseFloat(field.line_height || 1.3);
-                    const maxLines = parseInt(field.max_lines || 0, 10);
-                    const heightFromLines = maxLines > 0 ? (maxLines * baseSize * lineHeightRatio) : 0;
-                    const height = Math.max(Math.max((field.height || 0) - 8, heightFromLines), 10);
+                    // box width minus the px-2 padding (8px each side), with a small safety margin
+                    const width = Math.max((field.width || 0) - 16, 10) * 0.98;
 
                     let text = `${value || ''}`.trim();
                     if (field.text_case === 'uppercase' || field.text_case === 'smallcaps') {
@@ -113,9 +112,22 @@
                     if (!text) return baseSize;
 
                     for (let size = baseSize; size >= minSize; size -= 0.5) {
-                        if (this.textFits(field, text, width, height, size)) return size;
+                        if (this.singleLineFits(field, text, width, size)) return size;
                     }
                     return minSize;
+                },
+                singleLineFits(field, text, width, fontSize) {
+                    if (!window._measureCtx) {
+                        window._measureCtx = document.createElement('canvas').getContext('2d');
+                    }
+                    const ctx = window._measureCtx;
+                    const style  = field.font_style === 'italic' ? 'italic ' : '';
+                    const weight = field.font_weight || 'normal';
+                    const family = field.font_family || 'Arial';
+                    ctx.font = `${style}${weight} ${fontSize}px '${family}'`;
+
+                    const letterSpacing = parseFloat(field.letter_spacing || 0);
+                    return ctx.measureText(text).width + (text.length * letterSpacing) <= width;
                 },
 
                 textFits(field, text, width, height, fontSize) {
