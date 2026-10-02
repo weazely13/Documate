@@ -33,6 +33,34 @@ class DocumentAnalysisService
 
         $mimeType = mime_content_type($fullPath);
         $imageData = base64_encode(file_get_contents($fullPath));
+        $classification = self::classifyUpload($apiKey, $documentName, $mimeType, $imageData);
+
+            if ($classification === null) {
+                return self::failure('request_exception', 'The pre-check of the uploaded photo failed.');
+            }
+
+            if (! ($classification['is_target_form'] ?? false)) {
+                $type = $classification['detected_document_type'] ?? 'unrelated image';
+
+                return [
+                    'success' => true,
+                    'error_code' => null,
+                    'error_message' => null,
+                    'matches_document' => false,
+                    'detected_document_type' => $type,
+                    'unrelated_reason' => "The upload shows: {$type}",
+                    'readable' => false,
+                    'extracted_text' => '',
+                    'fields_complete' => false,
+                    'missing_fields' => [],
+                    'has_signature_or_stamp' => false,
+                    'authenticity_notes' => '',
+                    'field_matches' => [],
+                    'fields_match_expected' => false,
+                    'summary' => "The uploaded image is not a {$documentName}. It appears to be: {$type}.",
+                    'used_reference_image' => false,
+                ];
+            }
 
         $fieldsWithValues = array_filter($expectedFields, fn ($f) => filled($f['expected_value'] ?? null));
 
@@ -61,7 +89,7 @@ You are reviewing a photo submitted by a student as proof they had a "{$document
 
 {$referenceInstructions}
 
-1. Determine whether Image 1 is actually a photo of a "{$documentName}" (or a clearly related processed copy) — not an unrelated photo, screenshot, or random image.
+1. Decide what Image 1 actually shows. Set "matches_document" to true ONLY if Image 1 is a photo or scan of a "{$documentName}" form, meaning the same form title, section headings and field layout as the reference. Set it to FALSE if Image 1 is any of these: a different kind of document, a screenshot of a website or app, a selfie or random photo, a blank page, or a plain screenshot with no form in it. If matches_document is false, also set readable, fields_complete, has_signature_or_stamp and fields_match_expected to false.
 2. Transcribe all readable text from Image 1, preserving structure.
 3. Check whether these fields/blanks appear filled in on Image 1: {$fieldsList}. List any that look blank or missing.
 4. Note whether an official signature and/or stamp/seal is visible on Image 1.
@@ -71,9 +99,13 @@ Expected values:
 {$expectedValuesList}
 7. Write a short (2-4 sentence) plain-language summary suitable for a non-technical admin, mentioning any field mismatches if found.
 
+Use "detected_document_type" for what Image 1 actually is (e.g. "Student Complaint Form", "website screenshot"). Fill "unrelated_reason" only when matches_document is false.
+
 Return ONLY valid JSON, no markdown:
 {
   "matches_document": true,
+  "detected_document_type": "",
+  "unrelated_reason": "",
   "readable": true,
   "extracted_text": "",
   "fields_complete": true,
@@ -90,16 +122,20 @@ PROMPT;
 
         $parts = [["text" => $prompt]];
 
-        if ($referenceImage) {
-            $parts[] = ["inlineData" => ["mimeType" => $referenceImage['mime_type'], "data" => $referenceImage['data']]];
-        }
-
+        // Upload FIRST, so position and label agree: Image 1 = upload, Image 2 = reference
+        $parts[] = ["text" => "IMAGE 1 (STUDENT UPLOAD, the only image you are judging):"];
         $parts[] = ["inlineData" => ["mimeType" => $mimeType, "data" => $imageData]];
 
+        if ($referenceImage) {
+            $parts[] = ["text" => "IMAGE 2 (REFERENCE RENDER, ground truth only, never judge it, never report it as the upload):"];
+            $parts[] = ["inlineData" => ["mimeType" => $referenceImage['mime_type'], "data" => $referenceImage['data']]];
+        }
         $payload = [
-            "contents" => [[
-                "parts" => $parts,
-            ]],
+            "contents" => [["parts" => $parts]],
+            "generationConfig" => [
+                "temperature" => 0,
+                "responseMimeType" => "application/json",
+            ],
         ];
 
         try {
@@ -160,19 +196,28 @@ PROMPT;
             return self::failure('invalid_json', 'The review service response could not be parsed: ' . json_last_error_msg());
         }
 
+       $matches = (bool) ($data['matches_document'] ?? false);
+       // Sanity check: the transcription of a real complaint form should contain the form's title words
+        $transcript = strtolower($data['extracted_text'] ?? '');
+        if ($matches && $transcript !== '' && ! str_contains($transcript, 'complaint') && ! str_contains($transcript, 'grievance')) {
+            $matches = false;
+        }
+
         return [
             'success' => true,
             'error_code' => null,
             'error_message' => null,
-            'matches_document' => (bool) ($data['matches_document'] ?? false),
-            'readable' => (bool) ($data['readable'] ?? false),
+            'matches_document' => $matches,
+            'detected_document_type' => $data['detected_document_type'] ?? '',
+            'unrelated_reason' => $data['unrelated_reason'] ?? '',
+            'readable' => $matches && (bool) ($data['readable'] ?? false),
             'extracted_text' => $data['extracted_text'] ?? '',
-            'fields_complete' => (bool) ($data['fields_complete'] ?? false),
+            'fields_complete' => $matches && (bool) ($data['fields_complete'] ?? false),
             'missing_fields' => $data['missing_fields'] ?? [],
-            'has_signature_or_stamp' => (bool) ($data['has_signature_or_stamp'] ?? false),
+            'has_signature_or_stamp' => $matches && (bool) ($data['has_signature_or_stamp'] ?? false),
             'authenticity_notes' => $data['authenticity_notes'] ?? '',
             'field_matches' => $data['field_matches'] ?? [],
-            'fields_match_expected' => (bool) ($data['fields_match_expected'] ?? true),
+            'fields_match_expected' => $matches && (bool) ($data['fields_match_expected'] ?? true),
             'summary' => $data['summary'] ?? '',
             'used_reference_image' => $referenceImage !== null,
         ];
@@ -185,5 +230,43 @@ PROMPT;
             'error_code' => $code,
             'error_message' => $message,
         ];
+    }
+    private static function classifyUpload(string $apiKey, string $documentName, string $mimeType, string $imageData): ?array
+    {
+        $prompt = <<<PROMPT
+    Look at this single image. Is it a photo or scan of a paper form titled "{$documentName}"?
+
+    Answer false if it is a screenshot of a website, app, browser, code editor or dashboard, a different document, a selfie, or any other photo.
+
+    Return ONLY JSON:
+    {"is_target_form": false, "detected_document_type": "", "visible_title_text": ""}
+    PROMPT;
+
+        try {
+            $response = Http::withoutVerifying()
+                ->timeout(30)
+                ->post(
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={$apiKey}",
+                    [
+                        'contents' => [['parts' => [
+                            ['text' => $prompt],
+                            ['inlineData' => ['mimeType' => $mimeType, 'data' => $imageData]],
+                        ]]],
+                        'generationConfig' => ['temperature' => 0, 'responseMimeType' => 'application/json'],
+                    ]
+                );
+        } catch (\Throwable $e) {
+            Log::error('DocumentAnalysisService: classify threw', ['message' => $e->getMessage()]);
+            return null;
+        }
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $text = $response->json('candidates.0.content.parts.0.text');
+        $data = $text ? json_decode($text, true) : null;
+
+        return is_array($data) ? $data : null;
     }
 }

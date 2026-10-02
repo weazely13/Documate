@@ -12,6 +12,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProcessDocumentAnalysis implements ShouldQueue
 {
@@ -54,16 +55,19 @@ class ProcessDocumentAnalysis implements ShouldQueue
 
         $fieldsCollection = $workspace->template?->currentVersion?->fields ?? collect();
         $fieldValues = $workspace->field_values ?? [];
+        \Log::info('field_values keys', ['keys' => array_keys($fieldValues)]);
 
         $expectedFields = $fieldsCollection
-            ->filter(fn ($f) => $f->field_type !== 'paragraph' && filled($f->label))
+            ->filter(fn ($f) => $f->field_type !== 'paragraph')
             ->map(function ($f) use ($fieldValues) {
-                $name = $f->name ?: ('field_' . $f->field_id);
+                $key = $f->name ? Str::slug($f->name, '_') : ('field_' . $f->field_id);
+
                 return [
-                    'label' => $f->label,
-                    'expected_value' => $fieldValues[$name] ?? null,
+                    'label' => $this->fieldDisplayName($f),
+                    'expected_value' => $fieldValues[$key] ?? null,
                 ];
             })
+            ->filter(fn ($f) => filled($f['label']))
             ->values()
             ->all();
 
@@ -113,14 +117,42 @@ class ProcessDocumentAnalysis implements ShouldQueue
 
         $this->logEvent($workspace, 'approved', $result['summary'] ?? 'Document verified.');
     }
+    private function fieldDisplayName($field): string
+    {
+        $generic = ['text', 'date', 'number', 'paragraph', 'email', 'textarea',
+                    strtolower((string) $field->data_type), strtolower((string) $field->field_type)];
 
+        $label = trim((string) $field->label);
+
+        // Use the label only if it's a real, descriptive one
+        if ($label !== '' && ! in_array(strtolower($label), $generic, true)) {
+            return $label;
+        }
+
+        // Otherwise fall back to the field's name ("student_name" becomes "Student Name")
+        return filled($field->name) ? Str::headline($field->name) : $label;
+    }
     private function logEvent(StudentDocumentWorkspace $workspace, string $status, ?string $message = null): void
     {
-        DocumentScanEvent::create([
-            'workspace_id' => $workspace->workspace_id,
-            'status' => $status,
-            'message' => $message,
-        ]);
+        try {
+            DocumentScanEvent::create([
+                'workspace_id' => $workspace->workspace_id,
+                'status'       => $status,
+                'message'      => $message ? \Illuminate\Support\Str::limit($message, 1000) : null,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to log scan event', ['status' => $status, 'error' => $e->getMessage()]);
+        }
+    }
+
+    // Safety net if the job dies anywhere else (timeout, exception)
+    public function failed(\Throwable $e): void
+    {
+        $workspace = StudentDocumentWorkspace::find($this->workspaceId);
+        if (! $workspace) return;
+
+        $workspace->update(['processing' => false, 'processing_stage' => null]);
+        $this->logEvent($workspace, 'failed', 'The review could not be completed. Please try again.');
     }
 
     private function updateStage(StudentDocumentWorkspace $workspace, string $stage): void
@@ -169,7 +201,10 @@ class ProcessDocumentAnalysis implements ShouldQueue
     private function buildRejectionReason(array $result, string $documentName): string
     {
         if (!$result['matches_document']) {
-            return "The uploaded photo doesn't appear to match the \"{$documentName}\" document. Please upload a clear photo of the correct document.";
+            $found = $result['detected_document_type'] ?? '';
+            $found = $found ? " It looks like a {$found}." : '';
+
+            return "The uploaded photo doesn't appear to match the \"{$documentName}\" document.{$found} Please upload a clear photo of the correct document.";
         }
 
         if (!$result['readable']) {

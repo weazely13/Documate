@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Illuminate\Support\Facades\DB;
 
 class NewAppointment extends Component
 {
@@ -207,40 +208,64 @@ class NewAppointment extends Component
             'selectedSession' => 'required|in:morning,afternoon',
         ]);
 
-        $availability = OfficeAvailability::where('date', $this->selectedDate)->first();
-        $cap = $this->selectedSession === 'morning'
-            ? ($availability?->morning_slots ?? 25)
-            : ($availability?->afternoon_slots ?? 25);
+        $result = DB::transaction(function () {
+            // Serialize all submissions from this user: a second request
+            // waits here until the first one commits.
+            User::whereKey(Auth::id())->lockForUpdate()->first();
 
-        $activeCount = Appointment::where('appointment_date', $this->selectedDate)
-            ->where('session', $this->selectedSession)
-            ->whereIn('status', ['pending', 'approved'])
-            ->lockForUpdate()
-            ->count();
+            $alreadyBooked = Appointment::where('user_id', Auth::id())
+                ->where('appointment_date', $this->selectedDate)
+                ->where('session', $this->selectedSession)
+                ->whereIn('status', ['pending', 'approved'])
+                ->exists();
 
-        if ($activeCount >= $cap) {
+            if ($alreadyBooked) {
+                return 'duplicate';
+            }
+
+            $availability = OfficeAvailability::where('date', $this->selectedDate)->first();
+            $cap = $this->selectedSession === 'morning'
+                ? ($availability?->morning_slots ?? 25)
+                : ($availability?->afternoon_slots ?? 25);
+
+            $activeCount = Appointment::where('appointment_date', $this->selectedDate)
+                ->where('session', $this->selectedSession)
+                ->whereIn('status', ['pending', 'approved'])
+                ->count();
+
+            if ($activeCount >= $cap) {
+                return 'full';
+            }
+
+            $appointment = Appointment::create([
+                'user_id' => Auth::id(),
+                'workspace_id' => $this->workspaceId,
+                'purpose' => $this->purpose,
+                'appointment_date' => $this->selectedDate,
+                'session' => $this->selectedSession,
+                'queue_number' => null,
+                'status' => 'pending',
+            ]);
+
+            $appointment->logStatus('pending');
+
+            return $appointment;
+        });
+
+        if ($result === 'full') {
             $this->addError('selectedSession', 'This slot just filled up. Please pick another.');
             return;
         }
 
-        $appointment = Appointment::create([
-            'user_id' => Auth::id(),
-            'workspace_id' => $this->workspaceId,
-            'purpose' => $this->purpose,
-            'appointment_date' => $this->selectedDate,
-            'session' => $this->selectedSession,
-            'queue_number' => null,
-            'status' => 'pending',
-        ]);
+        // Duplicate click: the first request already created it, so just move on.
+        if ($result instanceof Appointment) {
+            \App\Jobs\ReviewAppointmentSubmission::dispatch($result);
 
-        $appointment->logStatus('pending');
-
-        \App\Jobs\ReviewAppointmentSubmission::dispatch($appointment); // ADD THIS
-
-        Notification::send(
-            User::whereHas('role', fn ($q) => $q->where('role_name', 'Admin'))->get(),
-            new NewAppointmentBooked($appointment)
-        );
+            Notification::send(
+                User::whereHas('role', fn ($q) => $q->where('role_name', 'Admin'))->get(),
+                new NewAppointmentBooked($result)
+            );
+        }
 
         return $this->redirect(route('student.appointments.index'), navigate: true);
     }

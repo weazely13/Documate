@@ -197,8 +197,12 @@
 
             <div class="mt-5 flex gap-3">
                 <button wire:click="goToStep(3)" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Back</button>
-                <button wire:click="confirmAppointment" class="rounded-xl bg-[#2A57B4] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#24499A] transition">
-                    Confirm Appointment
+                <button wire:click="confirmAppointment"
+                    wire:loading.attr="disabled"
+                    wire:target="confirmAppointment"
+                    class="rounded-xl bg-[#2A57B4] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#24499A] transition disabled:opacity-60 disabled:cursor-not-allowed">
+                    <span wire:loading.remove wire:target="confirmAppointment">Confirm Appointment</span>
+                    <span wire:loading wire:target="confirmAppointment">Submitting...</span>
                 </button>
             </div>
         </div>
