@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB;
 
 class AppointmentsBoard extends Component
 {
@@ -76,6 +77,10 @@ class AppointmentsBoard extends Component
     {
         $this->resetPage();
     }
+    public function updatedFilterDate()
+    {
+        $this->resetPage();
+    }
     public function jumpToday(): void
     {
         $this->month = now()->format('Y-m');
@@ -89,12 +94,11 @@ class AppointmentsBoard extends Component
         $this->clearSelection();
     }
 
-    #[Computed]
-    public function historyAppointments()
+    protected function historyBaseQuery()
     {
-        return Appointment::with('user', 'workspace.template')
-            ->when($this->filterDate, fn($q) => $q->whereDate('appointment_date', $this->filterDate))
-            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+        return Appointment::query()
+            ->when($this->filterDate, fn ($q) => $q->whereDate('appointment_date', $this->filterDate))
+            ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
                     $sub->whereHas('user', function ($userQuery) {
@@ -107,11 +111,45 @@ class AppointmentsBoard extends Component
                         $templateQuery->where('name', 'like', "%{$this->search}%");
                     });
                 });
-            })
+            });
+    }
+
+    #[Computed]
+    public function historyStudents()
+    {
+        // 1) Paginate DISTINCT students, most recent activity first
+        $page = $this->historyBaseQuery()
+            ->select('user_id', DB::raw('MAX(appointment_date) as latest_date'), DB::raw('COUNT(*) as total'))
+            ->groupBy('user_id')
+            ->orderByDesc('latest_date')
+            ->orderBy('user_id')
+            ->paginate(15);
+
+        // 2) Load the matching appointments for just this page's students
+        $appointments = $this->historyBaseQuery()
+            ->with('user', 'workspace.template')
+            ->whereIn('user_id', $page->pluck('user_id'))
             ->orderByDesc('appointment_date')
-            ->orderBy('session')
-            ->orderBy('queue_number')
-            ->paginate(20);
+            ->orderByRaw("FIELD(session, 'afternoon', 'morning')")
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('user_id');
+
+        // 3) Shape each row: one entry per student, latest appointment first
+        return $page->through(function ($row) use ($appointments) {
+            $forms = $appointments->get($row->user_id, collect());
+            $user = $forms->first()?->user;
+
+            return [
+                'key' => $row->user_id,
+                'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: 'Unknown student',
+                'student_number' => $user->student_number ?? 'N/A',
+                'forms' => $forms,
+                'total' => $forms->count(),
+                'latest_date' => $forms->first()?->appointment_date,
+                'status_counts' => $forms->countBy(fn ($a) => $a->status)->all(),
+            ];
+        });
     }
 
     #[Computed]
