@@ -20,15 +20,15 @@ class DocumentUploadsIndex extends Component
         $this->dateTo = '';
     }
 
-    protected function records(): Collection
+    protected function students(): Collection
     {
         return StudentDocumentWorkspace::query()
             ->whereHas('appointments', fn ($q) => $q->where('status', 'attended'))
             ->with(['user', 'template', 'appointments'])
-            ->latest('updated_at')
             ->get()
             ->map(fn (StudentDocumentWorkspace $workspace) => [
                 'workspace_id' => $workspace->workspace_id,
+                'user_id' => $workspace->user_id,
                 'student_name' => $this->fullName($workspace->user),
                 'student_number' => $workspace->user?->student_number ?: 'N/A',
                 'type' => $workspace->template?->name ?: 'Untitled template',
@@ -44,27 +44,38 @@ class DocumentUploadsIndex extends Component
                 if ($this->dateFrom === '' && $this->dateTo === '') {
                     return true;
                 }
-
                 if (! $r['attended_at']) {
                     return false;
                 }
-
                 $attendedDate = $r['attended_at']->format('Y-m-d');
-
-                if ($this->dateFrom !== '' && $attendedDate < $this->dateFrom) {
-                    return false;
-                }
-
-                if ($this->dateTo !== '' && $attendedDate > $this->dateTo) {
-                    return false;
-                }
-
+                if ($this->dateFrom !== '' && $attendedDate < $this->dateFrom) return false;
+                if ($this->dateTo !== '' && $attendedDate > $this->dateTo) return false;
                 return true;
             })
             ->filter(fn (array $r) => $this->search === '' || str_contains(
                 strtolower($r['student_name'] . ' ' . $r['student_number'] . ' ' . $r['type']),
                 strtolower($this->search)
             ))
+            // ---- group: one row per student ----
+            ->groupBy('user_id')
+            ->map(function (Collection $forms) {
+                $forms = $forms
+                    ->sortByDesc(fn (array $r) => $r['attended_at']?->timestamp ?? 0)
+                    ->values();
+                $first = $forms->first(); // latest form
+
+                return [
+                    'user_id' => $first['user_id'],
+                    'student_name' => $first['student_name'],
+                    'student_number' => $first['student_number'],
+                    'forms' => $forms,
+                    'total' => $forms->count(),
+                    'needs_action' => $forms->whereIn('doc_status', ['Needs Upload', 'Needs Re-upload'])->count(),
+                    'all_verified' => $forms->every(fn ($f) => $f['doc_status'] === 'Verified'),
+                    'latest_attended' => $first['attended_at'],
+                ];
+            })
+            ->sortByDesc(fn (array $s) => $s['latest_attended']?->timestamp ?? 0)
             ->values();
     }
 
@@ -79,7 +90,7 @@ class DocumentUploadsIndex extends Component
     public function render()
     {
         return view('livewire.admin.document-uploads.index', [
-            'records' => $this->records(),
+            'students' => $this->students(),
         ])->layout('layouts.app', ['title' => 'Document Uploads']);
     }
 }

@@ -127,6 +127,7 @@ class TransactionRecords extends Component
             return [
                 'workspace' => $workspace,
                 'workspace_id' => $workspace->workspace_id,
+                'user_id' => $workspace->user_id,
                 'transaction_id' => str_pad((string) $workspace->workspace_id, 4, '0', STR_PAD_LEFT),
                 'student_name' => $user ? $this->fullName($user) : 'Unknown student',
                 'student_number' => $user?->student_number ?: 'N/A',
@@ -281,6 +282,39 @@ class TransactionRecords extends Component
             ->sortByDesc('latest_date')
             ->values();
     }
+    protected function groupByStudent(Collection $records): Collection
+    {
+        $students = $records
+            ->groupBy(fn (array $r) => $r['user_id'] ?? 'unknown')
+            ->map(function (Collection $forms) {
+                // Latest form always on top inside a student
+                $forms = $forms->sortByDesc('date_sort')->values();
+                $latest = $forms->first();
+                $matched = $forms->first(fn ($f) => filled($f['search_snippet'] ?? null));
+
+                return [
+                    'key' => $latest['user_id'] ?? 'unknown',
+                    'student_name' => $latest['student_name'],
+                    'student_number' => $latest['student_number'],
+                    'forms' => $forms,
+                    'total' => $forms->count(),
+                    'latest_sort' => $latest['date_sort'],
+                    'latest_label' => $latest['date_label'],
+                    'latest_status' => $latest['status'],
+                    'status_counts' => $forms->countBy(fn ($f) => $f['status'])->all(),
+                    'search_snippet' => $matched['search_snippet'] ?? null,
+                    'search_snippet_label' => $matched['search_snippet_label'] ?? null,
+                ];
+            });
+
+        return match ($this->sortBy) {
+            'date_asc' => $students->sortBy('latest_sort')->values(),
+            'name_asc' => $students->sortBy(fn ($s) => Str::lower($s['student_name']))->values(),
+            'name_desc' => $students->sortByDesc(fn ($s) => Str::lower($s['student_name']))->values(),
+            'status' => $students->sortBy('latest_status')->values(),
+            default => $students->sortByDesc('latest_sort')->values(),
+        };
+    }
 
     protected function resolveStatus(StudentDocumentWorkspace $workspace): string
     {
@@ -327,6 +361,7 @@ class TransactionRecords extends Component
             'activeTab' => $this->activeTab,
             'statusTabs' => $this->statusTabs,
             'sortOptions' => $this->sortOptions,
+            'students' => collect(), 
         ];
 
         if ($this->activeTab === 'logbooks') {
@@ -376,16 +411,19 @@ class TransactionRecords extends Component
             ]))->layout('layouts.app', ['title' => 'Transactions']);
         }
 
-        $totalCount = $filteredRecords->count();
+        $students = $this->groupByStudent($filteredRecords);
+
+        $totalCount = $students->count();
         $totalPages = max(1, (int) ceil($totalCount / $this->perPage));
         $this->currentPage = min($this->currentPage, $totalPages);
 
-        $records = $filteredRecords
+        $students = $students
             ->slice(($this->currentPage - 1) * $this->perPage, $this->perPage)
             ->values();
 
         return view('livewire.admin.transaction-records', array_merge($sharedData, [
-            'records' => $records,
+            'students' => $students,
+            'records' => collect(),
             'folders' => collect(),
             'totalPages' => $totalPages,
             'totalCount' => $totalCount,
