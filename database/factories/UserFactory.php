@@ -38,7 +38,6 @@ class UserFactory extends Factory
 
             // Academic
             'college' => 'CCS',
-            'program' => 'BSIT',
             'year_level' => '3',
             'academic_status' => 'Regular',
 
@@ -47,7 +46,7 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
 
             // RBAC
-            'role_id' => Role::where('role_name', 'Student')->firstOrFail()->id,
+            'role_id' => Role::firstOrCreate(['role_name' => 'Student'])->id,
 
             // Account
             'account_status' => 'active',

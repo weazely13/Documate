@@ -25,7 +25,7 @@ class ChatWidget extends Component
         } else {
             $this->messages = [[
                 'role' => 'assistant',
-                'content' => "Hi! I'm the DocuMate Assistant. What would you like help with?",
+                'content' => "Hi! I'm the DocuMate Assistant. Where should we begin?",
             ]];
             $this->persist();
         }
@@ -44,8 +44,38 @@ class ChatWidget extends Component
         ];
     }
 
+    protected function followUpReplies(string $question, string $answer = ''): array
+    {
+        $question = mb_strtolower($question . ' ' . $answer);
+
+        return match (true) {
+            str_contains($question, 'office'), str_contains($question, 'registrar'), str_contains($question, 'cashier') => [
+                'Find the Registrar\'s Office',
+                'Find the Cashier\'s Office',
+                'Who handles scholarships?',
+            ],
+            str_contains($question, 'appointment'), str_contains($question, 'schedule'), str_contains($question, 'booking') => [
+                'Check my appointment',
+                'Check appointment availability',
+                'How do I reschedule an appointment?',
+            ],
+            str_contains($question, 'document'), str_contains($question, 'transaction'), str_contains($question, 'request') => [
+                'Check document status',
+                'What documents can I request?',
+                'How do I book an appointment?',
+            ],
+            str_contains($question, 'handbook'), str_contains($question, 'policy'), str_contains($question, 'rule') => [
+                'Ask another handbook question',
+                'Find an office',
+                'How do I request a document?',
+            ],
+            default => $this->defaultQuickReplies(),
+        };
+    }
+
     protected function persist(): void
     {
+        $this->messages = array_slice($this->messages, -30);
         session([$this->sessionKey => $this->messages]);
     }
 
@@ -61,6 +91,8 @@ class ChatWidget extends Component
         if ($text === '') {
             return;
         }
+
+        $this->validateOnly('input', ['input' => 'string|max:2000']);
 
         $this->messages[] = ['role' => 'user', 'content' => $text];
         $this->input = '';
@@ -78,11 +110,27 @@ class ChatWidget extends Component
         }
 
         try {
-            $chatbot = app(\App\Services\ChatbotService::class);
+            $chatbot = app(ChatbotService::class);
             $result = $chatbot->ask($this->messages, auth()->user());
 
-            $reply = $result['reply'];
-            $quickReplies = $result['quick_replies'] ?? [];
+            $reply = trim((string) ($result['reply'] ?? ''));
+            $quickReplies = collect($result['quick_replies'] ?? [])
+                ->filter(fn ($suggestion) => is_string($suggestion) && trim($suggestion) !== '')
+                ->map(fn ($suggestion) => trim($suggestion))
+                ->unique()
+                ->take(5)
+                ->values()
+                ->all();
+
+            if ($reply === '') {
+                $reply = 'I could not prepare a response. Please try asking another way.';
+            }
+
+            if ($quickReplies === []) {
+                $latestQuestion = collect($this->messages)
+                    ->last(fn ($message) => ($message['role'] ?? null) === 'user')['content'] ?? '';
+                $quickReplies = $this->followUpReplies($latestQuestion, $reply);
+            }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Chat widget error', [
                 'message' => $e->getMessage(),

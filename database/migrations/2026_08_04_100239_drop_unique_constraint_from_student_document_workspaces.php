@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -25,28 +24,24 @@ return new class extends Migration
 
     private function indexExists(string $indexName): bool
     {
-        $result = DB::select(
-            "SELECT COUNT(1) as count FROM information_schema.STATISTICS
-             WHERE table_schema = DATABASE()
-               AND table_name = 'student_document_workspaces'
-               AND index_name = ?",
-            [$indexName]
-        );
-
-        return (int) $result[0]->count > 0;
+        return Schema::hasIndex('student_document_workspaces', $indexName);
     }
 
     private function addIndexIfMissing(string $indexName, string $column): void
     {
         if (!$this->indexExists($indexName)) {
-            DB::statement("ALTER TABLE student_document_workspaces ADD INDEX {$indexName} ({$column})");
+            Schema::table('student_document_workspaces', function ($table) use ($indexName, $column) {
+                $table->index($column, $indexName);
+            });
         }
     }
 
     private function dropIndexIfExists(string $indexName): void
     {
         if ($this->indexExists($indexName)) {
-            DB::statement("ALTER TABLE student_document_workspaces DROP INDEX {$indexName}");
+            Schema::table('student_document_workspaces', function ($table) use ($indexName) {
+                $table->dropIndex($indexName);
+            });
         }
     }
 };

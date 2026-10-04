@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\College;
+use App\Models\Organization;
+use App\Models\Program;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use App\Models\Role;
@@ -20,6 +23,22 @@ class DatabaseSeeder extends Seeder
         $officerRoleId = Role::where('role_name', 'Officer')->value('id');
         $adminRoleId   = Role::where('role_name', 'Admin')->value('id');
 
+        $college = College::query()->firstOrCreate(
+            ['code' => 'CCS'],
+            ['name' => 'College of Computer Studies'],
+        );
+
+        $program = Program::query()->firstOrCreate(
+            ['name' => 'BSIT'],
+            ['college_id' => $college->id, 'is_active' => true],
+        );
+
+        $organization = Organization::query()->firstOrCreate(
+            ['name' => 'DIGITS'],
+            ['description' => 'Sample student organization', 'is_active' => true],
+        );
+        $organization->programs()->syncWithoutDetaching([$program->id]);
+
         $password = Hash::make('#Password123');
 
         $studentNumber = 2100200;
@@ -28,9 +47,9 @@ class DatabaseSeeder extends Seeder
         // 🎓 STUDENTS (10)
         // =========================
         for ($i = 0; $i < 10; $i++) {
-            User::create([
-                'student_number' => $studentNumber++,
-
+            User::firstOrCreate(
+                ['student_number' => $studentNumber++],
+                [
                 'first_name' => fake()->firstName(),
                 'middle_name' => fake()->optional()->firstName(),
                 'last_name' => fake()->lastName(),
@@ -43,8 +62,8 @@ class DatabaseSeeder extends Seeder
                 'contact_number' => fake()->phoneNumber(),
 
                 'college' => 'CCS',
-                'program' => 'BSIT',
-                'organization' => fake()->optional()->randomElement(['DIGITS', 'CSS Org', 'Dev Guild']),
+                'program_id' => $program->id,
+                'organization_id' => $organization->id,
                 'year_level' => fake()->randomElement(['1', '2', '3', '4']),
                 'academic_status' => 'Regular',
 
@@ -55,16 +74,17 @@ class DatabaseSeeder extends Seeder
 
                 // 🔥 Must verify first
                 'account_status' => 'pending_verification',
-            ]);
+                ],
+            );
         }
 
         // =========================
         // 🏅 OFFICERS (5)
         // =========================
         for ($i = 0; $i < 5; $i++) {
-            User::create([
-                'student_number' => $studentNumber++,
-
+            User::firstOrCreate(
+                ['student_number' => $studentNumber++],
+                [
                 'first_name' => fake()->firstName(),
                 'middle_name' => fake()->optional()->firstName(),
                 'last_name' => fake()->lastName(),
@@ -77,8 +97,8 @@ class DatabaseSeeder extends Seeder
                 'contact_number' => fake()->phoneNumber(),
 
                 'college' => 'CCS',
-                'program' => 'BSIT',
-                'organization' => 'DIGITS', // officers usually org-based
+                'program_id' => $program->id,
+                'organization_id' => $organization->id,
                 'year_level' => fake()->randomElement(['2', '3', '4']),
                 'academic_status' => 'Regular',
 
@@ -87,15 +107,16 @@ class DatabaseSeeder extends Seeder
 
                 'profile_picture' => null,
                 'account_status' => 'pending_verification',
-            ]);
+                ],
+            );
         }
 
         // =========================
         // 👑 ADMIN (1)
         // =========================
-        User::create([
-            'student_number' => 'ADMIN-001',
-
+        User::firstOrCreate(
+            ['student_number' => 'ADMIN-001'],
+            [
             'first_name' => 'System',
             'middle_name' => null,
             'last_name' => 'Administrator',
@@ -108,8 +129,8 @@ class DatabaseSeeder extends Seeder
             'contact_number' => '09123456789',
 
             'college' => 'ADMIN',
-            'program' => 'SYSTEM',
-            'organization' => null,
+            'program_id' => $program->id,
+            'organization_id' => null,
             'year_level' => 'N/A',
             'academic_status' => 'Staff',
 
@@ -120,6 +141,7 @@ class DatabaseSeeder extends Seeder
 
             // Admin bypass
             'account_status' => 'active',
-        ]);
+            ],
+        );
     }
 }

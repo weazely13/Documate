@@ -1,14 +1,5 @@
 [
   {
-    "name": "Registrar's Office",
-    "aliases": ["registrar", "records office"],
-    "building": "Main Building",
-    "floor": "2nd Floor",
-    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
-    "services": ["transcript of records", "certificate of enrollment", "diploma release", "grade correction"],
-    "contact": "registrar@lnu.edu.ph"
-  },
-  {
     "name": "Cashier's Office",
     "aliases": ["cashier", "billing"],
     "building": "Main Building",
@@ -25,5 +16,545 @@
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["clearance", "good moral certificate", "student organizations", "disciplinary concerns"],
     "contact": "osa@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the University President",
+    "aliases": ["OUP", "president's office", "university president"],
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["executive administration", "university governance", "institutional policy", "strategic leadership"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the University Board Secretary",
+    "aliases": ["board secretary", "board secretary's office", "BOR secretary"],
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["Board of Regents documentation", "board meeting support", "official board records", "governance coordination"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Legal and Data Protection Office",
+    "aliases": ["legal office", "data protection office", "DPO", "legal affairs"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["legal assistance", "legal review", "data privacy concerns", "data protection compliance"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Internal Audit Office",
+    "aliases": ["internal audit", "audit office", "IAO"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["internal auditing", "compliance review", "financial and operational audit", "audit recommendations"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Project Management Office",
+    "aliases": ["PMO", "project office"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["project development", "project monitoring", "project coordination", "institutional projects"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Planning and Engineering Office",
+    "aliases": ["planning office", "planning and development", "planning office"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["institutional planning", "development planning", "infrastructure planning", "project planning"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Quality Management System Office",
+    "aliases": ["QMS office", "quality management", "QMS"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["quality management", "quality assurance coordination", "ISO-related activities", "SUC leveling support"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Gender and Development Office",
+    "aliases": ["GAD", "GAD office", "gender and development"],
+    "building": "Brillo Hall",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["gender equality programs", "diversity and inclusion", "human rights awareness", "GAD training and activities"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Public Affairs and Marketing Communications Office",
+    "aliases": ["PAMCO", "public affairs", "marketing communications", "communications office"],
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["official announcements", "public information", "marketing communications", "media coordination", "institutional promotions"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "IT Support Office",
+    "aliases": ["IT office", "IT support", "MIS", "information technology"],
+    "building": "IT Building Extension",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["technical support", "account assistance", "system support", "network support", "Normalista Apps support"],
+    "contact": "mis@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Vice President for Administration and Finance",
+    "aliases": ["OVPAF", "VPAF", "administration and finance"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["administrative services", "financial management", "resource management", "campus operations"],
+    "contact": "vpaf.office@lnu.edu.ph"
+  },
+  {
+    "name": "Human Resource Management Office",
+    "aliases": ["HRMO", "HR office", "human resources"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["recruitment", "employee records", "personnel services", "employee development", "staff welfare"],
+    "contact": "hrmo@lnu.edu.ph"
+  },
+  {
+    "name": "Procurement Management Office",
+    "aliases": ["PMO", "procurement office", "purchasing office"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["procurement", "bidding documents", "annual procurement planning", "bid evaluation", "contract awarding"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "General Services and Support Office",
+    "aliases": ["general services", "GSSO", "general services office"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["general campus support", "maintenance coordination", "facility support", "operational services"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Supply and Property Management Office",
+    "aliases": ["supply office", "property office", "SPMO"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["supply management", "property management", "inventory", "asset custody", "issuance of supplies"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Records Management Office",
+    "aliases": ["records office", "RMO", "records management"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["institutional records management", "document archiving", "records retrieval", "records disposition"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Sustainability, Climate, and Disaster Resilience Office",
+    "aliases": ["SCDRO", "sustainability office", "disaster resilience office"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["sustainability programs", "climate action", "disaster resilience", "environmental programs", "risk reduction"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Security Office",
+    "aliases": ["security", "campus security", "security office"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["campus security", "access control", "security assistance", "incident response"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Auxiliary Services Office",
+    "aliases": ["auxiliary services", "ASO"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["business and income generation", "medical services", "housing and dormitory services", "support services"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Accounting Services Office",
+    "aliases": ["accounting office", "accounting", "university accounting"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["financial recordkeeping", "financial reporting", "payroll processing", "accounts payable", "accounts receivable", "Free Higher Education billing"],
+    "contact": "lnu_acctg@lnu.edu.ph"
+  },
+  {
+    "name": "Budget Management Office",
+    "aliases": ["budget office", "budget management", "budgeting"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["budget preparation", "budget monitoring", "fund allocation", "financial planning", "budget implementation"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Cash Management Office",
+    "aliases": ["cashier", "cashier's office", "cash management", "cash office"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["tuition payments", "fee payments", "cash collections", "financial disbursements", "refund processing"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Vice President for Academic Services",
+    "aliases": ["OVPAS", "VPAS", "academic services"],
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["academic administration", "academic policy", "curriculum support", "academic program coordination"],
+    "contact": "vpas@lnu.edu.ph"
+  },
+  {
+    "name": "Registrar's Office",
+    "aliases": ["registrar", "registrar office", "student records"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["student records", "authentication", "certification", "report of ratings", "transcript-related services", "graduation records"],
+    "contact": "registrar@lnu.edu.ph"
+  },
+  {
+    "name": "Admissions Office",
+    "aliases": ["admissions", "admission office", "enrollment admissions"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["admission inquiries", "application assistance", "admission requirements", "program information", "applicant assistance"],
+    "contact": "lnu.admissionsoffice@lnu.edu.ph"
+  },
+  {
+    "name": "Learning Resource Center",
+    "aliases": ["LRC", "library", "university library"],
+    "building": "Learning Resource Center Building",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["library services", "research assistance", "information resources", "learning resources", "reference services"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Curriculum Development Office",
+    "aliases": ["CDO", "curriculum office", "curriculum development"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["curriculum development", "curriculum review", "academic program support", "curriculum enhancement"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "NSTP Office",
+    "aliases": ["NSTP", "National Service Training Program", "NSTP office"],
+    "building": "Humanities Building",
+    "floor": "3rd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["NSTP enrollment", "NSTP coordination", "CWTS coordination", "ROTC coordination", "NSTP records"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Expanded Tertiary Education Equivalency and Accreditation Program Office",
+    "aliases": ["ETEEAP", "ETEEAP Office", "tertiary equivalency"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["ETEEAP inquiries", "prior learning assessment", "equivalency accreditation", "adult learner assistance"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Center for Continuing Education and Lifelong Learning",
+    "aliases": ["C-CELL", "CCELL", "continuing education"],
+    "building": "CTE Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["continuing education", "professional development", "training programs", "lifelong learning"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Vice President for Student Development",
+    "aliases": ["OVPSD", "VPSD", "student development"],
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["student development", "student welfare", "student leadership", "student support programs"],
+    "contact": "vpsd@lnu.edu.ph"
+  },
+  {
+    "name": "Guidance and Testing Office",
+    "aliases": ["GTO", "guidance office", "testing office", "career placement"],
+    "building": "Student Center",
+    "floor": "1st and 2nd Floors",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["counseling", "psychological and guidance support", "testing", "career placement", "student appraisal", "referrals"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Scholarship and Financial Assistance Office",
+    "aliases": ["SFAO", "scholarship office", "financial assistance", "scholarships"],
+    "building": "Student Center",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["scholarship applications", "financial aid", "student assistantship", "government scholarships", "private scholarships", "grant assistance"],
+    "contact": "scholarshipoffice@lnu.edu.ph"
+  },
+  {
+    "name": "Students with Special Needs Office",
+    "aliases": ["SSN office", "special needs", "disability services", "students with disabilities"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["disability support", "inclusive education support", "accessibility assistance", "special needs programs", "student welfare support"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Sports Development Office",
+    "aliases": ["sports office", "athletics", "sports development"],
+    "building": "Student Center",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["sports programs", "student athlete support", "athletic activities", "sports development"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Student Performing Arts Office",
+    "aliases": ["SPA office", "performing arts", "cultural affairs", "student performing arts"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["performing arts programs", "cultural activities", "student performers", "arts events"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Student Organizations and Activities Office",
+    "aliases": ["SOAD", "student organizations", "student activities", "student affairs"],
+    "building": "Student Center",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["student organization registration", "student activities", "leadership development", "campus events", "student engagement"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Alumni Affairs Office",
+    "aliases": ["alumni office", "alumni affairs", "graduates office"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["alumni engagement", "alumni ID assistance", "transcript assistance", "alumni events", "alumni networking"],
+    "contact": "alumni@lnu.edu.ph"
+  },
+  {
+    "name": "Office of Research and Innovation",
+    "aliases": ["ORI", "research office", "research and innovation"],
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["research support", "research proposals", "research training", "research funding assistance", "research publication support"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Knowledge Creation and Innovation Center",
+    "aliases": ["KCIC", "innovation center", "knowledge creation center"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["intellectual property services", "IP filing assistance", "innovation support", "technology development", "technology transfer"],
+    "contact": "kcic@lnu.edu.ph"
+  },
+  {
+    "name": "Center for Teacher Education Research, Technology and Innovation",
+    "aliases": ["CTERTI", "teacher education research center", "teacher research center"],
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["teacher education research", "research technology", "innovation projects", "research training"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Center for Language and Cultural Studies",
+    "aliases": ["CLCS", "language center", "cultural studies center"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["language studies", "cultural studies", "language research", "cultural programs"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Center for Health and Environmental Sciences",
+    "aliases": ["CHES", "health sciences center", "environmental sciences"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["health research", "environmental research", "scientific studies", "research collaboration"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Sound and Acoustics Creative Industry and Innovation",
+    "aliases": ["SONATA", "sound and acoustics", "creative industry center"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["sound research", "acoustics", "creative industry projects", "innovation projects"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "LNU Peace Center",
+    "aliases": ["Peace Center", "LNU Peace Center", "peace studies"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["peace education", "peace research", "peacebuilding programs", "community engagement"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Regional Institute for Tourism and Hospitality Management Studies",
+    "aliases": ["RITHMS", "tourism institute", "hospitality management institute"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["tourism research", "hospitality studies", "industry training", "tourism development"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Community Extension Services Office",
+    "aliases": ["CESO", "extension office", "community extension"],
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["community extension programs", "livelihood training", "literacy programs", "health missions", "disaster preparedness", "community development"],
+    "contact": "ceso@lnu.edu.ph"
+  },
+  {
+    "name": "Center for International Studies, Collaboration, Mobility, and University Rankings",
+    "aliases": ["CISCMUR", "international office", "international studies", "internationalization"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["international partnerships", "student mobility", "faculty mobility", "international research", "international recruitment", "university rankings"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Center for Gender and Development",
+    "aliases": ["CGAD", "GAD center", "gender center"],
+    "building": "Brillo Hall",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["gender equality programs", "diversity and inclusion", "human rights programs", "GAD training", "gender-responsive activities"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Research Ethics Office",
+    "aliases": ["REO", "research ethics", "ethics office"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["research ethics review", "research ethics guidance", "ethical compliance", "research participant protection"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Business and Income Generation Office",
+    "aliases": ["BIGO", "income generating office", "IGO", "business office"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["garment services", "printing services", "ID printing", "institutional materials", "souvenirs", "LET reviewer", "lamination", "trade park"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Medical Services Office",
+    "aliases": ["MSO", "medical clinic", "health services", "LNU clinic"],
+    "building": "Obdulia Ronda Cinco Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["medical consultation", "primary health care", "emergency response", "health screening", "health education", "wellness support"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Dental Clinic",
+    "aliases": ["dental office", "dentist", "dental clinic"],
+    "building": "Obdulia Ronda Cinco Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["dental consultation", "dental examination", "oral health services", "dental assistance"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Housing and Dormitory Services",
+    "aliases": ["dormitory", "LNU dorm", "housing office", "dorm manager"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 12:00 PM, 1:30 PM - 5:00 PM",
+    "services": ["student dormitory applications", "dormitory accommodation", "transient accommodation", "housing assistance", "dormitory management"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Physical Plant and Facilities Office",
+    "aliases": ["PPFO", "physical plant", "facilities office", "maintenance office"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["facility maintenance", "campus infrastructure", "utilities coordination", "building maintenance", "facility management"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Reproduction Office",
+    "aliases": ["reproduction", "printing office", "repro office"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["document reproduction", "printing support", "institutional document production"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Bids and Awards Committee",
+    "aliases": ["BAC", "bids and awards", "BAC office"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["public bidding", "bid evaluation", "procurement recommendations", "bidding documentation"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Commission on Audit",
+    "aliases": ["COA", "COA office", "state auditors"],
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["government audit", "financial audit", "compliance audit", "audit examination"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Dean of Graduate School",
+    "aliases": ["Graduate School", "graduate school office", "GS office"],
+    "building": "Not publicly listed",
+    "floor": "Not publicly listed",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["graduate program inquiries", "graduate student services", "graduate academic coordination", "graduate program administration"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Sentro ng Wika at Kultura",
+    "aliases": ["SWK", "language and culture center", "Sentro ng Wika"],
+    "building": "Obdulia Ronda Cinco Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["language programs", "Filipino language activities", "cultural programs", "language research", "cultural preservation"],
+    "contact": "info@lnu.edu.ph"
   }
 ]

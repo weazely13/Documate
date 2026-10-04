@@ -69,12 +69,12 @@ class Dashboard extends Component
                 sum(
                     case
                         when status = 'approved'
-                        and appointment_date >= curdate()
+                        and appointment_date >= ?
                         then 1
                         else 0
                     end
                 ) as upcoming
-            ")
+            ", [now()->toDateString()])
             ->selectRaw("
                 sum(
                     case
