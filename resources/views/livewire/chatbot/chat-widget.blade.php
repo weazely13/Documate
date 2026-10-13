@@ -10,7 +10,7 @@
     x-on:chat-message-sent.window="$wire.getReply()"
     class="flex flex-col h-full"
 >
-    <div class="chatbot-body flex-1 overflow-y-auto overflow-x-hidden space-y-3 p-4" x-ref="scrollBody"
+    <div class="chatbot-body flex-1 overflow-y-auto overflow-x-hidden space-y-3 p-4" x-ref="scrollBody" role="log" aria-live="polite" aria-relevant="additions text"
          x-init="
             $watch('$wire.messages', () => toBottom());
             $watch('$wire.quickReplies', () => toBottom());
@@ -64,10 +64,14 @@
                 </div>
             </div>
         @endif
+
+        @error('input')
+            <p class="chatbot-input-error" role="alert">{{ $message }}</p>
+        @enderror
     </div>
 
     <form wire:submit.prevent="sendMessage" class="chatbot-input flex items-center gap-2 p-3">
-        <input type="text" wire:model="input" placeholder="Ask something..." autocomplete="off" class="flex-1" {{ $isThinking ? 'disabled' : '' }}>
+        <input type="text" wire:model="input" placeholder="Ask something..." aria-label="Ask DocuMate Assistant" maxlength="2000" autocomplete="off" class="flex-1" {{ $isThinking ? 'disabled' : '' }}>
         <button type="submit" class="chatbot-send-btn" {{ $isThinking ? 'disabled' : '' }} aria-label="Send message">
             <i class='bx bx-send'></i>
         </button>
