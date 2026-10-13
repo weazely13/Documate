@@ -525,6 +525,20 @@ body {
     color: inherit;
 }
 
+.chatbot-msg-content a {
+    color: #1d4ed8;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    overflow-wrap: anywhere;
+}
+
+.chatbot-input-error {
+    color: #b91c1c;
+    font-size: .75rem;
+    line-height: 1.4;
+}
+
 .chatbot-msg-content .chatbot-item {
     margin: .2rem 0;
     padding-left: 0;
