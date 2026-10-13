@@ -1,6 +1,7 @@
 #!/bin/sh
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+
+# Run migrations only when container boots
 php artisan migrate --force
-apache2-foreground
+
+# Start Apache in the foreground to keep container alive
+exec apache2-foreground
