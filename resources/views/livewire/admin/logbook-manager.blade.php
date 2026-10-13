@@ -232,27 +232,39 @@
                         <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <th class="px-4 py-3">Date</th>
                             <th class="px-4 py-3">Time</th>
+                            {{-- Purpose: the key column, so it comes first and is visually emphasized --}}
+                            <th class="min-w-[14rem] border-l-4 border-[#2A57B4] bg-[#2A57B4]/10 px-4 py-3 text-[#2A57B4]">
+                                <span class="inline-flex items-center gap-1.5"><i class='bx bxs-bookmark-star text-sm'></i> Purpose</span>
+                            </th>
                             <th class="px-4 py-3">Name of Applicant</th>
                             <th class="px-4 py-3">Course / Program</th>
                             <th class="px-4 py-3">Complete Address</th>
                             <th class="px-4 py-3">Issued To</th>
                             <th class="px-4 py-3">Relation</th>
-                            <th class="px-4 py-3">Purpose</th>
                             <th class="px-4 py-3">Date &amp; Time Released</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($entries as $entry)
-                            <tr wire:key="logbook-entry-{{ $entry->id }}" class="text-slate-700">
-                                <td class="whitespace-nowrap px-4 py-3">{{ $entry->entry_date }}</td>
-                                <td class="whitespace-nowrap px-4 py-3">{{ $entry->entry_time }}</td>
-                                <td class="px-4 py-3 font-semibold text-slate-900">{!! $this->highlight($entry->applicant_name) !!}</td>
+                            <tr wire:key="logbook-entry-{{ $entry->id }}" class="text-slate-600 transition hover:bg-slate-50/70">
+                                <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500">{{ $entry->entry_date }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500">{{ $entry->entry_time }}</td>
+
+                                {{-- Purpose: highlighted --}}
+                                <td class="min-w-[14rem] border-l-4 border-[#2A57B4] bg-[#2A57B4]/5 px-4 py-3 align-top">
+                                    @if(filled($entry->purpose))
+                                        <span class="text-sm font-bold leading-snug text-[#2A57B4]">{!! $this->highlight($entry->purpose) !!}</span>
+                                    @else
+                                        <span class="text-xs italic text-slate-400">No purpose recorded</span>
+                                    @endif
+                                </td>
+
+                                <td class="px-4 py-3 font-medium text-slate-800">{!! $this->highlight($entry->applicant_name) !!}</td>
                                 <td class="px-4 py-3">{!! $this->highlight($entry->program) !!}</td>
-                                <td class="px-4 py-3">{!! $this->highlight($entry->address) !!}</td>
+                                <td class="px-4 py-3 text-xs text-slate-500">{!! $this->highlight($entry->address) !!}</td>
                                 <td class="px-4 py-3">{!! $this->highlight($entry->issued_to) !!}</td>
-                                <td class="px-4 py-3">{{ $entry->relation }}</td>
-                                <td class="px-4 py-3">{!! $this->highlight($entry->purpose) !!}</td>
-                                <td class="whitespace-nowrap px-4 py-3">{{ $entry->released_at }}</td>
+                                <td class="px-4 py-3 text-xs text-slate-500">{{ $entry->relation }}</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500">{{ $entry->released_at }}</td>
                             </tr>
                         @empty
                             <tr>

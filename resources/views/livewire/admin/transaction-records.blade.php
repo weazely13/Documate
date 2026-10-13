@@ -75,68 +75,122 @@
             <p class="mb-3 text-xs text-slate-400">
                 {{ $pendingCount }} pending, {{ $forAppointmentCount }} for appointment, {{ $completedCount }} completed.
             </p>
+            @php
+                $statusClassFor = fn (string $status) => match ($status) {
+                    'Completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                    'For Appointment' => 'bg-amber-50 text-amber-700 ring-amber-200',
+                    'Waiting Upload' => 'bg-blue-50 text-blue-700 ring-blue-200',
+                    'Processing' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+                    'Missed' => 'bg-rose-50 text-rose-700 ring-rose-200',
+                    default => 'bg-orange-50 text-orange-700 ring-orange-200',
+                };
+            @endphp
+
             <div class="overflow-hidden rounded-xl border border-slate-200">
                 <div class="overflow-x-auto">
                     <table class="min-w-full border-collapse text-sm">
                         <thead class="bg-slate-50">
                             <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                <th class="px-4 py-3">Transaction ID</th>
                                 <th class="px-4 py-3">Student</th>
                                 <th class="px-4 py-3">Student ID</th>
-                                <th class="px-4 py-3">Purpose</th>
-                                <th class="px-4 py-3">Date</th>
-                                <th class="px-4 py-3">Session</th>
+                                <th class="px-4 py-3">Forms</th>
+                                <th class="px-4 py-3">Latest Date</th>
                                 <th class="px-4 py-3">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($records as $record)
-                                @php
-                                    $statusClass = match ($record['status']) {
-                                        'Completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-                                        'For Appointment' => 'bg-amber-50 text-amber-700 ring-amber-200',
-                                        'Waiting Upload' => 'bg-blue-50 text-blue-700 ring-blue-200',
-                                        'Processing' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-                                        'Missed' => 'bg-rose-50 text-rose-700 ring-rose-200',
-                                        default => 'bg-orange-50 text-orange-700 ring-orange-200',
-                                    };
-                                @endphp
-                                <tr wire:key="transaction-record-{{ $record['workspace_id'] }}"
-                                    @click="Livewire.navigate('{{ route('admin.transactions.show', $record['workspace_id']) }}')"
-                                    class="group cursor-pointer text-slate-700 transition hover:bg-slate-50">
-                                    <td class="px-4 py-3.5 font-mono text-xs font-semibold text-slate-500">#{{ $record['transaction_id'] }}</td>
+
+                        @forelse($students as $s)
+                            <tbody wire:key="student-{{ $s['key'] }}"
+                                x-data="{ open: false }"
+                                class="border-t border-slate-100 first:border-t-0">
+
+                                {{-- One row per student --}}
+                                <tr @click="open = !open" class="group cursor-pointer text-slate-700 transition hover:bg-slate-50">
                                     <td class="px-4 py-3.5">
-                                        <div class="max-w-[220px] truncate font-semibold text-slate-900 group-hover:text-[#2A57B4]" title="{{ $record['student_name'] }}">
-                                            {{ $record['student_name'] }}
+                                        <div class="flex items-center gap-2.5">
+                                            <i class='bx bx-chevron-right text-lg text-slate-400 transition-transform'
+                                            :class="open && 'rotate-90'"></i>
+                                            <div class="min-w-0">
+                                                <div class="max-w-[220px] truncate font-semibold text-slate-900 group-hover:text-[#2A57B4]" title="{{ $s['student_name'] }}">
+                                                    {{ $s['student_name'] }}
+                                                </div>
+                                                @if($s['search_snippet'])
+                                                    <p class="mt-1 max-w-[280px] text-xs italic leading-snug text-slate-400">
+                                                        <span class="font-semibold not-italic text-slate-500">{{ $s['search_snippet_label'] }}:</span>
+                                                        {!! $s['search_snippet'] !!}
+                                                    </p>
+                                                @endif
+                                            </div>
                                         </div>
-                                        @if($record['search_snippet'])
-                                            <p class="mt-1 max-w-[280px] text-xs italic leading-snug text-slate-400">
-                                                <span class="font-semibold not-italic text-slate-500">{{ $record['search_snippet_label'] }}:</span>
-                                                {!! $record['search_snippet'] !!}
-                                            </p>
-                                        @endif
                                     </td>
-                                    <td class="px-4 py-3.5 whitespace-nowrap text-slate-500">{{ $record['student_number'] }}</td>
+                                    <td class="px-4 py-3.5 whitespace-nowrap text-slate-500">{{ $s['student_number'] }}</td>
+                                    <td class="px-4 py-3.5 whitespace-nowrap text-slate-600">
+                                        {{ $s['total'] }} {{ Str::plural('form', $s['total']) }}
+                                    </td>
+                                    <td class="px-4 py-3.5 whitespace-nowrap text-slate-500">{{ $s['latest_label'] }}</td>
                                     <td class="px-4 py-3.5">
-                                        <div class="max-w-[200px] truncate" title="{{ $record['type'] }}">{{ $record['type'] }}</div>
-                                    </td>
-                                    <td class="px-4 py-3.5 whitespace-nowrap text-slate-500">{{ $record['date_label'] }}</td>
-                                    <td class="px-4 py-3.5 whitespace-nowrap text-slate-500">{{ $record['appointment'] }}</td>
-                                    <td class="px-4 py-3.5 whitespace-nowrap">
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $statusClass }}">
-                                            {{ $record['status'] }}
-                                        </span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            @foreach($s['status_counts'] as $status => $count)
+                                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $statusClassFor($status) }}">
+                                                    {{ $count > 1 ? $count . ' ' : '' }}{{ $status }}
+                                                </span>
+                                            @endforeach
+                                        </div>
                                     </td>
                                 </tr>
-                            @empty
+
+                                {{-- Expanded: this student's forms, newest first --}}
+                                <tr x-show="open" x-cloak>
+                                    <td colspan="5" class="bg-slate-50/70 px-4 py-2">
+                                        <table class="min-w-full text-sm">
+                                            <thead>
+                                                <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                                    <th class="py-2 pl-8 pr-3">Transaction ID</th>
+                                                    <th class="px-3 py-2">Purpose</th>
+                                                    <th class="px-3 py-2">Date</th>
+                                                    <th class="px-3 py-2">Session</th>
+                                                    <th class="px-3 py-2">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-200/70">
+                                                @foreach($s['forms'] as $record)
+                                                    <tr wire:key="transaction-record-{{ $record['workspace_id'] }}"
+                                                        @click.stop="Livewire.navigate('{{ route('admin.transactions.show', $record['workspace_id']) }}')"
+                                                        class="cursor-pointer text-slate-700 transition hover:bg-white">
+                                                        <td class="py-2.5 pl-8 pr-3 font-mono text-xs font-semibold text-slate-500">#{{ $record['transaction_id'] }}</td>
+                                                        <td class="px-3 py-2.5">
+                                                            <div class="max-w-[260px] truncate" title="{{ $record['type'] }}">{{ $record['type'] }}</div>
+                                                            @if($record['search_snippet'])
+                                                                <p class="mt-1 max-w-[320px] text-xs italic leading-snug text-slate-400">
+                                                                    <span class="font-semibold not-italic text-slate-500">{{ $record['search_snippet_label'] }}:</span>
+                                                                    {!! $record['search_snippet'] !!}
+                                                                </p>
+                                                            @endif
+                                                        </td>
+                                                        <td class="px-3 py-2.5 whitespace-nowrap text-slate-500">{{ $record['date_label'] }}</td>
+                                                        <td class="px-3 py-2.5 whitespace-nowrap text-slate-500">{{ $record['appointment'] }}</td>
+                                                        <td class="px-3 py-2.5 whitespace-nowrap">
+                                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $statusClassFor($record['status']) }}">
+                                                                {{ $record['status'] }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        @empty
+                            <tbody>
                                 <tr>
-                                    <td colspan="7" class="px-4 py-14 text-center">
+                                    <td colspan="5" class="px-4 py-14 text-center">
                                         <i class='bx bx-search-alt text-3xl text-slate-300'></i>
                                         <p class="mt-2 text-sm text-slate-500">No transaction records matched your filters.</p>
                                     </td>
                                 </tr>
-                            @endforelse
-                        </tbody>
+                            </tbody>
+                        @endforelse
                     </table>
                 </div>
             </div>

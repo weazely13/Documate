@@ -28,20 +28,14 @@ class DocumentShow extends Component
     public function fields(): array
     {
         $fields = $this->workspace->template?->currentVersion?->fields;
-
-        if (! $fields) {
-            return [];
-        }
+        if (! $fields) return [];
 
         return $fields
-        // match the exact ordering NewTransaction's query used (y, then x)
-        ->sortBy('x_position')
-        ->sortBy('y_position')
-        ->map(function ($f) {
-            // Same-named fields intentionally share one value (see NewTransaction).
-            $name = $f->name ? Str::slug($f->name, '_') : ('field_' . $f->field_id);
+            ->sortBy([['y_position', 'asc'], ['x_position', 'asc']])
+            ->map(function ($f) {
+                $name = $f->name ? Str::slug($f->name, '_') : ('field_' . $f->field_id);
 
-            return [
+                return [
                     'id' => (string) $f->field_id,
                     'name' => $name,
                     'label' => $f->label,
@@ -54,8 +48,24 @@ class DocumentShow extends Component
                     'line_height' => (float) ($f->line_height ?? 1.3),
                     'letter_spacing' => (float) ($f->letter_spacing ?? 0),
                     'text_case' => $f->text_case ?? 'none',
+                    'source_type' => $f->source_type,
+                    'system_key' => $f->system_key,
+                    'date_mode' => $f->date_mode ?? 'current',
+                    'font_style' => $f->font_style ?? 'normal',
+                    'max_lines' => $f->max_lines,
                 ];
             })->values()->all();
+    }
+
+    #[Computed]
+    public function systemValues(): array
+    {
+        $version = $this->workspace->template?->currentVersion;
+        $owner = $this->workspace->user ?? Auth::user();
+
+        return ($version && $owner)
+            ? app(\App\Services\SystemValueResolver::class)->mapForFields($owner, $version->fields)
+            : [];
     }
 
     private function appointmentStatusLabel(string $status): string

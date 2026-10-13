@@ -530,17 +530,72 @@
                 </div>
             </div>
 
+            @php $students = $this->historyStudents; @endphp
+
             <div class="flex items-center justify-between px-1">
                 <p class="text-xs font-semibold text-slate-500">
-                    Showing {{ $this->historyAppointments->count() }} of {{ $this->historyAppointments->total() }} appointment(s)
+                    Showing {{ $students->count() }} of {{ $students->total() }} student(s)
                 </p>
             </div>
 
-            <div class="grid gap-3 grid-cols-1 md:grid-cols-2">
-                @forelse($this->historyAppointments as $appt)
-                    @include('livewire.admin.appointments.partials.appointment-card', ['appt' => $appt, 'selectable' => false, 'showDate' => true])
+            @php
+                $historyBadge = fn (string $status) => match ($status) {
+                    'approved', 'attended' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    'missed', 'rejected' => 'bg-rose-50 text-rose-700 border-rose-200',
+                    'retracted' => 'bg-slate-100 text-slate-500 border-slate-200',
+                    default => 'bg-amber-50 text-amber-700 border-amber-200',
+                };
+            @endphp
+
+            <div class="space-y-3">
+                @forelse($students as $s)
+                    {{-- One card per student; click to expand their appointments --}}
+                    <div wire:key="history-student-{{ $s['key'] }}" x-data="{ open: false }"
+                        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+                        <button type="button" @click="open = !open"
+                                class="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-slate-50">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform" :class="open && 'rotate-90'"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-bold text-slate-900" title="{{ $s['name'] }}">{{ $s['name'] }}</p>
+                                    <p class="text-xs text-slate-400">
+                                        {{ $s['student_number'] }}
+                                        · {{ $s['total'] }} {{ \Illuminate\Support\Str::plural('appointment', $s['total']) }}
+                                        @if($s['latest_date'])
+                                            · Latest {{ $s['latest_date']->format('M j, Y') }}
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                                @foreach($s['status_counts'] as $status => $count)
+                                    <span class="rounded-md border px-2 py-0.5 text-[10px] font-medium capitalize {{ $historyBadge($status) }}">
+                                        {{ $count > 1 ? $count . ' ' : '' }}{{ $status }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </button>
+
+                        {{-- Expanded: newest appointment on top --}}
+                        <div x-show="open" x-cloak x-collapse class="border-t border-slate-100 bg-slate-50/60 p-3">
+                            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                @foreach($s['forms'] as $appt)
+                                    @include('livewire.admin.appointments.partials.appointment-card', [
+                                        'appt' => $appt,
+                                        'selectable' => false,
+                                        'showDate' => true,
+                                    ])
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                 @empty
-                    <div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-12 text-center text-xs text-slate-400">
+                    <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-12 text-center text-xs text-slate-400">
                         No appointment records match your filters.
                     </div>
                 @endforelse
@@ -548,7 +603,7 @@
 
             <div class="mt-6 flex justify-center">
                 <div class="w-full max-w-md flex justify-center">
-                    {{ $this->historyAppointments->links() }}
+                    {{ $students->links() }}
                 </div>
             </div>
         </section>

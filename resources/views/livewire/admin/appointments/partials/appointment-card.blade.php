@@ -21,6 +21,7 @@
     $prob = $appt->ai_incorrect_probability;
     $purpose = $appt->purpose ?? 'General Visit';
     $docName = $appt->workspace?->template?->name ?? 'General Visit';
+    $fullName = trim(($appt->user->first_name ?? '') . ' ' . ($appt->user->last_name ?? ''));
 @endphp
 
 <div class="group relative flex items-center justify-between gap-3 rounded-xl border bg-white p-3 shadow-sm transition hover:shadow-md {{ $isNowServing ? 'border-[#2A57B4] ring-2 ring-[#2A57B4]/20' : 'border-slate-200 hover:border-slate-300' }}">
@@ -34,14 +35,17 @@
         @endif
 
         <div class="min-w-0 flex-1 space-y-1">
-            <!-- Highlighted Purpose of Appointment -->
-            <a href="{{ route('admin.appointments.show', $appt->appointment_id) }}" wire:navigate class="block truncate font-bold text-base text-slate-900 group-hover:text-[#2A57B4] transition-colors">
+            <a href="{{ route('admin.appointments.show', $appt->appointment_id) }}" wire:navigate
+            title="{{ $purpose }}"
+            class="block truncate font-bold text-base text-slate-900 group-hover:text-[#2A57B4] transition-colors">
                 {{ $purpose }}
             </a>
 
             <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <!-- User Name -->
-                <span class="font-semibold text-slate-700">{{ $appt->user->first_name }} {{ $appt->user->last_name }}</span>
+                <span class="block max-w-[160px] truncate font-semibold text-slate-700 sm:max-w-[220px]" title="{{ $fullName }}">
+                    {{ $fullName }}
+                </span>
 
                 @if($showDate)
                     <span>·</span>

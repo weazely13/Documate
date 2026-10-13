@@ -37,6 +37,8 @@
             @endif
             @forelse($this->events as $event)
                 @php
+                    $inProgress = in_array($event->status, ['uploading', 'queued', 'scanning']);
+                    $stale = $inProgress && $event->workspace && ! $event->workspace->processing;
                     $tone = $event->tone();
                     $ring = match ($tone) {
                         'emerald' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',

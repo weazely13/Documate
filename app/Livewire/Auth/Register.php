@@ -13,6 +13,8 @@ use Illuminate\Validation\Rules;
 use App\Services\GeminiOCRService;
 use App\Support\NameMatcher;
 use App\Models\StudentVerification;
+use App\Models\College;
+use Illuminate\Validation\Rule;
 
 
 class Register extends Component
@@ -26,7 +28,8 @@ class Register extends Component
     public $sex, $date_of_birth, $email, $contact_number;
 
     // STEP 2
-    public $college, $year_level, $academic_status;
+    public $college, $year_level, $academic_status; 
+    public ?int $college_id = null;
     public ?int $program_id = null;
     public ?int $organization_id = null;
 
@@ -48,29 +51,7 @@ class Register extends Component
         'date_of_birth.before_or_equal' => 'You must be at least 15 years old to register.',
     ];
 
-    /**
-     * Bachelor's programs, pulled live from the admin-curated list.
-     */
-    public function getBachelorProgramsProperty()
-    {
-        return Program::active()->bachelor()->orderBy('name')->get();
-    }
 
-    /**
-     * Master's programs, pulled live from the admin-curated list.
-     */
-    public function getMasterProgramsProperty()
-    {
-        return Program::active()->master()->orderBy('name')->get();
-    }
-
-    /**
-     * Organizations available to select at registration.
-     */
-    public function getOrganizationOptionsProperty()
-    {
-        return Organization::active()->orderBy('name')->get();
-    }
 
     public function nextStep()
     {
@@ -90,13 +71,7 @@ class Register extends Component
             }
 
             if ($this->step == 2) {
-                $this->validate([
-                    'college' => 'required',
-                    'program_id' => 'required|exists:programs,id',
-                    'organization_id' => 'nullable|exists:organizations,id',
-                    'year_level' => 'required',
-                    'academic_status' => 'required',
-                ]);
+                $this->validate($this->step2Rules());
             }
 
             // ✅ clear previous errors before moving step
@@ -118,6 +93,49 @@ class Register extends Component
     public function prevStep()
     {
         $this->step--;
+    }
+    public function getCollegeOptionsProperty()
+    {
+        return College::orderBy('code')->get();
+    }
+
+    public function getProgramOptionsProperty()
+    {
+        if (! $this->college_id) return collect();
+        return Program::active()->where('college_id', $this->college_id)->orderBy('name')->get();
+    }
+
+    public function getOrganizationOptionsProperty()
+    {
+        if (! $this->program_id) return collect();
+        return Organization::active()->forProgram($this->program_id)->orderBy('name')->get();
+    }
+
+    public function updatedCollegeId($value)
+    {
+        $this->college = $value ? College::find($value)?->name : null;
+        $this->program_id = null;
+        $this->organization_id = null;
+    }
+
+    public function updatedProgramId()
+    {
+        $this->organization_id = null;
+    }
+
+    protected function step2Rules(): array
+    {
+        return [
+            'college_id' => 'required|exists:colleges,id',
+            'program_id' => ['required', Rule::exists('programs', 'id')->where('college_id', $this->college_id)->where('is_active', true)],
+            'organization_id' => ['nullable', 'exists:organizations,id', function ($attribute, $value, $fail) {
+                if ($value && ! Organization::active()->forProgram($this->program_id)->whereKey($value)->exists()) {
+                    $fail('That organization is not available for your program.');
+                }
+            }],
+            'year_level' => 'required',
+            'academic_status' => 'required',
+        ];
     }
 
     public function getUserDataProperty()
@@ -333,21 +351,16 @@ class Register extends Component
             $this->dispatch('validation-error');
             return;
         }
-        $this->validate([
+       $this->validate(array_merge($this->step2Rules(), [
             'student_number' => 'required|unique:users,student_number',
             'first_name' => 'required',
             'last_name' => 'required',
             'sex' => 'required',
             'date_of_birth' => $this->dobRules(),
-            'college' => 'required',
-            'program_id' => 'required|exists:programs,id',
-            'organization_id' => 'nullable|exists:organizations,id',
-            'year_level' => 'required',
-            'academic_status' => 'required',
             'password' => ['required', 'confirmed'],
             'email' => ['required', 'email', 'regex:/^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook)\.com$/'],
             'contact_number' => ['required', 'regex:/^(09|\+639)\d{9}$/'],
-        ]);
+        ]));
 
         $profilePath = null;
         if ($this->profile_picture) {

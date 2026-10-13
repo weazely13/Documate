@@ -1,12 +1,11 @@
+@assets
 <script>
-    if (typeof window.toSentenceCase !== 'function') {
-        window.toSentenceCase = function (str) {
-            if (!str) return str;
-            return String(str).toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase());
-        };
-    }
+    window.toSentenceCase ??= function (str) {
+        if (!str) return str;
+        return String(str).toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase());
+    };
 
-    function documentPreviewEngine(fields, values, systemValues) {
+    window.positionedPreviewEngine ??= function (fields, values, systemValues) {
         return {
             fields: fields || [],
             values: values || {},
@@ -38,13 +37,17 @@
                 }
                 return value;
             },
+            isMultiline(field) {
+                // System values (name, program, etc.) are always single-line and must shrink
+                return field.type === 'paragraph' && field.source_type !== 'system';
+            },
             fieldTextStyle(field) {
                 const value = this.displayValue(field);
                 const fontSize = this.fitFontSize(field, value);
                 const lineHeight = parseFloat(field.line_height || 1.3);
-                const maxLines = parseInt(field.max_lines || 0, 10);
+                const multiline = this.isMultiline(field);
+                const maxLines = multiline ? parseInt(field.max_lines || 0, 10) : 0;
                 const maxHeight = maxLines > 0 ? (maxLines * fontSize * lineHeight) + 8 : null;
-                const isParagraph = field.type === 'paragraph';
 
                 let caseCss = '';
                 if (field.text_case === 'uppercase') caseCss = 'text-transform: uppercase;';
@@ -54,6 +57,7 @@
                     font-family: '${field.font_family}', sans-serif;
                     font-size: ${fontSize}px;
                     font-weight: ${field.font_weight};
+                    font-style: ${field.font_style || 'normal'};
                     color: ${field.text_color};
                     text-align: ${field.alignment};
                     line-height: ${lineHeight};
@@ -61,9 +65,9 @@
                     display: block;
                     width: 100%;
                     overflow: hidden;
-                    overflow-wrap: ${isParagraph ? 'break-word' : 'normal'};
-                    word-break: ${isParagraph ? 'break-word' : 'normal'};
-                    white-space: ${isParagraph ? 'pre-wrap' : 'nowrap'};
+                    overflow-wrap: ${multiline ? 'break-word' : 'normal'};
+                    word-break: ${multiline ? 'break-word' : 'normal'};
+                    white-space: ${multiline ? 'pre-wrap' : 'nowrap'};
                     text-overflow: clip;
                     max-height: ${maxHeight ? `${maxHeight}px` : 'none'};
                     ${caseCss}
@@ -73,7 +77,7 @@
                 const baseHeight = parseFloat(field.height || 0);
                 const fontSize = this.fitFontSize(field, this.displayValue(field));
                 const lineHeight = parseFloat(field.line_height || 1.3);
-                const maxLines = parseInt(field.max_lines || 0, 10);
+                const maxLines = this.isMultiline(field) ? parseInt(field.max_lines || 0, 10) : 0;
                 const computedHeight = maxLines > 0
                     ? Math.max(baseHeight, (maxLines * fontSize * lineHeight) + 8)
                     : baseHeight;
@@ -92,13 +96,9 @@
             fitFontSize(field, value) {
                 const baseSize = parseFloat(field.font_size || 12);
                 const minSize = 6;
-                if (field.type === 'paragraph') return baseSize;
+                if (this.isMultiline(field)) return baseSize;
 
-                const width = Math.max((field.width || 0) - 16, 10);
-                const lineHeightRatio = parseFloat(field.line_height || 1.3);
-                const maxLines = parseInt(field.max_lines || 0, 10);
-                const heightFromLines = maxLines > 0 ? (maxLines * baseSize * lineHeightRatio) : 0;
-                const height = Math.max(Math.max((field.height || 0) - 8, heightFromLines), 10);
+                const width = Math.max((field.width || 0) - 16, 10) * 0.98;
 
                 let text = `${value || ''}`.trim();
                 if (field.text_case === 'uppercase' || field.text_case === 'smallcaps') {
@@ -107,20 +107,21 @@
                 if (!text) return baseSize;
 
                 for (let size = baseSize; size >= minSize; size -= 0.5) {
-                    if (this.textFits(field, text, width, height, size)) return size;
+                    if (this.singleLineFits(field, text, width, size)) return size;
                 }
                 return minSize;
             },
             singleLineFits(field, text, width, fontSize) {
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
+                if (!window._measureCtx) {
+                    window._measureCtx = document.createElement('canvas').getContext('2d');
+                }
+                const ctx = window._measureCtx;
+                const style  = field.font_style === 'italic' ? 'italic ' : '';
                 const weight = field.font_weight || 'normal';
                 const family = field.font_family || 'Arial';
+                ctx.font = `${style}${weight} ${fontSize}px '${family}'`;
                 const letterSpacing = parseFloat(field.letter_spacing || 0);
-
-                context.font = `${weight} ${fontSize}px ${family}`;
-                const measured = context.measureText(text).width + (text.length * letterSpacing);
-                return measured <= width;
+                return ctx.measureText(text).width + (text.length * letterSpacing) <= width;
             },
             textFits(field, text, width, height, fontSize) {
                 const canvas = document.createElement('canvas');
@@ -180,3 +181,4 @@
         };
     }
 </script>
+@endassets

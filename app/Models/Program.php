@@ -9,11 +9,19 @@ class Program extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'level', 'is_active'];
+    protected $fillable = ['name', 'college_id', 'is_active'];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
+    protected $casts = ['is_active' => 'boolean'];
+
+    public function college()
+    {
+        return $this->belongsTo(College::class);
+    }
+
+    public function organizations()
+    {
+        return $this->belongsToMany(Organization::class)->withTimestamps();
+    }
 
     public function students()
     {
@@ -23,20 +31,5 @@ class Program extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
-    }
-
-    public function scopeBachelor($query)
-    {
-        return $query->where('level', 'bachelor');
-    }
-
-    public function scopeMaster($query)
-    {
-        return $query->where('level', 'master');
-    }
-
-    public function getLevelLabelAttribute(): string
-    {
-        return $this->level === 'master' ? "Master's" : "Bachelor's";
     }
 }

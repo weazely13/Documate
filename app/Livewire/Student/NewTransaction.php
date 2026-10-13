@@ -253,6 +253,68 @@ class NewTransaction extends Component
             'filteredTemplates' => $this->filteredTemplates,
         ])->layout('layouts.app'); // Direct Livewire to your layout file
     }
+    private function programAbbreviation(string $program): string
+    {
+        $raw  = trim($program);
+        $norm = Str::lower(preg_replace('/[^a-z0-9]+/i', ' ', $raw));
+        $norm = trim($norm);
+
+        if ($norm === '') {
+            return '';
+        }
+
+        // BSED with a major -> "BSED-Science"
+        $isBsed = str_contains($norm, 'secondary education') || preg_match('/^bsed\b/', $norm);
+        if ($isBsed) {
+            $majors = [
+                'social studies'   => 'Social Studies',
+                'values education' => 'Values Education',
+                'mathematics'      => 'Mathematics',
+                'math'             => 'Mathematics',
+                'filipino'         => 'Filipino',
+                'english'          => 'English',
+                'science'          => 'Science',
+            ];
+            // Strip the degree part so "Bachelor of Science..." can't be mistaken for a major
+            $afterDegree = preg_replace('/^(bachelor of secondary education|bsed)\b/', '', $norm);
+            foreach ($majors as $needle => $label) {
+                if (str_contains($afterDegree, $needle)) {
+                    return 'BSED-' . $label;
+                }
+            }
+            return 'BSED';
+        }
+
+        // Full name (or the abbreviation itself) => abbreviation
+        $map = [
+            'bachelor of elementary education'               => 'BEED',
+            'bachelor of early childhood education'          => 'BECED',
+            'bachelor of special needs education'            => 'BSNED',
+            'bachelor of technology and livelihood education'=> 'BTLED',
+            'bachelor of physical education'                 => 'BPED',
+            'teacher certificate program'                    => 'TCP',
+            'bachelor of arts in communication'              => 'BA Comm',
+            'bachelor of library and information science'    => 'BLIS',
+            'bachelor of science in information technology'  => 'BSIT',
+            'bachelor of arts in english language'           => 'BAEL',
+            'bachelor of arts in political science'          => 'BAPoS',
+            'bachelor of science in biology'                 => 'BSBio',
+            'bachelor of science in social work'             => 'BSSW',
+            'bachelor of science in tourism management'      => 'BSTM',
+            'bachelor of science in hospitality management'  => 'BSHM',
+            'bachelor of science in entrepreneurship'        => 'BSEntrep',
+        ];
+
+        foreach ($map as $full => $abbr) {
+            $abbrNorm = Str::lower(preg_replace('/[^a-z0-9]+/i', ' ', $abbr));
+            if ($norm === $full || str_starts_with($norm, $full . ' ') || $norm === trim($abbrNorm)) {
+                return $abbr;
+            }
+        }
+
+        // Unknown program: fall back to the old behaviour (the preview/PDF will shrink it to fit)
+        return trim($this->programDegreePrefix($raw) . ' ' . $this->normalizedProgramName($raw));
+    }
 
     protected function rules(): array
     {
@@ -405,6 +467,7 @@ class NewTransaction extends Component
                 'height' => (float) $field->height,
                 'font_family' => $field->font_family,
                 'font_weight' => $field->font_weight,
+                'font_style'  => $field->font_style ?? 'normal',
                 'font_size' => (float) $field->font_size,
                 'text_color' => $field->text_color,
                 'alignment' => $field->alignment,
@@ -525,47 +588,6 @@ class NewTransaction extends Component
         };
     }
 
-    private function resolveSystemValue(string $key): string
-    {
-        $user = Auth::user();
-        $middleInitial = $user->middle_name ? Str::upper(Str::substr($user->middle_name, 0, 1)) . '.' : null;
-        $formattedFullName = trim(implode(' ', array_filter([
-            $user->first_name,
-            $middleInitial,
-            $user->last_name,
-            $user->suffix,
-        ])));
-        $programPrefix = $this->programDegreePrefix((string) ($user->program?->name ?? ''));
-        $ordinalYear = $this->ordinalYearLevel((string) ($user->year_level ?? ''));
-        $programName = $this->normalizedProgramName((string) ($user->program?->name ?? ''));
-        $programYearSection = trim(implode(' ', array_filter([
-            trim($programPrefix . ' ' . $programName),
-            $ordinalYear ? $ordinalYear . '-' . (string) ($user->section ?? '') : (string) ($user->section ?? ''),
-        ])));
-
-        return match ($key) {
-            'student_number' => (string) ($user->student_number ?? ''),
-            'full_name', 'formatted_full_name' => $formattedFullName,
-            'program_year_section' => $programYearSection,
-            'first_name' => (string) ($user->first_name ?? ''),
-            'middle_name' => (string) ($user->middle_name ?? ''),
-            'last_name' => (string) ($user->last_name ?? ''),
-            'suffix' => (string) ($user->suffix ?? ''),
-            'sex' => (string) ($user->sex ?? ''),
-            'date_of_birth' => $user->date_of_birth ? Carbon::parse($user->date_of_birth)->format('m/d/Y') : '',
-            'email' => (string) ($user->email ?? ''),
-            'contact_number' => (string) ($user->contact_number ?? ''),
-            'college' => (string) ($user->college ?? ''),
-            'program' => (string) ($user->program?->name ?? ''),
-            'section' => (string) ($user->section ?? ''),
-            'organization' => (string) ($user->organization?->name ?? ''),
-            'year_level' => (string) ($user->year_level ?? ''),
-            'academic_status' => (string) ($user->academic_status ?? ''),
-            'current_semester' => function_exists('currentSemester') ? (string) currentSemester() : '',
-            'current_academic_year' => function_exists('currentAcademicYear') ? (string) currentAcademicYear() : '',
-            default => '',
-        };
-    }
 
     private function programDegreePrefix(string $program): string
     {
@@ -637,7 +659,10 @@ class NewTransaction extends Component
 
         return $number . $suffix;
     }
-
+    private function resolveSystemValue(string $key): string
+    {
+        return app(\App\Services\SystemValueResolver::class)->resolve(Auth::user(), $key);
+    }
     private function canvasDimensions($version): array
     {
         $orientation = $version->orientation ?? 'portrait';

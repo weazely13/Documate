@@ -77,37 +77,16 @@ document.addEventListener('alpine:init', () => {
             `;
         },
 
-        fieldBoxStyle(field) {
-            const baseHeight = parseFloat(field.height || 0);
-            const fontSize = this.fitFontSize(field, this.displayValue(field));
-            const lineHeight = parseFloat(field.line_height || 1.3);
-            const maxLines = parseInt(field.max_lines || 0, 10);
-            const computedHeight = maxLines > 0
-                ? Math.max(baseHeight, (maxLines * fontSize * lineHeight) + 8)
-                : baseHeight;
-
-            return `
-                left: ${field.x}px;
-                top: ${field.y}px;
-                width: ${field.width}px;
-                min-height: ${computedHeight}px;
-                height: ${computedHeight}px;
-                box-sizing: border-box;
-                background: transparent;
-                overflow: visible;
-            `;
+        isMultiline(field) {
+            // System values (name, program, etc.) are always single-line and must shrink
+            return field.type === 'paragraph' && field.source_type !== 'system';
         },
-
         fitFontSize(field, value) {
             const baseSize = parseFloat(field.font_size || 12);
             const minSize = 6;
-            if (field.type === 'paragraph') return baseSize;
+            if (this.isMultiline(field)) return baseSize;
 
-            const width = Math.max((field.width || 0) - 16, 10);
-            const lineHeightRatio = parseFloat(field.line_height || 1.3);
-            const maxLines = parseInt(field.max_lines || 0, 10);
-            const heightFromLines = maxLines > 0 ? (maxLines * baseSize * lineHeightRatio) : 0;
-            const height = Math.max(Math.max((field.height || 0) - 8, heightFromLines), 10);
+            const width = Math.max((field.width || 0) - 16, 10) * 0.98;
 
             let text = `${value || ''}`.trim();
             if (field.text_case === 'uppercase' || field.text_case === 'smallcaps') {
@@ -116,9 +95,21 @@ document.addEventListener('alpine:init', () => {
             if (!text) return baseSize;
 
             for (let size = baseSize; size >= minSize; size -= 0.5) {
-                if (this.textFits(field, text, width, height, size)) return size;
+                if (this.singleLineFits(field, text, width, size)) return size;
             }
             return minSize;
+        },
+        singleLineFits(field, text, width, fontSize) {
+            if (!window._measureCtx) {
+                window._measureCtx = document.createElement('canvas').getContext('2d');
+            }
+            const ctx = window._measureCtx;
+            const style  = field.font_style === 'italic' ? 'italic ' : '';
+            const weight = field.font_weight || 'normal';
+            const family = field.font_family || 'Arial';
+            ctx.font = `${style}${weight} ${fontSize}px '${family}'`;
+            const letterSpacing = parseFloat(field.letter_spacing || 0);
+            return ctx.measureText(text).width + (text.length * letterSpacing) <= width;
         },
 
         textFits(field, text, width, height, fontSize) {
@@ -395,13 +386,49 @@ document.addEventListener('alpine:init', () => {
             }
             return value;
         },
+        isMultiline(field) {
+            return field.type === 'paragraph' && field.source_type !== 'system';
+        },
+
+        fitFontSize(field, value) {
+            const baseSize = parseFloat(field.font_size || 12);
+            const minSize = 6;
+            if (this.isMultiline(field)) return baseSize;
+
+            const width = Math.max((field.width || 0) - 16, 10) * 0.98;
+
+            let text = `${value || ''}`.trim();
+            if (field.text_case === 'uppercase' || field.text_case === 'smallcaps') {
+                text = text.toUpperCase();
+            }
+            if (!text) return baseSize;
+
+            for (let size = baseSize; size >= minSize; size -= 0.5) {
+                if (this.singleLineFits(field, text, width, size)) return size;
+            }
+            return minSize;
+        },
+
+        singleLineFits(field, text, width, fontSize) {
+            if (!window._measureCtx) {
+                window._measureCtx = document.createElement('canvas').getContext('2d');
+            }
+            const ctx = window._measureCtx;
+            const style  = field.font_style === 'italic' ? 'italic ' : '';
+            const weight = field.font_weight || 'normal';
+            const family = field.font_family || 'Arial';
+            ctx.font = `${style}${weight} ${fontSize}px '${family}'`;
+            const letterSpacing = parseFloat(field.letter_spacing || 0);
+            return ctx.measureText(text).width + (text.length * letterSpacing) <= width;
+        },
+
         fieldTextStyle(field) {
             const value = this.displayValue(field);
             const fontSize = this.fitFontSize(field, value);
             const lineHeight = parseFloat(field.line_height || 1.3);
-            const maxLines = parseInt(field.max_lines || 0, 10);
+            const multiline = this.isMultiline(field);
+            const maxLines = multiline ? parseInt(field.max_lines || 0, 10) : 0;
             const maxHeight = maxLines > 0 ? (maxLines * fontSize * lineHeight) + 8 : null;
-            const isParagraph = field.type === 'paragraph';
 
             let caseCss = '';
             if (field.text_case === 'uppercase') caseCss = 'text-transform: uppercase;';
@@ -411,6 +438,7 @@ document.addEventListener('alpine:init', () => {
                 font-family: '${field.font_family}', sans-serif;
                 font-size: ${fontSize}px;
                 font-weight: ${field.font_weight};
+                font-style: ${field.font_style || 'normal'};
                 color: ${field.text_color};
                 text-align: ${field.alignment};
                 line-height: ${lineHeight};
@@ -418,19 +446,20 @@ document.addEventListener('alpine:init', () => {
                 display: block;
                 width: 100%;
                 overflow: hidden;
-                overflow-wrap: ${isParagraph ? 'break-word' : 'normal'};
-                word-break: ${isParagraph ? 'break-word' : 'normal'};
-                white-space: ${isParagraph ? 'pre-wrap' : 'nowrap'};
+                overflow-wrap: ${multiline ? 'break-word' : 'normal'};
+                word-break: ${multiline ? 'break-word' : 'normal'};
+                white-space: ${multiline ? 'pre-wrap' : 'nowrap'};
                 text-overflow: clip;
                 max-height: ${maxHeight ? `${maxHeight}px` : 'none'};
                 ${caseCss}
             `;
         },
+
         fieldBoxStyle(field) {
             const baseHeight = parseFloat(field.height || 0);
             const fontSize = this.fitFontSize(field, this.displayValue(field));
             const lineHeight = parseFloat(field.line_height || 1.3);
-            const maxLines = parseInt(field.max_lines || 0, 10);
+            const maxLines = this.isMultiline(field) ? parseInt(field.max_lines || 0, 10) : 0;
             const computedHeight = maxLines > 0
                 ? Math.max(baseHeight, (maxLines * fontSize * lineHeight) + 8)
                 : baseHeight;
@@ -445,40 +474,7 @@ document.addEventListener('alpine:init', () => {
                 background: transparent;
                 overflow: visible;
             `;
-        },
-        fitFontSize(field, value) {
-            const baseSize = parseFloat(field.font_size || 12);
-            const minSize = 6;
-            if (field.type === 'paragraph') return baseSize;
-
-            const width = Math.max((field.width || 0) - 16, 10);
-            const lineHeightRatio = parseFloat(field.line_height || 1.3);
-            const maxLines = parseInt(field.max_lines || 0, 10);
-            const heightFromLines = maxLines > 0 ? (maxLines * baseSize * lineHeightRatio) : 0;
-            const height = Math.max(Math.max((field.height || 0) - 8, heightFromLines), 10);
-
-            let text = `${value || ''}`.trim();
-            if (field.text_case === 'uppercase' || field.text_case === 'smallcaps') {
-                text = text.toUpperCase();
-            }
-            if (!text) return baseSize;
-
-            for (let size = baseSize; size >= minSize; size -= 0.5) {
-                if (this.textFits(field, text, width, height, size)) return size;
-            }
-            return minSize;
-        },
-        singleLineFits(field, text, width, fontSize) {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            const weight = field.font_weight || 'normal';
-            const family = field.font_family || 'Arial';
-            const letterSpacing = parseFloat(field.letter_spacing || 0);
-
-            context.font = `${weight} ${fontSize}px ${family}`;
-            const measured = context.measureText(text).width + (text.length * letterSpacing);
-            return measured <= width;
-        },
+},
         textFits(field, text, width, height, fontSize) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');

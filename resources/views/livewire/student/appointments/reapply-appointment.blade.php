@@ -112,9 +112,13 @@
             <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <a href="{{ route('student.appointments.show', $appointment->appointment_id) }}" wire:navigate
                     class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</a>
-                <button wire:click="confirmReapply" :disabled="!$wire.selectedDate || !$wire.selectedSession"
+                <button wire:click="confirmReapply"
+                    wire:loading.attr="disabled"
+                    wire:target="confirmReapply"
+                    :disabled="!$wire.selectedDate || !$wire.selectedSession"
                     class="rounded-xl bg-[#2A57B4] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-40 hover:bg-[#24499A] transition">
-                    Confirm New Date
+                    <span wire:loading.remove wire:target="confirmReapply">Confirm New Date</span>
+                    <span wire:loading wire:target="confirmReapply">Submitting...</span>
                 </button>
             </div>
         </div>

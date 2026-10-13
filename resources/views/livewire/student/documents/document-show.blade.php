@@ -39,7 +39,7 @@
 
             {{-- Document Preview Engine --}}
             <div class="rounded-2xl border border-slate-200/80 bg-slate-900/5 p-2 shadow-sm backdrop-blur-sm sm:p-4"
-                x-data="documentPreviewEngine(@js($this->fields), @js($workspace->field_values ?? []))">
+                x-data="positionedPreviewEngine(@js($this->fields), @js($workspace->field_values ?? []), @js($this->systemValues))">
 
                 {{-- Mobile: fit-to-screen + pinch zoom --}}
                 <div

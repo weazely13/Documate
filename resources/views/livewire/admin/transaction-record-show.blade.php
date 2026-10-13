@@ -24,10 +24,12 @@
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
             <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Transaction #{{ str_pad((string) $workspace->workspace_id, 4, '0', STR_PAD_LEFT) }}</p>
-            <h1 class="mt-1 truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            <h1 class="mt-1 truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl" title="{{ $studentName }}">
                 {{ $studentName }}
             </h1>
-            <p class="mt-1 text-sm text-slate-500">{{ $workspace->template?->name ?: 'Document' }} &middot; {{ $workspace->user?->student_number ?: 'No student number' }}</p>
+            <p class="mt-1 truncate text-sm text-slate-500" title="{{ $workspace->template?->name ?: 'Document' }} · {{ $workspace->user?->student_number ?: 'No student number' }}">
+                {{ $workspace->template?->name ?: 'Document' }} &middot; {{ $workspace->user?->student_number ?: 'No student number' }}
+            </p>
         </div>
 
         <a href="{{ route('admin.transactions.index') }}"
@@ -68,23 +70,23 @@
         <div class="space-y-6">
             {{-- Transaction & student info --}}
             <div class="grid gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
-                <div>
+                <div class="min-w-0">
                     <h2 class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-400">
                         <i class='bx bx-file text-base'></i> Transaction
                     </h2>
                     <div class="mt-3 space-y-1.5">
-                        <p class="text-sm font-semibold text-slate-800">{{ $workspace->template?->name ?: 'Untitled template' }}</p>
-                        <p class="text-sm text-slate-500">Submitted {{ optional($workspace->created_at)->format('F j, Y \a\t g:i A') ?: 'N/A' }}</p>
+                        <p class="truncate text-sm font-semibold text-slate-800" title="{{ $workspace->template?->name ?: 'Untitled template' }}">{{ $workspace->template?->name ?: 'Untitled template' }}</p>
+                        <p class="truncate text-sm text-slate-500">Submitted {{ optional($workspace->created_at)->format('F j, Y \a\t g:i A') ?: 'N/A' }}</p>
                     </div>
                 </div>
-                <div>
+                <div class="min-w-0">
                     <h2 class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-400">
                         <i class='bx bx-user text-base'></i> Student
                     </h2>
                     <div class="mt-3 space-y-1.5">
-                        <p class="text-sm font-semibold text-slate-800">{{ $studentName }}</p>
-                        <p class="text-sm text-slate-500">{{ $workspace->user?->student_number ?: 'No student number' }}</p>
-                        <p class="text-sm text-slate-500">{{ $programLabel }}</p>
+                        <p class="truncate text-sm font-semibold text-slate-800" title="{{ $studentName }}">{{ $studentName }}</p>
+                        <p class="truncate text-sm text-slate-500" title="{{ $workspace->user?->student_number }}">{{ $workspace->user?->student_number ?: 'No student number' }}</p>
+                        <p class="truncate text-sm text-slate-500" title="{{ $programLabel }}">{{ $programLabel }}</p>
                     </div>
                 </div>
             </div>

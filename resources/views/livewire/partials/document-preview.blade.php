@@ -21,23 +21,35 @@
                     'line_height' => (float) ($f->line_height ?? 1.3),
                     'letter_spacing' => (float) ($f->letter_spacing ?? 0),
                     'text_case' => $f->text_case ?? 'none',
+                    'source_type' => $f->source_type,
+                    'system_key'  => $f->system_key,
+                    'date_mode'   => $f->date_mode ?? 'current',
+                    'font_style'  => $f->font_style ?? 'normal',
+                    'max_lines' => $f->max_lines,
                 ];
             })
             ->values();
+        $owner = $workspace->user ?? \Illuminate\Support\Facades\Auth::user();
+        $systemValues = $owner
+            ? app(\App\Services\SystemValueResolver::class)->mapForFields($owner, $version->fields)
+            : [];
     @endphp
     @include('livewire.student.partials.preview-engine')
     <div
         x-data="{
-            ...documentPreviewEngine(@js($previewFields), @js($workspace->field_values ?? [])),
+            ...positionedPreviewEngine(@js($previewFields), @js($workspace->field_values ?? []), @js($systemValues)),
             scale: 1,
             fit() {
-                const wrapper = this.$refs.scaleWrapper;
-                if (!wrapper) return;
+                const wrapper = this.$refs?.scaleWrapper;
+                if (!wrapper || !wrapper.parentElement) return;
                 const available = wrapper.parentElement.clientWidth;
-                this.scale = Math.min(available / {{ $canvas['width'] }}, 1);
+                if (available > 0) {
+                    this.scale = Math.min(available / {{ $canvas['width'] }}, 1);
+                }
             }
         }"
-        x-init="fit(); window.addEventListener('resize', fit)"
+        x-init="$nextTick(() => fit())"
+        @resize.window="fit()"
         class="w-full"
     >
         <div

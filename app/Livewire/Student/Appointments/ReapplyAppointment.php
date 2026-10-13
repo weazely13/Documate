@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Illuminate\Support\Facades\DB;
 
 class ReapplyAppointment extends Component
 {
@@ -114,45 +115,69 @@ class ReapplyAppointment extends Component
             'selectedSession' => 'required|in:morning,afternoon',
         ]);
 
-        $availability = OfficeAvailability::where('date', $this->selectedDate)->first();
-        $cap = $this->selectedSession === 'morning'
-            ? ($availability?->morning_slots ?? 25)
-            : ($availability?->afternoon_slots ?? 25);
+        $result = DB::transaction(function () {
+            // Lock this appointment row so a second click has to wait here.
+            $appointment = Appointment::whereKey($this->appointment->appointment_id)
+                ->lockForUpdate()
+                ->first();
 
-        $activeCount = Appointment::where('appointment_date', $this->selectedDate)
-            ->where('session', $this->selectedSession)
-            ->whereIn('status', ['pending', 'approved'])
-            ->lockForUpdate()
-            ->count();
+            // A previous click already reapplied (status is no longer "missed").
+            if (! $appointment->canReapply()) {
+                return 'duplicate';
+            }
 
-        if ($activeCount >= $cap) {
+            $availability = OfficeAvailability::where('date', $this->selectedDate)->first();
+            $cap = $this->selectedSession === 'morning'
+                ? ($availability?->morning_slots ?? 25)
+                : ($availability?->afternoon_slots ?? 25);
+
+            $activeCount = Appointment::where('appointment_date', $this->selectedDate)
+                ->where('session', $this->selectedSession)
+                ->whereIn('status', ['pending', 'approved'])
+                ->count();
+
+            if ($activeCount >= $cap) {
+                return 'full';
+            }
+
+            AppointmentReapplication::create([
+                'appointment_id' => $appointment->appointment_id,
+                'old_date' => $appointment->appointment_date,
+                'old_session' => $appointment->session,
+                'new_date' => $this->selectedDate,
+                'new_session' => $this->selectedSession,
+            ]);
+
+            $appointment->update([
+                'appointment_date' => $this->selectedDate,
+                'session' => $this->selectedSession,
+                'queue_number' => null,
+                'status' => 'pending',
+                'reviewed_by' => null,
+                'reviewed_at' => null,
+                'ai_flag' => 'pending',
+            ]);
+
+            $appointment->logStatus('pending', 'Reapplied for new date after being marked missed.');
+
+            $this->appointment = $appointment;
+
+            return 'created';
+        });
+
+        if ($result === 'full') {
             $this->addError('selectedSession', 'This slot just filled up. Please pick another.');
             return;
         }
 
-        AppointmentReapplication::create([
-            'appointment_id' => $this->appointment->appointment_id,
-            'old_date' => $this->appointment->appointment_date,
-            'old_session' => $this->appointment->session,
-            'new_date' => $this->selectedDate,
-            'new_session' => $this->selectedSession,
-        ]);
+        if ($result === 'created') {
+            \App\Jobs\ReviewAppointmentSubmission::dispatch($this->appointment);
+        }
 
-        $this->appointment->update([
-            'appointment_date' => $this->selectedDate,
-            'session' => $this->selectedSession,
-            'queue_number' => null,
-            'status' => 'pending',
-            'reviewed_by' => null,
-            'reviewed_at' => null,
-            'ai_flag' => 'pending',
-        ]);
-
-        $this->appointment->logStatus('pending', 'Reapplied for new date after being marked missed.');
-
-        \App\Jobs\ReviewAppointmentSubmission::dispatch($this->appointment);
-
-        return $this->redirect(route('student.appointments.show', $this->appointment->appointment_id), navigate: true);
+        return $this->redirect(
+            route('student.appointments.show', $this->appointment->appointment_id),
+            navigate: true
+        );
     }
 
     public function render()

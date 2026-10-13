@@ -32,4 +32,13 @@ class Organization extends Model
     {
         return $query->where('is_active', true);
     }
+    public function programs()
+    {
+        return $this->belongsToMany(Program::class)->withTimestamps();
+    }
+
+    public function scopeForProgram($query, $programId)
+    {
+        return $query->whereHas('programs', fn ($p) => $p->where('programs.id', $programId));
+    }
 }

@@ -227,18 +227,18 @@
         <div class="topbar bg-white border-b border-gray-200 sticky top-0 z-40 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.05)]">
 
             {{-- LEFT --}}
-            <div class="topbar-left">
-                <button id="toggleSidebar" class="collapse-btn" aria-label="Toggle Sidebar" data-tooltip="Toggle Sidebar">
+            <div class="topbar-left min-w-0 flex-1">
+                <button id="toggleSidebar" class="collapse-btn shrink-0" aria-label="Toggle Sidebar" data-tooltip="Toggle Sidebar">
                     <span class="toggle-icon-box">
                         <i class='bx bx-sidebar'></i>
                     </span>
                 </button>
 
-                <h3 class="topbar-title">{{ $title ?? 'Dashboard' }}</h3>
+                <h3 class="topbar-title min-w-0 truncate" title="{{ $title ?? 'Dashboard' }}">{{ $title ?? 'Dashboard' }}</h3>
             </div>
 
             {{-- RIGHT --}}
-            <div class="topbar-right">
+            <div class="topbar-right shrink-0">
                 {{-- topbar-right in layouts.app --}}
                 @if(in_array($role, ['Student', 'Officer']))
                     @livewire('account-verify-badge', key('account-verify-badge-' . auth()->id()))

@@ -261,11 +261,11 @@
                         'retracted' => 'bg-slate-100 text-slate-600 border-slate-200',
                         default => 'bg-slate-100 text-slate-600 border-slate-200',
                     };
-                    $purpose = addslashes($appt->purpose ?: 'General Visit');
-                    $docName = addslashes($appt->workspace?->template?->name ?? 'General Visit');
+                    $purpose = $appt->purpose ?: 'General Visit';
+                    $docName = $appt->workspace?->template?->name ?? 'General Visit';
                     $formattedDate = $appt->appointment_date?->format('Y-m-d') ?? '';
                 @endphp
-                <a x-show="matchHistory('{{ $purpose }}', '{{ $docName }}', '{{ $appt->status }}', '{{ $formattedDate }}')"
+                <a x-show="matchHistory(@js($purpose), @js($docName), @js($appt->status), @js($formattedDate))"
                     href="{{ route('student.appointments.show', $appt->appointment_id) }}" wire:navigate
                     class="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3.5 transition-colors hover:border-[#2A57B4]/40 gap-2 sm:gap-4">
                     <div class="min-w-0 flex-1 space-y-1">

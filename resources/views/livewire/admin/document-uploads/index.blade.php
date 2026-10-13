@@ -41,40 +41,92 @@
                 <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                     <tr>
                         <th class="px-4 py-3">Student</th>
-                        <th class="px-4 py-3">Document</th>
-                        <th class="px-4 py-3">Attended</th>
+                        <th class="px-4 py-3">Forms</th>
+                        <th class="px-4 py-3">Latest Attended</th>
                         <th class="px-4 py-3">Status</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($records as $r)
-                        @php
-                            $badge = match ($r['doc_status']) {
-                                'Verified' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-                                'Needs Re-upload' => 'bg-rose-50 text-rose-700 ring-rose-200',
-                                'Reviewing' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-                                default => 'bg-amber-50 text-amber-700 ring-amber-200',
-                            };
-                        @endphp
-                        <tr wire:key="doc-upload-{{ $r['workspace_id'] }}"
-                            @click="Livewire.navigate('{{ route('admin.document-uploads.show', $r['workspace_id']) }}')"
-                            class="cursor-pointer hover:bg-slate-50">
+
+                @forelse($students as $s)
+                    {{-- One <tbody> per student so the expand state stays with that student --}}
+                    <tbody wire:key="student-{{ $s['user_id'] ?? 'unknown' }}"
+                        x-data="{ open: false }"
+                        class="border-t border-slate-100 first:border-t-0">
+
+                        {{-- Student row (one per student) --}}
+                        <tr @click="open = !open" class="cursor-pointer hover:bg-slate-50">
                             <td class="px-4 py-3.5">
-                                <p class="font-semibold text-slate-900">{{ $r['student_name'] }}</p>
-                                <p class="text-xs text-slate-400">{{ $r['student_number'] }}</p>
+                                <div class="flex items-center gap-2.5">
+                                    <i class='bx bx-chevron-right text-lg text-slate-400 transition-transform'
+                                    :class="open && 'rotate-90'"></i>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">{{ $s['student_name'] }}</p>
+                                        <p class="text-xs text-slate-400">{{ $s['student_number'] }}</p>
+                                    </div>
+                                </div>
                             </td>
-                            <td class="px-4 py-3.5">{{ $r['type'] }}</td>
-                            <td class="px-4 py-3.5 text-slate-500">{{ $r['attended_at']?->format('M j, Y') ?? '—' }}</td>
+                            <td class="px-4 py-3.5 text-slate-600">
+                                {{ $s['total'] }} {{ Str::plural('form', $s['total']) }}
+                            </td>
+                            <td class="px-4 py-3.5 text-slate-500">
+                                {{ $s['latest_attended']?->format('M j, Y') ?? '—' }}
+                            </td>
                             <td class="px-4 py-3.5">
-                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $badge }}">{{ $r['doc_status'] }}</span>
+                                @if($s['needs_action'] > 0)
+                                    <span class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                                        {{ $s['needs_action'] }} need action
+                                    </span>
+                                @elseif($s['all_verified'])
+                                    <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                                        All verified
+                                    </span>
+                                @else
+                                    <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
+                                        Reviewing
+                                    </span>
+                                @endif
                             </td>
                         </tr>
-                    @empty
+
+                        {{-- Expanded: this student's forms, latest first --}}
+                        <tr x-show="open" x-cloak>
+                            <td colspan="4" class="bg-slate-50/70 px-4 py-2">
+                                <ul class="divide-y divide-slate-200/70">
+                                    @foreach($s['forms'] as $r)
+                                        @php
+                                            $badge = match ($r['doc_status']) {
+                                                'Verified' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                                                'Needs Re-upload' => 'bg-rose-50 text-rose-700 ring-rose-200',
+                                                'Reviewing' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+                                                default => 'bg-amber-50 text-amber-700 ring-amber-200',
+                                            };
+                                        @endphp
+                                        <li wire:key="doc-upload-{{ $r['workspace_id'] }}">
+                                            <a href="{{ route('admin.document-uploads.show', $r['workspace_id']) }}" wire:navigate
+                                                class="flex items-center justify-between gap-3 rounded-lg py-2.5 pl-8 pr-2 hover:bg-white">
+                                                <div class="min-w-0">
+                                                    <p class="truncate font-medium text-slate-800">{{ $r['type'] }}</p>
+                                                    <p class="text-xs text-slate-400">
+                                                        Attended {{ $r['attended_at']?->format('M j, Y g:i A') ?? '—' }}
+                                                    </p>
+                                                </div>
+                                                <span class="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $badge }}">
+                                                    {{ $r['doc_status'] }}
+                                                </span>
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                @empty
+                    <tbody>
                         <tr><td colspan="4" class="px-4 py-10 text-center text-slate-500">
                             No records match your filters.
                         </td></tr>
-                    @endforelse
-                </tbody>
+                    </tbody>
+                @endforelse
             </table>
         </div>
     </div>
