@@ -25,7 +25,7 @@ class ChatWidget extends Component
         } else {
             $this->messages = [[
                 'role' => 'assistant',
-                'content' => "Hi! I'm the DocuMate Assistant. Where should we begin?",
+                'content' => 'Hello. I am the DocuMate Assistant. How may I assist you?',
             ]];
             $this->persist();
         }
@@ -137,7 +137,7 @@ class ChatWidget extends Component
                 'file' => $e->getFile() . ':' . $e->getLine(),
             ]);
 
-            $reply = "Sorry, something went wrong on my end. Please try again.";
+            $reply = 'An unexpected error prevented a response. Please try again shortly.';
             $quickReplies = $this->defaultQuickReplies();
         }
 
