@@ -8,6 +8,9 @@ ln -s /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/ 2>
 
 # Run migrations and create storage symlink
 php artisan migrate --force
+mkdir -p /var/www/html/storage/app/public/templates \
+         /var/www/html/storage/app/public/generated-documents
+chown -R www-data:www-data /var/www/html/storage/app
 php artisan storage:link --force
 
 # Start Apache in the foreground using port 8080
