@@ -14,8 +14,10 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd zip pdo_mysql opcache
 
-# Fix Apache MPM conflict safely
-RUN a2dismod mpm_event && a2enmod mpm_prefork
+# 🛑 FIX APACHE MPM CONFLICT DEFINITIVELY 🛑
+# Disable event and worker, ensure prefork is enabled
+RUN a2dismod -f mpm_event mpm_worker || true \
+    && a2enmod mpm_prefork
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
