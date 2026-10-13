@@ -1,6 +1,6 @@
-FROM php:8.3-apache
+FROM php:8.4-apache
 
-# Install system dependencies and required PHP extensions (including GD for phpspreadsheet)
+# Install system dependencies and required PHP extensions (including GD)
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -31,12 +31,13 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Install PHP dependencies via Composer
+# Install PHP dependencies via Composer (allowing superuser)
+ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
+# Copy and set up the entrypoint script
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 CMD ["entrypoint.sh"]
 
-# Expose port 80 for Railway web traffic
 EXPOSE 80
