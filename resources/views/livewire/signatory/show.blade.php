@@ -25,7 +25,7 @@
             <p class="text-sm text-amber-900">Add your e-signature in your profile before you can approve this.</p>
             <a href="{{ route('profile') }}" wire:navigate class="rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-700">Open profile</a>
         </div>
-    @endif\
+    @endif
     @if ($canAct && $document->signingNote())
         <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">{{ $document->signingNote() }}</div>
     @endif
