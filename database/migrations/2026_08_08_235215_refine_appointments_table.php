@@ -25,7 +25,9 @@ return new class extends Migration
             $table->text('reschedule_reason')->nullable()->after('admin_notes');
         });
 
-        DB::statement("ALTER TABLE appointments MODIFY status ENUM('pending','approved','rejected','attended','missed','retracted') DEFAULT 'pending'");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE appointments MODIFY status ENUM('pending','approved','rejected','attended','missed','retracted') DEFAULT 'pending'");
+        }
     }
 
     public function down(): void
@@ -34,6 +36,8 @@ return new class extends Migration
             $table->dropColumn(['admin_notes', 'reschedule_reason']);
         });
 
-        DB::statement("ALTER TABLE appointments MODIFY status ENUM('pending','approved','rejected','attended','missed') DEFAULT 'pending'");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE appointments MODIFY status ENUM('pending','approved','rejected','attended','missed') DEFAULT 'pending'");
+        }
     }
 };

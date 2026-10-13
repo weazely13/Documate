@@ -1,29 +1,482 @@
 [
   {
-    "name": "Registrar's Office",
-    "aliases": ["registrar", "records office"],
-    "building": "Main Building",
+    "name": "Office of the University President",
+    "aliases": ["OUP", "president's office", "university president"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
-    "services": ["transcript of records", "certificate of enrollment", "diploma release", "grade correction"],
-    "contact": "registrar@lnu.edu.ph"
+    "services": ["executive administration", "university governance", "institutional policy", "strategic leadership"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the University Board Secretary",
+    "aliases": ["board secretary", "board secretary's office", "BOR secretary"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["Board of Regents documentation", "board meeting support", "official board records", "governance coordination"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Vice President for Administration and Finance",
+    "aliases": ["OVPAF", "VPAF", "administration and finance"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["administrative services", "financial management", "resource management", "campus operations"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Chief Administrative Officer for Administration",
+    "aliases": ["CAO Administration", "CAO-Admin", "chief administrative officer"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["administrative management", "administrative coordination", "institutional operations"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Chief Administrative Officer for Finance",
+    "aliases": ["CAO Finance", "CAO-Finance", "chief administrative officer finance"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["financial administration", "financial coordination", "budget and finance operations"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Human Resource Management Office",
+    "aliases": ["HRMO", "HR office", "human resources"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["employee records", "recruitment", "personnel services", "employee development", "staff welfare"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "IGO Business Affairs Office",
+    "aliases": ["IGO", "Business Affairs Office", "Income Generating Office", "business affairs"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["business affairs", "income generating activities", "institutional business services"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Records Office",
+    "aliases": ["records office", "records management", "university records"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["records management", "document archiving", "records retrieval", "official records"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Admissions Office",
+    "aliases": ["admissions", "admission office", "admission"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["admission inquiries", "application assistance", "admission requirements", "applicant assistance"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Budget Office",
+    "aliases": ["budget office", "budget management", "budgeting"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["budget preparation", "budget monitoring", "fund allocation", "financial planning"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Physical Plant Director's Office",
+    "aliases": ["physical plant", "PPDO", "facilities office", "physical plant office"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["facility maintenance", "infrastructure management", "utilities coordination", "building maintenance"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Reproduction Office",
+    "aliases": ["reproduction", "printing office", "repro office"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["document reproduction", "printing support", "document production"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Internal Audit Office",
+    "aliases": ["internal audit", "audit office", "IAO"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["internal auditing", "compliance review", "financial audit", "operational audit"],
+    "contact": "info@lnu.edu.ph"
   },
   {
     "name": "Cashier's Office",
-    "aliases": ["cashier", "billing"],
-    "building": "Main Building",
-    "floor": "1st Floor",
+    "aliases": ["cashier", "cash management", "cash office", "payments"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor - Facade",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
-    "services": ["tuition payment", "assessment of fees", "official receipts"],
-    "contact": "cashier@lnu.edu.ph"
+    "services": ["tuition payment", "school fee payment", "cash collections", "official receipts"],
+    "contact": "info@lnu.edu.ph"
   },
   {
-    "name": "Office of Student Affairs (OSA)",
-    "aliases": ["osa", "student affairs"],
-    "building": "Student Center",
-    "floor": "Ground Floor",
+    "name": "Accounting Office",
+    "aliases": ["accounting", "accounting office", "university accounting"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor - Facade",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
-    "services": ["clearance", "good moral certificate", "student organizations", "disciplinary concerns"],
-    "contact": "osa@lnu.edu.ph"
+    "services": ["financial records", "accounting services", "financial reporting", "payroll", "accounts management"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Registrar's Office",
+    "aliases": ["registrar", "registrar office", "student records"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor - Facade",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["student records", "certification", "authentication", "transcript requests", "grades", "graduation records"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Supply Office",
+    "aliases": ["supply office", "supplies", "property office"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor - Parking",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["supply management", "inventory", "property management", "asset issuance"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Commission on Audit",
+    "aliases": ["COA", "COA office", "state auditors"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor - Parking",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["government audit", "financial audit", "compliance audit", "audit examination"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Bids and Awards Office",
+    "aliases": ["BAC", "Bids and Awards Committee", "bids and awards"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor - Parking",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["public bidding", "procurement", "bid evaluation", "bidding documentation"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Planning and Development Office",
+    "aliases": ["planning office", "planning and development", "development office"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "1st Floor - Parking",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["institutional planning", "development planning", "project planning", "planning coordination"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Vice President for Academic Services",
+    "aliases": ["OVPAS", "VPAS", "academic services"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["academic administration", "academic policy", "academic program coordination", "curriculum support"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Institutional and External Linkages Office",
+    "aliases": ["Institutional Linkages", "External Linkages", "linkages office"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["institutional partnerships", "external partnerships", "linkages", "inter-agency coordination"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Vice President for Student Development",
+    "aliases": ["OVPSD", "VPSD", "student development"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["student development", "student welfare", "student leadership", "student support programs"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Dean of Graduate School",
+    "aliases": ["Graduate School", "graduate school office", "GS office"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["graduate program inquiries", "graduate student services", "graduate academic coordination"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Vice President for Research, Innovation, and Extension",
+    "aliases": ["OVPREI", "VPRIEI", "research innovation extension"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["research administration", "innovation", "extension", "research development", "institutional research"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Community Extension Services Office",
+    "aliases": ["CESO", "extension office", "community extension"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["community extension programs", "community development", "livelihood programs", "training", "outreach"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Center for Teacher Education Research Technologies and Innovation",
+    "aliases": ["CTERTI", "teacher education research center", "teacher research center"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["teacher education research", "educational technology", "innovation", "research projects"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Public Affairs Marketing Communications Office",
+    "aliases": ["PAMCO", "public affairs", "marketing communications", "communications office"],
+    "campus": "Independecia Campus",
+    "building": "Administration Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["public information", "official announcements", "media coordination", "marketing communications", "institutional promotions"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "IT Support Office",
+    "aliases": ["IT office", "IT support", "information technology", "technical support"],
+    "campus": "Independecia Campus",
+    "building": "IT Building Extension",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["technical support", "computer assistance", "network support", "system support", "IT troubleshooting"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Guidance Office",
+    "aliases": ["Guidance and Testing Office", "guidance", "counseling office"],
+    "campus": "Independecia Campus",
+    "building": "Student Center Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["guidance counseling", "student counseling", "career guidance", "student assessment", "referrals"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Scholarship Office",
+    "aliases": ["Scholarship and Financial Assistance Office", "scholarship", "financial assistance"],
+    "campus": "Independecia Campus",
+    "building": "Student Center Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["scholarship applications", "financial assistance", "student grants", "scholarship inquiries"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Testing Office",
+    "aliases": ["testing", "testing center", "testing office"],
+    "campus": "Independecia Campus",
+    "building": "Student Center Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["student testing", "assessment", "entrance testing", "psychological testing"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "SSC and SOAD Director's Office",
+    "aliases": ["SSC", "SOAD", "student organizations", "student council"],
+    "campus": "Independecia Campus",
+    "building": "Student Center Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["student organizations", "student activities", "student leadership", "student council coordination"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Sports Director",
+    "aliases": ["sports office", "athletics", "sports development"],
+    "campus": "Independecia Campus",
+    "building": "Student Center Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["sports programs", "athletics", "student athlete support", "sports activities"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Gender and Development Director",
+    "aliases": ["GAD", "GAD office", "Gender and Development"],
+    "campus": "Independecia Campus",
+    "building": "Brillo Hall",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["gender and development programs", "gender equality", "GAD activities", "gender-responsive programs"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Research Ethics Director",
+    "aliases": ["Research Ethics Office", "REO", "research ethics"],
+    "campus": "Independecia Campus",
+    "building": "Brillo Hall",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["research ethics review", "ethical research guidance", "research compliance", "research ethics documentation"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "LNU Clinic",
+    "aliases": ["clinic", "medical clinic", "health clinic", "medical services"],
+    "campus": "Independecia Campus",
+    "building": "Obdulia Ronda Cinco Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["medical consultation", "health screening", "first aid", "student health services", "employee health services"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Dental Clinic",
+    "aliases": ["dental office", "dentist", "dental services"],
+    "campus": "Independecia Campus",
+    "building": "Obdulia Ronda Cinco Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["dental consultation", "oral health services", "dental examination", "dental assistance"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Sentro ng Wika at Kultura",
+    "aliases": ["SWK", "language and culture center", "language center"],
+    "campus": "Independecia Campus",
+    "building": "Obdulia Ronda Cinco Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["language programs", "Filipino language activities", "cultural programs", "language research"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "NSTP Office",
+    "aliases": ["NSTP", "National Service Training Program", "NSTP office"],
+    "campus": "Independecia Campus",
+    "building": "Humanities Building",
+    "floor": "3rd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["NSTP enrollment", "NSTP coordination", "CWTS", "ROTC", "NSTP records"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Center for Continuing Education and Lifelong Learning",
+    "aliases": ["C-CELL", "CCELL", "continuing education", "lifelong learning"],
+    "campus": "Independecia Campus",
+    "building": "Center for Teaching Excellence Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["continuing education", "professional development", "training programs", "lifelong learning"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Quality Assurance Office",
+    "aliases": ["QA office", "quality assurance", "QA"],
+    "campus": "Paterno Campus",
+    "building": "Magdalena S. Ramo Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["quality assurance", "quality monitoring", "academic quality", "institutional quality improvement"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Accreditation Office",
+    "aliases": ["accreditation", "accreditation office", "accreditation unit"],
+    "campus": "Paterno Campus",
+    "building": "Magdalena S. Ramo Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["accreditation assistance", "accreditation documentation", "program accreditation", "accreditation preparation"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Dean of College of Education",
+    "aliases": ["College of Education Dean", "COE Dean", "Education Dean"],
+    "campus": "Paterno Campus",
+    "building": "Magdalena S. Ramo Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["college administration", "academic advising", "faculty coordination", "student concerns"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Learning Resource Center",
+    "aliases": ["LRC", "library", "university library"],
+    "campus": "Paterno Campus",
+    "building": "Learning Resource Center Building",
+    "floor": "1st-4th Floors",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["library services", "research assistance", "learning resources", "reference services", "information resources"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Office of the Dean of College of Education",
+    "aliases": ["College of Education Dean", "COE Dean", "Education Dean"],
+    "campus": "Youngfield Campus",
+    "building": "Academic Building",
+    "floor": "1st Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["college administration", "academic advising", "faculty coordination", "student concerns"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Quality Assurance Office",
+    "aliases": ["QA office", "quality assurance", "QA"],
+    "campus": "Youngfield Campus",
+    "building": "Academic Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["quality assurance", "quality monitoring", "academic quality", "institutional quality improvement"],
+    "contact": "info@lnu.edu.ph"
+  },
+  {
+    "name": "Accreditation Office",
+    "aliases": ["accreditation", "accreditation office", "accreditation unit"],
+    "campus": "Youngfield Campus",
+    "building": "Academic Building",
+    "floor": "2nd Floor",
+    "hours": "8:00 AM - 5:00 PM, Mon-Fri",
+    "services": ["accreditation assistance", "accreditation documentation", "program accreditation", "accreditation preparation"],
+    "contact": "info@lnu.edu.ph"
   }
 ]
