@@ -59,6 +59,9 @@
         $sidebarSub = auth()->user()->student_number
             ? auth()->user()->student_number . ' | ' . $roleLabel
             : (auth()->user()->email ? auth()->user()->email . ' | ' . $roleLabel : $roleLabel);
+        $slipCount = in_array($role, ['Student', 'Officer'], true)
+            ? \App\Models\StudentDocumentWorkspace::officeNoticesFor(auth()->id())->count()
+            : 0;
     @endphp
 
     {{-- OVERLAY FOR MOBILE BACKDROP --}}
@@ -87,7 +90,7 @@
                         <i class='bx bx-home link-icon'></i>
                         <span class="link-text">Dashboard</span>
                     </a>
-                    <a href="{{ route('student.new-transaction') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.new-transaction*') ? 'active' : '' }}" data-tooltip="New Transaction">
+                    <a href="{{ route('student.new-transaction') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.new-transaction*', 'student.transactions.new') ? 'active' : '' }}" data-tooltip="New Transaction">
                         <i class='bx bx-plus-circle link-icon'></i>
                         <span class="link-text">New Transaction</span>
                     </a>
@@ -95,9 +98,12 @@
                         <i class='bx bx-calendar link-icon'></i>
                         <span class="link-text">Appointments</span>
                     </a>
-                    <a href="{{ route('student.documents.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.documents.*') ? 'active' : '' }}" data-tooltip="Documents">
+                    <a href="{{ route('student.documents.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.documents.*', 'student.transactions.show') ? 'active' : '' }}" data-tooltip="Documents">
                         <i class='bx bx-folder link-icon'></i>
                         <span class="link-text">Documents</span>
+                        @if($slipCount > 0)
+                            <span class="ml-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ $slipCount }}</span>
+                        @endif
                     </a>
                     <a href="{{ route('student.clearance-status') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.clearance-status') ? 'active' : '' }}" data-tooltip="Clearance Status">
                         <i class='bx bx-check-circle link-icon'></i>
@@ -123,7 +129,7 @@
                         <i class='bx bx-home link-icon'></i>
                         <span class="link-text">Dashboard</span>
                     </a>
-                    <a href="{{ route('student.new-transaction') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.new-transaction*') ? 'active' : '' }}" data-tooltip="New Transaction">
+                    <a href="{{ route('student.new-transaction') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.new-transaction*', 'student.transactions.new') ? 'active' : '' }}" data-tooltip="New Transaction">
                         <i class='bx bx-plus-circle link-icon'></i>
                         <span class="link-text">New Transaction</span>
                     </a>
@@ -131,9 +137,12 @@
                         <i class='bx bx-calendar link-icon'></i>
                         <span class="link-text">Appointments</span>
                     </a>
-                    <a href="{{ route('student.documents.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.documents.*') ? 'active' : '' }}" data-tooltip="Documents">
+                    <a href="{{ route('student.documents.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.documents.*', 'student.transactions.show') ? 'active' : '' }}" data-tooltip="Documents">
                         <i class='bx bx-folder link-icon'></i>
                         <span class="link-text">Documents</span>
+                        @if($slipCount > 0)
+                            <span class="ml-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ $slipCount }}</span>
+                        @endif
                     </a>
                     <a href="{{ route('student.clearance-status') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.clearance-status') ? 'active' : '' }}" data-tooltip="Clearance Status">
                         <i class='bx bx-check-circle link-icon'></i>
@@ -167,6 +176,19 @@
                         <i class='bx bx-transfer link-icon'></i>
                         <span class="link-text">Transactions</span>
                     </a>
+                    @php
+                        $reviewCount = \App\Models\StudentDocumentWorkspace::usingWorkflow()->whereNotNull('document_type')
+                            ->where(fn ($w) => $w->whereIn('workflow_status', ['submitted', 'approved'])
+                                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereDoesntHave('approvals')))
+                            ->count();
+                    @endphp
+                    <a href="{{ route('admin.workflow.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.workflow.*') ? 'active' : '' }}" data-tooltip="Workflow Review">
+                        <i class='bx bx-task link-icon'></i>
+                        <span class="link-text">Workflow Review</span>
+                        @if($reviewCount > 0)
+                            <span class="ml-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ $reviewCount }}</span>
+                        @endif
+                    </a>
                     <a href="{{ route('admin.appointments.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.appointments.*') ? 'active' : '' }}" data-tooltip="Appointments">
                         <i class='bx bx-calendar link-icon'></i>
                         <span class="link-text">Appointments</span>
@@ -195,6 +217,41 @@
                         <i class='bx bx-file link-icon'></i>
                         <span class="link-text">Document Templates</span>
                     </a>
+                    <a href="{{ route('profile') }}" wire:navigate class="sidebar-link {{ request()->routeIs('profile') ? 'active' : '' }}" data-tooltip="Profile">
+                        <i class='bx bx-user-circle link-icon'></i>
+                        <span class="link-text">Profile</span>
+                    </a>
+                </div>
+            @endif
+            @if($role === 'Signatory')
+                <div class="sidebar-section">
+                    <a href="{{ route('profile') }}" wire:navigate class="sidebar-link {{ request()->routeIs('profile') ? 'active' : '' }}" data-tooltip="Profile">
+                        <i class='bx bx-user-circle link-icon'></i>
+                        <span class="link-text">Profile</span>
+                    </a>
+                </div>
+            @endif
+            @if(auth()->check() && ! $inactive && auth()->user()->isSignatory())
+                @php $signCount = \App\Models\TransactionApproval::assignableTo(auth()->user())->count(); @endphp
+                <div class="sidebar-section">
+                    <p class="section-title">Signing</p>
+                    <a href="{{ route('signatory.inbox') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.inbox', 'signatory.show') ? 'active' : '' }}" data-tooltip="Signing Inbox">
+                        <i class='bx bx-pen link-icon'></i>
+                        <span class="link-text">Signing Inbox</span>
+                        @if($signCount > 0)
+                            <span class="ml-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ $signCount }}</span>
+                        @endif
+                        @if(count(auth()->user()->issuableDocuments()) > 0)
+                            <a href="{{ route('signatory.issue') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.issue') ? 'active' : '' }}" data-tooltip="Issue a Report">
+                                <i class='bx bx-file link-icon'></i>
+                                <span class="link-text">Issue a Report</span>
+                            </a>
+                        @endif
+                    </a>
+                </div>
+            @endif
+            @if($role === 'Signatory')
+                <div class="sidebar-section">
                     <a href="{{ route('profile') }}" wire:navigate class="sidebar-link {{ request()->routeIs('profile') ? 'active' : '' }}" data-tooltip="Profile">
                         <i class='bx bx-user-circle link-icon'></i>
                         <span class="link-text">Profile</span>
@@ -276,7 +333,7 @@
             </div>
         @endif  
 
-        @if(!$inactive)
+        @if(!$inactive && $role !== 'Signatory')
             <div class="chatbot-btn" id="chatbotBtn" data-tooltip="AI Assistant">
                 <i class='bx bx-message-dots'></i>
             </div>

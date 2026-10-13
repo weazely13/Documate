@@ -45,6 +45,20 @@ class Login extends Component
             return $this->redirect('/admin/dashboard', navigate: true);
         }
 
+        // SIGNATORY ACCOUNTS: no student verification, straight to the signing inbox
+        if ($user->role->role_name === 'Signatory') {
+            if ($user->account_status !== 'active') {
+                Auth::logout();
+                request()->session()->invalidate();
+
+                throw ValidationException::withMessages([
+                    'login' => 'This account is inactive. Contact the VPSD office.',
+                ]);
+            }
+
+            return $this->redirect(route('signatory.inbox'), navigate: true);
+        }
+
         // CHECK ACCOUNT STATUS
         if ($user->account_status !== 'active') {
             return $this->redirect('/verify', navigate: true);

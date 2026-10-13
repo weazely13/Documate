@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\HasTransactionWorkflow;
 
 class StudentDocumentWorkspace extends Model
 {
+    use HasTransactionWorkflow;
     protected $table = 'student_document_workspaces';
     protected $primaryKey = 'workspace_id';
 

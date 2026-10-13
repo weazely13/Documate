@@ -119,6 +119,24 @@ class AdminReportSpreadsheet
             'A:D'
         );
 
+        if (!empty($report['workflow']) && $report['workflow']['total'] > 0) {
+            $this->breakdownSheet(
+                $spreadsheet, 'Workflow',
+                'Digital (paperless) transactions filed in the selected date range, by status and by document type.',
+                $report['workflow']['by_status'], $report['workflow']['by_type'],
+                'Status', 'By Document Type'
+            );
+
+            $sheet = $spreadsheet->createSheet();
+            $sheet->setTitle('Workflow Signers');
+            $sheet->fromArray(['Role', 'Signed', 'Rejected', 'Pending', 'Avg response', 'Oldest pending'], null, 'A1');
+            $sheet->fromArray(array_map(fn ($s) => array_values($s), $report['workflow']['signers']), null, 'A2');
+            $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+            foreach (range('A', 'F') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+        }
+
         $cards = $report['overview']['cards'];
         $rows = [
             ['Metric', 'Value'],

@@ -7,6 +7,7 @@ use App\Services\Admin\AdminReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Component;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Services\Workflow\WorkflowReportService;
 
 class Reports extends Component
 {
@@ -98,20 +99,9 @@ class Reports extends Component
         ];
     }
 
-    public function getReportData()
-    {
-        return $this->service->build($this->filters());
-    }
-
-    /** Called from the front end (wire:ignore Chart.js block) to refresh chart data without a full re-render. */
-    public function getChartData(): array
-    {
-        return $this->service->build($this->filters());
-    }
-
     public function exportPdf()
-    {
-        $data = $this->service->build($this->filters());
+    {   
+        $data = $this->withWorkflow($this->service->build($this->filters()));
 
         $pdf = Pdf::loadView('exports.admin-report-pdf', [
             'report'  => $data,
@@ -129,7 +119,7 @@ class Reports extends Component
 
     public function exportExcel()
     {
-        $data = $this->service->build($this->filters());
+        $data = $this->withWorkflow($this->service->build($this->filters()));
         $spreadsheet = (new AdminReportSpreadsheet())->build($data);
 
         $filename = 'documate-report-' . now()->format('Ymd-His') . '.xlsx';
@@ -142,6 +132,26 @@ class Reports extends Component
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
+    protected function withWorkflow(array $data): array
+    {
+        $data['workflow'] = app(WorkflowReportService::class)->build([
+            'from' => $this->dateFrom,
+            'to' => $this->dateTo,
+        ]);
+
+        return $data;
+    }
+
+    public function getReportData()
+    {
+        return $this->withWorkflow($this->service->build($this->filters()));
+    }
+
+    public function getChartData(): array
+    {
+        return $this->withWorkflow($this->service->build($this->filters()));
+    }
+
 
     public function render()
     {

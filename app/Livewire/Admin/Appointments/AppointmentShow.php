@@ -200,6 +200,9 @@ class AppointmentShow extends Component
 
     public function markAttended(): void
     {
+        if ($this->appointment->workspace && ! $this->appointment->workspace->usesWorkflow()) {
+            $this->appointment->workspace->update(['status' => 'completed', 'completed_at' => now()]);
+        }
         $this->appointment->update([
             'status' => 'attended',
             'admin_notes' => $this->adminNotes ?: $this->appointment->admin_notes,

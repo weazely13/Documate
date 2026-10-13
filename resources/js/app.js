@@ -754,6 +754,11 @@ Alpine.data('pinchZoomPreview', (config = {}) => ({
 
 const BRAND = '#2A57B4';
 const PALETTE = ['#2A57B4', '#4C8DFF', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6', '#14B8A6', '#EC4899', '#64748B', '#0EA5E9'];
+const STATUS_COLORS = {
+    'Submitted': '#0EA5E9', 'Under Review': '#2A57B4', 'Action Required': '#F59E0B', 'Approved': '#14B8A6',
+    'Completed': '#22C55E', 'Rejected': '#EF4444', 'Voided': '#94A3B8',
+};
+const colorsFor = (labels) => labels.map((l, i) => STATUS_COLORS[l] || PALETTE[i % PALETTE.length]);
 
 window.reportsCharts = function (initial) {
     return {
@@ -791,6 +796,13 @@ window.reportsCharts = function (initial) {
             this.charts.logbookByPurpose = this.buildBarChart(this.$refs.logbookByPurpose, d.logbook.charts.by_purpose, '#2A57B4', true);
             this.charts.logbookMonthly = this.buildLineChart(this.$refs.logbookMonthly, d.logbook.charts.monthly);
             this.charts.logbookByProgram = this.buildBarChart(this.$refs.logbookByProgram, d.logbook.charts.by_program, '#22C55E', true);
+
+            if (d.workflow) {
+                this.charts.workflowByStatus = this.buildPieChart(this.$refs.workflowByStatus, d.workflow.charts.by_status);
+                this.charts.workflowByType = this.buildBarChart(this.$refs.workflowByType, d.workflow.charts.by_type, '#4C8DFF');
+                this.charts.workflowMonthly = this.buildMonthlyBars(this.$refs.workflowMonthly, d.workflow.charts.monthly);
+                this.charts.overviewMiniWorkflow = this.buildMiniDoughnut(this.$refs.overviewMiniWorkflow, d.workflow.charts.by_status);
+            }
 
             this.$wire.on('reports-charts-refresh', () => this.refresh());
         },
@@ -838,6 +850,12 @@ window.reportsCharts = function (initial) {
                 this.updateChart(this.charts.logbookByPurpose, fresh.logbook.charts.by_purpose);
                 this.updateChart(this.charts.logbookMonthly, fresh.logbook.charts.monthly);
                 this.updateChart(this.charts.logbookByProgram, fresh.logbook.charts.by_program);
+                if (fresh.workflow) {
+                    this.updateChart(this.charts.workflowByStatus, fresh.workflow.charts.by_status);
+                    this.updateChart(this.charts.workflowByType, fresh.workflow.charts.by_type);
+                    this.updateMonthlyBars(this.charts.workflowMonthly, fresh.workflow.charts.monthly);
+                    this.updateChart(this.charts.overviewMiniWorkflow, fresh.workflow.charts.by_status);
+                }
             });
         },
 
@@ -846,7 +864,7 @@ window.reportsCharts = function (initial) {
             chart.data.labels = chartData.labels;
             chart.data.datasets[0].data = chartData.values;
             if (chart.config.type === 'doughnut') {
-                chart.data.datasets[0].backgroundColor = chartData.labels.map((_, i) => PALETTE[i % PALETTE.length]);
+                chart.data.datasets[0].backgroundColor = colorsFor(chartData.labels);
             }
             chart.update();
         },
@@ -871,6 +889,7 @@ window.reportsCharts = function (initial) {
                 },
             });
         },
+        
 
         buildLineChart(canvas, chartData) {
             if (!canvas) return null;
@@ -908,7 +927,7 @@ window.reportsCharts = function (initial) {
                     labels: chartData.labels,
                     datasets: [{
                         data: chartData.values,
-                        backgroundColor: chartData.labels.map((_, i) => PALETTE[i % PALETTE.length]),
+                        backgroundColor: colorsFor(chartData.labels),
                         borderWidth: 2,
                         borderColor: '#ffffff',
                     }],
@@ -937,7 +956,7 @@ window.reportsCharts = function (initial) {
                     labels: chartData.labels,
                     datasets: [{
                         data: chartData.values,
-                        backgroundColor: chartData.labels.map((_, i) => PALETTE[i % PALETTE.length]),
+                        backgroundColor: colorsFor(chartData.labels),
                         borderWidth: 1,
                         borderColor: '#ffffff',
                     }],
@@ -979,6 +998,39 @@ window.reportsCharts = function (initial) {
                     },
                 },
             });
+        },
+        buildMonthlyBars(canvas, c) {
+            if (!canvas) return null;
+            const existing = Chart.getChart(canvas);
+            if (existing) existing.destroy();
+
+            return new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: c.labels,
+                    datasets: [
+                        { label: 'Submitted', data: c.submitted, backgroundColor: '#2A57B4', borderRadius: 6, maxBarThickness: 44 },
+                        { label: 'Completed', data: c.completed, backgroundColor: '#22C55E', borderRadius: 6, maxBarThickness: 44 },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, padding: 12 } } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: { grid: { display: false } },
+                    },
+                },
+            });
+        },
+
+        updateMonthlyBars(chart, c) {
+            if (!chart || !c) return;
+            chart.data.labels = c.labels;
+            chart.data.datasets[0].data = c.submitted;
+            chart.data.datasets[1].data = c.completed;
+            chart.update();
         },
 
         download(chartKey, filename) {

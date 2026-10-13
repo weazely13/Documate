@@ -26,6 +26,8 @@ use App\Livewire\Officer\ClearanceProfile as OfficerClearanceProfile;
 use App\Livewire\Student\StudentHandbook;
 use App\Livewire\Admin\SemesterManagement;
 use App\Livewire\Admin\Reports;
+use App\Http\Controllers\VerifyDocumentController;
+
 
 
 
@@ -35,6 +37,17 @@ Route::view('/faqs', 'faqs')->name('faqs');
 if (app()->environment('local')) {
     Route::get('/check-gd', fn () => dd(extension_loaded('gd'), gd_info()));
 }
+Route::get('/verify-document', [VerifyDocumentController::class, 'lookup'])->name('document.lookup');
+Route::get('/verify-document/{token}', [VerifyDocumentController::class, 'show'])
+    ->middleware('throttle:30,1')->name('document.verify');
+Route::post('/verify-document/{token}/file', [VerifyDocumentController::class, 'checkFile'])
+    ->middleware('throttle:10,1')->name('document.verify.file');
+Route::post('/verify-document', [VerifyDocumentController::class, 'check'])
+    ->middleware('throttle:10,1')->name('document.lookup.find');
+Route::get('/invite/{token}', \App\Livewire\Auth\AcceptInvite::class)
+    ->middleware('throttle:20,1')->name('invite.accept');
+Route::get('/sign/{token}', \App\Livewire\External\Sign::class)
+    ->middleware('throttle:60,1')->name('external.sign');
 
 Route::get('/register', Register::class)->name('register');
 Route::get('/login', Login::class)->name('login');
@@ -56,6 +69,19 @@ Route::middleware(['auth'])->group(function () {
 
 // Protected
 Route::middleware(['auth'])->group(function () {
+
+    Route::get('/profile/signature', function () {
+        $path = auth()->user()->signature_path;
+        abort_unless($path && \Storage::disk('local')->exists($path), 404);
+
+        return \Storage::disk('local')->response($path, null, ['Cache-Control' => 'private, no-store']);
+    })->name('profile.signature');
+    Route::get('/signing', \App\Livewire\Signatory\Inbox::class)->name('signatory.inbox');
+    Route::get('/signing/issue', \App\Livewire\Admin\Workflow\Issue::class)->name('signatory.issue');
+    Route::get('/signing/{approval}', \App\Livewire\Signatory\Show::class)->name('signatory.show');
+    Route::get('/signing/{approval}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'signatory'])
+        ->name('signatory.preview');
+
 
     // STUDENT
     Route::middleware('role:student,officer')->group(function () {
@@ -80,6 +106,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/clearance-tagging/{studentId}', OfficerClearanceProfile::class)
             ->name('officer.clearance.show');
         Route::get('/handbook', StudentHandbook::class)->name('handbook');
+        Route::redirect('/student/transactions', '/student/new-transaction')->name('student.transactions.index');
+        Route::get('/student/transactions/new/{type}', \App\Livewire\Student\Transactions\Form::class)
+            ->name('student.transactions.new');
+        Route::get('/student/transactions/{workspace}', \App\Livewire\Student\Transactions\Form::class)
+            ->name('student.transactions.show');
       
             
 
@@ -147,6 +178,15 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/admin/semesters', SemesterManagement::class)
             ->name('admin.semesters');
+
+        Route::get('/admin/workflow', \App\Livewire\Admin\Workflow\Index::class)->name('admin.workflow.index');
+        Route::get('/admin/workflow/issue', \App\Livewire\Admin\Workflow\Issue::class)->name('admin.workflow.issue');
+        Route::get('/admin/workflow', \App\Livewire\Admin\Workflow\Index::class)->name('admin.workflow.index');
+        Route::get('/admin/workflow/{workspace}', \App\Livewire\Admin\Workflow\Show::class)->name('admin.workflow.show');
+        Route::get('/admin/workflow/{workspace}/report', [\App\Http\Controllers\WorkflowReportController::class, 'download'])
+            ->name('admin.workflow.report');
+        Route::get('/admin/workflow/{workspace}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'admin'])
+            ->name('admin.workflow.preview');
     });
 
     // OFFICER

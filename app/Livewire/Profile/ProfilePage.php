@@ -13,6 +13,7 @@ use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\College;
+use App\Services\Workflow\SignatureStore;
 
 class ProfilePage extends Component
 {
@@ -83,9 +84,36 @@ class ProfilePage extends Component
         'new_password.confirmed' => 'The new password confirmation does not match.',
     ];
 
+   public string $signatureData = '';
+    public string $signature_password = '';
+
     public function mount(): void
     {
         $this->fillFromUser(Auth::user()->loadMissing('role', 'organization', 'program', 'officerRecord'));
+    }
+
+    public function saveSignature(SignatureStore $store): void
+    {
+        abort_unless(Auth::user()->isSignatory(), 403);
+
+        $this->validate([
+            'signatureData' => ['required', 'string', 'max:400000'],
+            'signature_password' => ['required', 'current_password'],
+        ], [
+            'signatureData.required' => 'Please draw your signature in the box.',
+        ], ['signature_password' => 'password']);
+
+        try {
+            $store->storeFromDataUrl(Auth::user(), $this->signatureData);
+        } catch (\InvalidArgumentException $e) {
+            $this->addError('signatureData', $e->getMessage());
+
+            return;
+        }
+
+        $this->reset('signatureData', 'signature_password');
+        $this->dispatch('signature-saved');
+        session()->flash('profile_saved', 'Signature saved.');
     }
 
     public function toggleEdit(): void
@@ -104,26 +132,29 @@ class ProfilePage extends Component
         /** @var User $user */
         $user = Auth::user();
 
+        $isSignatory = strtolower($this->role_name) === 'signatory';
+        $optional = $isSignatory ? 'nullable' : 'required';
+
+        $emailRules = ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)];
+        if (! $isSignatory) {
+            // Students/admins: personal providers only. Signatories use their official email.
+            $emailRules[] = 'regex:/^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook)\.com$/';
+        }
+
         $rules = [
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'suffix' => ['nullable', 'string', 'max:50'],
-            'sex' => ['required', Rule::in($this->sexOptions)],
-            'date_of_birth' => ['required', 'date', 'before_or_equal:today'],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                'regex:/^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook)\.com$/',
-                Rule::unique('users', 'email')->ignore($user->id),
-            ],
-            'contact_number' => ['required', 'regex:/^(09|\+639)\d{9}$/'],
+            'sex' => [$optional, Rule::in($this->sexOptions)],
+            'date_of_birth' => [$optional, 'date', 'before_or_equal:today'],
+            'email' => $emailRules,
+            'contact_number' => [$optional, 'regex:/^(09|\+639)\d{9}$/'],
             'photo' => ['nullable', 'image', 'max:2048'],
         ];
 
-
-        if (! $this->isAdmin) {
+        // Academic fields only exist for students/officers.
+        if (! $this->isStaffAccount) {
             $rules['college_id'] = ['required', 'exists:colleges,id'];
             $rules['program_id'] = ['required', Rule::exists('programs', 'id')
                 ->where('college_id', $this->college_id)->where('is_active', true)];
@@ -140,8 +171,14 @@ class ProfilePage extends Component
         $validated = $this->validate($rules);
         $validated['email'] = strtolower($validated['email']);
 
+        // Livewire gives '' for blank inputs; a date column must get NULL, not ''.
+        foreach (['sex', 'date_of_birth', 'contact_number'] as $key) {
+            if (array_key_exists($key, $validated) && $validated[$key] === '') {
+                $validated[$key] = null;
+            }
+        }
 
-        if (! $this->isAdmin) {
+        if (! $this->isStaffAccount) {
             // users.college stores the NAME, so keep it in sync with the selected college
             $validated['college'] = College::find($this->college_id)?->name;
             unset($validated['college_id']);
@@ -203,6 +240,10 @@ class ProfilePage extends Component
     public function getIsAdminProperty(): bool
     {
         return strtolower($this->role_name) === 'admin';
+    }
+    public function getIsStaffAccountProperty(): bool
+    {
+        return $this->isAdmin || strtolower($this->role_name) === 'signatory';
     }
 
     public function getFullNameProperty(): string

@@ -4,6 +4,7 @@
         'overview' => ['At a Glance', 'bx-home-alt'],
         'users' => ['Users', 'bx-group'],
         'transactions' => ['Transactions', 'bx-transfer'],
+        'workflow' => ['Paperless Workflow', 'bx-task'],
         'appointments' => ['Appointments', 'bx-calendar'],
         'clearance' => ['Clearance', 'bx-check-shield'],
         'verification' => ['Verification', 'bx-id-card'],
@@ -184,6 +185,14 @@
                 <p class="mt-1 text-xs text-slate-400">Document requests finished vs. filed, in the selected range</p>
             </div>
             <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Paperless Completed</p>
+                <p class="mt-1 text-3xl font-extrabold text-slate-900">
+                    {{ $report['workflow']['completed'] }}
+                    <span class="text-base font-medium text-slate-400">/ {{ $report['workflow']['total'] }}</span>
+                </p>
+                <p class="mt-1 text-xs text-slate-400">{{ $report['workflow']['in_progress'] }} still in progress &middot; avg. {{ $report['workflow']['avg_issue'] }} to issue</p>
+            </div>
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Appointments Today</p>
                 <p class="mt-1 text-3xl font-extrabold text-slate-900">{{ $report['overview']['cards']['todays_appointments'] }}</p>
                 <p class="mt-1 text-xs text-slate-400">{{ $report['overview']['cards']['pending_verifications'] }} verifications still pending</p>
@@ -212,6 +221,14 @@
                 </div>
                 <div class="relative mt-2 h-32"><canvas x-ref="overviewMiniTransactions"></canvas></div>
                 <p class="mt-2 text-[11px] text-slate-400">Document requests by status — a large pending slice means a backlog to clear.</p>
+            </div>
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-4 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-700">Paperless Workflow</h3>
+                    <span class="text-xs text-slate-400">{{ $report['workflow']['total'] }} total</span>
+                </div>
+                <div class="relative mt-2 h-32"><canvas x-ref="overviewMiniWorkflow"></canvas></div>
+                <p class="mt-2 text-[11px] text-slate-400">Digital transactions by status. A big under-review slice means signatures are waiting.</p>
             </div>
             <div class="rounded-2xl border border-[#d7e0ee] bg-white p-4 shadow-sm">
                 <div class="flex items-center justify-between">
@@ -287,6 +304,12 @@
                             <td class="py-2 pr-4">{{ $report['transactions']['total'] }}</td>
                             <td class="py-2 pr-4">{{ $report['transactions']['completed'] }} completed</td>
                             <td class="py-2 text-slate-400">Avg. completion: {{ $report['transactions']['avg_completion_hours'] ?? '—' }} hrs</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 pr-4 font-semibold text-slate-700">Paperless Workflow</td>
+                            <td class="py-2 pr-4">{{ $report['workflow']['total'] }}</td>
+                            <td class="py-2 pr-4">{{ $report['workflow']['completion_rate'] }}% completed</td>
+                            <td class="py-2 text-slate-400">Avg. time to issue: {{ $report['workflow']['avg_issue'] }}</td>
                         </tr>
                         <tr>
                             <td class="py-2 pr-4 font-semibold text-slate-700">Appointments</td>
@@ -405,6 +428,35 @@
                 No logbook uploads found for the selected range.
             </div>
         @endif
+    </div>
+
+    {{-- WORKFLOW summary --}}
+    <div x-show="tab === 'workflow'" x-cloak class="space-y-4">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase text-slate-400">Submitted</p>
+                <p class="mt-1 text-2xl font-extrabold text-slate-900">{{ $report['workflow']['total'] }}</p>
+            </div>
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase text-slate-400">Completed</p>
+                <p class="mt-1 text-2xl font-extrabold text-emerald-600">{{ $report['workflow']['completed'] }}
+                    <span class="text-sm font-medium text-slate-400">({{ $report['workflow']['completion_rate'] }}%)</span></p>
+            </div>
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase text-slate-400">In Progress</p>
+                <p class="mt-1 text-2xl font-extrabold text-amber-600">{{ $report['workflow']['in_progress'] }}</p>
+            </div>
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase text-slate-400">Avg. Time to Issue</p>
+                <p class="mt-1 text-2xl font-extrabold text-slate-900">{{ $report['workflow']['avg_issue'] }}</p>
+            </div>
+        </div>
+        <p class="text-xs text-slate-400">
+            Digital (paperless) transactions filed in the selected date range.
+            {{ $report['workflow']['rejected'] }} rejected
+            ({{ $report['workflow']['rejections']['review'] }} by VPSD, {{ $report['workflow']['rejections']['signer'] }} by a signatory)
+            &middot; {{ $report['workflow']['voided'] }} voided.
+        </p>
     </div>
 
     {{-- ================= CHARTS (Chart.js, wire:ignore — refreshed via event, never re-rendered by Livewire) ================= --}}
@@ -532,6 +584,68 @@
                 <p class="mt-1 text-xs text-slate-400">Logbook entries per month across the entire uploaded history.</p>
                 <div class="relative mt-3 h-72"><canvas x-ref="logbookMonthly"></canvas></div>
             </div>
+        </div>
+        {{-- WORKFLOW charts --}}
+        <div x-show="tab === 'workflow'" x-cloak class="mt-4 grid gap-4 lg:grid-cols-2">
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-700">By Status</h3>
+                <p class="mt-1 text-xs text-slate-400">Where digital transactions currently stand.</p>
+                <div class="relative mt-3 h-72"><canvas x-ref="workflowByStatus"></canvas></div>
+            </div>
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-700">By Document</h3>
+                <p class="mt-1 text-xs text-slate-400">Which digital forms are requested most.</p>
+                <div class="relative mt-3 h-72"><canvas x-ref="workflowByType"></canvas></div>
+            </div>
+            <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm lg:col-span-2">
+                <h3 class="text-sm font-bold text-slate-700">Submitted per Month</h3>
+                <p class="mt-1 text-xs text-slate-400">Volume of digital transactions over the selected range.</p>
+                <div class="relative mt-3 h-72"><canvas x-ref="workflowMonthly"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div x-show="tab === 'workflow'" x-cloak class="grid gap-4 xl:grid-cols-2">
+        <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm overflow-x-auto">
+            <h3 class="text-sm font-bold text-slate-700">Signer Performance</h3>
+            <p class="mt-1 text-xs text-slate-400">Response time runs from when a step opened to when it was signed or rejected.</p>
+            <table class="mt-3 w-full text-left text-sm">
+                <thead><tr class="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+                    <th class="py-2 pr-3 font-semibold">Role</th><th class="pr-3 font-semibold">Signed</th><th class="pr-3 font-semibold">Rej.</th>
+                    <th class="pr-3 font-semibold">Pending</th><th class="pr-3 font-semibold">Avg. response</th><th class="font-semibold">Oldest pending</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-50">
+                @forelse($report['workflow']['signers'] as $s)
+                    <tr>
+                        <td class="py-2 pr-3 font-semibold text-slate-700">{{ $s['label'] }}</td>
+                        <td class="pr-3">{{ $s['signed'] }}</td><td class="pr-3">{{ $s['rejected'] }}</td><td class="pr-3">{{ $s['pending'] }}</td>
+                        <td class="pr-3">{{ $s['avg_response'] }}</td><td class="text-slate-500">{{ $s['oldest_pending'] }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="py-3 text-slate-400">No signing activity in this range.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="rounded-2xl border border-[#d7e0ee] bg-white p-5 shadow-sm overflow-x-auto">
+            <h3 class="text-sm font-bold text-slate-700">Oldest Unfinished Transactions</h3>
+            <p class="mt-1 text-xs text-slate-400">Submitted, under review, waiting on the student, or approved but not yet completed.</p>
+            <table class="mt-3 w-full text-left text-sm">
+                <thead><tr class="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+                    <th class="py-2 pr-3 font-semibold">Reference</th><th class="pr-3 font-semibold">Document</th>
+                    <th class="pr-3 font-semibold">Status</th><th class="font-semibold">Waiting</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-50">
+                @forelse($report['workflow']['stuck'] as $r)
+                    <tr>
+                        <td class="py-2 pr-3"><a href="{{ route('admin.workflow.show', $r['id']) }}" class="font-mono font-semibold text-[#2A57B4] hover:underline">{{ $r['code'] }}</a></td>
+                        <td class="pr-3">{{ $r['name'] }}</td><td class="pr-3">{{ $r['status'] }}</td><td class="text-slate-500">{{ $r['since'] }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4" class="py-3 text-slate-400">Nothing is stuck.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

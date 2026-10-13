@@ -218,7 +218,48 @@
         <tr><th>Total Submitted</th><th>Verified Rate</th></tr>
         <tr><td>{{ $report['verification']['total'] }}</td><td>{{ $report['verification']['verified_rate'] }}%</td></tr>
     </table>
-
+    {{-- WORKFLOW --}}
+    @if(!empty($report['workflow']) && $report['workflow']['total'] > 0)
+        <div class="section-title">Paperless Workflow</div>
+        <p class="section-desc">
+            Digital transactions filed in the selected range. <strong>Avg. Time to Issue</strong> is the average time
+            from submission to the signed document being issued, for transactions that completed.
+        </p>
+        <table class="data">
+            <tr><th>Submitted</th><th>Completed</th><th>In Progress</th><th>Rejected</th><th>Voided</th><th>Avg. Time to Issue</th></tr>
+            <tr>
+                <td>{{ $report['workflow']['total'] }}</td>
+                <td>{{ $report['workflow']['completed'] }} ({{ $report['workflow']['completion_rate'] }}%)</td>
+                <td>{{ $report['workflow']['in_progress'] }}</td>
+                <td>{{ $report['workflow']['rejected'] }}</td>
+                <td>{{ $report['workflow']['voided'] }}</td>
+                <td>{{ $report['workflow']['avg_issue'] }}</td>
+            </tr>
+        </table>
+        <table class="two-col">
+            <tr>
+                <td>
+                    @if(count($report['workflow']['charts']['by_status']['labels']))
+                        <div class="chart-box">{!! $svgImg($service->renderPieChart($report['workflow']['charts']['by_status'], ['width' => 340, 'height' => 190])) !!}</div>
+                    @endif
+                </td>
+                <td>
+                    @if(count($report['workflow']['charts']['by_type']['labels']))
+                        <div class="chart-box">{!! $svgImg($service->renderBarChart($report['workflow']['charts']['by_type'], ['width' => 340, 'height' => 190])) !!}</div>
+                    @endif
+                </td>
+            </tr>
+        </table>
+        @if(count($report['workflow']['signers']))
+            <p class="section-desc">Signer performance. Response time runs from a step opening to it being signed or rejected.</p>
+            <table class="data">
+                <tr><th>Role</th><th>Signed</th><th>Rejected</th><th>Pending</th><th>Avg. response</th></tr>
+                @foreach($report['workflow']['signers'] as $s)
+                    <tr><td>{{ $s['label'] }}</td><td class="num">{{ $s['signed'] }}</td><td class="num">{{ $s['rejected'] }}</td><td class="num">{{ $s['pending'] }}</td><td>{{ $s['avg_response'] }}</td></tr>
+                @endforeach
+            </table>
+        @endif
+    @endif
     {{-- LOGBOOK --}}
     @if($report['logbook']['total_uploads'] > 0)
         <div class="section-title">Front Desk Logbook</div>

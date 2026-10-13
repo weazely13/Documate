@@ -17,7 +17,7 @@
                     select,
                     access.
                 </h1>
-
+            
                 <p class="text-lg text-gray-600 my-8 leading-relaxed max-w-lg">
                     A smarter way to manage student transactions, automate workflows,
                     and ensure transparent multi-office approvals.
@@ -36,6 +36,7 @@
                     class="text-sm text-gray-600 hover:text-[#2A57B4] transition">
                         Don't have an account yet? Sign up here.
                     </a>
+                    <a href="{{ route('document.lookup') }}">Verify a document</a>
 
                 </div>
 

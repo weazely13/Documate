@@ -69,11 +69,20 @@
                 </button>
             </div>
         </div>
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Source</span>
+            @foreach(['All', 'Student-filed', 'Issued by office'] as $src)
+                <button type="button" wire:click="setSourceFilter('{{ $src }}')"
+                        class="rounded-full px-3 py-1 text-xs font-semibold transition {{ $sourceFilter === $src ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}">
+                    {{ $src }}
+                </button>
+            @endforeach
+        </div>
 
         {{-- ============ TABLE VIEW ============ --}}
         @if($viewMode === 'table')
             <p class="mb-3 text-xs text-slate-400">
-                {{ $pendingCount }} pending, {{ $forAppointmentCount }} for appointment, {{ $completedCount }} completed.
+                {{ $pendingCount }} pending, {{ $forAppointmentCount }} for appointment, {{ $inReviewCount }} in review, {{ $completedCount }} completed.
             </p>
             @php
                 $statusClassFor = fn (string $status) => match ($status) {
@@ -82,6 +91,9 @@
                     'Waiting Upload' => 'bg-blue-50 text-blue-700 ring-blue-200',
                     'Processing' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
                     'Missed' => 'bg-rose-50 text-rose-700 ring-rose-200',
+                    'In Review' => 'bg-sky-50 text-sky-700 ring-sky-200',
+                    'Rejected' => 'bg-rose-50 text-rose-700 ring-rose-200',
+                    'Voided' => 'bg-slate-100 text-slate-600 ring-slate-300',
                     default => 'bg-orange-50 text-orange-700 ring-orange-200',
                 };
             @endphp
@@ -155,11 +167,18 @@
                                             <tbody class="divide-y divide-slate-200/70">
                                                 @foreach($s['forms'] as $record)
                                                     <tr wire:key="transaction-record-{{ $record['workspace_id'] }}"
-                                                        @click.stop="Livewire.navigate('{{ route('admin.transactions.show', $record['workspace_id']) }}')"
+                                                        @click.stop="Livewire.navigate('{{ $record['url'] }}')"
                                                         class="cursor-pointer text-slate-700 transition hover:bg-white">
-                                                        <td class="py-2.5 pl-8 pr-3 font-mono text-xs font-semibold text-slate-500">#{{ $record['transaction_id'] }}</td>
+                                                        <td class="py-2.5 pl-8 pr-3 font-mono text-xs font-semibold text-slate-500">{{ $record['transaction_label'] }}</td>
                                                         <td class="px-3 py-2.5">
-                                                            <div class="max-w-[260px] truncate" title="{{ $record['type'] }}">{{ $record['type'] }}</div>
+                                                            <div class="flex items-center gap-2">
+                                                                <div class="max-w-[220px] truncate" title="{{ $record['type'] }}">{{ $record['type'] }}</div>
+                                                                @if($record['issued'])
+                                                                    <span class="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">Issued</span>
+                                                                @elseif($record['paperless'])
+                                                                    <span class="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A57B4]">Paperless</span>
+                                                                @endif
+                                                            </div>
                                                             @if($record['search_snippet'])
                                                                 <p class="mt-1 max-w-[320px] text-xs italic leading-snug text-slate-400">
                                                                     <span class="font-semibold not-italic text-slate-500">{{ $record['search_snippet_label'] }}:</span>
@@ -220,6 +239,9 @@
                                     <span class="inline-flex items-center gap-1 text-amber-600">
                                         <i class='bx bx-calendar'></i> {{ $folder['for_appointment_count'] }} appointment
                                     </span>
+                                    <span class="inline-flex items-center gap-1 text-sky-600">
+                                        <i class='bx bx-edit'></i> {{ $folder['in_review_count'] }} in review
+                                    </span>
                                     <span class="inline-flex items-center gap-1 text-emerald-600">
                                         <i class='bx bx-check-circle'></i> {{ $folder['completed_count'] }} completed
                                     </span>
@@ -259,20 +281,35 @@
                                 'Waiting Upload' => 'bg-blue-50 text-blue-700 ring-blue-200',
                                 'Processing' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
                                 'Missed' => 'bg-rose-50 text-rose-700 ring-rose-200',
+                                'In Review' => 'bg-sky-50 text-sky-700 ring-sky-200',
+                                'Rejected' => 'bg-rose-50 text-rose-700 ring-rose-200',
+                                'Voided' => 'bg-slate-100 text-slate-600 ring-slate-300',
                                 default => 'bg-orange-50 text-orange-700 ring-orange-200',
                             };
                         @endphp
-                        <a href="{{ route('admin.transactions.show', $record['workspace_id']) }}" wire:navigate
+                        <a href="{{ $record['url'] }}" wire:navigate
                            wire:key="folder-item-{{ $record['workspace_id'] }}"
                            class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
                             <div class="border-b border-slate-100 bg-slate-50 p-3">
-                                @include('livewire.partials.document-preview-card', ['workspace' => $record['workspace']])
+                                @if($record['paperless'])
+                                    <div class="flex h-40 flex-col items-center justify-center gap-1 rounded-lg bg-white text-center ring-1 ring-slate-200">
+                                        <i class='bx bx-file text-4xl text-[#2A57B4]/60'></i>
+                                        @if($record['issued'])
+                                            <span class="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">Issued</span>
+                                        @endif
+                                        <p class="text-sm font-semibold text-slate-700">{{ $record['type'] }}</p>
+                                        <p class="px-3 text-xs text-slate-400">{{ $record['summary'] }}</p>
+                                    </div>
+                                @else
+                                    @include('livewire.partials.document-preview-card', ['workspace' => $record['workspace']])
+                                @endif
+                                
                             </div>
                             <div class="space-y-2 p-4">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-bold text-slate-900 group-hover:text-[#2A57B4]">{{ $record['student_name'] }}</p>
-                                        <p class="text-xs text-slate-400">#{{ $record['transaction_id'] }} &middot; {{ $record['student_number'] }}</p>
+                                        <p class="text-xs text-slate-400">{{ $record['transaction_label'] }} &middot; {{ $record['student_number'] }}</p>
                                     </div>
                                     <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 {{ $statusBadgeClass }}">
                                         {{ $record['status'] }}

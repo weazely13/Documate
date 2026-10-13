@@ -13,6 +13,8 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Renderless;
 use Livewire\Component;
 use Livewire\Attributes\Url;
+use App\Workflow\Documents\DocumentRegistry;
+use Livewire\Attributes\Layout; 
 
 #[Layout('layouts.app')]
 class NewTransaction extends Component
@@ -59,6 +61,15 @@ class NewTransaction extends Component
             return str_contains(strtolower($template['name'] ?? ''), $term)
                 || str_contains(strtolower($template['document_size'] ?? ''), $term);
         });
+    }
+    public function getFilteredDocumentsProperty(): array
+    {
+        $docs = array_filter(DocumentRegistry::all(), fn ($d) => ! $d->issuedByOffice());
+        $term = Str::lower(trim($this->search));
+
+        return $term === ''
+            ? $docs
+            : array_filter($docs, fn ($d) => str_contains(Str::lower($d->name() . ' ' . $d->description()), $term));
     }
     public function formatTitle(?string $text): string
     {
@@ -251,7 +262,8 @@ class NewTransaction extends Component
     {
         return view('livewire.student.new-transaction', [
             'filteredTemplates' => $this->filteredTemplates,
-        ])->layout('layouts.app'); // Direct Livewire to your layout file
+            'filteredDocuments' => $this->filteredDocuments,
+        ])->layout('layouts.app', ['title' => 'New Transaction']);
     }
     private function programAbbreviation(string $program): string
     {
@@ -367,6 +379,7 @@ class NewTransaction extends Component
     {
         $templates = Template::query()
             ->where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('uses_workflow')->orWhere('uses_workflow', false))
             ->whereNotNull('current_version_id')
             ->with([
                 'currentVersion.instructions' => fn ($query) => $query->orderBy('step_number'),

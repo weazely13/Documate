@@ -8,6 +8,7 @@ use App\Observers\AppointmentStatusLogObserver;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
 use App\Listeners\ClearDocumentScanEventsOnLogout;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,5 +27,9 @@ class AppServiceProvider extends ServiceProvider
     {
         AppointmentStatusLog::observe(AppointmentStatusLogObserver::class);
         Event::listen(Logout::class, ClearDocumentScanEventsOnLogout::class);
+        if (str_starts_with(config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
     }
+    
 }

@@ -14,6 +14,7 @@ use App\Models\StudentVerification;
 use App\Models\Setting;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
+use App\Models\Concerns\HasSignatoryRoles;
 
 #[Fillable([
     'student_number',
@@ -42,6 +43,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+    use HasSignatoryRoles;
 
     /**
      * Get the attributes that should be cast.

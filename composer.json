@@ -9,6 +9,7 @@
         "php": "^8.4",
         "barryvdh/laravel-dompdf": "^3.1",
         "doctrine/dbal": "^4.4",
+        "endroid/qr-code": "^6.1",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "livewire/livewire": "^3.6.4",
@@ -62,6 +63,10 @@
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
         ],
+        "post-install-cmd": [
+            "@php artisan storage:link --force"
+        ],
+
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],

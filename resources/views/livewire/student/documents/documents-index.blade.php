@@ -8,9 +8,10 @@
         </div>
     </div>
 
+    @include('livewire.student.partials.office-notices', ['notices' => $this->officeNotices])
     {{-- Main Tabs Navigation (mirrors Appointments) --}}
     <div class="border-b border-slate-200">
-        <nav class="-mb-px flex space-x-6 sm:space-x-8" aria-label="Tabs">
+        <nav class="-mb-px flex space-x-6 sm:space-x-8 overflow-x-auto" aria-label="Tabs">
             <button type="button" wire:click="$set('tab', 'pending')"
                 class="flex items-center gap-2 whitespace-nowrap border-b-2 py-3 px-1 text-sm transition-all {{ $tab === 'pending' ? 'border-[#2A57B4] text-[#2A57B4] font-bold' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 font-medium' }}">
                 <i class='bx bx-file text-lg'></i>
@@ -26,6 +27,14 @@
                 <span>Completed</span>
                 <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $tab === 'completed' ? 'bg-blue-100 text-[#2A57B4]' : 'bg-slate-100 text-slate-600' }}">
                     {{ $this->completedCount }}
+                </span>
+            </button>
+            <button type="button" wire:click="$set('tab', 'closed')"
+                class="flex items-center gap-2 whitespace-nowrap border-b-2 py-3 px-1 text-sm transition-all {{ $tab === 'closed' ? 'border-[#2A57B4] text-[#2A57B4] font-bold' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 font-medium' }}">
+                <i class='bx bx-x-circle text-lg'></i>
+                <span>Closed</span>
+                <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $tab === 'closed' ? 'bg-blue-100 text-[#2A57B4]' : 'bg-slate-100 text-slate-600' }}">
+                    {{ $this->closedCount }}
                 </span>
             </button>
         </nav>

@@ -386,13 +386,20 @@
         </div>
 
         {{-- APP ICONS --}}
-        <div class="grid grid-cols-3 gap-4 sm:grid-cols-5 sm:gap-6">
+        <div class="grid grid-cols-3 gap-4 sm:grid-cols-6 sm:gap-6">
 
             @foreach([
                 [
                     'route' => 'admin.transactions.index',
                     'label' => 'Transactions',
                     'icon' => 'bx-transfer',
+                    'iconBg' => 'bg-blue-50',
+                    'iconColor' => 'text-[#2A57B4]',
+                ],
+                [
+                    'route' => 'admin.workflow.index',
+                    'label' => 'Workflow',
+                    'icon' => 'bx-task',
                     'iconBg' => 'bg-blue-50',
                     'iconColor' => 'text-[#2A57B4]',
                 ],
@@ -486,7 +493,7 @@
         </div>
 
 
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
             @foreach($actionItems as $item)
 
@@ -957,26 +964,16 @@
                         $status = strtolower((string) $activity->status);
 
                         $statusClass = match($status) {
-
-                            'completed',
-                            'approved',
-                            'cleared',
-                            'attended'
+                            'completed', 'approved', 'cleared', 'attended'
                                 => 'bg-emerald-50 text-emerald-700',
 
-                            'pending',
-                            'ongoing'
+                            'pending', 'ongoing', 'submitted', 'under_review', 'action_required'
                                 => 'bg-amber-50 text-amber-700',
 
-                            'rejected',
-                            'cancelled',
-                            'declined',
-                            'missed'
+                            'rejected', 'cancelled', 'declined', 'missed'
                                 => 'bg-red-50 text-red-700',
 
-                            default
-                                => 'bg-slate-100 text-slate-600',
-
+                            default => 'bg-slate-100 text-slate-600', // retracted, voided, draft, anything new
                         };
 
                     @endphp
@@ -1033,7 +1030,7 @@
                         <span
                             class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize {{ $statusClass }}"
                         >
-                            {{ $activity->status }}
+                            {{ str_replace('_', ' ', $activity->status) }}.
                         </span>
 
                     </div>
@@ -1122,7 +1119,10 @@
                                 'completed'
                                     => 'bg-emerald-50 text-emerald-700',
 
-                                'pending'
+                                'pending',
+                                'under_review', 
+                                'submitted',
+                                'action_required'
                                     => 'bg-amber-50 text-amber-700',
 
                                 'cancelled',
@@ -1130,7 +1130,7 @@
                                 'missed'
                                     => 'bg-red-50 text-red-700',
 
-                                default
+                                default,
                                     => 'bg-slate-100 text-slate-600',
 
                             };
@@ -1162,6 +1162,7 @@
                                     <span>
                                         {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('g:i A') }}
                                     </span>
+                                    <span>{{ ucfirst($appointment->session) }} session</span>
 
                                 </div>
 

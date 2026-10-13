@@ -1,32 +1,63 @@
 @php
     $idStr = (string) $workspace->workspace_id;
-    $isCompleted = $workspace->status === 'completed';
+    $wf = $workspace->usesWorkflow();
+    $document = $wf ? \App\Workflow\Documents\DocumentRegistry::find($workspace->document_type) : null;
 
-    $status = $workspace->displayStatus();
+    if ($wf) {
+        $wfStatus = $workspace->workflow_status;
+        $status = [
+            'label' => $wfStatus->label(),
+            'tone' => match ($wfStatus->value) {
+                'completed' => 'green',
+                'rejected' => 'red',
+                'action_required' => 'amber',
+                'submitted', 'under_review', 'approved' => 'blue',
+                default => 'default', // draft, voided
+            },
+        ];
+        $title = $document?->name() ?? $workspace->document_type;
+        $href = route('student.transactions.show', $workspace->workspace_id);
+    } else {
+        $status = $workspace->displayStatus();
+        $title = $workspace->template?->name ?? 'Untitled document';
+        $href = route('student.documents.show', $workspace->workspace_id);
+    }
+
+    $isCompleted = $workspace->status === 'completed';
+    $deletable = ! $wf && ! $isCompleted;
+
     $badgeStyle = match ($status['tone']) {
         'green' => 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
         'amber' => 'bg-amber-50 text-amber-700 border-amber-200/60',
         'red' => 'bg-rose-50 text-rose-700 border-rose-200/60',
+        'blue' => 'bg-blue-50 text-blue-700 border-blue-200/60',
         default => 'bg-slate-100 text-slate-600 border-slate-200',
     };
 @endphp
 
 <div class="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3.5 transition-colors hover:border-[#2A57B4]/40 gap-2 sm:gap-4">
     <div class="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-        @unless($isCompleted)
+        @if($deletable)
             <input type="checkbox" wire:model.live="selected" value="{{ $idStr }}"
                 class="mt-1 sm:mt-0 h-4 w-4 shrink-0 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]">
-        @endunless
+        @endif
 
-        <a href="{{ route('student.documents.show', $workspace->workspace_id) }}" wire:navigate class="min-w-0 flex-1 space-y-1">
-            <p class="text-sm font-semibold text-slate-800 truncate">
-                {{ $workspace->template?->name ?? 'Untitled document' }}
-            </p>
+        <a href="{{ $href }}" wire:navigate class="min-w-0 flex-1 space-y-1">
+            @if($wf)
+                <p class="font-mono text-[11px] font-semibold text-slate-400">{{ $workspace->transaction_code }}</p>
+            @endif
+            <p class="text-sm font-semibold text-slate-800 truncate">{{ $title }}</p>
+            @if($wf && $document && ($summary = $document->summary($workspace->field_values ?? [])))
+                <p class="truncate text-xs text-slate-500">{{ $summary }}</p>
+            @endif
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
                 <div class="flex items-center gap-1">
                     <i class='bx bx-time text-sm'></i>
                     <span>Updated {{ $workspace->updated_at->diffForHumans() }}</span>
                 </div>
+                @if($wf && $workspace->approvals_count > 0)
+                    <span>{{ $workspace->approved_count }}/{{ $workspace->approvals_count }} signatures</span>
+                @endif
             </div>
         </a>
     </div>
@@ -36,11 +67,11 @@
             {{ $status['label'] }}
         </span>
 
-        @unless($isCompleted)
+        @if($deletable)
             <button type="button" wire:click="confirmDelete('{{ $idStr }}')" title="Delete"
                 class="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-500 hover:bg-rose-50">
                 <i class='bx bx-trash text-base'></i>
             </button>
-        @endunless
+        @endif
     </div>
 </div>

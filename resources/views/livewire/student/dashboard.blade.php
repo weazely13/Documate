@@ -7,6 +7,7 @@
         ACCOUNT VERIFICATION
     ========================================================== --}}
     @include('livewire.partials.verify-account-card')
+    @include('livewire.student.partials.office-notices', ['notices' => $stats['office_notices']])
 
 
     {{-- =========================================================
@@ -418,58 +419,49 @@
 
             <div class="mt-5 space-y-3">
 
-                @forelse($stats['upcoming_appointments'] as $appointment)
-
-                    <div class="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
-
-                        <div class="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-white border border-slate-100 shadow-sm">
-
-                            <span class="text-[9px] font-bold uppercase text-slate-400">
-                                {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('M') }}
-                            </span>
-
-                            <span class="text-lg font-extrabold leading-none text-slate-900">
-                                {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d') }}
-                            </span>
-
-                        </div>
-
-
-                        <div class="min-w-0">
-
-                            <p class="truncate text-sm font-bold text-slate-900">
-                                VPSD Appointment
-                            </p>
-
-                            <p class="mt-0.5 text-xs font-medium text-slate-500 capitalize">
-                                {{ $appointment->session ?? 'Scheduled session' }}
-                            </p>
-
-                        </div>
-
+            @foreach($stats['office_notices'] as $n)
+                @php
+                    $nd = \App\Workflow\Documents\DocumentRegistry::get($n->document_type);
+                    $nv = $n->field_values ?? [];
+                    $d = \Carbon\Carbon::parse($nd->noticeDate($nv) ?? $n->submitted_at ?? $n->created_at);
+                    $rose = $nd->noticeTone() === 'rose';
+                @endphp
+                <a href="{{ route('student.transactions.show', $n->workspace_id) }}" wire:navigate wire:key="notice-{{ $n->workspace_id }}"
+                class="flex items-center gap-3 rounded-2xl border p-3 {{ $rose ? 'border-rose-200 bg-rose-50' : 'border-blue-200 bg-blue-50' }}">
+                    <div class="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl text-white shadow-sm {{ $rose ? 'bg-rose-600' : 'bg-[#2A57B4]' }}">
+                        <span class="text-[9px] font-bold uppercase opacity-80">{{ $d->format('M') }}</span>
+                        <span class="text-lg font-extrabold leading-none">{{ $d->format('d') }}</span>
                     </div>
-
-                @empty
-
-                    <div class="flex min-h-[170px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-5 text-center">
-
-                        <div class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                            <i class='bx bx-calendar-x text-xl'></i>
-                        </div>
-
-                        <p class="mt-3 text-sm font-semibold text-slate-700">
-                            No upcoming appointments
-                        </p>
-
-                        <p class="mt-1 text-xs text-slate-500">
-                            You don't have any scheduled VPSD appointments.
-                        </p>
-
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-bold text-slate-900">{{ $nd->noticeTitle($nv) }}</p>
+                        <p class="mt-0.5 truncate text-xs font-medium text-slate-500">{{ $nd->noticeLine($nv) }}</p>
                     </div>
+                </a>
+            @endforeach
 
-                @endforelse
+            @foreach($stats['upcoming_appointments'] as $appointment)
+                <div class="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
+                    <div class="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-white border border-slate-100 shadow-sm">
+                        <span class="text-[9px] font-bold uppercase text-slate-400">{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('M') }}</span>
+                        <span class="text-lg font-extrabold leading-none text-slate-900">{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d') }}</span>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-bold text-slate-900">VPSD Appointment</p>
+                        <p class="mt-0.5 text-xs font-medium text-slate-500 capitalize">{{ $appointment->session ?? 'Scheduled session' }}</p>
+                    </div>
+                </div>
+            @endforeach
 
-            </div>
+            @if($stats['office_notices']->isEmpty() && $stats['upcoming_appointments']->isEmpty())
+                <div class="flex min-h-[170px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-5 text-center">
+                    <div class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                        <i class='bx bx-calendar-x text-xl'></i>
+                    </div>
+                    <p class="mt-3 text-sm font-semibold text-slate-700">Nothing to remember</p>
+                    <p class="mt-1 text-xs text-slate-500">No appointments or notices from the VPSD office.</p>
+                </div>
+            @endif
+        </div>
 
         </div>
 
@@ -583,7 +575,8 @@
                     @if($stats['latest_document'])
 
                         @php
-                            $latestStatus = $stats['latest_document']->status ?? 'pending';
+                            $latestDocument = $stats['latest_document'];
+                            $latestStatus = $stats['latest_document_status'];
 
                             $latestStatusLabel = match ($latestStatus) {
                                 'completed' => 'Completed',
@@ -593,14 +586,18 @@
 
                             $latestStatusClass = match ($latestStatus) {
                                 'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
-                                'pending' => 'bg-amber-50 text-amber-700 border-amber-100',
+                                'pending', 'draft', 'submitted', 'under_review', 'action_required', 'approved'
+                                    => 'bg-amber-50 text-amber-700 border-amber-100',
+                                'rejected' => 'bg-rose-50 text-rose-700 border-rose-100',
                                 default => 'bg-slate-50 text-slate-600 border-slate-100',
                             };
+                            $latestDocumentName = $stats['latest_document_name'];
                         @endphp
 
                         <span class="inline-flex shrink-0 items-center rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide {{ $latestStatusClass }}">
                             {{ $latestStatusLabel }}
                         </span>
+                        {{ $latestDocument->transaction_code ?: $latestDocument->workspace_id }}
 
                     @else
 

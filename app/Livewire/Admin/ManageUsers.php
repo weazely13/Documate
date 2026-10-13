@@ -55,13 +55,17 @@ class ManageUsers extends Component
 
         if ($user->id === auth()->id()) {
             session()->flash('message', 'You cannot delete your own account.');
-
             return;
         }
 
         if ($this->isAdmin($user)) {
             session()->flash('message', 'The administrator account cannot be deleted.');
+            return;
+        }
 
+        // NEW
+        if ($user->isSignatory()) {
+            session()->flash('message', 'This user currently holds a signatory role. Reassign their signatory duties first.');
             return;
         }
 

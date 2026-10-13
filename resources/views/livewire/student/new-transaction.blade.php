@@ -501,6 +501,31 @@
 
                 </div>
 
+                @if(count($filteredDocuments))
+                    <section class="space-y-3">
+                        <div>
+                            <h2 class="text-sm font-bold uppercase tracking-wide text-slate-400">Paperless transactions</h2>
+                            <p class="text-xs text-slate-500">Fill in, submit and track everything online. You only print the finished document if you need a paper copy.</p>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            @foreach($filteredDocuments as $doc)
+                                <a href="{{ route('student.transactions.new', $doc->key()) }}" wire:navigate wire:key="doc-{{ $doc->key() }}"
+                                class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-[#2A57B4]/40 hover:shadow-md">
+                                    <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A57B4]">Paperless</span>
+                                    <p class="mt-2 text-sm font-semibold text-slate-900 group-hover:text-[#2A57B4]">{{ $doc->name() }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-500">{{ $doc->description() }}</p>
+                                    <p class="mt-3 text-xs font-semibold text-[#2A57B4]">Start &rarr;</p>
+                                </a>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
+                <div>
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-slate-400">Paper-based templates</h2>
+                    <p class="text-xs text-slate-500">Forms you print and bring to the VPSD office.</p>
+                </div>
+
                 <!-- Template Container -->
                 <div wire:key="view-mode-container">
                     @if($viewMode === 'grid')

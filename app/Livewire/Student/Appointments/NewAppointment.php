@@ -109,6 +109,7 @@ class NewAppointment extends Component
             ->with('template')
             ->where('user_id', Auth::id())
             ->where('status', 'pending')
+            ->whereNull('workflow_status') 
             ->whereDoesntHave('appointments', fn ($q) => $q->whereIn('status', ['pending', 'approved']))
             ->latest('updated_at')
             ->get();

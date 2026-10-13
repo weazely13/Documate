@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'ensure.student.verified' => \App\Http\Middleware\EnsureStudentIsVerified::class,
         ]);
     })
+    ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: '*');
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

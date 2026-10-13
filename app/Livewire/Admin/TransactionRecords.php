@@ -9,6 +9,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use App\Enums\TransactionStatus;
+use App\Workflow\Documents\DocumentRegistry;
 
 class TransactionRecords extends Component
 {
@@ -22,6 +24,7 @@ class TransactionRecords extends Component
     public ?string $selectedFolder = null;
     public int $currentPage = 1;
     public int $perPage = 30;
+    public string $sourceFilter = 'All'; // All | Student-filed | Issued by office
 
     protected array $mainTabs = [
         'transactions' => 'Transaction Records',
@@ -29,10 +32,7 @@ class TransactionRecords extends Component
     ];
 
     protected array $statusTabs = [
-        'All',
-        'Pending',
-        'For Appointment',
-        'Completed',
+        'All', 'Pending', 'For Appointment', 'In Review', 'Completed', 'Rejected', 'Voided',
     ];
 
     protected array $sortOptions = [
@@ -55,9 +55,18 @@ class TransactionRecords extends Component
 
     public function updated($property): void
     {
-        if (in_array($property, ['search', 'statusFilter', 'viewMode', 'sortBy'], true)) {
+        if (in_array($property, ['search', 'statusFilter', 'viewMode', 'sortBy', 'sourceFilter'], true)) {
             $this->currentPage = 1;
         }
+    }
+
+    public function setSourceFilter(string $source): void
+    {
+        if (! in_array($source, ['All', 'Student-filed', 'Issued by office'], true)) {
+            return;
+        }
+        $this->sourceFilter = $source;
+        $this->currentPage = 1;
     }
 
     public function setStatusFilter(string $status): void
@@ -113,6 +122,7 @@ class TransactionRecords extends Component
                 'template.currentVersion.fields',
                 'version',
             ])
+            ->where(fn ($q) => $q->whereNull('workflow_status')->orWhere('workflow_status', '!=', 'draft'))
             ->latest('updated_at')
             ->get();
     }
@@ -123,18 +133,30 @@ class TransactionRecords extends Component
             $user = $workspace->user;
             $status = $this->resolveStatus($workspace);
             $analysisData = $workspace->analysis_data ?? [];
+            $paperless = $workspace->usesWorkflow();
+            $document = $paperless ? DocumentRegistry::find($workspace->document_type) : null;
+            $when = $paperless ? ($workspace->submitted_at ?? $workspace->created_at) : $workspace->created_at;
+            $padded = str_pad((string) $workspace->workspace_id, 4, '0', STR_PAD_LEFT);
 
             return [
                 'workspace' => $workspace,
                 'workspace_id' => $workspace->workspace_id,
                 'user_id' => $workspace->user_id,
-                'transaction_id' => str_pad((string) $workspace->workspace_id, 4, '0', STR_PAD_LEFT),
+                'paperless' => $paperless,
+                'transaction_id' => $paperless ? (string) $workspace->transaction_code : $padded,
+                'transaction_label' => $paperless ? (string) $workspace->transaction_code : '#' . $padded,
+                'url' => $paperless
+                    ? route('admin.workflow.show', $workspace->workspace_id)
+                    : route('admin.transactions.show', $workspace->workspace_id),
                 'student_name' => $user ? $this->fullName($user) : 'Unknown student',
                 'student_number' => $user?->student_number ?: 'N/A',
-                'type' => $workspace->template?->name ?: 'Untitled template',
-                'date_label' => optional($workspace->created_at)->format('F j, Y') ?: 'N/A',
-                'date_sort' => optional($workspace->created_at)?->timestamp ?: 0,
-                'appointment' => $this->resolveSessionLabel($workspace),
+                'type' => $paperless
+                    ? ($document?->name() ?? $workspace->document_type)
+                    : ($workspace->template?->name ?: 'Untitled template'),
+                'summary' => $document ? $document->summary($workspace->field_values ?? []) : '',
+                'date_label' => optional($when)->format('F j, Y') ?: 'N/A',
+                'date_sort' => optional($when)?->timestamp ?: 0,
+                'appointment' => $paperless ? '—' : $this->resolveSessionLabel($workspace),
                 'status' => $status,
                 'preview_url' => $workspace->version?->image_path
                     ? Storage::disk('public')->url($workspace->version->image_path)
@@ -152,6 +174,7 @@ class TransactionRecords extends Component
                     : '',
                 'search_snippet' => null,
                 'search_snippet_label' => null,
+                'issued' => (bool) $document?->issuedByOffice(),
             ];
         })->values();
     }
@@ -174,10 +197,13 @@ class TransactionRecords extends Component
                         $record['analysis_summary'],
                         $record['analysis_missing_fields'],
                         $record['field_matches_text'],
+                        $record['summary']
                     ])), $needle);
                 })->map(fn (array $record) => $this->attachSearchSnippet($record));
             })
-            ->when($this->statusFilter !== 'All', fn (Collection $r) => $r->where('status', $this->statusFilter));
+            ->when($this->statusFilter !== 'All', fn (Collection $r) => $r->where('status', $this->statusFilter))
+            ->when($this->sourceFilter === 'Issued by office', fn (Collection $r) => $r->where('issued', true))
+            ->when($this->sourceFilter === 'Student-filed', fn (Collection $r) => $r->where('issued', false));
 
         return $this->applySort($records);
     }
@@ -204,6 +230,7 @@ class TransactionRecords extends Component
             'ocr_text' => 'Extracted Text',
             'field_matches_text' => 'Field Verification',
             'analysis_missing_fields' => 'Missing Fields',
+            'summary' => 'Details'
         ];
 
         foreach ($sources as $field => $label) {
@@ -277,6 +304,7 @@ class TransactionRecords extends Component
                     'items' => $items->values(),
                     'search_snippet' => $matchedItem['search_snippet'] ?? null,
                     'search_snippet_label' => $matchedItem['search_snippet_label'] ?? null,
+                    'in_review_count' => $items->where('status', 'In Review')->count(),
                 ];
             })
             ->sortByDesc('latest_date')
@@ -318,6 +346,14 @@ class TransactionRecords extends Component
 
     protected function resolveStatus(StudentDocumentWorkspace $workspace): string
     {
+        if ($workspace->usesWorkflow()) {
+            return match ($workspace->workflow_status) {
+                TransactionStatus::Completed => 'Completed',
+                TransactionStatus::Rejected => 'Rejected',
+                TransactionStatus::Voided => 'Voided',
+                default => 'In Review',
+            };
+        }
         $createdAt = $workspace->created_at instanceof Carbon ? $workspace->created_at : Carbon::parse($workspace->created_at);
         $hasAttendedAppointment = $workspace->hasAttendedAppointment();
         $hasActiveAppointment = $workspace->appointments()->whereIn('status', ['pending', 'approved'])->exists();
@@ -361,6 +397,7 @@ class TransactionRecords extends Component
             'activeTab' => $this->activeTab,
             'statusTabs' => $this->statusTabs,
             'sortOptions' => $this->sortOptions,
+            'inReviewCount' => 0,
             'students' => collect(), 
         ];
 
@@ -384,6 +421,7 @@ class TransactionRecords extends Component
             'pendingCount' => $this->statusCount($allRecords, 'Pending'),
             'forAppointmentCount' => $this->statusCount($allRecords, 'For Appointment'),
             'completedCount' => $this->statusCount($allRecords, 'Completed'),
+            'inReviewCount' => $this->statusCount($allRecords, 'In Review'),
         ];
 
         if ($this->viewMode === 'folder') {

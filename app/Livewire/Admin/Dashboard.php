@@ -29,7 +29,16 @@ class Dashboard extends Component
             ->count();
 
         $pendingTransactions = DB::table('student_document_workspaces')
+            ->whereNull('workflow_status')
             ->where('status', 'pending')
+            ->count();
+
+        $workflowReview = DB::table('student_document_workspaces as w')
+            ->where(fn ($q) => $q
+                ->whereIn('w.workflow_status', ['submitted', 'approved'])
+                ->orWhere(fn ($x) => $x->where('w.workflow_status', 'under_review')
+                    ->whereNotExists(fn ($s) => $s->from('transaction_approvals as a')
+                        ->whereColumn('a.workspace_id', 'w.workspace_id'))))
             ->count();
 
         $todaysAppointments = DB::table('appointments')
@@ -52,6 +61,7 @@ class Dashboard extends Component
             'active_accounts' => $activeAccounts,
             'pending_verification' => $pendingVerification,
             'pending_transactions' => $pendingTransactions,
+            'workflow_review' => $workflowReview,          // add this line
             'todays_appointments' => $todaysAppointments,
             'pending_appointment_review' => $pendingAppointmentReview,
             'clearance_rate' => $clearanceTotal > 0
@@ -82,11 +92,12 @@ class Dashboard extends Component
 
         $transactions = DB::table('student_document_workspaces as w')
             ->join('users as u', 'u.id', '=', 'w.user_id')
+            ->where(fn ($q) => $q->whereNull('w.workflow_status')->orWhere('w.workflow_status', '!=', 'draft'))
             ->select(
                 DB::raw("'transaction' as type"),
                 'w.workspace_id as id',
                 DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
-                'w.status',
+                DB::raw('COALESCE(w.workflow_status, w.status) as status'),
                 'w.created_at'
             )
             ->orderByDesc('w.created_at')
@@ -132,6 +143,14 @@ class Dashboard extends Component
                 'icon' => 'bx-calendar-exclamation',
                 'tone' => 'red',
             ],
+            [
+                'label' => 'Workflow Review',
+                'count' => $this->kpis['workflow_review'],
+                'description' => 'Paperless transactions waiting for the office.',
+                'route' => 'admin.workflow.index',
+                'icon' => 'bx-task',
+                'tone' => 'blue',
+            ],
         ];
     }
 
@@ -147,6 +166,7 @@ class Dashboard extends Component
                 'a.appointment_date',
                 'a.status',
                 'a.created_at',
+                'a.session',
                 DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name")
             )
             ->whereDate('a.appointment_date', today())

@@ -9,10 +9,11 @@ class Organization extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'is_active'];
+    protected $fillable = ['name', 'description', 'is_active', 'is_academic'];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_academic' => 'boolean'
     ];
 
     public function officers()

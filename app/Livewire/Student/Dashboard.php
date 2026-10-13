@@ -7,6 +7,7 @@ use App\Models\StudentDocumentWorkspace;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use App\Workflow\Documents\DocumentRegistry;
 
 class Dashboard extends Component
 {
@@ -26,24 +27,10 @@ class Dashboard extends Component
         $transactions = DB::table('student_document_workspaces')
             ->where('user_id', $userId)
             ->selectRaw('count(*) as total')
-            ->selectRaw("
-                sum(
-                    case
-                        when status = 'completed'
-                        then 1
-                        else 0
-                    end
-                ) as completed
-            ")
-            ->selectRaw("
-                sum(
-                    case
-                        when status = 'pending'
-                        then 1
-                        else 0
-                    end
-                ) as pending
-            ")
+            ->selectRaw("sum(case when workflow_status = 'completed'
+                    or (workflow_status is null and status = 'completed') then 1 else 0 end) as completed")
+            ->selectRaw("sum(case when workflow_status in ('draft','submitted','under_review','action_required','approved')
+                    or (workflow_status is null and status = 'pending') then 1 else 0 end) as pending")
             ->first();
 
 
@@ -146,7 +133,15 @@ class Dashboard extends Component
             ->orderByDesc('updated_at')
             ->first();
 
+        $paperless = $latestDocument?->usesWorkflow();
 
+        $latestName = $paperless
+            ? (DocumentRegistry::find($latestDocument->document_type)?->name() ?? 'Document Transaction')
+            : ($latestDocument?->template?->name ?? 'Document Transaction');
+
+        $latestStatus = $paperless
+            ? $latestDocument->workflow_status->value
+            : ($latestDocument?->status ?? 'pending');
         /*
         |--------------------------------------------------------------------------
         | RETURN DASHBOARD DATA
@@ -177,6 +172,9 @@ class Dashboard extends Component
              * Latest document transaction.
              */
             'latest_document' => $latestDocument,
+            'latest_document_name' => $latestName,
+            'latest_document_status' => $latestStatus,
+            'office_notices' => StudentDocumentWorkspace::officeNoticesFor($userId),
         ];
     }
 

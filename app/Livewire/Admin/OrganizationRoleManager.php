@@ -8,12 +8,18 @@ use App\Models\Organization;
 use App\Models\OrganizationOfficer;
 use App\Models\Program;
 use App\Models\Role;
+use App\Models\SignatoryAssignment;
+use App\Models\SignatoryRole;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use App\Models\UserInvitation;
+use App\Services\Workflow\SignatoryInvitations;
+use Illuminate\Support\Facades\Auth;
+use App\Services\Workflow\SignatoryScope;
 
 class OrganizationRoleManager extends Component
 {
@@ -21,7 +27,7 @@ class OrganizationRoleManager extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    public string $panel = 'organizations'; // organizations | programs | positions | officers
+    public string $panel = 'organizations'; // organizations | programs | positions | officers | signatories
 
     // ---- Filters (prefix decides which paginator gets reset) ----
     public string $filterOrgSearch = '';
@@ -37,6 +43,11 @@ class OrganizationRoleManager extends Component
     public string $filterOffCollege = '';
     public string $filterOffOrg = '';
     public string $filterOffPosition = '';
+
+    // NEW: Signatories filters
+    public string $filterSigSearch = '';
+    public string $filterSigRole = '';
+    public string $filterSigStatus = ''; // current | upcoming | expired | inactive
 
     // ---- Organizations form ----
     public ?int $editingOrgId = null;
@@ -63,6 +74,31 @@ class OrganizationRoleManager extends Component
     public string $pickerCollege = '';
     public string $pickerView = 'all';
 
+    // ---- NEW: Signatory roles form ----
+    public ?int $editingSigRoleId = null;
+    public string $sigRoleKey = '';
+    public string $sigRoleLabel = '';
+    public string $sigRoleDescription = '';
+
+    // ---- NEW: Assign signatory form ----
+    public string $sigUserSearch = '';
+    public ?int $sigSelectedUserId = null;
+    public ?int $sigRoleId = null;
+    public ?string $sigActiveFrom = null;
+    public ?string $sigActiveUntil = null;
+
+    public string $invFirst = '';
+    public string $invLast = '';
+    public string $invEmail = '';
+    public ?int $invRoleId = null;
+    public ?string $invFrom = null;
+    public ?string $invUntil = null;
+    public string $sigRoleScope = 'none';
+    public ?int $sigScopeId = null;
+    public ?int $invScopeId = null;
+    public bool $orgIsAcademic = true;
+    public function updatedInvRoleId(): void { $this->invScopeId = null; }
+
     // =========================================================
     // FILTER / PAGINATION HOOKS
     // =========================================================
@@ -77,6 +113,8 @@ class OrganizationRoleManager extends Component
             $this->resetPage('programPage');
         } elseif (str_starts_with($name, 'filterOff')) {
             $this->resetPage('officerPage');
+        } elseif (str_starts_with($name, 'filterSig')) {
+            $this->resetPage('signatoryPage');
         }
     }
 
@@ -86,11 +124,13 @@ class OrganizationRoleManager extends Component
             'org' => $this->reset(['filterOrgSearch', 'filterOrgCollege', 'filterOrgProgram', 'filterOrgStatus']),
             'prog' => $this->reset(['filterProgSearch', 'filterProgCollege', 'filterProgStatus']),
             'off' => $this->reset(['filterOffSearch', 'filterOffCollege', 'filterOffOrg', 'filterOffPosition']),
+            'sig' => $this->reset(['filterSigSearch', 'filterSigRole', 'filterSigStatus']),
             default => null,
         };
         $this->resetPage('orgPage');
         $this->resetPage('programPage');
         $this->resetPage('officerPage');
+        $this->resetPage('signatoryPage');
     }
 
     // =========================================================
@@ -101,15 +141,16 @@ class OrganizationRoleManager extends Component
         $data = $this->validate([
             'orgName' => ['required', 'string', 'max:255', Rule::unique('organizations', 'name')->ignore($this->editingOrgId)],
             'orgDescription' => ['nullable', 'string', 'max:1000'],
-            'orgProgramIds' => ['required', 'array', 'min:1'],
+            'orgIsAcademic' => ['boolean'],
+            'orgProgramIds' => [Rule::requiredIf($this->orgIsAcademic), 'array'],
             'orgProgramIds.*' => ['exists:programs,id'],
         ], [], [
             'orgName' => 'organization name',
             'orgProgramIds' => 'programs',
         ]);
 
-        $programIds = array_map('intval', $data['orgProgramIds']);
-        $taken = $this->takenProgramMap()->keys()->intersect($programIds);
+        $programIds = $this->orgIsAcademic ? array_map('intval', $data['orgProgramIds'] ?? []) : [];
+
         // A program can belong to only one organization
         $taken = DB::table('organization_program')
             ->whereIn('program_id', $programIds)
@@ -140,12 +181,12 @@ class OrganizationRoleManager extends Component
 
         $org = Organization::updateOrCreate(
             ['id' => $this->editingOrgId],
-            ['name' => $data['orgName'], 'description' => $data['orgDescription'] ?: null]
+            ['name' => $data['orgName'], 'description' => $data['orgDescription'] ?: null, 'is_academic' => $this->orgIsAcademic]
         );
         $org->programs()->sync($programIds);
 
         session()->flash('org_message', $this->editingOrgId ? 'Organization updated.' : 'Organization created.');
-        $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds', 'pickerSearch', 'pickerCollege', 'pickerView']);
+        $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds', 'orgIsAcademic']);
         $this->resetOrganizationForm();
     }
 
@@ -157,12 +198,13 @@ class OrganizationRoleManager extends Component
         $this->orgDescription = (string) $org->description;
         $this->orgProgramIds = $org->programs->pluck('id')->map(fn ($i) => (string) $i)->all();
         $this->panel = 'organizations';
+        $this->orgIsAcademic = (bool) ($org->is_academic ?? true);
         $this->reset(['pickerSearch', 'pickerCollege', 'pickerView']);
     }
 
     public function resetOrganizationForm(): void
     {
-        $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds']);
+        $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds', 'orgIsAcademic']);
         $this->resetErrorBag();
     }
 
@@ -185,7 +227,9 @@ class OrganizationRoleManager extends Component
         $org->delete();
         session()->flash('org_message', 'Organization removed.');
     }
+    public function updatedSigRoleId(): void { $this->sigScopeId = null; }
 
+    public function scopeOptions(string $scope): array { return SignatoryScope::options($scope); }
     protected function takenProgramMap()
     {
         return DB::table('organization_program')
@@ -484,6 +528,300 @@ class OrganizationRoleManager extends Component
     }
 
     // =========================================================
+    // NEW: SIGNATORY ROLES (Guidance Counselor, VPSD, etc.)
+    // =========================================================
+    public function saveSignatoryRole(): void
+    {
+        $data = $this->validate([
+            'sigRoleKey' => [
+                'required', 'string', 'max:64', 'regex:/^[a-z0-9_]+$/',
+                Rule::unique('signatory_roles', 'key')->ignore($this->editingSigRoleId),
+            ],
+            'sigRoleLabel' => ['required', 'string', 'max:255'],
+            'sigRoleScope' => ['required', 'in:none,organization,program,college'],
+            'sigRoleDescription' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'sigRoleKey.regex' => 'Key may only contain lowercase letters, numbers, and underscores (e.g. guidance_counselor).',
+        ], [
+            'sigRoleKey' => 'role key',
+            'sigRoleLabel' => 'role label',
+        ]);
+        
+        if ($this->editingSigRoleId) {
+            $existing = SignatoryRole::withCount('assignments')->find($this->editingSigRoleId);
+            if ($existing && $existing->scope !== $data['sigRoleScope'] && $existing->assignments_count > 0) {
+                $this->addError('sigRoleScope', 'This role already has assignments. Remove them before changing its scope.');
+                return;
+            }
+        }
+
+        SignatoryRole::updateOrCreate(
+            ['id' => $this->editingSigRoleId],
+            [
+                'key' => $data['sigRoleKey'],
+                'label' => $data['sigRoleLabel'],
+                'description' => $data['sigRoleDescription'] ?: null,
+                'scope' => $data['sigRoleScope'],
+            ]
+        );
+
+        session()->flash('sig_role_message', $this->editingSigRoleId ? 'Signatory role updated.' : 'Signatory role added.');
+        $this->resetSignatoryRoleForm();
+    }
+
+    public function editSignatoryRole(int $id): void
+    {
+        $role = SignatoryRole::findOrFail($id);
+        $this->editingSigRoleId = $role->id;
+        $this->sigRoleKey = $role->key;
+        $this->sigRoleLabel = $role->label;
+        $this->sigRoleDescription = (string) $role->description;
+        $this->panel = 'signatories';
+        $this->sigRoleScope = $role->scope;
+    }
+
+    public function resetSignatoryRoleForm(): void
+    {
+        $this->reset(['editingSigRoleId', 'sigRoleKey', 'sigRoleLabel', 'sigRoleDescription', 'sigRoleScope']);
+        $this->resetErrorBag();
+    }
+
+    public function toggleSignatoryRoleActive(int $id): void
+    {
+        $role = SignatoryRole::findOrFail($id);
+
+        // A role with transactions currently waiting on it cannot be switched off,
+        // or every one of those approvals would become permanently unassignable.
+        if ($role->is_active) {
+            $openCount = DB::table('transaction_approvals')
+                ->where('signatory_role_id', $role->id)
+                ->where('status', 'pending')
+                ->count();
+
+            if ($openCount > 0) {
+                session()->flash('sig_role_message', "Cannot deactivate \"{$role->label}\" — {$openCount} transaction(s) are currently waiting on this role.");
+                return;
+            }
+        }
+
+        $role->is_active = ! $role->is_active;
+        $role->save();
+    }
+
+    public function deleteSignatoryRole(int $id): void
+    {
+        $role = SignatoryRole::withCount('assignments')->findOrFail($id);
+
+        $usedInTemplates = DB::table('template_signatory_steps')->where('signatory_role_id', $id)->exists();
+
+        if ($usedInTemplates) {
+            session()->flash('sig_role_message', 'This role is used in a document template\'s approval chain. Remove it from the template first.');
+            return;
+        }
+
+        if ($role->assignments_count > 0) {
+            session()->flash('sig_role_message', 'People are still assigned to this role. Remove those assignments first.');
+            return;
+        }
+
+        $role->delete();
+        session()->flash('sig_role_message', 'Signatory role removed.');
+    }
+
+    // =========================================================
+    // NEW: ASSIGN SIGNATORIES (who currently holds each role)
+    // =========================================================
+    public function updatingSigUserSearch(): void
+    {
+        $this->sigSelectedUserId = null;
+    }
+
+    public function selectSigUser(int $userId): void
+    {
+        $this->sigSelectedUserId = $userId;
+        $this->sigUserSearch = '';
+    }
+
+    public function getSigSelectedUserProperty(): ?User
+    {
+        return $this->sigSelectedUserId ? User::find($this->sigSelectedUserId) : null;
+    }
+
+    public function getSigUserResultsProperty()
+    {
+        if (strlen($this->sigUserSearch) < 2) {
+            return collect();
+        }
+
+        $term = '%' . $this->sigUserSearch . '%';
+
+        return User::query()
+            ->where(fn ($q) => $q
+                ->where('first_name', 'like', $term)
+                ->orWhere('last_name', 'like', $term)
+                ->orWhere('email', 'like', $term)
+                ->orWhere('student_number', 'like', $term))
+            ->orderBy('last_name')
+            ->limit(8)
+            ->get();
+    }
+
+    public function assignSignatory(): void
+    {
+        $data = $this->validate([
+            'sigSelectedUserId' => ['required', 'exists:users,id'],
+            'sigRoleId' => ['required', 'exists:signatory_roles,id'],
+            'sigActiveFrom' => ['nullable', 'date'],
+            'sigActiveUntil' => ['nullable', 'date', 'after_or_equal:sigActiveFrom'],
+        ], [], [
+            'sigSelectedUserId' => 'person',
+            'sigRoleId' => 'role',
+            'sigActiveFrom' => 'start date',
+            'sigActiveUntil' => 'end date',
+        ]);
+        $role = SignatoryRole::findOrFail($data['sigRoleId']);
+        $scopeType = $role->scope !== 'none' ? $role->scope : null;
+        $scopeId = $scopeType ? $this->sigScopeId : null;
+
+        if ($scopeType && ! $scopeId) {
+            $this->addError('sigScopeId', "Pick the {$scopeType} this person signs for.");
+            return;
+        }
+
+        $alreadyCurrent = SignatoryAssignment::current()
+            ->where('user_id', $data['sigSelectedUserId'])
+            ->where('signatory_role_id', $data['sigRoleId'])
+            ->where('scope_type', $scopeType)->where('scope_id', $scopeId)   // null matches null
+            ->exists();
+
+        if ($alreadyCurrent) {
+            session()->flash('sig_assign_message', 'This person already currently holds that role.');
+            return;
+        }
+
+        SignatoryAssignment::create([
+            'user_id' => $data['sigSelectedUserId'],
+            'signatory_role_id' => $data['sigRoleId'],
+            'active_from' => $data['sigActiveFrom'] ?: null,
+            'active_until' => $data['sigActiveUntil'] ?: null,
+            'is_active' => true,
+            'scope_type' => $scopeType, 
+            'scope_id' => $scopeId,
+        ]);
+
+        $user = User::find($data['sigSelectedUserId']);
+        $role = SignatoryRole::find($data['sigRoleId']);
+
+        session()->flash('sig_assign_message', trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) . " is now assigned as {$role->label}.");
+
+        $this->reset(['sigSelectedUserId', 'sigRoleId', 'sigActiveFrom', 'sigActiveUntil', 'sigUserSearch']);
+        $this->resetPage('signatoryPage');
+    }
+
+    public function endSignatoryAssignment(int $assignmentId): void
+    {
+        $assignment = SignatoryAssignment::with('role')->findOrFail($assignmentId);
+
+        // If this is the only current holder of the role and something is actively
+        // waiting on that role, block it — otherwise the approval becomes unassignable.
+       $remainingHolders = $assignment->role
+            ->holdersFor($assignment->scope_type, $assignment->scope_id)
+            ->where('users.id', '<>', $assignment->user_id)->count();
+
+        if ($remainingHolders === 0) {
+            $openCount = DB::table('transaction_approvals')
+                ->where('signatory_role_id', $assignment->signatory_role_id)
+                ->where('status', 'pending')
+                ->when($assignment->scope_type, fn ($q) => $q->where('scope_type', $assignment->scope_type)->where('scope_id', $assignment->scope_id))
+                ->count();
+
+            if ($openCount > 0) {
+                session()->flash('sig_assign_message', "Cannot remove the last holder of \"{$assignment->role->label}\" — {$openCount} transaction(s) are currently waiting on this role. Assign a replacement first.");
+                return;
+            }
+        }
+
+        $assignment->update(['is_active' => false, 'active_until' => $assignment->active_until ?? today()]);
+
+        session()->flash('sig_assign_message', 'Signatory assignment ended.');
+    }
+
+    public function reactivateSignatoryAssignment(int $assignmentId): void
+    {
+        $assignment = SignatoryAssignment::findOrFail($assignmentId);
+        $assignment->update(['is_active' => true]);
+
+        session()->flash('sig_assign_message', 'Signatory assignment reactivated.');
+    }
+
+    public function deleteSignatoryAssignment(int $assignmentId): void
+    {
+        SignatoryAssignment::findOrFail($assignmentId)->delete();
+        session()->flash('sig_assign_message', 'Signatory assignment deleted.');
+    }
+    public function inviteSignatory(): void
+    {
+        $data = $this->validate([
+            'invFirst' => ['required', 'string', 'max:100'],
+            'invLast' => ['required', 'string', 'max:100'],
+            'invEmail' => ['required', 'email:rfc', 'max:150', 'unique:users,email'],
+            'invRoleId' => ['required', 'exists:signatory_roles,id'],
+            'invFrom' => ['nullable', 'date'],
+            'invUntil' => ['nullable', 'date', 'after_or_equal:invFrom'],
+        ], [
+            'invEmail.unique' => 'That email already has an account. Use "Assign a Signatory" above instead.',
+        ], [
+            'invFirst' => 'first name', 'invLast' => 'last name', 'invEmail' => 'email',
+            'invRoleId' => 'signatory role', 'invFrom' => 'start date', 'invUntil' => 'end date',
+        ]);
+        $role = SignatoryRole::findOrFail($data['invRoleId']);
+        $scopeType = $role->scope !== 'none' ? $role->scope : null;
+
+        if ($scopeType && ! $this->invScopeId) {
+            $this->addError('invScopeId', "Pick the {$scopeType} this person signs for.");
+            return;
+        }
+
+        try {
+            app(SignatoryInvitations::class)->invite([
+                'first_name' => trim($data['invFirst']),
+                'last_name' => trim($data['invLast']),
+                'email' => $data['invEmail'],
+                'signatory_role_id' => $data['invRoleId'],
+                'active_from' => $data['invFrom'] ?? null,
+                'active_until' => $data['invUntil'] ?? null,
+                'scope_type' => $scopeType,
+                'scope_id' => $scopeType ? $this->invScopeId : null,
+            ], Auth::user());
+        } catch (\Throwable $e) {
+            report($e);
+            session()->flash('sig_invite_message', 'The invitation could not be sent, so no account was created. Check the mail settings and try again.');
+
+            return;
+        }
+
+        session()->flash('sig_invite_message', trim($data['invFirst'] . ' ' . $data['invLast']) . ' was invited. They will receive an email to set their password.');
+        $this->reset(['invFirst', 'invLast', 'invEmail', 'invRoleId', 'invFrom', 'invUntil', 'sigScopeId', 'invUntil', 'invScopeId']);
+    }
+
+    /** New setup link. Also serves as "reset password" for a signatory who already has one. */
+    public function resendInvitation(int $userId): void
+    {
+        $user = User::whereHas('role', fn ($q) => $q->where('role_name', 'Signatory'))->findOrFail($userId);
+
+        try {
+            app(SignatoryInvitations::class)->resend($user, Auth::user());
+        } catch (\Throwable $e) {
+            report($e);
+            session()->flash('sig_invite_message', 'The email could not be sent. Check the mail settings and try again.');
+
+            return;
+        }
+
+        session()->flash('sig_invite_message', 'A new setup link was emailed to ' . $user->email . '. Older links no longer work.');
+    }
+
+    // =========================================================
     // RENDER
     // =========================================================
     public function render()
@@ -495,6 +833,7 @@ class OrganizationRoleManager extends Component
                 'programs' => Program::count(),
                 'positions' => OfficerPosition::count(),
                 'officers' => OrganizationOfficer::count(),
+                'signatories' => SignatoryAssignment::where('is_active', true)->count(),
             ],
         ];
 
@@ -548,6 +887,43 @@ class OrganizationRoleManager extends Component
                 ->paginate(15, pageName: 'officerPage');
 
             $data['selectedStudent'] = $this->selectedStudentId ? User::with('program')->find($this->selectedStudentId) : null;
+        }
+
+        if ($this->panel === 'signatories') {
+
+            $data['invitations'] = UserInvitation::with('user')
+                ->whereHas('user.role', fn ($q) => $q->where('role_name', 'Signatory'))
+                ->latest('id')->limit(100)->get()
+                ->unique('user_id')->values();
+            $data['signatoryRoles'] = SignatoryRole::withCount('assignments')->orderBy('label')->get();
+
+            // How many active, currently-in-window holders each role has — used to
+            // warn in the UI before a role ends up with zero holders.
+            $data['sigHolderCounts'] = SignatoryAssignment::current()
+                ->selectRaw('signatory_role_id, count(*) as c')
+                ->groupBy('signatory_role_id')
+                ->pluck('c', 'signatory_role_id');
+
+            $today = today()->toDateString();
+
+            $data['signatoryAssignments'] = SignatoryAssignment::with(['user', 'role'])
+                ->when($this->filterSigSearch, function ($q, $s) {
+                    $q->whereHas('user', fn ($u) => $u->where(fn ($w) => $w
+                        ->where('first_name', 'like', "%{$s}%")
+                        ->orWhere('last_name', 'like', "%{$s}%")
+                        ->orWhere('email', 'like', "%{$s}%")
+                        ->orWhere('student_number', 'like', "%{$s}%")));
+                })
+                ->when($this->filterSigRole, fn ($q, $r) => $q->where('signatory_role_id', $r))
+                ->when($this->filterSigStatus === 'current', fn ($q) => $q->current())
+                ->when($this->filterSigStatus === 'inactive', fn ($q) => $q->where('is_active', false))
+                ->when($this->filterSigStatus === 'upcoming', fn ($q) => $q->where('is_active', true)->where('active_from', '>', $today))
+                ->when($this->filterSigStatus === 'expired', fn ($q) => $q->where('is_active', true)->whereNotNull('active_until')->where('active_until', '<', $today))
+                ->orderByDesc('is_active')
+                ->orderBy('active_from')
+                ->paginate(15, pageName: 'signatoryPage');
+
+            $data['sigSelectedUser'] = $this->sigSelectedUser;
         }
 
         return view('livewire.admin.organization-role-manager', $data);
