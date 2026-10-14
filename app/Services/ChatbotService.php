@@ -322,7 +322,7 @@ class ChatbotService
             : "No user is currently authenticated. If asked about personal records, tell them to log in first — do not attempt to call any personal-data tools.";
 
         return <<<PROMPT
-You are the DocuMate Assistant, an in-app helper for LNU's document transaction and appointment system.
+You are the DocuMate Assistant, an in-app helper dedicated exclusively to Leyte Normal University (LNU) and the DocuMate system.
 {$identityBlock}
 
 Your job:
@@ -331,9 +331,16 @@ Your job:
 3. Answer campus-office and Student Handbook questions only from the supplied source data. Use the attached VPSD Student Handbook (2022 PDF) as the primary reference for handbook questions and the other LNU handbook data as supplementary context. It is indexed by PDF page; cite printed and PDF page numbers where available.
 4. When no source supports an answer, say what is unknown and give a practical next step instead of guessing.
 
+Scope:
+- Answer only questions directly about Leyte Normal University, its students, offices, services, policies, or the DocuMate system.
+- Do not answer unrelated general-knowledge questions or questions about other schools or organizations. Politely state that you can assist only with LNU and DocuMate matters, then invite an LNU-related question.
+- For a topic that is generally applicable but asked in a clearly LNU context, answer only the part that can be supported by the supplied LNU or DocuMate sources. If those sources do not cover it, say so rather than giving a general answer.
+- A prior in-scope message does not make a later unrelated request in scope. Apply this boundary to the user's latest request.
+
 Reply formatting (this matters):
 - Use a courteous, neutral, professional tone. Write in complete sentences with standard grammar and spelling. Avoid slang, emojis, overly familiar language, filler, and casual openers such as "Sure!" or "Hey!".
 - Start with the direct answer. Keep routine replies to 2-5 concise sentences; use a short numbered list for procedures.
+- Give the user a complete answer before asking anything. End every substantive answer with one brief, relevant follow-up question that helps continue the LNU or DocuMate conversation. Do not replace the answer with a question.
 - Use Markdown bullets or numbered lists for scannability, with one item or step per line. Avoid tables and long paragraphs in the chat panel.
 - Use **bold** sparingly for labels. Use a short, descriptive heading only for longer answers. Keep spacing consistent and do not repeat the same information.
 - Preserve official names and exact form field names or instructions when the source requires them. Explain them in clear, formal language without changing their meaning.
@@ -418,7 +425,7 @@ PROMPT;
                         'status' => $response->status(),
                         'body' => $response->body(),
                     ]);
-                    return $this->reply($this->describeFailure($response));
+                    return $this->reply($this->describeFailure($response) . "\n\nWould you like to ask another LNU or DocuMate question?");
                 }
 
                 $message = $response->json('choices.0.message');
@@ -474,20 +481,21 @@ PROMPT;
             }
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::error('Groq chatbot connection error', ['message' => $e->getMessage()]);
-            return $this->reply('The assistant service is temporarily unavailable. Please try again shortly.');
+            return $this->reply('The assistant service is temporarily unavailable. Please try again shortly. Would you like to ask another LNU or DocuMate question?');
         } catch (\Throwable $e) {
             Log::error('Groq chatbot exception', ['message' => $e->getMessage()]);
-            return $this->reply('An unexpected error prevented a response. Please try again shortly.');
+            return $this->reply('An unexpected error prevented a response. Please try again shortly. Would you like to ask another LNU or DocuMate question?');
         }
 
-        return $this->reply('I could not complete the response. Please try again.', $quickReplies);
+        return $this->reply('I could not complete the response. Please try again. Would you like to ask another LNU or DocuMate question?', $quickReplies);
     }
 
     protected function formatFaqResults(array $faqs): string
     {
         return collect($faqs)
             ->map(fn ($faq) => '**' . $faq['question'] . "**\n" . $faq['answer'])
-            ->implode("\n\n");
+            ->implode("\n\n")
+            . "\n\nWould you like help with another DocuMate question?";
     }
 
     protected function formatOfficeResults(array $result): string
@@ -495,7 +503,8 @@ PROMPT;
         $offices = collect($result['offices'] ?? []);
 
         if ($offices->isEmpty()) {
-            return (string) ($result['note'] ?? 'I could not find a matching office in the LNU directory.');
+            return (string) ($result['note'] ?? 'I could not find a matching office in the LNU directory.')
+                . "\n\nWould you like help finding a different LNU office?";
         }
 
         $formatted = $offices->map(function ($office) {
@@ -526,7 +535,9 @@ PROMPT;
             return implode("\n", $lines);
         })->implode("\n\n");
 
-        return $formatted . (! empty($result['note']) ? "\n\n" . $result['note'] : '');
+        return $formatted
+            . (! empty($result['note']) ? "\n\n" . $result['note'] : '')
+            . "\n\nWould you like information about another LNU office?";
     }
 
     protected function formatNavigationResult(array $result): string
@@ -534,7 +545,8 @@ PROMPT;
         $pages = collect($result['pages'] ?? []);
 
         if ($pages->isEmpty()) {
-            return (string) ($result['note'] ?? 'I could not find a matching page for your role.');
+            return (string) ($result['note'] ?? 'I could not find a matching page for your role.')
+                . "\n\nWould you like help with a different DocuMate page?";
         }
 
         $formatPage = static function (array $page): string {
@@ -551,12 +563,12 @@ PROMPT;
                 ? '[' . $page['label'] . '](' . $page['url'] . ')'
                 : '**' . $page['label'] . '**';
 
-            return 'Go to ' . $label . '. ' . $page['description'];
+            return 'Go to ' . $label . '. ' . $page['description'] . "\n\nWould you like help with another DocuMate page?";
         }
 
         $intro = (string) ($result['note'] ?? 'Here are the relevant places in DocuMate:');
 
-        return $intro . "\n" . $pages->map($formatPage)->implode("\n");
+        return $intro . "\n" . $pages->map($formatPage)->implode("\n") . "\n\nWould you like help finding another DocuMate page?";
     }
 
     protected function describeFailure(\Illuminate\Http\Client\Response $response): string
@@ -912,14 +924,14 @@ PROMPT;
                 'type' => 'function',
                 'function' => [
                     'name' => 'suggest_quick_replies',
-                    'description' => 'Offer the user 2-5 short follow-up options they can tap instead of typing. Use this whenever you would otherwise list choices in prose.',
+                    'description' => 'Offer the user 2-5 short, relevant follow-up questions they can tap instead of typing. Every option must be a complete question ending with a question mark. Use this whenever you would otherwise list choices in prose.',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => [
                             'options' => [
                                 'type' => 'array',
                                 'items' => ['type' => 'string'],
-                                'description' => 'Short button labels, e.g. ["Check my appointment", "New transaction"]',
+                                'description' => 'Complete follow-up questions ending in ?, e.g. ["How can I check my appointment?", "How do I start a new transaction?"]',
                             ],
                         ],
                         'required' => ['options'],
