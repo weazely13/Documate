@@ -62,8 +62,8 @@ class DatabaseSeeder extends Seeder
                 'contact_number' => fake()->phoneNumber(),
 
                 'college' => 'CCS',
-                'program_id' => $program->id,
-                'organization_id' => $organization->id,
+                // ❌ 'program' => 'BSIT' removed here
+                //'organization' => fake()->optional()->randomElement(['DIGITS', 'CSS Org', 'Dev Guild']),
                 'year_level' => fake()->randomElement(['1', '2', '3', '4']),
                 'academic_status' => 'Regular',
 
@@ -97,8 +97,8 @@ class DatabaseSeeder extends Seeder
                 'contact_number' => fake()->phoneNumber(),
 
                 'college' => 'CCS',
-                'program_id' => $program->id,
-                'organization_id' => $organization->id,
+                // ❌ 'program' => 'BSIT' removed here
+                //'organization' => 'DIGITS', 
                 'year_level' => fake()->randomElement(['2', '3', '4']),
                 'academic_status' => 'Regular',
 
@@ -129,8 +129,8 @@ class DatabaseSeeder extends Seeder
             'contact_number' => '09123456789',
 
             'college' => 'ADMIN',
-            'program_id' => $program->id,
-            'organization_id' => null,
+            // ❌ 'program' => 'SYSTEM' removed here
+            //'organization' => null,
             'year_level' => 'N/A',
             'academic_status' => 'Staff',
 
