@@ -9,10 +9,12 @@
     $tick = fn ($on) => '<span class="mono">[' . ($on ? 'X' : '&nbsp;') . ']</span>';
     $validUntil = $fmt($v['valid_until'] ?? null);
     $cDate = $fmt($v['counseling_date'] ?? null);
-    $cTime = ! empty($v['counseling_time'])
-        ? \Carbon\Carbon::createFromFormat('H:i', substr($v['counseling_time'], 0, 5))->format('g:i A')
-        : '';
+    $fmtT = fn ($t) => $t ? \Carbon\Carbon::createFromFormat('H:i', substr($t, 0, 5))->format('g:i A') : '';
+    $cTime = trim($fmtT($v['counseling_time'] ?? null) . (! empty($v['counseling_time_end']) ? ' to ' . $fmtT($v['counseling_time_end']) : ''));
     $signedOn = ! empty($vp['signed_at']) ? $vp['signed_at']->format('F j, Y') : '';
+    $vp = $signers[0] ?? [];
+    $gc = $signers[1] ?? [];
+    $gcDate = ! empty($gc['signed_at']) ? $gc['signed_at']->format('F j, Y') : '';
 @endphp
 
 @section('body')
@@ -44,20 +46,27 @@
 
     <table class="sigs" style="margin-top:26pt;">
         <tr>
-            <td style="width:50%;"></td>
-            <td style="width:50%; text-align:center;">
+            <td class="col">
                 @include('pdf._signer', [
                     'heading' => 'Approved',
                     's' => $vp,
                     'caption' => 'Name and Signature of the Vice President<br>for Student Development<br>Date Signed: ' . e($signedOn),
                 ])
             </td>
+            <td class="gap"></td>
+            <td class="col">
+                @include('pdf._signer', [
+                    'heading' => 'Counselling Completed',
+                    's' => $gc,
+                    'caption' => 'Name and Signature of the<br>Guidance Counselor<br>Date Signed: ' . e($gcDate),
+                ])
+            </td>
         </tr>
     </table>
 
-    <div style="margin-top:18pt; font-size:8pt; font-style:italic; color:#444;">
-        Guidance Counseling (every Wednesday)<br>
-        Date: <span class="val" style="font-style:normal;">{{ $cDate ?: '____________' }}</span>
-        &nbsp;&nbsp; Time: <span class="val" style="font-style:normal;">{{ $cTime ?: '____________' }}</span>
+    <div style="margin-top:18pt; font-size:8pt; color:#444;">
+        <strong>Guidance Counseling (every Wednesday)</strong>: report to the Guidance Office to have this permit signed by the Guidance Counselor.<br>
+        Date: <span class="val">{{ $cDate ?: '____________' }}</span>
+        &nbsp;&nbsp; Time: <span class="val">{{ $cTime ?: '____________' }}</span>
     </div>
 @endsection

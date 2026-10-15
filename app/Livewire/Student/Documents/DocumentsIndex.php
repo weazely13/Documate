@@ -20,6 +20,7 @@ class DocumentsIndex extends Component
         'pending' => ['draft', 'submitted', 'under_review', 'action_required', 'approved'],
         'completed' => ['completed'],
         'closed' => ['rejected', 'voided'],
+        'issued' => []
     ];
 
     public string $tab = 'pending';
@@ -67,16 +68,34 @@ class DocumentsIndex extends Component
             ->pluck('workspace_id')->map(fn ($id) => (string) $id)->all();
     }
 
+    private function issuedKeys(): array
+    {
+        return collect(DocumentRegistry::all())->filter(fn ($d) => $d->issuedByOffice())->keys()->all();
+    }
+
     private function tabQuery(string $tab): Builder
     {
-        return StudentDocumentWorkspace::query()
-            ->where('user_id', Auth::id())
+        $issued = $this->issuedKeys();
+        $q = StudentDocumentWorkspace::query()->where('user_id', Auth::id());
+
+        if ($tab === 'issued') {
+            return $q->whereNotNull('workflow_status')->whereIn('document_type', $issued);
+        }
+
+        return $q
             ->where(function (Builder $q) use ($tab) {
                 if ($tab !== 'closed') {
                     $q->where(fn (Builder $l) => $l->whereNull('workflow_status')->where('status', $tab));
                 }
                 $q->orWhereIn('workflow_status', self::WORKFLOW_TABS[$tab] ?? []);
-            });
+            })
+            ->where(fn (Builder $w) => $w->whereNull('document_type')->orWhereNotIn('document_type', $issued));
+    }
+
+    #[Computed]
+    public function issuedCount(): int
+    {
+        return $this->tabQuery('issued')->count();
     }
 
     private function baseQuery(): Builder
@@ -186,8 +205,21 @@ class DocumentsIndex extends Component
             ->orderBy('updated_at', $this->sort)
             ->get();
 
+        $issuedGroups = null;
+        if ($this->tab === 'issued') {
+            $isDone = fn ($w) => $w->workflow_status?->value === 'completed';
+            $isClosed = fn ($w) => in_array($w->workflow_status?->value, ['rejected', 'voided'], true);
+
+            $issuedGroups = [
+                'open' => $workspaces->reject($isDone)->reject($isClosed)->values(),
+                'completed' => $workspaces->filter($isDone)->values(),
+                'closed' => $workspaces->filter($isClosed)->values(),
+            ];
+        }
+
         return view('livewire.student.documents.documents-index', [
             'workspaces' => $workspaces,
+            'issuedGroups' => $issuedGroups,
         ])->layout('layouts.app', ['title' => 'Documents']);
     }
 }

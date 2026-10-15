@@ -76,8 +76,17 @@ Route::middleware(['auth'])->group(function () {
 
         return \Storage::disk('local')->response($path, null, ['Cache-Control' => 'private, no-store']);
     })->name('profile.signature');
+    Route::get('/workflow/{workspace}/item-photo', [\App\Http\Controllers\ItemPhotoController::class, 'show'])
+        ->name('workflow.item-photo');
     Route::get('/signing', \App\Livewire\Signatory\Inbox::class)->name('signatory.inbox');
     Route::get('/signing/issue', \App\Livewire\Admin\Workflow\Issue::class)->name('signatory.issue');
+    Route::get('/signing/availability', \App\Livewire\Signatory\Availability::class)->name('signatory.availability');
+    Route::get('/signing/oversight', \App\Livewire\Signatory\Oversight::class)->name('signatory.oversight');
+    Route::get('/signing/oversight/{workspace}', \App\Livewire\Signatory\OversightShow::class)->name('signatory.oversight.show');
+    Route::get('/signing/oversight/{workspace}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'oversight'])
+        ->name('signatory.oversight.preview');
+    Route::get('/signing/oversight/{workspace}/report', [\App\Http\Controllers\WorkflowReportController::class, 'download'])
+        ->name('signatory.oversight.report');
     Route::get('/signing/{approval}', \App\Livewire\Signatory\Show::class)->name('signatory.show');
     Route::get('/signing/{approval}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'signatory'])
         ->name('signatory.preview');

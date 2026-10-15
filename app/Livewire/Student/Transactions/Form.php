@@ -18,6 +18,8 @@ use Livewire\Component;
 use App\Services\Workflow\ExternalSignatureStore;
 use App\Services\Workflow\SignatureStore;
 use InvalidArgumentException;
+use App\Services\Workflow\ItemPhotoStore;
+use Livewire\WithFileUploads;
 
 /**
  * One page for a student's digital transaction: fill in -> save draft -> submit -> track.
@@ -29,6 +31,9 @@ class Form extends Component
 {
     public string $type = '';
     public ?int $workspaceId = null;
+    use WithFileUploads;
+
+    public $itemPhoto = null;
 
     /** @var array<string, mixed> the student's answers, keyed by field name */
     public array $values = [];
@@ -51,6 +56,7 @@ class Form extends Component
         'transaction.reissued' => 'Corrected draft created',
         'transaction.issued_by_office' => 'Issued by the VPSD office',
         'transaction.issued_by_role' => 'Issued by university staff',
+        'schedule.set' => 'Counselling schedule set',
     ];
 
     public function mount(?string $type = null, ?int $workspace = null): void
@@ -97,6 +103,24 @@ class Form extends Component
         }
 
         return array_intersect_key($existing ?? [], array_flip(['student_signature_path', 'student_signature_hash']));
+    }
+    private function photoPayload(?array $existing): array
+    {
+        if (! $this->document->requiresItemPhoto()) {
+            return [];
+        }
+
+        if ($this->itemPhoto) {
+            try {
+                [$path, $hash] = app(ItemPhotoStore::class)->store($this->itemPhoto);
+            } catch (InvalidArgumentException $e) {
+                throw new WorkflowException($e->getMessage());
+            }
+
+            return ['item_photo_path' => $path, 'item_photo_hash' => $hash];
+        }
+
+        return array_intersect_key($existing ?? [], array_flip(['item_photo_path', 'item_photo_hash']));
     }
 
     private function savedSignatureUri(?StudentDocumentWorkspace $ws): ?string
@@ -183,6 +207,13 @@ class Form extends Component
 
             return;
         }
+        if ($this->document->requiresItemPhoto()
+            && ! $this->itemPhoto
+            && empty($this->workspace?->field_values['item_photo_path'])) {
+            $this->addError('itemPhoto', 'Please take or upload a photo of the item.');
+
+            return;
+        }
         try {
             $ws = DB::transaction(function () {
                 $ws = $this->persist();
@@ -250,7 +281,7 @@ class Form extends Component
             $value = is_string($value) ? trim($value) : $value;
             $answers[$name] = $value === '' ? null : $value;
         }
-        $payload = $answers + $this->studentSnapshot() + $this->signaturePayload(null);
+        $payload = $answers + $this->studentSnapshot() + $this->signaturePayload(null) + $this->photoPayload(null);
 
         if (! $this->workspaceId) {
             $ws = new StudentDocumentWorkspace();
@@ -273,10 +304,19 @@ class Form extends Component
             throw new WorkflowException('This transaction can no longer be edited.');
         }
 
-        $payload = $answers + $this->studentSnapshot() + $this->signaturePayload($ws->field_values);
+        $payload = $answers + $this->studentSnapshot() + $this->signaturePayload($ws->field_values) + $this->photoPayload($ws->field_values);
         $ws->update(['field_values' => $payload]);
 
         return $ws->fresh();
+    }
+    public function updatedItemPhoto(): void
+    {
+        try {
+            $this->validateOnly('itemPhoto', ['itemPhoto' => ['image', 'mimes:jpg,jpeg,png', 'max:5120']]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->reset('itemPhoto');
+            throw $e;
+        }
     }
 
     private function rules(bool $strict): array
@@ -296,6 +336,7 @@ class Form extends Component
             $rules["values.$name"] = array_merge($r, $f['rules'] ?? []);
         }
         $rules['studentSignature'] = ['nullable', 'string', 'max:400000'];
+        $rules['itemPhoto'] = ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'];
         return $rules;
     }
 
@@ -353,8 +394,17 @@ class Form extends Component
                 'student_program' => $ws->field_values['student_program'] ?? '',
                 'officer_position' => $ws->field_values['officer_position'] ?? '',
                 'officer_organization' => $ws->field_values['officer_organization'] ?? '',
+                'afterReviewNote' => $ws && in_array($status, [
+                    TransactionStatus::UnderReview,
+                    TransactionStatus::Approved,
+                    TransactionStatus::Completed,
+                ], true)
+                    ? $this->document->afterReviewNote($ws->field_values ?? [])
+                    : null,
             ],
             'savedSignature' => $this->savedSignatureUri($ws),
+            'hasPhoto' => ! empty($ws?->field_values['item_photo_path']),
+            
         ])->layout('layouts.app', ['title' => $this->document->name()]);
     }
 }

@@ -177,9 +177,16 @@
                 @break
         @endswitch
     </section>
-
     <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div class="space-y-5">
+            @if (! empty($ws->field_values['item_photo_path']))
+                <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h3 class="text-sm font-semibold text-slate-900">Item photo</h3>
+                    <p class="text-xs text-slate-400">For identification only. Not part of the PDF.</p>
+                    <img src="{{ route('workflow.item-photo', $ws->workspace_id) }}" alt="Item photo"
+                        class="mt-3 max-h-72 rounded-xl border border-slate-200 bg-white object-contain p-1">
+                </section>
+            @endif
             <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h3 class="text-sm font-semibold text-slate-900">Document preview</h3>
                 <p class="text-xs text-slate-400">This is exactly what the official PDF will contain.</p>

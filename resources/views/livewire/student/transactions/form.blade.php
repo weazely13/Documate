@@ -29,6 +29,11 @@
         </div>
         <span class="rounded-full px-3 py-1 text-xs font-semibold ring-1 {{ $badge }}">{{ $status?->label() ?? 'New' }}</span>
     </div>
+    @if ($this->document->studentNote())
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+            {{ $this->document->studentNote() }}
+        </div>
+    @endif
 
     @if (session('workflow_message'))
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('workflow_message') }}</div>
@@ -71,6 +76,12 @@
                 <a href="{{ route('student.transactions.show', $ws->superseded_by) }}" wire:navigate
                 class="mt-2 inline-block text-sm font-semibold text-[#2A57B4] hover:underline">Open the corrected draft &rarr;</a>
             @endif
+        </div>
+    @endif
+    @if (! empty($afterReviewNote))
+        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-blue-700">Next step</p>
+            <p class="mt-1 text-sm text-blue-900">{{ $afterReviewNote }}</p>
         </div>
     @endif
 
@@ -216,19 +227,43 @@
             @error('studentSignature') <p class="mt-1 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
         </div>
     @endif
+    @if ($document->requiresItemPhoto())
+        <div class="mt-5">
+            <label class="text-sm font-medium text-slate-700">
+                Photo of the item @if ($editable)<span class="text-rose-500">*</span>@endif
+            </label>
 
-        @if ($editable)
-            <div class="mt-6 flex flex-wrap gap-2">
-                <button type="button" wire:click="saveDraft" wire:loading.attr="disabled"
-                        class="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Save draft</button>
-                <button type="button" wire:click="submit" wire:loading.attr="disabled"
-                        wire:confirm="Submit to the VPSD office? You can't edit it afterwards unless they ask for changes."
-                        class="flex-1 rounded-xl bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#24499A] disabled:opacity-50">
-                    {{ $status === TransactionStatus::ActionRequired ? 'Resubmit' : 'Submit' }}
-                </button>
-            </div>
-        @endif
-    </section>
+            @if ($itemPhoto)
+                <img src="{{ $itemPhoto->temporaryUrl() }}" alt="Item photo preview"
+                    class="mt-2 max-h-56 rounded-xl border border-slate-200 bg-white object-contain p-1">
+            @elseif ($hasPhoto)
+                <img src="{{ route('workflow.item-photo', $ws->workspace_id) }}?v={{ $ws->updated_at?->timestamp }}" alt="Item photo"
+                    class="mt-2 max-h-56 rounded-xl border border-slate-200 bg-white object-contain p-1">
+            @endif
+
+            @if ($editable)
+                <input type="file" wire:model="itemPhoto" accept="image/png,image/jpeg" capture="environment"
+                    class="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#2A57B4] file:px-3.5 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#24499A]">
+                <p class="mt-1 text-xs text-slate-400">On a phone this opens the camera. JPG or PNG, up to 5 MB. Not printed on the form.</p>
+                <div wire:loading wire:target="itemPhoto" class="mt-1 text-xs text-[#2A57B4]">Uploading photo…</div>
+            @endif
+
+            @error('itemPhoto') <p class="mt-1 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
+        </div>
+    @endif
+
+    @if ($editable)
+        <div class="mt-6 flex flex-wrap gap-2">
+            <button type="button" wire:click="saveDraft" wire:loading.attr="disabled"
+                    class="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Save draft</button>
+            <button type="button" wire:click="submit" wire:loading.attr="disabled"
+                    wire:confirm="Submit to the VPSD office? You can't edit it afterwards unless they ask for changes."
+                    class="flex-1 rounded-xl bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#24499A] disabled:opacity-50">
+                {{ $status === TransactionStatus::ActionRequired ? 'Resubmit' : 'Submit' }}
+            </button>
+        </div>
+    @endif
+</section>
 
     {{-- Signatures --}}
     @if ($approvals->isNotEmpty())

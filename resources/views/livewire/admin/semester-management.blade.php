@@ -119,7 +119,7 @@
                 @endif
 
                 <label class="mb-4 flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" wire:model="confirmDeleteChecked" class="rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]">
+                    <input type="checkbox" wire:model.live="confirmDeleteChecked" class="rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]">
                     I understand and want to delete this semester.
                 </label>
 

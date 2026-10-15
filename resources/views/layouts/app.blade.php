@@ -248,6 +248,18 @@
                             </a>
                         @endif
                     </a>
+                    @if(auth()->user()->holdsSignatoryRole('guidance_counselor'))
+                        <a href="{{ route('signatory.availability') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.availability') ? 'active' : '' }}" data-tooltip="My Availability">
+                            <i class='bx bx-time link-icon'></i>
+                            <span class="link-text">My Availability</span>
+                        </a>
+                    @endif
+                    @if(auth()->user()->isVpsd())
+                        <a href="{{ route('signatory.oversight') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.oversight*') ? 'active' : '' }}" data-tooltip="All Documents">
+                            <i class='bx bx-show link-icon'></i>
+                            <span class="link-text">All Documents</span>
+                        </a>
+                    @endif
                 </div>
             @endif
             @if($role === 'Signatory')

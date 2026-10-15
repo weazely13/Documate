@@ -1,27 +1,26 @@
+@php use App\Workflow\Documents\DocumentRegistry; @endphp
 @if ($notices->isNotEmpty())
-    <section class="space-y-2.5">
+    <div x-data="{
+            gone: (() => { try { return JSON.parse(localStorage.getItem('documate-hidden-notices') || '[]'); } catch (e) { return []; } })(),
+            hide(id) { this.gone.push(id); try { localStorage.setItem('documate-hidden-notices', JSON.stringify(this.gone)); } catch (e) {} }
+         }"
+         class="pointer-events-none fixed right-4 top-20 z-30 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2">
         @foreach ($notices as $n)
             @php
-                $v = $n->field_values ?? [];
-                $signed = $n->workflow_status === \App\Enums\TransactionStatus::Completed;
-                $day = ! empty($v['appointment_date']) ? \Carbon\Carbon::parse($v['appointment_date'])->format('l, F j, Y') : '';
-                $time = ! empty($v['appointment_time'])
-                    ? \Carbon\Carbon::createFromFormat('H:i', substr($v['appointment_time'], 0, 5))->format('g:i A') : '';
+                $nd = DocumentRegistry::get($n->document_type);
+                $nv = $n->field_values ?? [];
+                $rose = $nd->noticeTone() === 'rose';
             @endphp
-            <a href="{{ route('student.transactions.show', $n->workspace_id) }}" wire:navigate wire:key="notice-{{ $n->workspace_id }}"
-               class="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-[#2A57B4] bg-blue-50 p-4 shadow-md transition hover:shadow-lg">
-                <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2A57B4] text-white">
-                    <i class='bx bx-envelope text-2xl'></i>
-                </span>
-                <div class="min-w-0 flex-1">
-                    <p class="text-sm font-bold text-[#2A57B4]">You have been called by the VPSD office</p>
-                    <p class="mt-0.5 truncate text-sm font-semibold text-slate-900">{{ $v['subject'] ?? '' }}</p>
-                    <p class="text-sm text-slate-700">See the Vice President for Student Development at <strong>{{ $time }}</strong> on <strong>{{ $day }}</strong>.</p>
-                </div>
-                <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold {{ $signed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
-                    {{ $signed ? 'Signed. Download your slip' : 'Waiting for the VP signature' }}
-                </span>
-            </a>
+            <div x-show="!gone.includes({{ $n->workspace_id }})" x-cloak x-transition
+                 wire:key="overlay-notice-{{ $n->workspace_id }}"
+                 class="pointer-events-auto relative rounded-2xl border bg-white p-3 pr-9 shadow-lg {{ $rose ? 'border-rose-200' : 'border-blue-200' }}">
+                <a href="{{ route('student.transactions.show', $n->workspace_id) }}" wire:navigate class="block">
+                    <p class="text-sm font-bold {{ $rose ? 'text-rose-700' : 'text-[#2A57B4]' }}">{{ $nd->noticeTitle($nv) }}</p>
+                    <p class="mt-0.5 text-xs leading-snug text-slate-600">{{ $nd->noticeLine($nv) }}</p>
+                </a>
+                <button type="button" @click="hide({{ $n->workspace_id }})" aria-label="Dismiss"
+                        class="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700">&times;</button>
+            </div>
         @endforeach
-    </section>
+    </div>
 @endif

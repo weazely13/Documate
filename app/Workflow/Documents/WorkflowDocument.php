@@ -4,6 +4,7 @@ namespace App\Workflow\Documents;
 
 use Carbon\Carbon;
 use App\Models\User;
+use App\Models\CounselorAvailability;
 
 /**
  * A paperless document defined in code (no template editor, no template tables).
@@ -12,6 +13,71 @@ use App\Models\User;
  */
 abstract class WorkflowDocument
 {
+    /** The Guidance Counselor is only available on Wednesdays. If today is Wednesday, use the next one. */
+    public static function nextWednesday(): string
+    {
+        return Carbon::today()->next(Carbon::WEDNESDAY)->toDateString();
+    }
+
+    /** Counselor's next slot, or the next Wednesday (no time) when none is set. */
+    public static function counselingSlot(): array
+    {
+        $slot = CounselorAvailability::nextSlot();
+
+        return $slot
+            ? [
+                'counseling_date' => $slot->available_date->toDateString(),
+                'counseling_time' => substr($slot->start_time, 0, 5),
+                'counseling_time_end' => substr($slot->end_time, 0, 5),
+            ]
+            : ['counseling_date' => static::nextWednesday(), 'counseling_time' => null, 'counseling_time_end' => null];
+    }
+    /** True when the signer (not the issuer) sets the counselling date and time. */
+    public function signerSetsSchedule(): bool
+    {
+        return false;
+    }
+
+    /** True when the student must attach a photo. It is stored privately and never printed. */
+    public function requiresItemPhoto(): bool
+    {
+        return false;
+    }
+
+    /** "at 9:00 AM to 11:00 AM on Wednesday, October 21, 2026" */
+    protected function counselingWhen(array $v): string
+    {
+        $t = fn ($x) => $x ? Carbon::createFromFormat('H:i', substr((string) $x, 0, 5))->format('g:i A') : null;
+        $from = $t($v['counseling_time'] ?? null);
+        $to = $t($v['counseling_time_end'] ?? null);
+        $time = $from ? ($to ? "{$from} to {$to}" : $from) : null;
+        $date = ! empty($v['counseling_date']) ? Carbon::parse($v['counseling_date'])->format('l, F j, Y') : null;
+
+        return trim(($time ? "at {$time} " : '') . ($date ? "on {$date}" : ''));
+    }
+
+    /** Shown to the student on the form and on their transaction page. */
+    public function studentNote(): ?string
+    {
+        return null;
+    }
+    /** Shown to the student once the VPSD office has started reviewing. null = nothing. */
+    public function afterReviewNote(array $values): ?string
+    {
+        return null;
+    }
+
+    /** Sentence used in the notification and the dashboard card. null = default wording. */
+    public function issuedMessage(array $values): ?string
+    {
+        return null;
+    }
+
+    /** Last chance to fill in system values before the chain opens. Must be safe to run twice. */
+    public function beforeSigning(array $values): array
+    {
+        return $values;
+    }
     /** Fields the VPSD reviewer fills in before sending for signing (not the student). */
     public function reviewerFields(): array
     {

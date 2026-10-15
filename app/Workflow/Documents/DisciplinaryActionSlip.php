@@ -60,24 +60,46 @@ final class DisciplinaryActionSlip extends WorkflowDocument
                 'label' => 'Time the offense was committed', 'type' => 'time', 'required' => true,
                 'sensitive' => true,
             ],
-            'counseling_date' => [
-                'label' => 'Guidance counselling date (optional)', 'type' => 'date',
-                'help' => 'Counselling is held every Wednesday. Leave blank to use the next Wednesday.',
-                'rules' => ['after_or_equal:today'],
-            ],
-            'counseling_time' => [
-                'label' => 'Guidance counselling time (optional)', 'type' => 'time',
-            ],
         ];
+    }
+
+    public function signerSetsSchedule(): bool
+    {
+        return true;
     }
 
     public function beforeIssue(array $answers): array
     {
-        if (empty($answers['counseling_date'])) {
-            $answers['counseling_date'] = Carbon::today()->next(Carbon::WEDNESDAY)->toDateString();
+        return $answers; // the Guidance Counselor sets the schedule later
+    }
+
+    public function issuedMessage(array $values): string
+    {
+        if (empty($values['counseling_date'])) {
+            return 'A disciplinary action was issued to you. The Guidance Counselor will set your schedule soon.';
         }
 
-        return $answers;
+        return rtrim('A disciplinary action was issued to you. See the Guidance Counselor ' . $this->counselingWhen($values)) . '.';
+    }
+
+    public function issueNote(): ?string
+    {
+        return 'The student and the guidance counselor are notified right away. The Guidance Counselor sets the counselling date and time, and signs once counselling is done.';
+    }
+
+    public function signingNote(): ?string
+    {
+        return 'Set the counselling date and time first. Sign only after the student has completed counselling.';
+    }
+
+    public function noticeTitle(array $values): string
+    {
+        return 'Disciplinary Action';
+    }
+
+    public function noticeLine(array $values): string
+    {
+        return $this->issuedMessage($values);
     }
 
     public function chain(array $values = []): array
@@ -87,15 +109,7 @@ final class DisciplinaryActionSlip extends WorkflowDocument
         ];
     }
 
-    public function signingNote(): ?string
-    {
-        return 'Sign only after the student has completed counselling.';
-    }
 
-    public function issueNote(): ?string
-    {
-        return 'The student and the guidance counselor are notified right away. The student reports to the Guidance Office, and the counselor signs once counselling is done. You appear on the slip as the reporter.';
-    }
 
     public function pdfView(): string
     {
@@ -114,17 +128,6 @@ final class DisciplinaryActionSlip extends WorkflowDocument
         return $values['counseling_date'] ?? null;
     }
 
-    public function noticeTitle(array $values): string
-    {
-        return 'Guidance Counselling';
-    }
-
-    public function noticeLine(array $values): string
-    {
-        $time = $this->time($values['counseling_time'] ?? null);
-
-        return 'Report to the Guidance Office' . ($time ? ' · ' . $time : '');
-    }
 
     public function noticeTone(): string
     {

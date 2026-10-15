@@ -17,6 +17,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use App\Models\SigningRequest;
 use App\Models\TransactionAuditLog;
+use App\Models\CounselorAvailability;
 
 /** One signing task. Approving re-checks the signer's password; rejecting needs a reason. */
 class Show extends Component
@@ -32,7 +33,10 @@ class Show extends Component
     public ?int $editingId = null;
     public string $editEmail = '';
     public ?string $notice = null;
-    
+    public string $schedDate = '';
+    public string $schedStart = '';
+    public string $schedEnd = '';
+        
 
     public function mount(TransactionApproval $approval): void
     {
@@ -48,6 +52,41 @@ class Show extends Component
         abort_unless($mine || ($holds && $approval->status === ApprovalStatus::Pending), 404);
 
         $this->approvalId = $approval->id;
+        $v = $approval->workspace->field_values ?? [];
+        $this->schedDate = (string) ($v['counseling_date'] ?? '');
+        $this->schedStart = substr((string) ($v['counseling_time'] ?? ''), 0, 5);
+        $this->schedEnd = substr((string) ($v['counseling_time_end'] ?? ''), 0, 5);
+    }
+
+
+    public function useSlot(int $slotId): void
+    {
+        $slot = CounselorAvailability::where('user_id', Auth::id())->whereKey($slotId)->firstOrFail();
+        $this->schedDate = $slot->available_date->toDateString();
+        $this->schedStart = substr($slot->start_time, 0, 5);
+        $this->schedEnd = substr($slot->end_time, 0, 5);
+    }
+
+    public function saveSchedule(): void
+    {
+        $this->resetErrorBag();
+        $this->validate([
+            'schedDate' => ['required', 'date', 'after_or_equal:today'],
+            'schedStart' => ['required', 'date_format:H:i'],
+            'schedEnd' => ['nullable', 'date_format:H:i'],
+        ], [], ['schedDate' => 'date', 'schedStart' => 'start time', 'schedEnd' => 'end time']);
+
+        try {
+            app(TransactionWorkflow::class)->setSchedule(
+                $this->approval, Auth::user(), $this->schedDate, $this->schedStart, $this->schedEnd ?: null
+            );
+        } catch (WorkflowException $e) {
+            $this->addError('schedule', $e->getMessage());
+            return;
+        }
+
+        unset($this->approval);
+        $this->notice = 'Schedule saved. The student has been notified.';
     }
 
     #[Computed]
@@ -162,11 +201,12 @@ class Show extends Component
         $approval = $this->approval;
         $ws = $approval->workspace;
         $user = Auth::user();
+        $document = DocumentRegistry::get($ws->document_type);   // add this line
 
         $canAct = $approval->status === ApprovalStatus::Pending
             && $ws->workflow_status === TransactionStatus::UnderReview
             && $approval->isAssignedTo($user);
-        $canSend = DocumentRegistry::get($ws->document_type)->manualExternalInvites()
+        $canSend = $document->manualExternalInvites()             // use it here
             && $ws->workflow_status === TransactionStatus::UnderReview
             && $ws->approvals()->where('signer_type', 'internal')
                 ->where('status', ApprovalStatus::Approved->value)->where('acted_by', $user->id)->exists();
@@ -188,12 +228,17 @@ class Show extends Component
         return view('livewire.signatory.show', [
             'approval' => $approval,
             'ws' => $ws,
-            'document' => DocumentRegistry::get($ws->document_type),
+            'document' => $document,                              // and here
             'approvals' => $ws->approvals()->with(['role', 'actor'])->get(),
             'canAct' => $canAct,
             'signatureReady' => $this->signatureReady(),
             'canSend' => $canSend, 'members' => $members, 'requests' => $requests,
             'verified' => $verified,
+            'canSchedule' => $canAct && $document->signerSetsSchedule(),
+            'slots' => $canAct && $document->signerSetsSchedule()
+                ? CounselorAvailability::where('user_id', $user->id)->whereDate('available_date', '>=', today())
+                    ->orderBy('available_date')->orderBy('start_time')->limit(6)->get()
+                : collect(),
         ])->layout('layouts.app', ['title' => 'Sign document']);
     }
         public function openSend(int $approvalId): void

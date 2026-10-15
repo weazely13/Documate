@@ -88,11 +88,23 @@ final class StudentAppointmentSlip extends WorkflowDocument
 
     public function noticeTitle(array $values): string
     {
-        return 'Meet the Vice President';
+        return 'Student Appointment';
+    }
+
+    public function issuedMessage(array $values): string
+    {
+        $date = ! empty($values['appointment_date'])
+            ? Carbon::parse($values['appointment_date'])->format('l, F j, Y') : null;
+        $time = ! empty($values['appointment_time'])
+            ? Carbon::createFromFormat('H:i', substr((string) $values['appointment_time'], 0, 5))->format('g:i A') : null;
+
+        return 'A student appointment slip was issued to you. See the Vice President for Student Development'
+            . ($time ? " at {$time}" : '')
+            . ($date ? " on {$date}" : '') . '.';
     }
 
     public function noticeLine(array $values): string
     {
-        return (string) ($values['subject'] ?? '');
-    }
+        return $this->issuedMessage($values);
+}
 }

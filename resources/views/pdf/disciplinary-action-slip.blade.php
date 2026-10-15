@@ -43,8 +43,7 @@
                 @include('pdf._signer', [
                     'heading' => 'Reported by',
                     's' => $reporter,
-                    'caption' => 'Name and Signature of the<br>Security Guard/Faculty/Personnel'
-                        . (! empty($v['reporter_role']) ? '<br><strong>' . e($v['reporter_role']) . '</strong>' : ''),
+                    'caption' => 'Name and Signature of the<br>Security Guard/Faculty/Personnel',
                 ])
             </td>
         </tr>
@@ -56,7 +55,7 @@
     <div style="font-weight:bold; font-size:10.5pt;">Guidance Counselling (every Wednesday)</div>
     <table class="tight" style="margin-top:4pt;">
         <tr><td style="width:40pt;">Date:</td><td class="val">{{ $fmtDate($v['counseling_date'] ?? null) }}</td></tr>
-        <tr><td>Time:</td><td class="val">{{ $fmtTime($v['counseling_time'] ?? null) ?: '' }}</td></tr>
+        <tr><td>Time:</td><td class="val">{{ trim($fmtTime($v['counseling_time'] ?? null) . (! empty($v['counseling_time_end']) ? ' to ' . $fmtTime($v['counseling_time_end']) : '')) }}</td></tr>
     </table>
 
     <table class="sigs" style="margin-top:26pt;">

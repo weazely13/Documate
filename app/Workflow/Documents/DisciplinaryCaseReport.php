@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Workflow\Documents;
+use Carbon\Carbon;
 
 /**
  * F-SDM-008 Rev. 1 (03-31-23): Disciplinary Case Report Form.
@@ -181,14 +182,27 @@ final class DisciplinaryCaseReport extends WorkflowDocument
         return 'The student is notified right away and can read it from their dashboard. You sign it next, then send it to the committee members.';
     }
 
-    /** The dashboard is glanceable, so no case details here. */
-    public function noticeLine(array $values): string
-    {
-        return ! empty($values['rec_hearing']) ? 'Continuing hearing. Tap to read the report.' : 'Tap to read the report.';
-    }
 
     public function noticeTone(): string
     {
         return 'rose';
+    }
+
+    public function issuedMessage(array $values): string
+    {
+        $base = 'A disciplinary case report was issued to you.';
+
+        if (! empty($values['rec_hearing']) && ! empty($values['hearing_date'])) {
+            return $base . ' A continuing hearing is set on '
+                . Carbon::parse($values['hearing_date'])->format('l, F j, Y') . '. Open it to read the report.';
+        }
+
+        return $base . ' Open it to read the report.';
+    }
+
+    /** The dashboard is glanceable, so no case details here. */
+    public function noticeLine(array $values): string
+    {
+        return $this->issuedMessage($values);
     }
 }

@@ -257,8 +257,8 @@
 
                         </div>
 
-                        <input type="file" wire:model="profile_picture"
-                            class="mt-3 input-file text-sm">
+                        <input type="file" wire:model="profile_picture" accept="image/png,image/jpeg" class="mt-3 input-file text-sm">
+                        @error('profile_picture') <p class="error">{{ $message }}</p> @enderror
 
                         <!-- REQUIREMENTS -->
                         <p class="text-xs text-gray-500 mt-2">

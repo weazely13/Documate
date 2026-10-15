@@ -261,6 +261,10 @@ class TransactionWorkflow
 
                 $ws->forceFill(['field_values' => $values])->save();
             }
+            $values = $doc->beforeSigning($values);
+            if ($values !== ($ws->field_values ?? [])) {
+                $ws->forceFill(['field_values' => $values])->save();
+            }
 
             $steps = collect(DocumentRegistry::get($ws->document_type)->chain($values))->values()->map(function ($s, $i) use ($values, $ws) {
                 if (($s['type'] ?? 'internal') === 'external') {
@@ -514,6 +518,12 @@ class TransactionWorkflow
         return DB::transaction(function () use ($approval, $signer, $authMethod) {
             $ws = $this->lock($approval->workspace_id);
             $approval = $this->lockApproval($approval->id);
+            $this->assertActionable($ws, $approval, $signer);
+
+            $doc = DocumentRegistry::get($ws->document_type);
+            if ($doc->signerSetsSchedule() && empty($ws->field_values['counseling_date'])) {
+                throw new WorkflowException('Set the counselling date and time before signing.');
+            }
 
             // ONE save. The model's saving hook archives the signature, fills the name and hashes, and seals it.
             $approval->forceFill([
@@ -532,6 +542,52 @@ class TransactionWorkflow
             ], $approval->id);
 
             return $this->advance($ws, $signer);
+        });
+    }
+    /** The signer (Guidance Counselor) sets the counselling date and time. Allowed only while their step is open. */
+    public function setSchedule(TransactionApproval $approval, User $signer, string $date, ?string $time, ?string $timeEnd): StudentDocumentWorkspace
+    {
+        return DB::transaction(function () use ($approval, $signer, $date, $time, $timeEnd) {
+            $ws = $this->lock($approval->workspace_id);
+            $approval = $this->lockApproval($approval->id);
+            $this->assertActionable($ws, $approval, $signer);
+
+            if (! DocumentRegistry::get($ws->document_type)->signerSetsSchedule()) {
+                throw WorkflowException::approvalNotActionable();
+            }
+            if (! strtotime($date) || \Carbon\Carbon::parse($date)->lt(today())) {
+                throw new WorkflowException('Choose today or a later date.');
+            }
+            foreach ([$time, $timeEnd] as $t) {
+                if ($t && ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t)) {
+                    throw new WorkflowException('Enter a valid time.');
+                }
+            }
+            if ($time && $timeEnd && $timeEnd <= $time) {
+                throw new WorkflowException('The end time must be after the start time.');
+            }
+
+            $values = $ws->field_values ?? [];
+            $values['counseling_date'] = \Carbon\Carbon::parse($date)->toDateString();
+            $values['counseling_time'] = $time ?: null;
+            $values['counseling_time_end'] = $timeEnd ?: null;
+            $ws->forceFill(['field_values' => $values])->save();
+
+            $this->audit($ws, $signer, 'schedule.set', null, null, [
+                'message' => DocumentRegistry::get($ws->document_type)->issuedMessage($values),
+            ], $approval->id);
+
+            $wsId = $ws->workspace_id;
+            DB::afterCommit(function () use ($wsId) {
+                try {
+                    $fresh = StudentDocumentWorkspace::with('user')->find($wsId);
+                    $fresh?->user?->notify(WorkflowNotification::forSchedule($fresh));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            });
+
+            return $ws;
         });
     }
 

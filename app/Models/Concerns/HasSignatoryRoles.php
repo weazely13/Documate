@@ -18,7 +18,10 @@ trait HasSignatoryRoles
     {
         return $this->hasMany(SignatoryAssignment::class);
     }
-
+    public function isVpsd(): bool
+    {
+        return $this->holdsSignatoryRole('vpsd');
+    }
     /** @return array<int> ids of the signatory roles this user holds today */
     public function currentSignatoryRoleIds(): array
     {

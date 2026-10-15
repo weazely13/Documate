@@ -161,9 +161,56 @@
             </ul>
         </section>
     @endif
+
+    @if ($canSchedule)
+        <section class="rounded-2xl border border-rose-200 bg-white p-5 shadow-sm">
+            <h3 class="text-sm font-semibold text-slate-900">Counselling schedule</h3>
+            <p class="mt-0.5 text-xs text-slate-500">The student is told to see you at this date and time. You must set it before you can sign.</p>
+
+            @if ($notice)
+                <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm font-medium text-emerald-800">{{ $notice }}</div>
+            @endif
+
+            @if ($slots->isNotEmpty())
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @foreach ($slots as $s)
+                        <button type="button" wire:click="useSlot({{ $s->id }})" wire:key="useslot-{{ $s->id }}"
+                                class="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                            {{ $s->available_date->format('M j') }}, {{ \Carbon\Carbon::createFromFormat('H:i:s', $s->start_time)->format('g:i A') }}
+                        </button>
+                    @endforeach
+                </div>
+            @endif
+
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Date</label>
+                    <input type="date" wire:model="schedDate" min="{{ now()->toDateString() }}"
+                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    @error('schedDate') <p class="mt-1 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">From</label>
+                    <input type="time" wire:model="schedStart" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    @error('schedStart') <p class="mt-1 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Until (optional)</label>
+                    <input type="time" wire:model="schedEnd" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    @error('schedEnd') <p class="mt-1 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
+                </div>
+            </div>
+            @error('schedule') <p class="mt-2 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
+
+            <button type="button" wire:click="saveSchedule" wire:loading.attr="disabled"
+                    class="mt-4 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50">
+                {{ $schedDate ? 'Update schedule' : 'Set schedule and notify student' }}
+            </button>
+        </section>
+    @endif
     @if ($canAct)
         <div class="flex flex-wrap gap-2">
-            <button type="button" wire:click="openModal('approve')" @disabled(! $signatureReady) class="{{ $btn }} bg-[#2A57B4] text-white hover:bg-[#24499A]">Approve and sign</button>
+            <button type="button" wire:click="openModal('approve')" @disabled(! $signatureReady || ($document->signerSetsSchedule() && ! $schedDate)) class="{{ $btn }} bg-[#2A57B4] text-white hover:bg-[#24499A]">Approve and sign</button>
             <button type="button" wire:click="openModal('reject')" class="{{ $btn }} border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100">Reject</button>
         </div>
     @endif

@@ -82,6 +82,11 @@ class WorkflowNotification extends Notification
     {
         $doc = DocumentRegistry::find($ws->document_type);
         $url = route('student.transactions.show', $ws->workspace_id);
+        $message = $doc?->issuedMessage($ws->field_values ?? []);
+
+        if ($message) {
+            return new self($doc->name() . ' issued', $message, $url);
+        }
 
         if ($doc?->issuerIsStaff()) {
             return new self(
@@ -97,6 +102,18 @@ class WorkflowNotification extends Notification
             'Issued by the VPSD office',
             self::docName($ws) . " ({$ws->transaction_code}) was issued for you" . ($detail ? ": {$detail}" : '') . '. It is waiting for signature.',
             $url,
+        );
+    }
+
+    /** To the student: the signer set the counselling schedule. */
+    public static function forSchedule(StudentDocumentWorkspace $ws): self
+    {
+        $doc = DocumentRegistry::find($ws->document_type);
+
+        return new self(
+            'Counselling schedule set',
+            $doc?->issuedMessage($ws->field_values ?? []) ?? 'Your schedule was set.',
+            route('student.transactions.show', $ws->workspace_id),
         );
     }
 }

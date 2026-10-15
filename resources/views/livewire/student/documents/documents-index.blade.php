@@ -29,6 +29,14 @@
                     {{ $this->completedCount }}
                 </span>
             </button>
+            <button type="button" wire:click="$set('tab', 'issued')"
+                class="flex items-center gap-2 whitespace-nowrap border-b-2 py-3 px-1 text-sm transition-all {{ $tab === 'issued' ? 'border-[#2A57B4] text-[#2A57B4] font-bold' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 font-medium' }}">
+                <i class='bx bx-envelope text-lg'></i>
+                <span>Issued Documents</span>
+                <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $tab === 'issued' ? 'bg-blue-100 text-[#2A57B4]' : 'bg-slate-100 text-slate-600' }}">
+                    {{ $this->issuedCount }}
+                </span>
+            </button>
             <button type="button" wire:click="$set('tab', 'closed')"
                 class="flex items-center gap-2 whitespace-nowrap border-b-2 py-3 px-1 text-sm transition-all {{ $tab === 'closed' ? 'border-[#2A57B4] text-[#2A57B4] font-bold' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 font-medium' }}">
                 <i class='bx bx-x-circle text-lg'></i>
@@ -48,42 +56,69 @@
     </div>
 
     {{-- Toolbar: bulk select + sort (mirrors Appointments toolbar) --}}
-    <div class="flex flex-col gap-3 rounded-xl bg-slate-50/80 p-3 sm:flex-row sm:items-center sm:justify-between border border-slate-100">
-        <div class="flex items-center gap-2.5">
-            <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" @checked($selectAll) wire:click="toggleSelectAll"
-                    class="h-4 w-4 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]">
-                <span class="text-xs font-semibold text-slate-500">
-                    {{ count($selected) > 0 ? count($selected) . ' selected' : 'Select all' }}
-                </span>
-            </label>
+    @if ($tab !== 'issued')
+        <div class="flex flex-col gap-3 rounded-xl bg-slate-50/80 p-3 sm:flex-row sm:items-center sm:justify-between border border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" @checked($selectAll) wire:click="toggleSelectAll"
+                        class="h-4 w-4 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]">
+                    <span class="text-xs font-semibold text-slate-500">
+                        {{ count($selected) > 0 ? count($selected) . ' selected' : 'Select all' }}
+                    </span>
+                </label>
 
-            @if(count($selected) > 0)
-                <button type="button" wire:click="confirmBulkDelete"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-100">
-                    <i class='bx bx-trash text-sm'></i>
-                    <span>Delete</span>
-                </button>
-            @endif
+                @if(count($selected) > 0)
+                    <button type="button" wire:click="confirmBulkDelete"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-100">
+                        <i class='bx bx-trash text-sm'></i>
+                        <span>Delete</span>
+                    </button>
+                @endif
+            </div>
+
+            <select wire:model.live="sort"
+                class="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-8 text-xs text-slate-600 focus:border-[#2A57B4] focus:outline-none">
+                <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
+            </select>
         </div>
-
-        <select wire:model.live="sort"
-            class="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-8 text-xs text-slate-600 focus:border-[#2A57B4] focus:outline-none">
-            <option value="desc">Newest First</option>
-            <option value="asc">Oldest First</option>
-        </select>
-    </div>
+    @endif
 
     {{-- Cards --}}
-    <div class="space-y-3">
-        @forelse($workspaces as $workspace)
-            @include('livewire.student.documents.partials.document-card', ['workspace' => $workspace])
-        @empty
-            <div class="rounded-xl border border-dashed border-slate-200 p-8 text-center">
-                <p class="text-sm font-medium text-slate-700">No {{ $tab }} documents</p>
-                <p class="mt-0.5 text-xs text-slate-400">Documents you submit will show up here.</p>
+    <div class="space-y-6">
+        @if ($tab === 'issued')
+            @foreach (['open' => 'Not yet completed', 'completed' => 'Completed', 'closed' => 'Closed'] as $key => $heading)
+                @if ($issuedGroups[$key]->isNotEmpty())
+                    <section class="space-y-3" wire:key="issued-group-{{ $key }}">
+                        <h3 class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                            {{ $heading }}
+                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{{ $issuedGroups[$key]->count() }}</span>
+                        </h3>
+                        @foreach ($issuedGroups[$key] as $workspace)
+                            @include('livewire.student.documents.partials.issued-card', ['workspace' => $workspace])
+                        @endforeach
+                    </section>
+                @endif
+            @endforeach
+
+            @if ($workspaces->isEmpty())
+                <div class="rounded-xl border border-dashed border-slate-200 p-8 text-center">
+                    <p class="text-sm font-medium text-slate-700">No issued documents</p>
+                    <p class="mt-0.5 text-xs text-slate-400">Documents the VPSD office or staff issue to you will show up here.</p>
+                </div>
+            @endif
+        @else
+            <div class="space-y-3">
+                @forelse($workspaces as $workspace)
+                    @include('livewire.student.documents.partials.document-card', ['workspace' => $workspace])
+                @empty
+                    <div class="rounded-xl border border-dashed border-slate-200 p-8 text-center">
+                        <p class="text-sm font-medium text-slate-700">No {{ $tab }} documents</p>
+                        <p class="mt-0.5 text-xs text-slate-400">Documents you submit will show up here.</p>
+                    </div>
+                @endforelse
             </div>
-        @endforelse
+        @endif
     </div>
 
     {{-- Single delete modal --}}

@@ -44,6 +44,13 @@ class WorkflowPreviewController extends Controller
         abort_unless($ws->usesWorkflow() && DocumentRegistry::has($ws->document_type), 404);
         abort_if($ws->workflow_status === TransactionStatus::Draft, 404);
     }
+    public function oversight(StudentDocumentWorkspace $workspace)
+    {
+        abort_unless(Auth::user()->isVpsd(), 403);
+        $this->guard($workspace);
+
+        return $this->html($workspace);
+    }
 
     private function html(StudentDocumentWorkspace $ws)
     {

@@ -15,6 +15,7 @@ class WorkflowReportController extends Controller
 {
     public function download(StudentDocumentWorkspace $workspace)
     {
+        abort_unless(Auth::user()->isAdmin() || Auth::user()->isVpsd(), 403);
         abort_unless($workspace->usesWorkflow() && DocumentRegistry::has($workspace->document_type), 404);
         abort_if($workspace->workflow_status === TransactionStatus::Draft, 404);
 

@@ -28,6 +28,7 @@ final class AuditLabels
         'transaction.issued_by_office' => 'Issued by the VPSD office',
         'external.email_corrected' => 'Member email corrected by the Chairman',
         'transaction.issued_by_role' => 'Issued by university staff',
+        'schedule.set' => 'Counselling schedule set',
     ];
 
     public static function label(string $action): string

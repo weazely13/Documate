@@ -13,6 +13,8 @@ final class DocumentRegistry
             new AdmissionSlip(),
             new DisciplinaryActionSlip(),
             new DisciplinaryCaseReport(),
+            new DisciplinaryReferralSlip(),
+            new LostFoundItemForm(),
             new ModelStudentRating(),
             new PermitToEnterCampus(),
             new PermitToConductActivity(),

@@ -15,6 +15,7 @@ use App\Support\NameMatcher;
 use App\Models\StudentVerification;
 use App\Models\College;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 
 class Register extends Component
@@ -121,6 +122,17 @@ class Register extends Component
     public function updatedProgramId()
     {
         $this->organization_id = null;
+    }
+    public function updatedProfilePicture()
+    {
+        try {
+            $this->validateOnly('profile_picture', [
+                'profile_picture' => ['image', 'mimes:jpg,jpeg,png', 'max:5120'],
+            ]);
+        } catch (ValidationException $e) {
+            $this->reset('profile_picture');
+            throw $e;
+        }
     }
 
     protected function step2Rules(): array
@@ -360,6 +372,7 @@ class Register extends Component
             'password' => ['required', 'confirmed'],
             'email' => ['required', 'email', 'regex:/^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook)\.com$/'],
             'contact_number' => ['required', 'regex:/^(09|\+639)\d{9}$/'],
+            'profile_picture' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
         ]));
 
         $profilePath = null;
