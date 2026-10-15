@@ -41,26 +41,47 @@ class AppointmentReviewAgent
         $appointment->loadMissing('user.program', 'workspace.template');
 
         try {
-            $response = Http::timeout(30)
-                ->retry(3, 3000, function ($exception, $request) {
-                    if ($exception instanceof \Illuminate\Http\Client\ConnectionException) {
-                        return true; // covers cURL timeouts, DNS failures, connection resets
-                    }
-                    return $exception instanceof \Illuminate\Http\Client\RequestException
-                        && in_array($exception->response->status(), [429, 503], true);
-                })
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}", [
-                    'system_instruction' => ['parts' => [['text' => $this->systemPrompt()]]],
-                    'contents' => [[
-                        'role' => 'user',
-                        'parts' => [['text' => json_encode($this->buildSnapshot($appointment), JSON_PRETTY_PRINT)]],
-                    ]],
-                    'generationConfig' => [
-                        'response_mime_type' => 'application/json',
-                        'temperature' => 0.2,
-                        'maxOutputTokens' => 2048,
-                    ],
-                ]);
+            $payload = [
+                'system_instruction' => ['parts' => [['text' => $this->systemPrompt()]]],
+                'contents' => [[
+                    'role' => 'user',
+                    'parts' => [['text' => json_encode($this->buildSnapshot($appointment), JSON_PRETTY_PRINT)]],
+                ]],
+                'generationConfig' => [
+                    'response_mime_type' => 'application/json',
+                    'temperature' => 0.2,
+                    'maxOutputTokens' => 8192,
+                ],
+            ];
+
+            $models = array_values(array_unique(array_filter([
+                $this->model,
+                config('services.gemini.review_fallback_model'),
+            ])));
+
+            $response = null;
+            $lastError = null;
+
+            foreach ($models as $model) {
+                try {
+                    $response = Http::timeout(30)
+                        ->retry([2000, 5000, 10000], 0, function ($exception) {
+                            return $exception instanceof \Illuminate\Http\Client\ConnectionException
+                                || ($exception instanceof \Illuminate\Http\Client\RequestException
+                                    && in_array($exception->response->status(), [429, 500, 503], true));
+                        })
+                        ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}", $payload);
+                    break;
+                } catch (\Throwable $e) {
+                    $lastError = $e;
+                    Log::warning('AppointmentReviewAgent model failed', ['model' => $model, 'error' => $e->getMessage()]);
+                    
+                }
+            }
+
+            if (! $response) {
+                throw $lastError ?? new \RuntimeException('No Gemini model responded.');
+            }
 
             if (!$response->successful()) {
                 throw new \RuntimeException('Gemini API error ' . $response->status() . ': ' . $response->body());
@@ -99,8 +120,19 @@ class AppointmentReviewAgent
                 'appointment_id' => $appointment->appointment_id,
                 'error' => $e->getMessage(),
             ]);
+            throw $e;
         }
     }
+
+    public function failed(\Throwable $e): void
+    {
+        $this->appointment->update([
+            'ai_flag' => 'review_failed',
+            'ai_findings' => ['summary' => 'The AI review service was unavailable. Please try again.'],
+            'ai_reviewed_at' => now(),
+        ]);
+    }
+        
 
     /**
      * TODO: adjust `document_field_values` to however StudentDocumentWorkspace

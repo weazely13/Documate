@@ -37,13 +37,20 @@ return [
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'document_ocr_key' => env('GEMINI_DOCUMENT_OCR_KEY'),
+        'document_ocr_model' => env('GEMINI_DOCUMENT_OCR_MODEL', 'gemini-3.6-flash'),
+        'document_ocr_fallback_model' => env('GEMINI_DOCUMENT_OCR_FALLBACK_MODEL'),
         'review_key' => env('GEMINI_REVIEW_API_KEY'), 
         'review_model' => env('GEMINI_REVIEW_MODEL', 'gemini-3.6-flash'),
+        'review_fallback_model' => env('GEMINI_REVIEW_FALLBACK_MODEL'),
     ],
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
         'model' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),
         'ca_bundle' => env('GROQ_CA_BUNDLE'),
     ],
+    'brevo' => [
+        'key' => env('BREVO_API_KEY')
+    ],
+    
 
 ];

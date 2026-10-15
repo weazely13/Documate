@@ -4,7 +4,7 @@ namespace App\Listeners\Workflow;
 
 use App\Events\Workflow\ApprovalRequested;
 use App\Notifications\WorkflowNotification;
-use App\Services\Workflow\DocumentRegistry;
+use App\Workflow\Documents\DocumentRegistry;
 use App\Services\Workflow\ExternalSigning;
 use Illuminate\Support\Facades\Notification;
 
@@ -36,7 +36,11 @@ class NotifyApprovalHolders
 
             Notification::send($approval->role->holdersFor($approval->scope_type, $approval->scope_id)->get(), WorkflowNotification::forSigner($approval));
         } catch (\Throwable $e) {
-            report($e); // never let a notification failure undo an approval step
+            report($e);
+            if (isset($approval) && ($approval->signer_type ?? null) === 'external') {
+                app(\App\Services\Workflow\TransactionWorkflow::class)
+                    ->recordExternalEvent($approval->workspace, 'external.invite_failed', [], $approval->id);
+            }
         }
     }
 }

@@ -177,8 +177,13 @@ class Show extends Component
             return;
         }
 
-        app(ExternalSigning::class)->invite($approval);
-        $this->notice = 'A new invitation was emailed. The previous link no longer works.';
+        try {
+            app(ExternalSigning::class)->invite($approval);
+            $this->notice = 'A new invitation was emailed. The previous link no longer works.';
+        } catch (\Throwable $e) {
+            report($e);
+            $this->addError('action', 'The invitation email could not be sent. Please try again shortly.');
+        }
 }
 
     /* ------------------------------- render ------------------------------ */

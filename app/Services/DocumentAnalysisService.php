@@ -35,6 +35,15 @@ class DocumentAnalysisService
         $imageData = base64_encode(file_get_contents($fullPath));
         $classification = self::classifyUpload($apiKey, $documentName, $mimeType, $imageData);
 
+            if (is_array($classification) && array_key_exists('__error_status', $classification)) {
+                $code = $classification['__error_status'] ? 'api_error_' . $classification['__error_status'] : 'request_exception';
+                return self::failure($code, 'The pre-check of the uploaded photo failed.');
+            }
+
+            if ($classification === null) {
+                return self::failure('unparseable_response', 'The pre-check returned an unreadable answer.');
+            }
+
             if ($classification === null) {
                 return self::failure('request_exception', 'The pre-check of the uploaded photo failed.');
             }
@@ -138,28 +147,16 @@ PROMPT;
             ],
         ];
 
-        try {
-            $response = Http::withoutVerifying()
-                ->timeout(45)
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post(
-                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={$apiKey}",
-                    $payload
-                );
-        } catch (\Throwable $e) {
-            Log::error('DocumentAnalysisService: request threw', ['message' => $e->getMessage()]);
-            return self::failure('request_exception', 'The request to the review service failed: ' . $e->getMessage());
-        }
+        $call = self::callGemini($apiKey, $payload, 60);
 
-        if (!$response->successful()) {
-            $status = $response->status();
-            $body = $response->body();
-            Log::error('DocumentAnalysisService: non-2xx response', ['status' => $status, 'body' => $body]);
+        if (! $call['response']) {
             return self::failure(
-                'api_error_' . $status,
-                "The review service returned an error (HTTP {$status})."
+                $call['status'] ? 'api_error_' . $call['status'] : 'request_exception',
+                'The review service did not respond.'
             );
         }
+
+        $response = $call['response'];
 
         $json = $response->json();
         $text = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
@@ -223,6 +220,42 @@ PROMPT;
         ];
     }
 
+    /** Calls Gemini with backed-off retries, then the fallback model. Returns ['response' => Response|null, 'status' => int|null]. */
+    private static function callGemini(string $apiKey, array $payload, int $timeout): array
+    {
+        $models = array_values(array_unique(array_filter([
+            config('services.gemini.document_ocr_model', 'gemini-3.6-flash'),
+            config('services.gemini.document_ocr_fallback_model'),
+        ])));
+
+        $status = null;
+
+        foreach ($models as $model) {
+            try {
+                $response = Http::withoutVerifying()
+                    ->timeout($timeout)
+                    ->retry([2000, 5000], 0, function ($e) {
+                        return $e instanceof \Illuminate\Http\Client\ConnectionException
+                            || ($e instanceof \Illuminate\Http\Client\RequestException
+                                && in_array($e->response->status(), [429, 500, 503], true));
+                    }, throw: false)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", $payload);
+
+                if ($response->successful()) {
+                    return ['response' => $response, 'status' => null];
+                }
+
+                $status = $response->status();
+                Log::error('DocumentAnalysisService: Gemini call failed', [
+                    'model' => $model, 'status' => $status, 'body' => substr($response->body(), 0, 500),
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('DocumentAnalysisService: Gemini call threw', ['model' => $model, 'message' => $e->getMessage()]);
+            }
+        }
+
+        return ['response' => null, 'status' => $status];
+    }
     private static function failure(string $code, string $message): array
     {
         return [
@@ -242,29 +275,19 @@ PROMPT;
     {"is_target_form": false, "detected_document_type": "", "visible_title_text": ""}
     PROMPT;
 
-        try {
-            $response = Http::withoutVerifying()
-                ->timeout(30)
-                ->post(
-                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={$apiKey}",
-                    [
-                        'contents' => [['parts' => [
-                            ['text' => $prompt],
-                            ['inlineData' => ['mimeType' => $mimeType, 'data' => $imageData]],
-                        ]]],
-                        'generationConfig' => ['temperature' => 0, 'responseMimeType' => 'application/json'],
-                    ]
-                );
-        } catch (\Throwable $e) {
-            Log::error('DocumentAnalysisService: classify threw', ['message' => $e->getMessage()]);
-            return null;
+        $call = self::callGemini($apiKey, [
+            'contents' => [['parts' => [
+                ['text' => $prompt],
+                ['inlineData' => ['mimeType' => $mimeType, 'data' => $imageData]],
+            ]]],
+            'generationConfig' => ['temperature' => 0, 'responseMimeType' => 'application/json'],
+        ], 30);
+
+        if (! $call['response']) {
+            return ['__error_status' => $call['status']];
         }
 
-        if (! $response->successful()) {
-            return null;
-        }
-
-        $text = $response->json('candidates.0.content.parts.0.text');
+        $text = $call['response']->json('candidates.0.content.parts.0.text');
         $data = $text ? json_decode($text, true) : null;
 
         return is_array($data) ? $data : null;

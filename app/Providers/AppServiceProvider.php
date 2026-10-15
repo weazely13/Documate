@@ -9,6 +9,10 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
 use App\Listeners\ClearDocumentScanEventsOnLogout;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory;
+use Symfony\Component\Mailer\Transport\Dsn;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +34,11 @@ class AppServiceProvider extends ServiceProvider
         if (str_starts_with(config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
+        Mail::extend('brevo', function () {
+            return (new BrevoTransportFactory)->create(
+                new Dsn('brevo+api', 'default', config('services.brevo.key'))
+            );
+        });
     }
     
 }
