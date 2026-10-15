@@ -257,6 +257,10 @@ class NewAppointment extends Component
             $this->addError('selectedSession', 'This slot just filled up. Please pick another.');
             return;
         }
+        if ($result === 'duplicate') {
+            $this->addError('selectedSession', 'You already have an appointment for this date and session. Please pick another slot.');
+            return;
+        }
 
         // Duplicate click: the first request already created it, so just move on.
         if ($result instanceof Appointment) {
