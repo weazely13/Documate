@@ -277,6 +277,23 @@
                         <!-- VERIFICATION STATUS INDICATOR -->
 
                         <div class="mt-3 space-y-2">
+                            @if($e_slip && $ocrError === 'quota')
+                                <div class="flex items-start gap-2 bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm border border-amber-200">
+                                    <span class="text-lg">⚠</span>
+                                    <div>
+                                        <p class="font-semibold">Verification service unavailable</p>
+                                        <p class="text-xs">The AI scanning limit has been reached, so your e-slip couldn't be checked. Please try again later or contact the VPSD office.</p>
+                                    </div>
+                                </div>
+                            @elseif($e_slip && $ocrError === 'failed')
+                                <div class="flex items-start gap-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm border border-red-200">
+                                    <span class="text-lg">✖</span>
+                                    <div>
+                                        <p class="font-semibold">Couldn't read your e-slip</p>
+                                        <p class="text-xs">Upload a clearer JPG or PNG and try again.</p>
+                                    </div>
+                                </div>
+                            @endif
 
                             <!-- LOADING -->
                             <div wire:loading wire:target="e_slip"
@@ -299,7 +316,7 @@
                             @endif
 
                             <!-- FAILED -->
-                            @if($e_slip && !$isVerified && $ocrResult)
+                           @if($e_slip && !$isVerified && $ocrResult && !$ocrError)
                                 <div class="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm border border-red-200">
                                     <span class="text-lg">✖</span>
                                     <div>

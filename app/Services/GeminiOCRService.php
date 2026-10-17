@@ -4,13 +4,21 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use App\Exceptions\GeminiQuotaExceededException;
+use Illuminate\Support\Facades\Log;
 
 class GeminiOCRService
 {
     public static function extractText($filePath)
     {
         try {
-            $apiKey = config('services.gemini.key');
+            $apiKey = config('services.gemini.eslip_key');
+            $model  = config('services.gemini.eslip_model');
+
+            if (blank($apiKey)) {
+                Log::error('GeminiOCR: services.gemini.key is empty. Check .env and run php artisan config:clear');
+                return null;
+            }
 
             $fullPath = Storage::disk('local')->path($filePath);
 
@@ -72,7 +80,7 @@ class GeminiOCRService
             \"officially_enrolled\": true,
             \"stamp_text\": \"\",
             \"stamp_registrar\": \"\",
-            \"stamp_date\": \"\"
+            \"stamp_date\": \"\",
             \"processed_by\": \"\",
             \"has_signature\": false,
             \"processed_date\": \"\",
@@ -89,25 +97,43 @@ class GeminiOCRService
                     ]
                 ]
             ];
+            $payload['generationConfig'] = [
+                'temperature' => 0,
+                'responseMimeType' => 'application/json',
+                'thinkingConfig' => ['thinkingBudget' => 0],
+            ];
+
             $response = Http::withoutVerifying()
-                ->timeout(30)
+                ->timeout(60)
                 ->withHeaders([
-                    'Content-Type' => 'application/json'
+                    'Content-Type'   => 'application/json',
+                    'x-goog-api-key' => $apiKey,
                 ])
                 ->post(
-                    "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={$apiKey}",
+                    "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent",
                     $payload
                 );
 
+            if ($response->status() === 429 || $response->json('error.status') === 'RESOURCE_EXHAUSTED') {
+                Log::warning('GeminiOCR: quota/rate limit hit', ['body' => $response->body()]);
+                throw new GeminiQuotaExceededException('Gemini quota exceeded.');
+            }
+
             if (!$response->successful()) {
+                Log::error('GeminiOCR: request failed', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
                 return null;
             }
 
             $json = $response->json();
 
-            $text = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            $text = collect($json['candidates'][0]['content']['parts'] ?? [])
+                ->first(fn ($p) => isset($p['text']) && empty($p['thought']))['text'] ?? null;
 
             if (!$text) {
+                Log::error('GeminiOCR: no text in response', ['response' => $json]);
                 return null;
             }
 
@@ -146,7 +172,10 @@ class GeminiOCRService
                 'processed_time' => $data['processed_time'] ?? null,
             ];
 
-        } catch (\Exception $e) {
+        } catch (GeminiQuotaExceededException $e) {
+            throw $e; // let the component show the quota notice
+        } catch (\Throwable $e) {
+            Log::error('GeminiOCR exception: ' . $e->getMessage());
             return null;
         }
     }

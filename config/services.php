@@ -35,7 +35,8 @@ return [
         ],
     ],
     'gemini' => [
-        'key' => env('GEMINI_API_KEY'),
+        'eslip_key'   => env('GEMINI_ESLIP_KEY', env('GEMINI_API_KEY')),
+        'eslip_model' => env('GEMINI_ESLIP_MODEL', 'gemini-3.6-flash'),
         'document_ocr_key' => env('GEMINI_DOCUMENT_OCR_KEY'),
         'document_ocr_model' => env('GEMINI_DOCUMENT_OCR_MODEL', 'gemini-3.6-flash'),
         'document_ocr_fallback_model' => env('GEMINI_DOCUMENT_OCR_FALLBACK_MODEL'),

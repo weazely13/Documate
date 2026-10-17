@@ -7,6 +7,7 @@ use Livewire\WithFileUploads;
 use App\Services\GeminiOCRService;
 use App\Models\StudentVerification;
 use App\Support\NameMatcher;
+use App\Exceptions\GeminiQuotaExceededException;
 
 class VerifyStudent extends Component
 {
@@ -63,7 +64,14 @@ class VerifyStudent extends Component
             $this->dispatch('alert', type: 'info', message: 'You are already verified, but you can review your new submission.');
         }
 
-        $ocrData = GeminiOCRService::extractText($path);
+        try {
+            $ocrData = GeminiOCRService::extractText($path);
+        } catch (GeminiQuotaExceededException $e) {
+            $this->isVerified = false;
+            $this->dispatch('alert', type: 'error',
+                message: 'Verification is temporarily unavailable because the AI service limit was reached. Please try again later.');
+            return;
+        }
         $this->ocrResult = $ocrData ?? [];
         
 

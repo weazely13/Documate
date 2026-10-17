@@ -16,6 +16,7 @@ use App\Models\StudentVerification;
 use App\Models\College;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use App\Exceptions\GeminiQuotaExceededException;
 
 
 class Register extends Component
@@ -51,6 +52,7 @@ class Register extends Component
         'contact_number.regex' => 'Enter a valid PH number (09XXXXXXXXX or +639XXXXXXXXX).',
         'date_of_birth.before_or_equal' => 'You must be at least 15 years old to register.',
     ];
+    public ?string $ocrError = null; // 'quota' | 'failed' | null
 
 
 
@@ -180,15 +182,28 @@ class Register extends Component
         $path = $this->e_slip->store('e_slips');
         $this->e_slip_path = $path;
 
-        $ocrData = GeminiOCRService::extractText($path);
+        $this->ocrError = null;
+        $this->isVerified = false;
+        $this->ocrResult = [];
 
-        $this->ocrResult = $ocrData ?? [];
-
-        if (!$ocrData) {
-            $this->isVerified = false;
-            $this->showOcrModal = true;
+        try {
+            $ocrData = GeminiOCRService::extractText($path);
+        } catch (GeminiQuotaExceededException $e) {
+            $this->ocrError = 'quota';
+            $this->showOcrModal = false;
+            $this->dispatch('alert', type: 'error',
+                message: 'E-slip verification is temporarily unavailable because the AI service limit has been reached. Please try again later or contact the VPSD office.');
             return;
         }
+
+        if (!$ocrData) {
+            $this->ocrError = 'failed';
+            $this->showOcrModal = false;
+            $this->dispatch('alert', type: 'error', message: 'We could not read your e-slip. Please try again.');
+            return;
+        }
+
+        $this->ocrResult = $ocrData;
 
         // 🔥 NORMALIZATION
         $normalize = function ($value) {
