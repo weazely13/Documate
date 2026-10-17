@@ -519,6 +519,30 @@ body {
     margin-top: 0;
 }
 
+.chatbot-msg-content .chatbot-centered {
+    text-align: center;
+    padding: .2rem 0 .8rem;
+}
+.chatbot-msg-content .chatbot-centered-heading {
+    color: #11105f;
+    font-size: 1.2rem;
+    margin: 0 0 .8rem;
+}
+.chatbot-msg-content .chatbot-centered-line {
+    line-height: 1.7;
+}
+.chatbot-msg-content .chatbot-centered-gap {
+    height: 1.2rem;
+}
+.chatbot-msg-content .chatbot-credits {
+    font-size: .78rem;
+    line-height: 1.5;
+    margin: .3rem 0 .8rem;
+    text-align: center;
+}
+.chatbot-msg-content .chatbot-credit-line {
+    margin: .08rem 0;
+}
 
 .chatbot-msg-content strong {
     font-weight: 700;

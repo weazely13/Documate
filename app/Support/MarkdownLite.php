@@ -36,9 +36,41 @@ class MarkdownLite
         $lines = explode("\n", $safe);
         $html = [];
         $paragraphBuffer = [];
+        $specialBlock = null;
 
         foreach ($lines as $line) {
             $trimmed = trim($line); // drops any indentation the model adds
+
+            if (preg_match('/^:::(center|credits)$/', $trimmed, $blockMatch)) {
+                self::flushParagraph($paragraphBuffer, $html);
+                $specialBlock = $blockMatch[1];
+                $html[] = '<div class="chatbot-' . $specialBlock . '">';
+                continue;
+            }
+
+            if ($trimmed === ':::' && $specialBlock !== null) {
+                self::flushParagraph($paragraphBuffer, $html);
+                $html[] = '</div>';
+                $specialBlock = null;
+                continue;
+            }
+
+            if ($specialBlock !== null) {
+                if ($trimmed === '') {
+                    if ($specialBlock === 'center') {
+                        $html[] = '<div class="chatbot-centered-gap"></div>';
+                    }
+                    continue;
+                }
+
+                if ($specialBlock === 'center' && preg_match('/^#{1,6}\s+(.*)$/', $trimmed, $headingMatch)) {
+                    $html[] = '<div class="chatbot-centered-heading"><strong>' . $headingMatch[1] . '</strong></div>';
+                    continue;
+                }
+
+                $html[] = '<div class="chatbot-' . ($specialBlock === 'center' ? 'centered-line' : 'credit-line') . '">' . $trimmed . '</div>';
+                continue;
+            }
 
             if ($trimmed === '') {
                 self::flushParagraph($paragraphBuffer, $html);
@@ -71,6 +103,9 @@ class MarkdownLite
         }
 
         self::flushParagraph($paragraphBuffer, $html);
+        if ($specialBlock !== null) {
+            $html[] = '</div>';
+        }
 
         return implode('', $html);
     }

@@ -36,11 +36,8 @@ class ChatWidget extends Component
     protected function defaultQuickReplies(): array
     {
         return [
-            'How do I start a new transaction?',
-            'How can I check my appointment?',
-            'How can I check my document status?',
-            'Where can I find an LNU office?',
-            'What does the student handbook say?',
+            'Could you explain this answer further?',
+            'What is the next step for this matter?',
         ];
     }
 
@@ -50,9 +47,9 @@ class ChatWidget extends Component
 
         return match (true) {
             str_contains($question, 'office'), str_contains($question, 'registrar'), str_contains($question, 'cashier') => [
-                'Where is the Registrar\'s Office?',
-                'What services does the Cashier\'s Office provide?',
-                'Who handles scholarships?',
+                'Where is this office located?',
+                'What are this office\'s hours?',
+                'How can I contact this office?',
             ],
             str_contains($question, 'appointment'), str_contains($question, 'schedule'), str_contains($question, 'booking') => [
                 'How can I check my appointment?',
@@ -66,8 +63,8 @@ class ChatWidget extends Component
             ],
             str_contains($question, 'handbook'), str_contains($question, 'policy'), str_contains($question, 'rule') => [
                 'What other handbook policy should I explain?',
-                'Which LNU office can help with this policy?',
-                'How do I request a document?',
+                'Could you explain this policy further?',
+                'What does the handbook say about this policy?',
             ],
             default => $this->defaultQuickReplies(),
         };
@@ -82,14 +79,14 @@ class ChatWidget extends Component
         $context = mb_strtolower($question . ' ' . $answer);
         $followUp = match (true) {
             str_contains($context, 'handbook'), str_contains($context, 'policy'), str_contains($context, 'rule')
-                => 'Would you like clarification on another LNU handbook policy?',
+                => 'Would you like more detail about this handbook policy?',
             str_contains($context, 'appointment'), str_contains($context, 'schedule'), str_contains($context, 'booking')
-                => 'Would you like help with another appointment question?',
+                => 'Would you like more detail about this appointment process?',
             str_contains($context, 'document'), str_contains($context, 'transaction'), str_contains($context, 'request')
-                => 'Would you like help with another document request?',
+                => 'Would you like more detail about this document request?',
             str_contains($context, 'office'), str_contains($context, 'registrar'), str_contains($context, 'cashier')
-                => 'Would you like information about another LNU office?',
-            default => 'Would you like help with another LNU or DocuMate matter?',
+                => 'Would you like any other details about this office?',
+            default => 'Would you like me to explain any part of this answer further?',
         };
 
         return rtrim($answer) . "\n\n" . $followUp;
