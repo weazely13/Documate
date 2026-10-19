@@ -25,12 +25,7 @@
     $position = $isNonAcademic ? ($v['non_academic_position'] ?? '') : ($v['officer_position'] ?? ($v['position_held'] ?? ''));
     $orgName = $isNonAcademic ? ($v['non_academic_org'] ?? '') : ($v['officer_organization'] ?? '');
 
-    $studentSig = [
-        'name' => $v['student_name'] ?? '',
-        'signature' => $studentSignature ?? null,
-        'signed_at' => null,
-        'seal' => '',
-    ];
+    $studentSig = $studentSigner; 
 @endphp
 
 @section('body')

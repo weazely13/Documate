@@ -43,7 +43,8 @@ final class FormSupport
             'date_of_birth' => $user->date_of_birth ? Carbon::parse($user->date_of_birth)->format('m/d/Y') : '',
             'email' => (string) ($user->email ?? ''),
             'contact_number' => (string) ($user->contact_number ?? ''),
-            'college' => (string) ($user->college ?? ''),
+            'address' => (string) ($user->address ?? ''),
+            'college' => (string) ($user->college ?: ($user->program?->college?->name ?? '')),
             'program' => $programName,
             'section' => (string) ($user->section ?? ''),
             'organization' => (string) ($user->organization?->name ?? ''),
@@ -51,12 +52,30 @@ final class FormSupport
             'academic_status' => (string) ($user->academic_status ?? ''),
             'current_semester' => function_exists('currentSemester') ? (string) currentSemester() : '',
             'current_academic_year' => function_exists('currentAcademicYear') ? (string) currentAcademicYear() : '',
-            // Only exists once the transaction is COMPLETED (step 5 also adds 'signed_at').
             'issued_at' => $workspace?->issued_at?->format('m/d/Y') ?? '',
             'officer_position' => (string) ($user->officerRecord?->position?->title ?? ''),
             'officer_organization' => (string) ($user->officerRecord?->organization?->name ?? ''),
+            'year_section' => $ordinalYear
+                ? $ordinalYear . ($user->section ? '-' . $user->section : '')
+                : (string) ($user->section ?? ''),
             default => '',
         };
+    }
+    public static function nameDetail(?User $u): string
+    {
+        if (! $u) return '';
+        $first = trim((string) $u->first_name);
+        $last = trim((string) $u->last_name);
+        $middle = trim((string) $u->middle_name);
+
+        if (! preg_match('/\s/', $first) && ! preg_match('/\s/', $last)) return '';
+
+        return collect([
+            "First name: {$first}",
+            'Middle name: ' . ($middle !== '' ? $middle : 'none'),
+            "Last name: {$last}",
+            $u->suffix ? "Suffix: {$u->suffix}" : null,
+        ])->filter()->implode(' · ');
     }
 
     private static function programDegreePrefix(string $program): string

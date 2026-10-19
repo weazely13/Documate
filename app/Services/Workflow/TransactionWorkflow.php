@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
 use App\Services\Workflow\SignatoryScope;
 use App\Workflow\Documents\WorkflowDocument;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Appointment;
 
 /**
  * The single place where a workflow transaction changes state.
@@ -410,13 +411,15 @@ class TransactionWorkflow
                 throw WorkflowException::notOfficeDocument();
             }
             $this->assertCanIssue($issuer, $doc);
-
-            $student->loadMissing('role');
-            if (! in_array($student->role?->role_name, ['Student', 'Officer'], true) || $student->account_status !== 'active') {
-                throw WorkflowException::studentNotEligible();
-            }
-            if ((int) $issuer->id === (int) $student->id) {
-                throw WorkflowException::cannotIssueToSelf();
+            
+            if (! $doc->issuedToSelf()) {
+                $student->loadMissing('role');
+                if (! in_array($student->role?->role_name, ['Student', 'Officer'], true) || $student->account_status !== 'active') {
+                    throw WorkflowException::studentNotEligible();
+                }
+                if ((int) $issuer->id === (int) $student->id) {
+                    throw WorkflowException::cannotIssueToSelf();
+                }
             }
 
             $answers = [];
@@ -461,10 +464,24 @@ class TransactionWorkflow
                 'student_program' => FormSupport::systemValue($student, 'program_year_section'),
                 'student_course' => FormSupport::systemValue($student, 'program'),
                 'student_number' => FormSupport::systemValue($student, 'student_number'),
+                'student_name_detail' => FormSupport::nameDetail($student),
+                'student_contact' => FormSupport::systemValue($student, 'contact_number'),
+                'student_address' => FormSupport::systemValue($student, 'address'),
+                'student_college' => FormSupport::systemValue($student, 'college'),
+                'student_year_section' => FormSupport::systemValue($student, 'year_section'),
             ];
             
             if ($snapshot['student_name'] === '') {
                 throw WorkflowException::studentNameMissing();
+            }
+            if ($doc->issuedToSelf()) {
+                // The record is the interviewer's own: no program/year/section to show.
+                $snapshot['student_program'] = '';
+                $snapshot['student_course'] = '';
+                $snapshot['student_year_section'] = '';
+            }
+            if ($message = $doc->checkStudent($snapshot)) {
+                throw new WorkflowException($message);
             }
 
             if ($doc->issuedBySignatory()) {
@@ -486,21 +503,48 @@ class TransactionWorkflow
                 'student' => $snapshot['student_name'],
                 'document' => $doc->name(),
             ]);
-
             $ws = $this->acceptForSigning($ws, $issuer);
 
+            if ($slot = $doc->appointment($answers)) {
+                $this->bookAppointment($ws, $slot);
+            }
+
             $wsId = $ws->workspace_id;
-            DB::afterCommit(function () use ($wsId) {
-                try {
-                    $fresh = StudentDocumentWorkspace::with('user')->find($wsId);
-                    $fresh?->user?->notify(WorkflowNotification::forIssued($fresh));
-                } catch (\Throwable $e) {
-                    report($e);
-                }
-            });
+            if (! $doc->issuedToSelf()) {
+                $wsId = $ws->workspace_id;
+                DB::afterCommit(function () use ($wsId) {
+                    try {
+                        $fresh = StudentDocumentWorkspace::with('user')->find($wsId);
+                        $fresh?->user?->notify(WorkflowNotification::forIssued($fresh));
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+                });
+            }
 
             return $ws;
         });
+    }
+    protected function bookAppointment(StudentDocumentWorkspace $ws, array $slot): void
+    {
+        $next = (Appointment::where('appointment_date', $slot['date'])
+            ->where('session', $slot['session'])
+            ->whereNotNull('queue_number')
+            ->max('queue_number') ?? 0) + 1;
+
+        $appointment = Appointment::create([
+            'user_id' => $ws->user_id,
+            'workspace_id' => $ws->workspace_id,
+            'purpose' => $slot['purpose'],
+            'appointment_date' => $slot['date'],
+            'session' => $slot['session'],
+            'queue_number' => $next,
+            'status' => 'approved',
+            'ai_flag' => 'clean',
+            'reviewed_at' => now(),
+        ]);
+
+        $appointment->logStatus('approved', 'Booked automatically from ' . $ws->transaction_code);
     }
 
     /* ------------------------------------------------------------------ *
@@ -513,9 +557,9 @@ class TransactionWorkflow
      *
      * Re-check the signer's password in the component before calling this.
      */
-    public function approve(TransactionApproval $approval, User $signer, string $authMethod = 'account'): StudentDocumentWorkspace
+    public function approve(TransactionApproval $approval, User $signer, string $authMethod = 'account', array $extra = []): StudentDocumentWorkspace
     {
-        return DB::transaction(function () use ($approval, $signer, $authMethod) {
+        return DB::transaction(function () use ($approval, $signer, $authMethod, $extra) {
             $ws = $this->lock($approval->workspace_id);
             $approval = $this->lockApproval($approval->id);
             $this->assertActionable($ws, $approval, $signer);
@@ -524,15 +568,30 @@ class TransactionWorkflow
             if ($doc->signerSetsSchedule() && empty($ws->field_values['counseling_date'])) {
                 throw new WorkflowException('Set the counselling date and time before signing.');
             }
+            if ($doc->signerRecordsInspection()) {
+                $values = $ws->field_values ?? [];
+                $values['inspection_remarks'] = trim(mb_substr((string) ($extra['inspection_remarks'] ?? ''), 0, 300)) ?: null;
+                $values['inspection_date'] = today()->toDateString();
+                $ws->forceFill(['field_values' => $values])->save();
+                $approval->unsetRelation('workspace'); // so the seal is computed from the saved remarks
+            }
 
             // ONE save. The model's saving hook archives the signature, fills the name and hashes, and seals it.
             $approval->forceFill([
                 'status' => ApprovalStatus::Approved,
                 'acted_by' => $signer->id,
                 'auth_method' => $authMethod,
-                'signature_path' => $signer->signature_path,
+                'signature_path' => $signer->signature_enabled ? $signer->signature_path : null,
                 'acted_at' => now(),
             ])->save();
+
+            if ($doc->signerRecordsInspection()) {
+                Appointment::where('workspace_id', $ws->workspace_id)->where('status', 'approved')->get()
+                    ->each(function ($a) use ($signer) {
+                        $a->update(['status' => 'attended']);
+                        $a->logStatus('attended', 'Inspected by the VPSD.', $signer->id);
+                    });
+            }
 
             $this->audit($ws, $signer, 'approval.approved', $ws->workflow_status, $ws->workflow_status, [
                 'step' => $approval->step_order,
@@ -672,8 +731,8 @@ class TransactionWorkflow
         SigningRequest $request,
         array $response,
         string $signerName,
-        string $signaturePath,
-        string $signatureHash, // kept for the caller; the model's saving hook recomputes it
+        ?string $signaturePath,
+        ?string $signatureHash,
     ): StudentDocumentWorkspace {
         return DB::transaction(function () use ($request, $response, $signerName, $signaturePath) {
             $ws = $this->lock($request->workspace_id);
@@ -1051,7 +1110,7 @@ class TransactionWorkflow
             ->pluck('role.label')->filter()->unique()->implode(', ');
 
         $sig = null;
-        if ($issuer->signature_path && Storage::disk(SignatureStore::DISK)->exists($issuer->signature_path)) {
+        if ($issuer->signature_enabled && $issuer->signature_path && Storage::disk(SignatureStore::DISK)->exists($issuer->signature_path)) {
             [$sig] = app(SignatureStore::class)->archive($issuer->signature_path);
         }
 
@@ -1060,6 +1119,7 @@ class TransactionWorkflow
             'reporter_role' => $roles,
             'reporter_user_id' => $issuer->id,
             'reporter_signature_path' => $sig,
+            'reporter_name_detail' => FormSupport::nameDetail($issuer),
         ];
     }
 }

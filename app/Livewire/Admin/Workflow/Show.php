@@ -145,6 +145,9 @@ class Show extends Component
 
         app(TransactionWorkflow::class)->recordDownload($ws, Auth::user());
 
+        $this->dispatch('toast', type: 'success', title: 'Download complete',
+            message: 'Your PDF has been downloaded. Print it only if a physical copy is required.');
+
         return Storage::disk(DocumentPdf::DISK)->download($path, $ws->transaction_code . '.pdf');
     }
 

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use LogicException;
+use App\Models\User;
 
 /**
  * Lives at app/Models/Concerns/HasTransactionWorkflow.php. There must be ONLY ONE copy of this file.
@@ -122,5 +123,24 @@ trait HasTransactionWorkflow
     public function currentApproval(): ?TransactionApproval
     {
         return $this->approvals()->where('status', ApprovalStatus::Pending->value)->first();
+    }
+        /** Workspaces a staff member issued (Disciplinary Slip, Advisement, Rating sheet, ...). */
+    public function scopeIssuedBy(Builder $query, User|int $user): Builder
+    {
+        $id = $user instanceof User ? $user->id : $user;
+
+        return $query->whereExists(fn ($s) => $s->selectRaw('1')
+            ->from('transaction_audit_logs as l')
+            ->whereColumn('l.workspace_id', 'student_document_workspaces.workspace_id')
+            ->where('l.action', 'transaction.issued_by_role')
+            ->where('l.actor_id', $id));
+    }
+
+    public function wasIssuedBy(User $user): bool
+    {
+        return $this->auditLogs()
+            ->where('action', 'transaction.issued_by_role')
+            ->where('actor_id', $user->id)
+            ->exists();
     }
 }

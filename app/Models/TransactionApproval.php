@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
+use App\Services\Workflow\FormSupport;
 
 class TransactionApproval extends Model
 {
@@ -41,7 +42,7 @@ class TransactionApproval extends Model
                // Internal signers: the name comes from their account. External signers typed it themselves.
                 if ($a->signer_type !== 'external') {
                     $signer = User::find($a->acted_by);
-                    $a->signer_name = trim(implode(' ', array_filter([$signer?->first_name, $signer?->last_name])));
+                    $a->signer_name = $signer ? FormSupport::systemValue($signer, 'formatted_full_name') : '';
                 }
                 $a->content_hash = Seal::contentHash($a->workspace);
 
@@ -66,7 +67,7 @@ class TransactionApproval extends Model
 
     public function actor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'acted_by');
+        return $this->belongsTo(User::class, 'acted_by')->withTrashed();
     }
 
     /** The signatory inbox: open approvals whose role the user currently holds. */

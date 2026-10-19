@@ -9,7 +9,7 @@ class Organization extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'is_active', 'is_academic'];
+    protected $fillable = ['name', 'description', 'is_active', 'is_academic', 'year_level'];
 
     protected $casts = [
         'is_active' => 'boolean',

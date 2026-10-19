@@ -7,7 +7,7 @@ namespace App\Workflow\Documents;
  * The student names a rater (classmate or teacher). The rater needs no DocuMate account:
  * they get an emailed link, confirm their email with a one-time code, then rate and sign.
  */
-final class ModelStudentRating extends WorkflowDocument
+class ModelStudentRating extends WorkflowDocument
 {
     public const RATINGS = [
         5 => 'Outstanding',

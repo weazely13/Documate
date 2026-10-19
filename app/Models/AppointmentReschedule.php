@@ -17,6 +17,6 @@ class AppointmentReschedule extends Model
 
     public function rescheduledBy()
     {
-        return $this->belongsTo(User::class, 'rescheduled_by');
+        return $this->belongsTo(User::class, 'rescheduled_by')->withTrashed();
     }
 }

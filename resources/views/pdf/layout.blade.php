@@ -43,6 +43,7 @@
     .sig-name { border-top: .6pt solid #555; margin: 0 14pt; padding-top: 3pt; font-weight: bold; font-size: 9pt; text-transform: uppercase; }
     .sig-cap { font-size: 7.5pt; color: #555; line-height: 1.4; }
     .sig-seal { font-size: 6.5pt; color: #999; margin-top: 3pt; line-height: 1.4; }
+    .sig-detail { font-size:6.5pt; color:#666; text-align:center; line-height:1.3; }
 
     /* Verification footer */
     .foot { position: fixed; left: 0; right: 0; bottom: -78pt; height: 72pt; border-top: .6pt solid #c8c8c8; padding-top: 8pt; }

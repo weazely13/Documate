@@ -5,6 +5,10 @@ namespace App\Workflow\Documents;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\CounselorAvailability;
+use App\Models\SignatoryRole;
+use App\Services\Workflow\FormSupport;
+use App\Models\StudentDocumentWorkspace;
+
 
 /**
  * A paperless document defined in code (no template editor, no template tables).
@@ -88,6 +92,19 @@ abstract class WorkflowDocument
     {
         return $this->fields() + $this->reviewerFields();
     }
+    /**
+     * Account details the system fills in. Shown read-only on the student form,
+     * and checked for presence before the student can submit.
+     * key in the student snapshot => label.
+     */
+    public function systemFields(): array
+    {
+        return [
+            'student_name' => 'Name',
+            'student_number' => 'Student number',
+            'student_program' => 'Program, year and section',
+        ];
+    }
 
     /** Cross-field checks that can't be expressed as per-field rules. Return an error message or null. */
     public function check(array $values): ?string
@@ -152,6 +169,18 @@ abstract class WorkflowDocument
     {
         return 1;
     }
+    
+
+    /** [paper size, orientation]. Size is a name ('a4') or [0, 0, width, height] in points. */
+    public function pdfPaper(): array
+    {
+        return ['a4', 'portrait'];
+    }
+    /** Extra values frozen from the student's account into the record. */
+    public function studentSnapshotExtras(\App\Models\User $user): array
+    {
+        return [];
+    }
 
     /** One line for lists, built from the saved answers. */
     public function summary(array $values): string
@@ -211,6 +240,11 @@ abstract class WorkflowDocument
     {
         return false;
     }
+    /** True when the issuer owns the record and no student is picked (e.g. a score sheet covering many students). */
+    public function issuedToSelf(): bool
+    {
+        return false;
+    }
 
     /** Issued by staff with a signatory role instead of by the VPSD admin. */
     public function issuerIsStaff(): bool
@@ -246,5 +280,56 @@ abstract class WorkflowDocument
     public function beforeIssue(array $answers): array
     {
         return $answers;
+    }
+    /** True when the signer records an inspection (remarks) while signing. */
+    public function signerRecordsInspection(): bool
+    {
+        return false;
+    }
+
+
+    /** ['date' => Y-m-d, 'session' => morning|afternoon, 'purpose' => text] to auto-book an appointment on issue, or null. */
+    public function appointment(array $values): ?array
+    {
+        return null;
+    }
+    /** Freeze the current VPSD's name as the addressee (no signature). Safe to run twice. */
+    protected function withVpsdName(array $values): array
+    {
+        if (! empty($values['vpsd_name'])) {
+            return $values;
+        }
+
+        $holder = SignatoryRole::where('key', 'vpsd')->first()?->holdersFor(null, null)->first();
+        $values['vpsd_name'] = $holder ? FormSupport::systemValue($holder, 'formatted_full_name') : null;
+
+        return $values;
+    }
+    /** Key of another document the issuer must pick from the student's own submissions. null = none. */
+    public function sourceDocumentType(): ?string
+    {
+        return null;
+    }
+
+    /** Copy data from the chosen source record into the answers. Runs after validation, before issuing. */
+    public function fillFromSource(array $answers, StudentDocumentWorkspace $source): array
+    {
+        return $answers;
+    }
+    /** Checks the picked student's frozen details when a document is issued. Return an error message or null. */
+    public function checkStudent(array $snapshot): ?string
+    {
+        return null;
+    }
+    /** True when the student searches for another student (the nominee) and the details are copied from that account. */
+    public function usesNomineePicker(): bool
+    {
+        return false;
+    }
+
+    /** Details copied from the nominee's account into the record. Never shown to the student except name, college, program and year/section. */
+    public function nomineeSnapshot(User $nominee): array
+    {
+        return [];
     }
 }

@@ -224,6 +224,18 @@
                                 </div>
                             @endif
                         </div>
+                        <div class="sm:col-span-2">
+                            <label for="address" class="block text-xs font-semibold uppercase tracking-wider text-gray-500">Address</label>
+                            @if ($editing)
+                                <textarea wire:model="address" id="address" rows="2" maxlength="250" placeholder="House no., street, barangay, city/municipality, province"
+                                        class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]"></textarea>
+                                @error('address') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            @else
+                                <div class="mt-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-900">
+                                    {{ $address ?: '—' }}
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -507,54 +519,58 @@
                     </div>
                 </div>
             </div>
-            @if (auth()->user()->isSignatory())
-                <div class="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5 lg:col-span-full"> 
-                    <h2 class="text-sm font-semibold text-gray-900">E-signature</h2>
-                    <p class="text-xs text-gray-500">Used on documents you approve. Stored privately; changing it never alters documents you already signed.</p>
+            
+            <div class="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5 lg:col-span-full"> 
+                <h2 class="text-sm font-semibold text-gray-900">E-signature</h2>
+                <p class="text-xs text-gray-500">Used on documents you approve. Stored privately; changing it never alters documents you already signed.</p>
+                <label class="mt-3 flex items-start gap-2 text-sm text-gray-700">
+                    <input type="checkbox" wire:click="toggleSignatureEnabled" @checked($signature_enabled) class="mt-0.5 h-4 w-4 accent-[#2A57B4]">
+                    <span>Apply my e-signature image to documents I sign.
+                        <span class="block text-xs text-gray-400">Turn off if you do not consent to your signature image appearing. Signing will still be recorded with your name and seal.</span></span>
+                </label>
+                @if (auth()->user()->signature_path)
+                    <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Current signature</p>
+                    <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}"
+                        class="mt-1 h-20 rounded border border-gray-100 bg-white p-1" alt="Your signature">
+                @endif
 
-                    @if (auth()->user()->signature_path)
-                        <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Current signature</p>
-                        <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}"
-                            class="mt-1 h-20 rounded border border-gray-100 bg-white p-1" alt="Your signature">
-                    @endif
+                <p class="mt-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    {{ auth()->user()->signature_path ? 'Draw a new signature' : 'Draw your signature' }}
+                </p>
+                <p class="text-xs text-gray-400">Use your finger, stylus or mouse.</p>
 
-                    <p class="mt-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                        {{ auth()->user()->signature_path ? 'Draw a new signature' : 'Draw your signature' }}
-                    </p>
-                    <p class="text-xs text-gray-400">Use your finger, stylus or mouse.</p>
-
-                    <div wire:ignore class="mt-2"
-                        x-on:signature-saved.window="clear()"
-                        x-data="{
-                            drawing: false, has: false, ctx: null,
-                            init() { const c = this.$refs.c; this.ctx = c.getContext('2d'); this.ctx.lineWidth = 5; this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round'; this.ctx.strokeStyle = '#111'; },
-                            pos(e) { const c = this.$refs.c, r = c.getBoundingClientRect(); return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height]; },
-                            start(e) { this.drawing = true; const [x, y] = this.pos(e); this.ctx.beginPath(); this.ctx.moveTo(x, y); this.ctx.lineTo(x + 0.1, y + 0.1); this.ctx.stroke(); },
-                            move(e) { if (!this.drawing) return; const [x, y] = this.pos(e); this.ctx.lineTo(x, y); this.ctx.stroke(); this.has = true; },
-                            end() { if (!this.drawing) return; this.drawing = false; if (this.has) { $wire.$set('signatureData', this.$refs.c.toDataURL('image/png'), false); } },
-                            clear() { this.ctx.clearRect(0, 0, 1200, 600); this.has = false; $wire.$set('signatureData', '', false); }
-                        }">
-                        <canvas x-ref="c" width="1200" height="600"
-                            class="w-full max-w-3xl touch-none rounded-xl border border-dashed border-gray-300 bg-white"
-                            style="aspect-ratio: 2 / 1;"
-                            @pointerdown.prevent="start($event)" @pointermove.prevent="move($event)"
-                            @pointerup="end()" @pointerleave="end()"></canvas>
-                        <button type="button" @click="clear()" class="mt-1.5 text-xs font-medium text-gray-500 hover:text-red-600">Clear</button>
-                    </div>
-                    @error('signatureData') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-
-                    <input type="password" wire:model="signature_password" wire:keydown.enter.prevent="saveSignature"
-                        placeholder="Confirm your password" autocomplete="current-password"
-                        class="mt-3 block w-full rounded-md border-gray-300 text-sm shadow-sm">
-                    @error('signature_password') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-
-                    <button type="button" wire:click="saveSignature" wire:loading.attr="disabled" wire:target="saveSignature"
-                            class="mt-3 w-full rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-                        <span wire:loading.remove wire:target="saveSignature">Save signature</span>
-                        <span wire:loading wire:target="saveSignature">Saving…</span>
-                    </button>
+                <div wire:ignore class="mt-2"
+                    x-on:signature-saved.window="clear()"
+                    x-data="{
+                        drawing: false, has: false, ctx: null,
+                        init() { const c = this.$refs.c; this.ctx = c.getContext('2d'); this.ctx.lineWidth = 5; this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round'; this.ctx.strokeStyle = '#111'; },
+                        pos(e) { const c = this.$refs.c, r = c.getBoundingClientRect(); return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height]; },
+                        start(e) { this.drawing = true; const [x, y] = this.pos(e); this.ctx.beginPath(); this.ctx.moveTo(x, y); this.ctx.lineTo(x + 0.1, y + 0.1); this.ctx.stroke(); },
+                        move(e) { if (!this.drawing) return; const [x, y] = this.pos(e); this.ctx.lineTo(x, y); this.ctx.stroke(); this.has = true; },
+                        end() { if (!this.drawing) return; this.drawing = false; if (this.has) { $wire.$set('signatureData', this.$refs.c.toDataURL('image/png'), false); } },
+                        clear() { this.ctx.clearRect(0, 0, 1200, 600); this.has = false; $wire.$set('signatureData', '', false); }
+                    }">
+                    <canvas x-ref="c" width="1200" height="600"
+                        class="w-full max-w-3xl touch-none rounded-xl border border-dashed border-gray-300 bg-white"
+                        style="aspect-ratio: 2 / 1;"
+                        @pointerdown.prevent="start($event)" @pointermove.prevent="move($event)"
+                        @pointerup="end()" @pointerleave="end()"></canvas>
+                    <button type="button" @click="clear()" class="mt-1.5 text-xs font-medium text-gray-500 hover:text-red-600">Clear</button>
                 </div>
-            @endif
+                @error('signatureData') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+
+                <input type="password" wire:model="signature_password" wire:keydown.enter.prevent="saveSignature"
+                    placeholder="Confirm your password" autocomplete="current-password"
+                    class="mt-3 block w-full rounded-md border-gray-300 text-sm shadow-sm">
+                @error('signature_password') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+
+                <button type="button" wire:click="saveSignature" wire:loading.attr="disabled" wire:target="saveSignature"
+                        class="mt-3 w-full rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+                    <span wire:loading.remove wire:target="saveSignature">Save signature</span>
+                    <span wire:loading wire:target="saveSignature">Saving…</span>
+                </button>
+            </div>
+         
 
         </div>
     </form>

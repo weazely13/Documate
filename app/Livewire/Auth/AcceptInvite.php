@@ -10,6 +10,7 @@ use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use App\Services\Workflow\SignatureStore;
 
 /** PUBLIC page: a newly invited signatory chooses a password. The emailed token is the only way in. */
 class AcceptInvite extends Component
@@ -20,6 +21,9 @@ class AcceptInvite extends Component
     public string $password = '';
     public string $password_confirmation = '';
     public bool $agree = false;
+    public string $signature = ''; 
+    public bool $consentSignature = true;
+    public bool $declined = false;
 
     public function mount(string $token): void
     {
@@ -32,6 +36,24 @@ class AcceptInvite extends Component
         $invitation = $this->invitationId ? UserInvitation::with('user')->find($this->invitationId) : null;
 
         return $invitation?->isUsable() ? $invitation : null;
+    }
+
+    public function decline()
+    {
+        if (! $this->invitation) {
+            $this->addError('password', 'This link is no longer valid.');
+            return;
+        }
+
+        try {
+            app(SignatoryInvitations::class)->close($this->invitationId, 'declined');
+        } catch (\RuntimeException $e) {
+            $this->addError('password', 'This invitation was already closed.');
+            return;
+        }
+
+        unset($this->invitation);
+        $this->declined = true;
     }
 
     public function accept()
@@ -77,6 +99,14 @@ class AcceptInvite extends Component
         }
 
         Auth::login($user);
+        if (trim($this->signature) !== '') {
+            try {
+                app(SignatureStore::class)->storeFromDataUrl($user, $this->signature);
+                $user->forceFill(['signature_enabled' => $this->consentSignature])->save();
+            } catch (\InvalidArgumentException $e) {
+                // non-blocking: they can add it later in Profile
+            }
+        }
         session()->regenerate();
 
         return $this->redirect(route('signatory.inbox'), navigate: true);

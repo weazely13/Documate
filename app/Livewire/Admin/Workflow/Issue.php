@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use App\Enums\ApprovalStatus;
+use App\Models\StudentDocumentWorkspace;
 
 /** VPSD issues a document TO a student (e.g. the Student Appointment Slip). One button: it goes straight to signing. */
 class Issue extends Component
@@ -21,6 +22,7 @@ class Issue extends Component
 
     /** @var array<string, mixed> */
     public array $values = [];
+    public ?int $sourceId = null;
 
     public function mount(): void
     {
@@ -52,6 +54,7 @@ class Issue extends Component
 
     public function updatedType(): void
     {
+        $this->sourceId = null; 
         if (! array_key_exists($this->type, $this->officeDocuments())) {
             $this->type = (string) array_key_first($this->officeDocuments());
         }
@@ -59,16 +62,36 @@ class Issue extends Component
         $this->resetValues();
         $this->resetErrorBag();
     }
-
-    public function updatingStudentSearch(): void
+    public function updatedStudentId(): void
     {
-        $this->studentId = null;
+        $this->sourceId = null;
     }
 
     public function selectStudent(int $userId): void
     {
         $this->studentId = $userId;
+        $this->sourceId = null;   // add
         $this->studentSearch = '';
+    }
+    #[Computed]
+    public function sourceOptions()
+    {
+        $type = $this->document->sourceDocumentType();
+        if (! $type || ! $this->studentId) {
+            return collect();
+        }
+
+        return StudentDocumentWorkspace::query()
+            ->where('user_id', $this->studentId)
+            ->where('document_type', $type)
+            ->whereIn('workflow_status', ['submitted', 'under_review', 'approved', 'completed'])
+            ->latest('submitted_at')
+            ->get();
+    }
+
+    public function updatingStudentSearch(): void
+    {
+        $this->studentId = null;
     }
 
     #[Computed]
@@ -108,8 +131,9 @@ class Issue extends Component
     private function rules(): array
     {
         $rules = [
-            'studentId' => ['required', 'exists:users,id'],
+            'studentId' => $this->document->issuedToSelf() ? ['nullable'] : ['required', 'exists:users,id'],
             'type' => ['required', 'in:' . implode(',', array_keys($this->officeDocuments()))],
+            'sourceId' => $this->document->sourceDocumentType() ? ['required', 'integer'] : ['nullable'],
         ];
 
         foreach ($this->document->fields() as $name => $f) {
@@ -151,7 +175,18 @@ class Issue extends Component
         $this->resetErrorBag();
         $this->validate($this->rules(), [], $this->attributes());
 
-        $student = User::findOrFail($this->studentId);
+        $student = $this->document->issuedToSelf() ? Auth::user() : User::findOrFail($this->studentId);
+        if ($this->document->sourceDocumentType()) {
+            $source = $this->sourceOptions->firstWhere('workspace_id', $this->sourceId);
+
+            if (! $source) {
+                $this->addError('sourceId', 'Choose one of this student\'s applications.');
+
+                return;
+            }
+
+            $this->values = $this->document->fillFromSource($this->values, $source);
+        }
 
         try {
             $ws = app(TransactionWorkflow::class)->issueForStudent(Auth::user(), $student, $this->type, $this->values);
@@ -166,7 +201,9 @@ class Issue extends Component
             $mine = $ws->approvals()->where('status', ApprovalStatus::Pending->value)->first();
             $mine = $mine && $mine->isAssignedTo(Auth::user()) ? $mine : null;
 
-            $msg = 'Issued. The student was notified.';
+            $msg = $this->document->issuedToSelf()
+                ? 'Saved. The VPSD office will do the final verification.'
+                : 'Issued. The student was notified.';
             if ($mine) {
                 $msg .= $manual ? ' Sign it now, then send it to the committee members.' : ' It is waiting in your signing inbox.';
             }
@@ -178,6 +215,38 @@ class Issue extends Component
         }
 
         return $this->redirectRoute('admin.workflow.show', ['workspace' => $ws->workspace_id], navigate: true);
+    }
+
+    // ** Called from the rating grid. Active students/officers only, never the issuer. */
+    public function searchInterviewees(string $term): array
+    {
+        abort_unless($this->document instanceof \App\Workflow\Documents\CollegeModelInterviewRating, 403);
+
+        $term = trim($term);
+        if (mb_strlen($term) < 2) {
+            return [];
+        }
+        $like = '%' . $term . '%';
+
+        return User::query()
+            ->with('program')
+            ->whereHas('role', fn ($q) => $q->whereIn('role_name', ['Student', 'Officer']))
+            ->where('account_status', 'active')
+            ->where('id', '!=', Auth::id())
+            ->where(fn ($q) => $q
+                ->where('first_name', 'like', $like)
+                ->orWhere('last_name', 'like', $like)
+                ->orWhere('student_number', 'like', $like))
+            ->orderBy('last_name')
+            ->limit(8)
+            ->get()
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => trim($u->first_name . ' ' . $u->last_name),
+                'number' => $u->student_number,
+                'program' => $u->program?->name,
+            ])
+            ->all();
     }
     
 

@@ -46,6 +46,7 @@ trait HasHostedBy
 
         return Organization::active()
             ->where('is_academic', false)
+            ->whereNull('year_level')
             ->whereIn('id', $orgIds)
             ->pluck('id', 'name')
             ->all();
@@ -65,6 +66,7 @@ trait HasHostedBy
     {
         $nonAcademic = Organization::active()
             ->where('is_academic', false)
+            ->whereNull('year_level')
             ->orderBy('name')
             ->pluck('name')
             ->all();

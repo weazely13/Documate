@@ -33,10 +33,22 @@ class Inbox extends Component
 
     #[Url(except: 'all')]
     public string $result = 'all';       // history tab: all | approved | rejected
+    public int $lastWaiting = 0;
 
     public function mount(): void
     {
         abort_unless(Auth::user()->isSignatory(), 403);
+        $this->lastWaiting = $this->pendingQuery(Auth::user())->count();
+    }
+
+    public function checkNew(): void
+    {
+        $n = $this->pendingQuery(Auth::user())->count();
+        if ($n > $this->lastWaiting) {
+            $this->dispatch('toast', type: 'success', title: 'Ready for your signature',
+                message: $n === 1 ? 'A document is now waiting for your signature.' : "{$n} documents are now waiting for your signature.");
+        }
+        $this->lastWaiting = $n;
     }
 
     public function updated($name): void
@@ -127,8 +139,16 @@ class Inbox extends Component
             ->get();
 
         $docTypes = collect(DocumentRegistry::all())->map(fn ($d) => $d->name())->sort()->all();
+        // Roles this user holds today (same "current" rule the inbox uses), with open work per role.
+        $myRoles = $user->signatoryAssignments()->current()->with('role')->get()
+            ->sortBy(fn ($a) => $a->role->label ?? '')->values();
 
-        return view('livewire.signatory.inbox', compact('pending', 'history', 'stats', 'byRole', 'tab', 'docTypes', 'waitingTotal'))
+        $waitingByRole = $this->pendingQuery($user)->toBase()
+            ->selectRaw('signatory_role_id, COUNT(*) AS c')
+            ->groupBy('signatory_role_id')
+            ->pluck('c', 'signatory_role_id');
+
+        return view('livewire.signatory.inbox', compact('pending', 'history', 'stats', 'byRole', 'tab', 'docTypes', 'waitingTotal', 'myRoles', 'waitingByRole'))
             ->layout('layouts.app', ['title' => 'Signing Inbox']);
     }
 }

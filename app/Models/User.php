@@ -15,6 +15,7 @@ use App\Models\Setting;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 use App\Models\Concerns\HasSignatoryRoles;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'student_number',
@@ -26,6 +27,7 @@ use App\Models\Concerns\HasSignatoryRoles;
     'date_of_birth',
     'email',
     'contact_number',
+    'address',
     'college',
     'program_id',
     'organization_id',
@@ -42,7 +44,7 @@ use App\Models\Concerns\HasSignatoryRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
     use HasSignatoryRoles;
 
     /**
@@ -56,7 +58,17 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'signature_enabled' => 'boolean'
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (User $u) {
+            if (! $u->isForceDeleting()) {
+                $u->signatoryAssignments()->update(['is_active' => false]); // a deleted user can't hold a signing role
+            }
+        });
     }
     public function role()
     {
@@ -106,6 +118,7 @@ class User extends Authenticatable
             ->where('status', StudentVerification::STATUS_VERIFIED)
             ->exists();
     }
+    
 
     // =========================================================
     // Organization / Role Manager additions

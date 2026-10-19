@@ -43,7 +43,7 @@
 </head>
 <body class="bg-gray-50 antialiased overflow-x-hidden">
 
-<div class="layout flex h-screen overflow-hidden">
+<div class="layout flex h-dvh overflow-hidden">
     @php
         $inactive = auth()->check() && auth()->user()->account_status !== 'active';
         $role = auth()->user()->role->role_name ?? null;
@@ -90,9 +90,9 @@
                         <i class='bx bx-home link-icon'></i>
                         <span class="link-text">Dashboard</span>
                     </a>
-                    <a href="{{ route('student.new-transaction') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.new-transaction*', 'student.transactions.new') ? 'active' : '' }}" data-tooltip="New Transaction">
+                    <a href="{{ route('student.new-transaction') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.new-transaction*', 'student.transactions.new') ? 'active' : '' }}" data-tooltip="Create Transaction">
                         <i class='bx bx-plus-circle link-icon'></i>
-                        <span class="link-text">New Transaction</span>
+                        <span class="link-text">Create Transaction</span>
                     </a>
                     <a href="{{ route('student.appointments.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.appointments.*') ? 'active' : '' }}" data-tooltip="Appointments">
                         <i class='bx bx-calendar link-icon'></i>
@@ -129,9 +129,9 @@
                         <i class='bx bx-home link-icon'></i>
                         <span class="link-text">Dashboard</span>
                     </a>
-                    <a href="{{ route('student.new-transaction') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.new-transaction*', 'student.transactions.new') ? 'active' : '' }}" data-tooltip="New Transaction">
+                    <a href="{{ route('student.new-transaction') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.new-transaction*', 'student.transactions.new') ? 'active' : '' }}" data-tooltip="Create Transaction">
                         <i class='bx bx-plus-circle link-icon'></i>
-                        <span class="link-text">New Transaction</span>
+                        <span class="link-text">Create Transaction</span>
                     </a>
                     <a href="{{ route('student.appointments.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('student.appointments.*') ? 'active' : '' }}" data-tooltip="Appointments">
                         <i class='bx bx-calendar link-icon'></i>
@@ -197,9 +197,9 @@
                         <i class='bx bx-camera link-icon'></i>
                         <span class="link-text">Document Uploads</span>
                     </a>
-                    <a href="{{ route('admin.clearance-monitoring') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.clearance-monitoring') ? 'active' : '' }}" data-tooltip="Clearance Monitoring">
+                    <a href="{{ route('admin.clearance-monitoring') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.clearance-monitoring') ? 'active' : '' }}" data-tooltip="Clearance Management">
                         <i class='bx bx-clipboard link-icon'></i>
-                        <span class="link-text">Clearance Monitoring</span>
+                        <span class="link-text">Clearance Management</span>
                     </a>
                     <a href="{{ route('admin.verification') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.verification') ? 'active' : '' }}" data-tooltip="Verification">
                         <i class='bx bx-id-card link-icon'></i>
@@ -232,7 +232,10 @@
                 </div>
             @endif
             @if(auth()->check() && ! $inactive && auth()->user()->isSignatory())
-                @php $signCount = \App\Models\TransactionApproval::assignableTo(auth()->user())->count(); @endphp
+                @php
+                    $signCount = \App\Models\TransactionApproval::assignableTo(auth()->user())->count();
+                    $canIssue = count(auth()->user()->issuableDocuments()) > 0;
+                @endphp
                 <div class="sidebar-section">
                     <p class="section-title">Signing</p>
                     <a href="{{ route('signatory.inbox') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.inbox', 'signatory.show') ? 'active' : '' }}" data-tooltip="Signing Inbox">
@@ -241,13 +244,17 @@
                         @if($signCount > 0)
                             <span class="ml-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ $signCount }}</span>
                         @endif
-                        @if(count(auth()->user()->issuableDocuments()) > 0)
-                            <a href="{{ route('signatory.issue') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.issue') ? 'active' : '' }}" data-tooltip="Issue a Report">
-                                <i class='bx bx-file link-icon'></i>
-                                <span class="link-text">Issue a Report</span>
-                            </a>
-                        @endif
                     </a>
+                    @if($canIssue)
+                        <a href="{{ route('signatory.issue') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.issue') ? 'active' : '' }}" data-tooltip="Issue a Report">
+                            <i class='bx bx-file link-icon'></i>
+                            <span class="link-text">Issue a Report</span>
+                        </a>
+                        <a href="{{ route('signatory.issued') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.issued*') ? 'active' : '' }}" data-tooltip="Issued Documents">
+                            <i class='bx bx-folder-open link-icon'></i>
+                            <span class="link-text">Issued Documents</span>
+                        </a>
+                    @endif
                     @if(auth()->user()->holdsSignatoryRole('guidance_counselor'))
                         <a href="{{ route('signatory.availability') }}" wire:navigate class="sidebar-link {{ request()->routeIs('signatory.availability') ? 'active' : '' }}" data-tooltip="My Availability">
                             <i class='bx bx-time link-icon'></i>
@@ -262,14 +269,14 @@
                     @endif
                 </div>
             @endif
-            @if($role === 'Signatory')
+            {{-- @if($role === 'Signatory')
                 <div class="sidebar-section">
                     <a href="{{ route('profile') }}" wire:navigate class="sidebar-link {{ request()->routeIs('profile') ? 'active' : '' }}" data-tooltip="Profile">
                         <i class='bx bx-user-circle link-icon'></i>
                         <span class="link-text">Profile</span>
                     </a>
                 </div>
-            @endif
+            @endif --}}
 
         </div>
 
@@ -291,7 +298,7 @@
     </aside>
 
     {{-- MAIN CONTENT AREA --}}
-    <main class="main-content flex flex-col flex-1 h-screen overflow-hidden">
+    <main class="main-content flex flex-col flex-1 h-dvh overflow-hidden">
 
         <div class="topbar bg-white border-b border-gray-200 sticky top-0 z-40 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.05)]">
 
@@ -378,6 +385,7 @@
 </div>
 
 <div id="tooltip"></div>
+<x-toast-stack />
 @livewireScripts
 
 <script>

@@ -27,6 +27,7 @@
             Secure signing page. Never share this link.
         </p>
     </div>
+    <x-toast-stack />
     @livewireScripts
 </body>
 </html>

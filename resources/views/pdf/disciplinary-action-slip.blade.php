@@ -18,12 +18,7 @@
 
     $offenseWhen = trim($fmtDate($v['offense_date'] ?? null) . (! empty($v['offense_time']) ? ' at ' . $fmtTime($v['offense_time']) : ''));
 
-    $reporter = [
-        'name' => $v['reporter_name'] ?? '',
-        'signature' => $reporterSignature ?? null,
-        'signed_at' => null,
-        'seal' => '',
-    ];
+    $reporter = $reporterSigner;
 
     $dateIssued = ($issuedAt ?? $submittedAt)?->format('F j, Y') ?? '';
 @endphp

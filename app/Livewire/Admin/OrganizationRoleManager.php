@@ -44,7 +44,6 @@ class OrganizationRoleManager extends Component
     public string $filterOffOrg = '';
     public string $filterOffPosition = '';
 
-    // NEW: Signatories filters
     public string $filterSigSearch = '';
     public string $filterSigRole = '';
     public string $filterSigStatus = ''; // current | upcoming | expired | inactive
@@ -54,6 +53,9 @@ class OrganizationRoleManager extends Component
     public string $orgName = '';
     public string $orgDescription = '';
     public array $orgProgramIds = [];
+    public bool $orgIsAcademic = true;
+    /** 1..4 for a year level organization, null/'' otherwise. Untyped on purpose: a <select> sends "". */
+    public $orgYearLevel = null;
 
     // ---- Positions form ----
     public ?int $editingPositionId = null;
@@ -74,13 +76,13 @@ class OrganizationRoleManager extends Component
     public string $pickerCollege = '';
     public string $pickerView = 'all';
 
-    // ---- NEW: Signatory roles form ----
+    // ---- Signatory roles form ----
     public ?int $editingSigRoleId = null;
     public string $sigRoleKey = '';
     public string $sigRoleLabel = '';
     public string $sigRoleDescription = '';
 
-    // ---- NEW: Assign signatory form ----
+    // ---- Assign signatory form ----
     public string $sigUserSearch = '';
     public ?int $sigSelectedUserId = null;
     public ?int $sigRoleId = null;
@@ -96,8 +98,30 @@ class OrganizationRoleManager extends Component
     public string $sigRoleScope = 'none';
     public ?int $sigScopeId = null;
     public ?int $invScopeId = null;
-    public bool $orgIsAcademic = true;
+
     public function updatedInvRoleId(): void { $this->invScopeId = null; }
+
+    // =========================================================
+    // FORM HOOKS: year level vs academic
+    // =========================================================
+
+    /** Picking a year level makes the organization independent of programs. */
+    public function updatedOrgYearLevel($value): void
+    {
+        if ($value !== null && $value !== '') {
+            $this->orgIsAcademic = false;
+            $this->orgProgramIds = [];
+            $this->resetErrorBag('orgProgramIds');
+        }
+    }
+
+    /** Ticking "Academic" again means it is not a year level organization. */
+    public function updatedOrgIsAcademic($value): void
+    {
+        if ($value) {
+            $this->orgYearLevel = null;
+        }
+    }
 
     // =========================================================
     // FILTER / PAGINATION HOOKS
@@ -138,37 +162,57 @@ class OrganizationRoleManager extends Component
     // =========================================================
     public function saveOrganization(): void
     {
+        // Normalise the select value ("" -> null, "2" -> 2)
+        $this->orgYearLevel = ($this->orgYearLevel === '' || $this->orgYearLevel === null)
+            ? null
+            : (int) $this->orgYearLevel;
+
+        $isYearLevel = $this->orgYearLevel !== null;
+        $isAcademic  = $isYearLevel ? false : $this->orgIsAcademic;
+
         $data = $this->validate([
             'orgName' => ['required', 'string', 'max:255', Rule::unique('organizations', 'name')->ignore($this->editingOrgId)],
             'orgDescription' => ['nullable', 'string', 'max:1000'],
             'orgIsAcademic' => ['boolean'],
-            'orgProgramIds' => [Rule::requiredIf($this->orgIsAcademic), 'array'],
+            'orgProgramIds' => [Rule::requiredIf($isAcademic), 'array'],
             'orgProgramIds.*' => ['exists:programs,id'],
-        ], [], [
+            'orgYearLevel' => [
+                'nullable', 'integer', 'between:1,4',
+                // only one organization per year level
+                Rule::unique('organizations', 'year_level')->ignore($this->editingOrgId),
+            ],
+        ], [
+            'orgYearLevel.unique' => 'There is already an organization for that year level.',
+        ], [
             'orgName' => 'organization name',
             'orgProgramIds' => 'programs',
+            'orgYearLevel' => 'year level',
         ]);
 
-        $programIds = $this->orgIsAcademic ? array_map('intval', $data['orgProgramIds'] ?? []) : [];
+        // Year level organizations never have programs.
+        $programIds = $isAcademic ? array_map('intval', $data['orgProgramIds'] ?? []) : [];
 
-        // A program can belong to only one organization
-        $taken = DB::table('organization_program')
-            ->whereIn('program_id', $programIds)
-            ->when($this->editingOrgId, fn ($q) => $q->where('organization_id', '<>', $this->editingOrgId))
-            ->pluck('program_id');
+        if ($programIds !== []) {
+            // A program can belong to only one organization
+            $taken = DB::table('organization_program')
+                ->whereIn('program_id', $programIds)
+                ->when($this->editingOrgId, fn ($q) => $q->where('organization_id', '<>', $this->editingOrgId))
+                ->pluck('program_id');
 
-        if ($taken->isNotEmpty()) {
-            $names = Program::whereIn('id', $taken)->pluck('name')->implode(', ');
-            $this->addError('orgProgramIds', "Already assigned to another organization: {$names}.");
-            return;
+            if ($taken->isNotEmpty()) {
+                $names = Program::whereIn('id', $taken)->pluck('name')->implode(', ');
+                $this->addError('orgProgramIds', "Already assigned to another organization: {$names}.");
+                return;
+            }
         }
 
         // Don't drop a program that one of this organization's officers belongs to
-        if ($this->editingOrgId) {
+        // (only relevant for organizations that actually use programs)
+        if ($this->editingOrgId && $isAcademic) {
             $officerProgramIds = OrganizationOfficer::where('organization_officers.organization_id', $this->editingOrgId)
                 ->join('users', 'users.id', '=', 'organization_officers.user_id')
                 ->pluck('users.program_id')
-                ->filter()          // ignore officers whose program is null
+                ->filter()
                 ->unique()
                 ->map(fn ($id) => (int) $id)
                 ->all();
@@ -181,13 +225,29 @@ class OrganizationRoleManager extends Component
 
         $org = Organization::updateOrCreate(
             ['id' => $this->editingOrgId],
-            ['name' => $data['orgName'], 'description' => $data['orgDescription'] ?: null, 'is_academic' => $this->orgIsAcademic]
+            [
+                'name' => $data['orgName'],
+                'description' => $data['orgDescription'] ?: null,
+                'is_academic' => $isAcademic,
+                'year_level' => $this->orgYearLevel,
+            ],
         );
         $org->programs()->sync($programIds);
 
         session()->flash('org_message', $this->editingOrgId ? 'Organization updated.' : 'Organization created.');
-        $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds', 'orgIsAcademic']);
         $this->resetOrganizationForm();
+    }
+
+    public function cancelInvitation(int $invitationId): void
+    {
+        try {
+            app(SignatoryInvitations::class)->close($invitationId, 'cancelled');
+        } catch (\RuntimeException $e) {
+            session()->flash('sig_invite_message', 'That invitation was already used or closed.');
+            return;
+        }
+
+        session()->flash('sig_invite_message', 'Invitation cancelled. The link no longer works.');
     }
 
     public function editOrganization(int $id): void
@@ -198,13 +258,14 @@ class OrganizationRoleManager extends Component
         $this->orgDescription = (string) $org->description;
         $this->orgProgramIds = $org->programs->pluck('id')->map(fn ($i) => (string) $i)->all();
         $this->panel = 'organizations';
-        $this->orgIsAcademic = (bool) ($org->is_academic ?? true);
+        $this->orgYearLevel = $org->year_level;
+        $this->orgIsAcademic = $org->year_level !== null ? false : (bool) ($org->is_academic ?? true);
         $this->reset(['pickerSearch', 'pickerCollege', 'pickerView']);
     }
 
     public function resetOrganizationForm(): void
     {
-        $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds', 'orgIsAcademic']);
+        $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds', 'orgIsAcademic', 'orgYearLevel']);
         $this->resetErrorBag();
     }
 
@@ -227,9 +288,11 @@ class OrganizationRoleManager extends Component
         $org->delete();
         session()->flash('org_message', 'Organization removed.');
     }
+
     public function updatedSigRoleId(): void { $this->sigScopeId = null; }
 
     public function scopeOptions(string $scope): array { return SignatoryScope::options($scope); }
+
     protected function takenProgramMap()
     {
         return DB::table('organization_program')
@@ -528,7 +591,7 @@ class OrganizationRoleManager extends Component
     }
 
     // =========================================================
-    // NEW: SIGNATORY ROLES (Guidance Counselor, VPSD, etc.)
+    // SIGNATORY ROLES (Guidance Counselor, VPSD, etc.)
     // =========================================================
     public function saveSignatoryRole(): void
     {
@@ -546,7 +609,7 @@ class OrganizationRoleManager extends Component
             'sigRoleKey' => 'role key',
             'sigRoleLabel' => 'role label',
         ]);
-        
+
         if ($this->editingSigRoleId) {
             $existing = SignatoryRole::withCount('assignments')->find($this->editingSigRoleId);
             if ($existing && $existing->scope !== $data['sigRoleScope'] && $existing->assignments_count > 0) {
@@ -629,7 +692,7 @@ class OrganizationRoleManager extends Component
     }
 
     // =========================================================
-    // NEW: ASSIGN SIGNATORIES (who currently holds each role)
+    // ASSIGN SIGNATORIES (who currently holds each role)
     // =========================================================
     public function updatingSigUserSearch(): void
     {
@@ -649,18 +712,24 @@ class OrganizationRoleManager extends Component
 
     public function getSigUserResultsProperty()
     {
-        if (strlen($this->sigUserSearch) < 2) {
+        $search = trim($this->sigUserSearch);
+
+        if (strlen($search) < 2) {
             return collect();
         }
 
-        $term = '%' . $this->sigUserSearch . '%';
+        $term = '%' . $search . '%';
 
         return User::query()
             ->where(fn ($q) => $q
-                ->where('first_name', 'like', $term)
+                ->where('student_number', 'like', $term)
+                ->orWhere('first_name', 'like', $term)
                 ->orWhere('last_name', 'like', $term)
-                ->orWhere('email', 'like', $term)
-                ->orWhere('student_number', 'like', $term))
+                ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$term])
+                ->orWhereRaw("CONCAT(last_name, ' ', first_name) LIKE ?", [$term])
+                ->orWhere('email', 'like', $term))
+            // exact / prefix student-number matches float to the top
+            ->orderByRaw('CASE WHEN student_number LIKE ? THEN 0 ELSE 1 END', [$search . '%'])
             ->orderBy('last_name')
             ->limit(8)
             ->get();
@@ -705,7 +774,7 @@ class OrganizationRoleManager extends Component
             'active_from' => $data['sigActiveFrom'] ?: null,
             'active_until' => $data['sigActiveUntil'] ?: null,
             'is_active' => true,
-            'scope_type' => $scopeType, 
+            'scope_type' => $scopeType,
             'scope_id' => $scopeId,
         ]);
 
@@ -724,7 +793,7 @@ class OrganizationRoleManager extends Component
 
         // If this is the only current holder of the role and something is actively
         // waiting on that role, block it — otherwise the approval becomes unassignable.
-       $remainingHolders = $assignment->role
+        $remainingHolders = $assignment->role
             ->holdersFor($assignment->scope_type, $assignment->scope_id)
             ->where('users.id', '<>', $assignment->user_id)->count();
 
@@ -759,6 +828,7 @@ class OrganizationRoleManager extends Component
         SignatoryAssignment::findOrFail($assignmentId)->delete();
         session()->flash('sig_assign_message', 'Signatory assignment deleted.');
     }
+
     public function inviteSignatory(): void
     {
         $data = $this->validate([
@@ -801,7 +871,7 @@ class OrganizationRoleManager extends Component
         }
 
         session()->flash('sig_invite_message', trim($data['invFirst'] . ' ' . $data['invLast']) . ' was invited. They will receive an email to set their password.');
-        $this->reset(['invFirst', 'invLast', 'invEmail', 'invRoleId', 'invFrom', 'invUntil', 'sigScopeId', 'invUntil', 'invScopeId']);
+        $this->reset(['invFirst', 'invLast', 'invEmail', 'invRoleId', 'invFrom', 'invUntil', 'sigScopeId', 'invScopeId']);
     }
 
     /** New setup link. Also serves as "reset password" for a signatory who already has one. */

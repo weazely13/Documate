@@ -11,6 +11,9 @@ final class DocumentRegistry
 
         return $documents ??= collect([
             new AdmissionSlip(),
+            new CollegeModelNomination(),
+            new CollegeModelNominationBySignatory(),
+            new CollegeModelInterviewRating(),
             new DisciplinaryActionSlip(),
             new DisciplinaryCaseReport(),
             new DisciplinaryReferralSlip(),
@@ -21,7 +24,20 @@ final class DocumentRegistry
             new PermitToConductOffCampus(),
             new RequestForExcusedAbsence(),
             new StudentIdRenewal(),
+            new GeneralStudentsClearance(),
+            new ClearanceForOrganizationOfficers(),
+            new ClearanceForSscOfficers(),
             new StudentAppointmentSlip(),
+            new StudentAdvisementForm(),
+            new StudentAssistantshipApplication(),
+            new StudentAssistantshipRecommendation(),
+            new StudentAssistantEvaluation(), 
+            new StudentAssistantshipEndorsement(),
+            new StudentComplaintGrievance(), 
+            new ParentConsentForAssistantship(),
+            new YmcaAwardRating(),
+            new YmcaAwardNomination(),
+            new YmcaAwardNominationBySignatory(),
         ])->keyBy(fn (WorkflowDocument $d) => $d->key())->all();
     }
 

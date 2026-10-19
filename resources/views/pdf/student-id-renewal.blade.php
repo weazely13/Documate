@@ -19,12 +19,7 @@
     $tick = fn ($on) => '<span class="mono">[' . ($on ? 'X' : '&nbsp;') . ']</span>';
     $date = ! empty($submittedAt) ? $submittedAt->format('F j, Y') : '';
     $signedOn = $approved ? $vp['signed_at']->format('F j, Y') : '';
-    $studentSig = [
-        'name' => $v['student_name'] ?? '',
-        'signature' => $studentSignature ?? null,
-        'signed_at' => null,
-        'seal' => '',
-    ];
+    $studentSig = $studentSigner;
 @endphp
 
 @section('body')

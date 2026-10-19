@@ -158,6 +158,15 @@ final class Seal
             'fingerprint' => self::fingerprint($ws->content_hash),
         ];
     }
+    public static function sealParty(StudentDocumentWorkspace $ws, string $kind, string $name, ?string $sigPath): string
+    {
+        return self::shortSeal(self::hmac([
+            'party', $kind, (string) $ws->transaction_code, (string) $ws->document_type,
+            self::contentHash($ws), $name,
+            $sigPath ? pathinfo($sigPath, PATHINFO_FILENAME) : '',   // archive file name = sha256
+            $ws->submitted_at?->format('Y-m-d H:i:s') ?? '',
+        ]));
+    }
 
     public static function auditChainIntact(StudentDocumentWorkspace $ws): bool
     {

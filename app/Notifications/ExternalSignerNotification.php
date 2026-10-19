@@ -31,57 +31,84 @@ class ExternalSignerNotification extends Notification
     public static function invite(TransactionApproval $approval, string $url, Carbon $expires): self
     {
         $ws = $approval->workspace;
+        $doc = DocumentRegistry::get($ws->document_type);
         $student = $ws->field_values['student_name'] ?? 'a student';
-        $name = $approval->external_name ?: 'there';
-        if (ExternalSigning::kindFor($approval) === 'review') {
-            $doc = DocumentRegistry::get($ws->document_type)->name();
+        $org = $ws->field_values['non_academic_org'] ?? 'an organization';
 
-            return new self(
-                (new MailMessage)
-                    ->subject("Review and signature request: {$doc}")
-                    ->greeting("Hello {$name},")
-                    ->line("The Discipline Committee Chairman asks you, as a committee member, to review and sign a {$doc} for the Office of the Vice President for Student Development, Leyte Normal University.")
-                    ->action('Open the report', $url)
-                    ->line('You do not need an account. You will confirm this email address with a one-time code, read the report, and sign on screen.')
-                    ->line('This link works until ' . $expires->format('F j, Y g:i A') . '. The report is confidential. Please do not forward this email.')
-            );
+        [$subject, $intro, $action, $disregard, $showStudent] = match (ExternalSigning::kindFor($approval)) {
+            'review' => [
+                "Action requested: review and sign {$doc->name()}",
+                'The Discipline Committee Chairman respectfully requests your review and signature, as a member of the committee, on the confidential form below.',
+                'Review and Sign the Report',
+                'If you are not a member of the Discipline Committee, or you were not expecting this request, please disregard this email and do not forward it. No action will be taken on your behalf.',
+                false,
+            ],
+            'endorse' => [
+                "Action requested: recommending approval of {$doc->name()}",
+                "{$student} has listed you as the adviser of {$org} and respectfully requests your recommending approval of the form below.",
+                'Review and Sign the Request',
+                "If you are not the adviser of {$org}, please disregard this email, or select “I cannot approve this request” on the page. No action will be taken on your behalf.",
+                true,
+            ],
+            'consent' => [
+                "Action requested: parent's consent for student assistantship",
+                "{$student} has listed you as their parent/guardian and respectfully requests your consent, on the form below, for them to work as a student assistant of Leyte Normal University.",
+                'Review and Sign the Consent',
+                "If you are not the parent or guardian of {$student}, please disregard this email, or select “I cannot give consent” on the page. No action will be taken on your behalf.",
+                true,
+            ],
+            'guardian' => [
+                "Action requested: parent's signature on a student complaint",
+                "{$student} has listed you as their parent/guardian and respectfully requests your signature on the confidential complaint form below.",
+                'Review and Sign the Complaint',
+                "If you are not the parent or guardian of {$student}, please disregard this email, or select “I cannot sign” on the page. No action will be taken on your behalf.",
+                true,
+            ],
+            'witness' => [
+                "Action requested: witness signature on a student complaint",
+                "{$student} has named you as a witness and respectfully requests your signature on the confidential complaint form below.",
+                'Review and Sign as Witness',
+                "If you did not witness this matter, please disregard this email, or select “I cannot sign” on the page. No action will be taken on your behalf.",
+                true,
+            ],
+            default => [
+                "Action requested: {$doc->name()}",
+                "{$student} has identified you as someone who personally knows them and respectfully requests that you complete the form below.",
+                'Open the Rating Form',
+                'If you are not familiar with this student, please disregard this email, or select “I cannot rate this student” on the page. No action will be taken on your behalf.',
+                true,
+            ],
+        };
+
+        $mail = (new MailMessage)
+            ->subject($subject)
+            ->greeting('Dear ' . ($approval->external_name ?: 'Sir/Madam') . ',')
+            ->line($intro)
+            ->line('**Document:** ' . $doc->name())
+            ->line('**Form No.:** ' . $doc->formCode())
+            ->line('**Reference:** ' . $ws->transaction_code);
+
+        if ($showStudent) {
+            $mail->line('**Student:** ' . $student);
         }
-        if (ExternalSigning::kindFor($approval) === 'endorse') {
-            $doc = DocumentRegistry::get($ws->document_type)->name();
-            $org = $ws->field_values['non_academic_org'] ?? 'an organization';
 
-            return new self(
-                (new MailMessage)
-                    ->subject("Recommending approval request: {$doc}")
-                    ->greeting("Hello {$name},")
-                    ->line("{$student} listed you as the adviser of {$org} and asked for your recommending approval of a {$doc} for the Office of the Vice President for Student Development, Leyte Normal University.")
-                    ->action('Open the request', $url)
-                    ->line('You do not need an account. You will confirm this email address with a one-time code, review the request, and sign on screen.')
-                    ->line('This link works until ' . $expires->format('F j, Y g:i A') . '. Please do not forward it.')
-                    ->line('If you are not this organization\'s adviser, ignore this email or choose "I cannot approve this request" on the page.')
-            );
-        }
+        $mail->action($action, $url)
+            ->line('No account is required. You will first confirm your email address with a one-time verification code, then review the document and sign it on screen.')
+            ->line('**Link validity:** this link expires on ' . $expires->format('l, F j, Y \a\t g:i A') . '. If it has expired, please ask the VPSD office to issue a new one.')
+            ->line($disregard)
+            ->salutation('Respectfully, Office of the Vice President for Student Development, Leyte Normal University');
 
-        return new self(
-            (new MailMessage)
-                ->subject('Rating request from the LNU Office of the VP for Student Development')
-                ->greeting("Hello {$name},")
-                ->line("{$student} listed you as someone who personally knows them, and asked you to complete the Model Student Faculty/Peer Rating Form for the Office of the Vice President for Student Development, Leyte Normal University.")
-                ->action('Open the rating form', $url)
-                ->line('You do not need an account. You will confirm this email address with a one-time code, give your rating, and sign on screen.')
-                ->line('This link works until ' . $expires->format('F j, Y g:i A') . '. Please do not forward it: it is meant for you only.')
-                ->line('If you do not know this student, ignore this email or choose "I cannot rate this student" on the page.')
-        );
+        return new self(MailBranding::apply($mail));
     }
 
     public static function code(string $code, int $minutes): self
     {
-        return new self(
+        return new self(MailBranding::apply(
             (new MailMessage)
                 ->subject('Your DocuMate verification code')
                 ->greeting('Your verification code')
                 ->line("Enter this code on the rating page: **{$code}**")
                 ->line("It expires in {$minutes} minutes and works once. If you did not ask for it, you can ignore this email.")
-        );
+        ));
     }
 }

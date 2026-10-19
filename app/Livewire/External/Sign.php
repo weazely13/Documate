@@ -45,6 +45,7 @@ class Sign extends Component
 
     public bool $declining = false;
     public string $declineReason = '';
+    public bool $applySignature = true;
 
     public function mount(string $token): void
     {
@@ -173,6 +174,9 @@ class Sign extends Component
         if (hash_equals($request->code_hash, $this->hashCode($this->code))) {
             $request->forceFill(['code_hash' => null, 'code_expires_at' => null, 'code_attempts' => 0, 'verified_at' => now()])->save();
             session([$this->sessionKey() => now()->timestamp]);
+
+            $this->dispatch('toast', type: 'success', title: 'Identity verified',
+            message: 'It is now okay to review the document and sign.');
             $this->code = '';
 
             app(TransactionWorkflow::class)->recordExternalEvent($request->workspace, 'external.authenticated', [
@@ -212,20 +216,19 @@ class Sign extends Component
             'rating' => $this->kind() === 'rating' ? ['required', 'in:1,2,3,4,5'] : ['nullable'],
             'attest' => ['accepted'],
             'signerName' => ['required', 'string', 'min:3', 'max:120'],
-            'signature' => ['required', 'string', 'max:400000'],
+            'signature' => $this->applySignature ? ['required', 'string', 'max:400000'] : ['nullable'],
         ], [
             'rating.required' => 'Choose a rating.',
             'attest.accepted' => 'Please confirm the statement above.',
             'signature.required' => 'Please draw your signature in the box.',
         ], ['signerName' => 'name']);
 
-        try {
-            [$path, $hash] = app(ExternalSignatureStore::class)->fromDataUrl($this->signature);
-        } catch (InvalidArgumentException $e) {
-            $this->addError('signature', $e->getMessage());
-
-            return;
+        $path = $hash = null;
+        if ($this->applySignature) {
+            try { [$path, $hash] = app(ExternalSignatureStore::class)->fromDataUrl($this->signature); }
+            catch (InvalidArgumentException $e) { $this->addError('signature', $e->getMessage()); return; }
         }
+
 
         $isRating = $this->kind() === 'rating';
         $n = (int) $this->rating;
@@ -233,6 +236,9 @@ class Sign extends Component
         $response = match ($this->kind()) {
             'rating' => ['rating' => $n, 'rating_label' => ModelStudentRating::RATINGS[$n] ?? '', 'attested' => true],
             'review' => ['reviewed' => true, 'attested' => true],
+            'consent' => ['consented' => true, 'attested' => true],
+            'guardian' => ['guardian_signed' => true, 'attested' => true],
+            'witness' => ['witnessed' => true, 'attested' => true],
             default => ['endorsed' => true, 'attested' => true],
         };
 
@@ -240,9 +246,11 @@ class Sign extends Component
             app(TransactionWorkflow::class)->approveExternal($this->req, $response, trim($this->signerName), $path, $hash);
         } catch (WorkflowException $e) {
             $this->addError('action', $e->getMessage());
-
             return;
         }
+
+        $this->dispatch('toast', type: 'success', title: 'Response recorded',
+            message: 'Thank you. Your response has been sent to the VPSD office.');
 
         session()->forget($this->sessionKey());
         unset($this->req);
@@ -265,6 +273,7 @@ class Sign extends Component
 
             return;
         }
+        $this->dispatch('toast', type: 'success', title: 'Response recorded', message: 'Thank you. Your response has been sent to the VPSD office.');
 
         session()->forget($this->sessionKey());
         unset($this->req);
@@ -274,9 +283,11 @@ class Sign extends Component
     {
         $values = $this->req->workspace->field_values ?? [];
         $doc = DocumentRegistry::get($this->req->workspace->document_type);
-        $keys = $this->kind() === 'review'
-            ? $doc->externalOverviewFields()
-            : ['activity', 'purposes', 'activity_date', 'activity_time', 'venue', 'persons_involved'];
+        $keys = match ($this->kind()) {
+            'review', 'guardian', 'witness' => $doc->externalOverviewFields(),
+            'consent' => [],
+            default => ['activity', 'purposes', 'activity_date', 'activity_time', 'venue', 'persons_involved'],
+        };
 
         $details = collect($doc->allFields())
             ->only($keys)
@@ -294,6 +305,7 @@ class Sign extends Component
             'documentName' => $doc->name(),
             'organization' => $values['non_academic_org'] ?? '',
             'details' => $details,
+            'relationship' => strtolower((string) ($values['relationship'] ?? '')),
         ])->layout('layouts.external', ['title' => 'Rating request']);
     }
 }

@@ -31,6 +31,9 @@ class ManageUsers extends Component
     public function updatingRoleFilter() { $this->resetPage(); }
     public function updatingStatusFilter() { $this->resetPage(); }
     public function updatingYearFilter() { $this->resetPage(); }
+    public bool $showRemoved = false;
+
+    public function updatingShowRemoved() { $this->resetPage(); }
 
     public function setActiveTab(string $tab): void
     {
@@ -39,7 +42,7 @@ class ManageUsers extends Component
 
     public function openModal($userId)
     {
-        $this->selectedUser = User::find($userId);
+        $this->selectedUser = User::withTrashed()->find($userId);
         $this->showModal = true;
     }
 
@@ -47,6 +50,12 @@ class ManageUsers extends Component
     {
         $this->showModal = false;
         $this->selectedUser = null;
+    }
+    public function restoreUser(int $userId): void
+    {
+        $user = User::onlyTrashed()->findOrFail($userId);
+        $user->restore();
+        session()->flash('message', $this->displayName($user) . ' was restored.');
     }
 
     public function confirmDelete(int $userId): void
@@ -66,6 +75,12 @@ class ManageUsers extends Component
         // NEW
         if ($user->isSignatory()) {
             session()->flash('message', 'This user currently holds a signatory role. Reassign their signatory duties first.');
+            return;
+        }
+        $open = \App\Models\StudentDocumentWorkspace::where('user_id', $user->id)
+            ->whereIn('workflow_status', ['submitted', 'under_review', 'action_required', 'approved'])->count();
+        if ($open > 0) {
+            session()->flash('message', "This user has {$open} transaction(s) still in progress. Wait until they are completed or rejected before removing the account.");
             return;
         }
 
@@ -105,6 +120,15 @@ class ManageUsers extends Component
             $this->cancelDelete();
             session()->flash('message', 'The administrator account cannot be deleted.');
 
+            return;
+        }
+        $open = \App\Models\StudentDocumentWorkspace::where('user_id', $user->id)
+            ->whereIn('workflow_status', ['submitted', 'under_review', 'action_required', 'approved'])
+            ->count();
+
+        if ($open > 0) {
+            $this->cancelDelete();
+            session()->flash('message', "This user has {$open} transaction(s) still in progress. Wait until they are completed or rejected before removing the account.");
             return;
         }
 
@@ -208,6 +232,7 @@ class ManageUsers extends Component
     protected function getUsersQuery()
     {
         return User::with(['role', 'organization', 'program', 'officerRecord.position'])
+            ->when($this->showRemoved, fn ($q) => $q->onlyTrashed())
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('first_name', 'like', '%' . $this->search . '%')

@@ -210,10 +210,6 @@ class AppointmentShow extends Component
 
         $this->appointment->logStatus('attended', $this->adminNotes ?: null, Auth::id());
 
-        if ($this->appointment->workspace) {
-            $this->appointment->workspace->update(['status' => 'completed', 'completed_at' => now()]);
-        }
-
         $this->showAttendConfirm = false;
         $this->appointment->refresh();
     }

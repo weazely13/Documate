@@ -24,8 +24,10 @@ class DocumentPdf
     {
         $document = DocumentRegistry::get($ws->document_type);
 
+        [$size, $orientation] = $document->pdfPaper();
+
         $pdf = Pdf::loadView($document->pdfView(), $this->viewData($ws))
-            ->setPaper('a4', 'portrait');
+            ->setPaper($size, $orientation);
 
         $output = $pdf->output();
         $path = "workflow-documents/{$ws->transaction_code}.pdf";
@@ -74,6 +76,8 @@ class DocumentPdf
             'submittedAt' => $ws->submitted_at,
             'studentSignature' => $this->dataUri($ws->field_values['student_signature_path'] ?? null),
             'reporterSignature' => $this->dataUri($ws->field_values['reporter_signature_path'] ?? null),
+            'studentSigner'  => $this->partySigner($ws, 'student',  'student_name',  'student_signature_path',  'student_name_detail'),
+            'reporterSigner' => $this->partySigner($ws, 'reporter', 'reporter_name', 'reporter_signature_path', 'reporter_name_detail'),
         ];
     }
 
@@ -86,17 +90,22 @@ class DocumentPdf
         $approvals = $ws->approvals()->with('actor')->orderBy('step_order')->get();
 
         if ($approvals->isEmpty()) {
-            return array_fill(0, count($document->chain($ws->field_values ?? [])), $this->blankSigner());
+            return collect($document->chain($ws->field_values ?? []))
+                ->map(fn ($s) => $this->blankSigner($s['label'] ?? ''))
+                ->values()->all();
         }
 
         return $approvals->map(function ($a) {
             if ($a->status !== ApprovalStatus::Approved) {
-                return $this->blankSigner();
+                return $this->blankSigner((string) $a->label);
             }
-
+            $img = $this->dataUri($a->signature_path);
             return [
+                'label' => $a->label,                       // <-- new
                 'name' => $a->signer_name ?: ($a->actor ? trim(implode(' ', array_filter([$a->actor->first_name, $a->actor->last_name]))) : ''),
-                'signature' => $this->dataUri($a->signature_path),
+                'detail' => FormSupport::nameDetail($a->actor),
+                'signature' => $img,
+                'no_image' => ! $img,
                 'signed_at' => $a->acted_at,
                 'seal' => Seal::shortSeal($a->seal),
                 'response' => $a->response ?? [],
@@ -104,9 +113,9 @@ class DocumentPdf
         })->values()->all();
     }
 
-    private function blankSigner(): array
+    private function blankSigner(string $label = ''): array
     {
-        return ['name' => '', 'signature' => null, 'signed_at' => null, 'seal' => '', 'response' => []];
+        return ['label' => $label, 'name' => '', 'signature' => null, 'signed_at' => null, 'seal' => '', 'response' => []];
     }
 
     private function qr(string $url): ?string
@@ -149,5 +158,23 @@ class DocumentPdf
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes) ?: 'image/png';
 
         return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+    }
+    private function partySigner(StudentDocumentWorkspace $ws, string $kind, string $nameKey, string $pathKey, string $detailKey): array
+    {
+        $v = $ws->field_values ?? [];
+        $name = (string) ($v[$nameKey] ?? '');
+        $path = $v[$pathKey] ?? null;
+        $img = $this->dataUri($path);
+        $at = $ws->submitted_at;
+
+        return [
+            'name' => $name,
+            'detail' => (string) ($v[$detailKey] ?? ''),
+            'signature' => $img,
+            'no_image' => $name !== '' && $at && ! $img,
+            'signed_at' => $at,
+            'seal' => ($name !== '' && $at) ? Seal::sealParty($ws, $kind, $name, $path) : '',
+            'response' => [],
+        ];
     }
 }

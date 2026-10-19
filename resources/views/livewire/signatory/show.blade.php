@@ -222,10 +222,21 @@
                     <h3 class="text-lg font-bold text-slate-900">Confirm your signature</h3>
                     <p class="mt-1 text-sm text-slate-500">I have reviewed this {{ strtolower($document->name()) }} and authorize this action. Your signature below will be applied and sealed.</p>
 
+                    @if (auth()->user()->signature_enabled)
                     @if ($signatureReady)
                         <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}" alt="Your signature" class="mt-4 h-16 rounded-lg border border-slate-100 bg-white p-1">
                     @endif
-
+                    @else
+                        <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                            Your signature image is turned off. This approval will show your name and seal only.
+                        </p>
+                    @endif
+                    @if ($document->signerRecordsInspection())
+                        <label class="mt-4 block text-sm font-medium text-slate-700">Inspection remarks <span class="text-slate-400">(optional)</span></label>
+                        <textarea wire:model="inspectionRemarks" rows="3" maxlength="300" placeholder="e.g. Haircut done. Cleared."
+                                class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#2A57B4] focus:ring-4 focus:ring-blue-100"></textarea>
+                        @error('inspectionRemarks') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
+                    @endif
                     <label class="mt-4 block text-sm font-medium text-slate-700">Enter your password to sign</label>
                     <input type="password" wire:model="password" wire:keydown.enter="approve" autocomplete="current-password"
                            class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#2A57B4] focus:ring-4 focus:ring-blue-100">

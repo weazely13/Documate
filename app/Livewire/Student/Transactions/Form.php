@@ -20,6 +20,7 @@ use App\Services\Workflow\SignatureStore;
 use InvalidArgumentException;
 use App\Services\Workflow\ItemPhotoStore;
 use Livewire\WithFileUploads;
+use App\Models\User;
 
 /**
  * One page for a student's digital transaction: fill in -> save draft -> submit -> track.
@@ -37,7 +38,10 @@ class Form extends Component
 
     /** @var array<string, mixed> the student's answers, keyed by field name */
     public array $values = [];
-    public string $studentSignature = '';
+    public string $reportDate = '';
+    public string $reportSession = '';
+    public ?int $nomineeId = null;
+    public string $nomineeSearch = '';
 
     private const TIMELINE = [
         'transaction.created' => 'Draft created',
@@ -71,6 +75,7 @@ class Form extends Component
             $this->workspaceId = $ws->workspace_id;
             $this->type = $ws->document_type;
             $saved = $ws->field_values ?? [];
+            $this->nomineeId = ! empty($saved['nominee_user_id']) ? (int) $saved['nominee_user_id'] : null;
         } else {
             $doc = DocumentRegistry::get($type);
             abort_if($doc->issuedByOffice(), 404);
@@ -84,25 +89,6 @@ class Form extends Component
             $saved_value = $saved[$name] ?? null;
             $this->values[$name] = ($f['type'] ?? 'text') === 'checkbox' ? (bool) $saved_value : $saved_value;
         }
-    }
-    /** Saves a newly drawn signature, or keeps the one already on the record. */
-    private function signaturePayload(?array $existing): array
-    {
-        if (! $this->document->requiresStudentSignature()) {
-            return [];
-        }
-
-        if (trim($this->studentSignature) !== '') {
-            try {
-                [$path, $hash] = app(ExternalSignatureStore::class)->fromDataUrl($this->studentSignature);
-            } catch (InvalidArgumentException $e) {
-                throw new WorkflowException($e->getMessage());
-            }
-
-            return ['student_signature_path' => $path, 'student_signature_hash' => $hash];
-        }
-
-        return array_intersect_key($existing ?? [], array_flip(['student_signature_path', 'student_signature_hash']));
     }
     private function photoPayload(?array $existing): array
     {
@@ -187,11 +173,10 @@ class Form extends Component
     public function submit()
     {
         $snapshot = $this->studentSnapshot();
-        if ($snapshot['student_name'] === '' || $snapshot['student_program'] === '') {
-            $this->addError('form', 'Complete your program, year level and section in your profile before submitting.');
 
-            return;
-        }
+        $missing = collect($this->document->systemFields())
+            ->filter(fn ($label, $key) => trim((string) ($snapshot[$key] ?? '')) === '')
+            ->values();
 
         $this->validate($this->rules(true), [], $this->attributes());
 
@@ -200,10 +185,35 @@ class Form extends Component
 
             return;
         }
+        if ($this->document->usesNomineePicker() && ! $this->nominee) {
+            $this->addError('nomineeId', 'Search for the nominee and select them from the list.');
+
+            return;
+        }
+        if ($this->document->usesNomineePicker() && $this->nominee) {
+            $snap = $this->document->nomineeSnapshot($this->nominee);
+
+            if (trim((string) ($snap['nominee_address'] ?? '')) === '') {
+                $this->addError('nomineeId', 'This nominee has no address on their profile. Ask them to add it before you nominate them.');
+
+                return;
+            }
+            if (trim((string) ($snap['nominee_contact'] ?? '')) === '') {
+                $this->addError('nomineeId', 'This nominee has no contact number on their profile. Ask them to add it before you nominate them.');
+
+                return;
+            }
+        }
+
+        if ($missing->isNotEmpty()) {
+            $this->addError('form', 'Complete these in your profile before submitting: ' . $missing->implode(', ') . '.');
+
+            return;
+        }
         if ($this->document->requiresStudentSignature()
-            && trim($this->studentSignature) === ''
+            && ! $this->profileSignatureReady()
             && empty($this->workspace?->field_values['student_signature_path'])) {
-            $this->addError('studentSignature', 'Please draw your signature in the box.');
+            $this->addError('form', 'Add your e-signature in your profile, and keep "Apply my e-signature" turned on, before submitting.');
 
             return;
         }
@@ -246,6 +256,8 @@ class Form extends Component
         }
 
         app(TransactionWorkflow::class)->recordDownload($ws, Auth::user());
+        $this->dispatch('toast', type: 'success', title: 'Download complete',
+            message: 'Your PDF has been downloaded. Print it only if a physical copy is required.');
 
         return Storage::disk(DocumentPdf::DISK)->download($path, $ws->transaction_code . '-' . $this->document->key() . '.pdf');
     }
@@ -257,14 +269,19 @@ class Form extends Component
     {
         $user = Auth::user();
 
-        return [
+        $base = [
             'student_name' => FormSupport::systemValue($user, 'formatted_full_name'),
             'student_program' => FormSupport::systemValue($user, 'program_year_section'),
             'student_course' => FormSupport::systemValue($user, 'program'),
             'student_number' => FormSupport::systemValue($user, 'student_number'),
+            'contact_number' => FormSupport::systemValue($user, 'contact_number'),
             'officer_position' => FormSupport::systemValue($user, 'officer_position'),
             'officer_organization' => FormSupport::systemValue($user, 'officer_organization'),
+            'student_name_detail' => FormSupport::nameDetail($user),
+            'semester' => FormSupport::systemValue($user, 'current_semester'),
+            'academic_year' => FormSupport::systemValue($user, 'current_academic_year'),
         ];
+        return $base + $this->document->studentSnapshotExtras($user);
     }
 
     private function persist(): StudentDocumentWorkspace
@@ -281,7 +298,7 @@ class Form extends Component
             $value = is_string($value) ? trim($value) : $value;
             $answers[$name] = $value === '' ? null : $value;
         }
-        $payload = $answers + $this->studentSnapshot() + $this->signaturePayload(null) + $this->photoPayload(null);
+        $payload = $answers + $this->studentSnapshot() + $this->signaturePayload(null) + $this->photoPayload(null) + $this->nomineePayload(null);
 
         if (! $this->workspaceId) {
             $ws = new StudentDocumentWorkspace();
@@ -304,7 +321,7 @@ class Form extends Component
             throw new WorkflowException('This transaction can no longer be edited.');
         }
 
-        $payload = $answers + $this->studentSnapshot() + $this->signaturePayload($ws->field_values) + $this->photoPayload($ws->field_values);
+        $payload = $answers + $this->studentSnapshot() + $this->signaturePayload($ws->field_values) + $this->photoPayload($ws->field_values) + $this->nomineePayload($ws->field_values);
         $ws->update(['field_values' => $payload]);
 
         return $ws->fresh();
@@ -324,18 +341,25 @@ class Form extends Component
         $rules = [];
 
         foreach ($this->document->fields() as $name => $f) {
-            if (($f['type'] ?? 'text') === 'checkbox') {
+            $type = $f['type'] ?? 'text';
+
+            if ($type === 'checkbox') {
                 $rules["values.$name"] = ['nullable', 'boolean'];
                 continue;
             }
+
             $r = [$strict && ($f['required'] ?? false) ? 'required' : 'nullable'];
-            $r[] = ($f['type'] ?? 'text') === 'date' ? 'date' : 'string';
+            $r[] = match ($type) {
+                'date' => 'date',
+                'time' => 'date_format:H:i',
+                default => 'string',
+            };
             if (isset($f['max'])) {
                 $r[] = 'max:' . $f['max'];
             }
+
             $rules["values.$name"] = array_merge($r, $f['rules'] ?? []);
         }
-        $rules['studentSignature'] = ['nullable', 'string', 'max:400000'];
         $rules['itemPhoto'] = ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'];
         return $rules;
     }
@@ -365,6 +389,31 @@ class Form extends Component
             })
             ->reverse()->values()->all();
     }
+    private function profileSignatureReady(): bool
+    {
+        $u = Auth::user();
+        return $u->signature_enabled && $u->signature_path
+            && Storage::disk(SignatureStore::DISK)->exists($u->signature_path);
+    }
+
+    private function signaturePayload(?array $existing): array
+    {
+        if (! $this->document->requiresStudentSignature()) {
+            return [];
+        }
+
+        if ($this->profileSignatureReady()) {
+            [$path, $hash] = app(SignatureStore::class)->archive(Auth::user()->signature_path);
+
+            return ['student_signature_path' => $path, 'student_signature_hash' => $hash];
+        }
+
+        if (! empty($existing['student_signature_path'])) {
+            return array_intersect_key($existing, array_flip(['student_signature_path', 'student_signature_hash']));
+        }
+
+        return [];
+    }
 
     public function render()
     {
@@ -382,29 +431,124 @@ class Form extends Component
             default => null,
         };
 
+        $nomineeCard = null;
+        if ($this->document->usesNomineePicker()) {
+            $src = ($this->isEditable && $this->nominee)
+                ? $this->document->nomineeSnapshot($this->nominee)
+                : ($ws?->field_values ?? []);
+
+            if (! empty($src['nominee_name'])) {
+                $nomineeCard = [
+                    'name' => $src['nominee_name'],
+                    'college' => $src['nominee_college'] ?? '',
+                    'program' => $src['nominee_program'] ?? '',
+                    'year_section' => $src['nominee_year_section'] ?? '',
+                ];
+            }
+        }
+
         return view('livewire.student.transactions.form', [
             'ws' => $ws,
             'status' => $status,
             'approvals' => $approvals,
             'progress' => $progress,
             'timeline' => $ws ? $this->timeline($ws) : [],
-            // Editable: live account details. Otherwise: what was frozen into the record.
             'student' => $this->isEditable || ! $ws ? $this->studentSnapshot() : [
                 'student_name' => $ws->field_values['student_name'] ?? '',
                 'student_program' => $ws->field_values['student_program'] ?? '',
+                'student_number' => $ws->field_values['student_number'] ?? '',
+                'contact_number' => $ws->field_values['contact_number'] ?? '',
                 'officer_position' => $ws->field_values['officer_position'] ?? '',
                 'officer_organization' => $ws->field_values['officer_organization'] ?? '',
-                'afterReviewNote' => $ws && in_array($status, [
-                    TransactionStatus::UnderReview,
-                    TransactionStatus::Approved,
-                    TransactionStatus::Completed,
-                ], true)
-                    ? $this->document->afterReviewNote($ws->field_values ?? [])
-                    : null,
             ],
+            'nomineeCard' => $nomineeCard,
+            'afterReviewNote' => $ws && in_array($status, [
+                TransactionStatus::UnderReview,
+                TransactionStatus::Approved,
+                TransactionStatus::Completed,
+            ], true)
+                ? $this->document->afterReviewNote($ws->field_values ?? [])
+                : null,
             'savedSignature' => $this->savedSignatureUri($ws),
             'hasPhoto' => ! empty($ws?->field_values['item_photo_path']),
-            
+            'profileSignature' => $this->profileSignatureReady(),
         ])->layout('layouts.app', ['title' => $this->document->name()]);
+    }
+    private function eligibleNominees()
+    {
+        return User::query()
+            ->with('program')
+            ->whereHas('role', fn ($q) => $q->whereIn('role_name', ['Student', 'Officer']))
+            ->where('account_status', 'active')
+            ->where('id', '!=', Auth::id());
+    }
+
+    #[Computed]
+    public function nominee(): ?User
+    {
+        return $this->nomineeId ? $this->eligibleNominees()->whereKey($this->nomineeId)->first() : null;
+    }
+
+    #[Computed]
+    public function nomineeResults()
+    {
+        if (! $this->document->usesNomineePicker() || strlen($this->nomineeSearch) < 2) {
+            return collect();
+        }
+
+        $term = '%' . $this->nomineeSearch . '%';
+
+        return $this->eligibleNominees()
+            ->where(fn ($q) => $q
+                ->where('first_name', 'like', $term)
+                ->orWhere('last_name', 'like', $term)
+                ->orWhere('student_number', 'like', $term))
+            ->orderBy('last_name')
+            ->limit(8)
+            ->get();
+    }
+
+    public function selectNominee(int $userId): void
+    {
+        if (! $this->isEditable || ! $this->document->usesNomineePicker()) {
+            return;
+        }
+
+        if (! $this->eligibleNominees()->whereKey($userId)->exists()) {
+            $this->addError('nomineeId', 'That student cannot be nominated.');
+
+            return;
+        }
+
+        $this->nomineeId = $userId;
+        $this->nomineeSearch = '';
+        $this->resetErrorBag('nomineeId');
+        unset($this->nominee);
+    }
+
+    public function clearNominee(): void
+    {
+        if ($this->isEditable) {
+            $this->nomineeId = null;
+            unset($this->nominee);
+        }
+    }
+
+    /** Nominee details copied from the account. Keeps the saved ones if the account is no longer eligible. */
+    private function nomineePayload(?array $existing): array
+    {
+        if (! $this->document->usesNomineePicker()) {
+            return [];
+        }
+
+        if ($n = $this->nominee) {
+            return $this->document->nomineeSnapshot($n);
+        }
+
+        return array_filter(
+            $existing ?? [],
+            fn ($key) => str_starts_with($key, 'nominee_'),
+            ARRAY_FILTER_USE_KEY
+        );
     }
 }

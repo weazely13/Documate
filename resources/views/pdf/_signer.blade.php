@@ -1,6 +1,11 @@
-{{-- Needs: $heading, $caption, $s (signer array from DocumentPdf: name, signature, signed_at, seal) --}}
 <div class="sig-head">{{ $heading }}</div>
-<div class="sig-img">@if (! empty($s['signature']))<img src="{{ $s['signature'] }}" style="height:38pt;">@endif</div>
+<table style="width:100%"><tr><td style="height:44pt; vertical-align:bottom; text-align:center; padding:0;">
+    @if (! empty($s['signature']))
+        <img src="{{ $s['signature'] }}" style="height:38pt; vertical-align:bottom;">
+    @elseif (! empty($s['no_image']))
+        <span style="font-size:7pt; color:#777;">Signed electronically</span>
+    @endif
+</td></tr></table>
 <div class="sig-name">{{ $s['name'] ?? '' }}&nbsp;</div>
 <div class="sig-cap">{!! $caption !!}</div>
 @if (! empty($s['seal']) && ! empty($s['signed_at']))

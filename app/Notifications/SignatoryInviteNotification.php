@@ -17,12 +17,14 @@ class SignatoryInviteNotification extends Notification
 
     public function toMail($notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Set up your DocuMate signing account')
             ->greeting('Hello ' . trim($notifiable->first_name . ' ' . $notifiable->last_name) . ',')
             ->line('The Office of the Vice President for Student Development, Leyte Normal University, set up a DocuMate account for you so you can review and sign student documents online.')
             ->action('Set your password', $this->url)
-            ->line('This link works until ' . $this->expires->format('F j, Y g:i A') . ' and can be used once. Please do not share it.')
-            ->line('If you were not expecting this, you can ignore this email, or contact the VPSD office.');
+            ->line('For your security, this link will expire on ' . $this->expires->format('l, F j, Y \a\t g:i A') . ' and can be used only once.')
+            ->line('If you were not expecting this invitation, please disregard this email or contact the VPSD office. No account changes will be made until you set a password.');
+
+        return MailBranding::apply($mail);
     }
 }

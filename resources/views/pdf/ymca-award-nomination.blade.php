@@ -1,0 +1,1 @@
+@include('pdf.college-model-nomination', ['docTitle' => 'YMCA OUTSTANDING STUDENT AWARD NOMINATION FORM'])

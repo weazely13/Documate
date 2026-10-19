@@ -16,12 +16,7 @@
     $tick = fn ($on) => '<span class="mono">[' . ($on ? 'X' : '&nbsp;') . ']</span>';
     $kind = $v['item_kind'] ?? '';
 
-    $person = [
-        'name' => $v['student_name'] ?? '',
-        'signature' => $studentSignature ?? null,
-        'signed_at' => null,
-        'seal' => '',
-    ];
+    $person = $studentSigner;
 @endphp
 
 @section('body')

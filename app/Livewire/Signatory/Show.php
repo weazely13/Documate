@@ -36,6 +36,7 @@ class Show extends Component
     public string $schedDate = '';
     public string $schedStart = '';
     public string $schedEnd = '';
+    public string $inspectionRemarks = '';
         
 
     public function mount(TransactionApproval $approval): void
@@ -97,8 +98,9 @@ class Show extends Component
 
     private function signatureReady(): bool
     {
-        $path = Auth::user()->signature_path;
-
+        $u = Auth::user();
+        if (! $u->signature_enabled) return true;   // signing without an image is allowed
+        $path = $u->signature_path;
         return $path && Storage::disk(SignatureStore::DISK)->exists($path);
     }
 
@@ -106,6 +108,7 @@ class Show extends Component
     {
         if (in_array($which, ['approve', 'reject'], true)) {
             $this->resetErrorBag();
+            $this->inspectionRemarks = '';
             $this->password = '';
             $this->reason = '';
             $this->modal = $which;
@@ -118,6 +121,7 @@ class Show extends Component
         $this->password = '';
         $this->reason = '';
         $this->resetErrorBag();
+        $this->inspectionRemarks = '';
     }
 
     public function approve()
@@ -131,7 +135,10 @@ class Show extends Component
             return;
         }
 
-        $this->validate(['password' => ['required', 'string']], [], ['password' => 'password']);
+        $this->validate([
+            'password' => ['required', 'string'],
+            'inspectionRemarks' => ['nullable', 'string', 'max:300'],
+        ], [], ['password' => 'password', 'inspectionRemarks' => 'remarks']);
 
         if (! Hash::check($this->password, $user->password)) {
             RateLimiter::hit($key, 60);
@@ -143,7 +150,9 @@ class Show extends Component
         RateLimiter::clear($key);
 
         try {
-            app(TransactionWorkflow::class)->approve($this->approval, $user, 'account_password');
+            app(TransactionWorkflow::class)->approve($this->approval, $user, 'account_password', [
+                'inspection_remarks' => $this->inspectionRemarks,
+            ]);
         } catch (WorkflowException $e) {
             $this->password = '';
             $this->addError('action', $e->getMessage());

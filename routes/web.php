@@ -87,6 +87,12 @@ Route::middleware(['auth'])->group(function () {
         ->name('signatory.oversight.preview');
     Route::get('/signing/oversight/{workspace}/report', [\App\Http\Controllers\WorkflowReportController::class, 'download'])
         ->name('signatory.oversight.report');
+    Route::get('/signing/issued', \App\Livewire\Signatory\Issued::class)->name('signatory.issued');
+    Route::get('/signing/issued/{workspace}', \App\Livewire\Signatory\IssuedShow::class)->name('signatory.issued.show');
+    Route::get('/signing/issued/{workspace}/preview', [\App\Http\Controllers\IssuedDocumentController::class, 'preview'])
+        ->name('signatory.issued.preview');
+    Route::get('/signing/issued/{workspace}/download', [\App\Http\Controllers\IssuedDocumentController::class, 'download'])
+        ->name('signatory.issued.download');
     Route::get('/signing/{approval}', \App\Livewire\Signatory\Show::class)->name('signatory.show');
     Route::get('/signing/{approval}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'signatory'])
         ->name('signatory.preview');

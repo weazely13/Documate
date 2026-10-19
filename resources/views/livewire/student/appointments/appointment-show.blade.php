@@ -88,7 +88,7 @@
                 </div>
 
                 {{-- Attached Document Preview Container --}}
-                @if($appointment->workspace)
+                @if($appointment->workspace && ! $appointment->workspace->usesWorkflow())
                     <div x-data="{ scale: 1, minScale: 0.5, maxScale: 2.5 }" class="pt-2 border-t border-slate-100 min-w-0 max-w-full">
                         <div class="mb-2">
                             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Attached Document Preview</p>
@@ -153,6 +153,10 @@
                             </div>
                         </div>
                     </div>
+                @endif
+                @if($appointment->workspace?->usesWorkflow())
+                    <a href="{{ route('student.transactions.show', $appointment->workspace->workspace_id) }}" wire:navigate
+                    class="inline-block text-sm font-semibold text-[#2A57B4] hover:underline">View your advisement form &rarr;</a>
                 @endif
             </div>
 

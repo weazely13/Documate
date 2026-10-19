@@ -50,10 +50,38 @@ class SignatoryInvitations
         });
     }
 
-    /** New setup link. Also works as "reset my password" for someone who already has one. */
+    /** $how = 'declined' (by the invitee) or 'cancelled' (by the admin). Only unused invitations can be closed. */
+    public function close(int $invitationId, string $how): void
+    {
+        DB::transaction(function () use ($invitationId, $how) {
+            $invitation = UserInvitation::with('user')->whereKey($invitationId)->lockForUpdate()->firstOrFail();
+
+            if ($invitation->used_at || $invitation->declined_at || $invitation->cancelled_at) {
+                throw new \RuntimeException('closed');
+            }
+
+            $invitation->forceFill([$how . '_at' => now()])->save();
+
+            // The account was never set up, so nobody can sign through it, and the
+            // roles it holds must not count as "someone can sign".
+            $invitation->user?->signatoryAssignments()->update(['is_active' => false]);
+            $invitation->user?->forceFill(['account_status' => 'inactive'])->save();
+        });
+    }
+
     public function resend(User $user, User $by): void
     {
-        DB::transaction(fn () => $this->issue($user, $by));
+        DB::transaction(function () use ($user, $by) {
+            $wasClosed = UserInvitation::where('user_id', $user->id)->whereNull('used_at')
+                ->where(fn ($q) => $q->whereNotNull('declined_at')->orWhereNotNull('cancelled_at'))
+                ->exists();
+
+            $this->issue($user, $by);
+
+            if ($wasClosed) {
+                $user->signatoryAssignments()->update(['is_active' => true]); // "Invite again"
+            }
+        });
     }
 
     private function issue(User $user, User $by): void

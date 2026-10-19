@@ -63,6 +63,7 @@ class ProfilePage extends Component
 
     // Select options
     public array $sexOptions = ['Male', 'Female'];
+    public bool $signature_enabled = true;
 
     public array $yearLevelOptions = [
         '1' => '1st Year',
@@ -71,6 +72,7 @@ class ProfilePage extends Component
         '4' => '4th Year',
         '5' => '5th Year',
     ];
+    public string $address = '';
 
     public array $academicStatusOptions = [
         'Regular', 'Irregular', 'Transferee', 'Returning Student', 'On Leave', 'Graduated',
@@ -94,7 +96,6 @@ class ProfilePage extends Component
 
     public function saveSignature(SignatureStore $store): void
     {
-        abort_unless(Auth::user()->isSignatory(), 403);
 
         $this->validate([
             'signatureData' => ['required', 'string', 'max:400000'],
@@ -150,6 +151,7 @@ class ProfilePage extends Component
             'date_of_birth' => [$optional, 'date', 'before_or_equal:today'],
             'email' => $emailRules,
             'contact_number' => [$optional, 'regex:/^(09|\+639)\d{9}$/'],
+            'address' => ['nullable', 'string', 'max:250'],
             'photo' => ['nullable', 'image', 'max:2048'],
         ];
 
@@ -172,7 +174,7 @@ class ProfilePage extends Component
         $validated['email'] = strtolower($validated['email']);
 
         // Livewire gives '' for blank inputs; a date column must get NULL, not ''.
-        foreach (['sex', 'date_of_birth', 'contact_number'] as $key) {
+        foreach (['sex', 'date_of_birth', 'contact_number', 'address'] as $key) {
             if (array_key_exists($key, $validated) && $validated[$key] === '') {
                 $validated[$key] = null;
             }
@@ -218,6 +220,16 @@ class ProfilePage extends Component
         $this->showPasswordForm = ! $this->showPasswordForm;
         $this->reset('current_password', 'new_password', 'new_password_confirmation');
         $this->resetErrorBag(['current_password', 'new_password', 'new_password_confirmation']);
+    }
+    public function toggleSignatureEnabled(): void
+    {
+        $user = Auth::user();
+        $user->forceFill(['signature_enabled' => ! $user->signature_enabled])->save();
+        $this->signature_enabled = $user->signature_enabled;
+
+        session()->flash('profile_saved', $this->signature_enabled
+            ? 'Your e-signature will be applied when you sign.'
+            : 'Your e-signature image is turned off. Documents you sign will show your name and security seal only.');
     }
 
     public function updatePassword(): void
@@ -360,6 +372,7 @@ class ProfilePage extends Component
         $this->sex = (string) ($user->sex ?? '');
         $this->date_of_birth = $user->date_of_birth ? (string) $user->date_of_birth : '';
         $this->contact_number = (string) ($user->contact_number ?? '');
+        $this->address = (string) ($user->address ?? '');
         $this->college = (string) ($user->college ?? '');
         $this->college_id = $user->program?->college_id
             ?? College::where('name', $this->college)->value('id');
@@ -373,6 +386,7 @@ class ProfilePage extends Component
         $this->role_name = (string) ($user->role->role_name ?? 'User');
         $this->profile_picture = $user->profile_picture;
         $this->isOfficerLocked = method_exists($user, 'isOfficer') ? $user->isOfficer() : false;
+        $this->signature_enabled = (bool) ($user->signature_enabled ?? true);
     }
 
     public function render()

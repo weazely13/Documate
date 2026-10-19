@@ -62,8 +62,10 @@ class ExternalSigning
         $approval->loadMissing('workspace');
 
         return match ($approval->workspace?->document_type) {
-            'model_student_rating' => 'rating',
+            'model_student_rating', 'ymca_award_rating' => 'rating',
             'disciplinary_case_report' => 'review',
+            'parent_consent_assistantship' => 'consent',
+            'student_complaint_grievance' => str_starts_with((string) $approval->label, 'Witness') ? 'witness' : 'guardian',
             default => 'endorse',
         };
     }

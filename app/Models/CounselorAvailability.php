@@ -16,7 +16,7 @@ class CounselorAvailability extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     /** Earliest slot (not yet over) set by anyone who currently holds the Guidance Counselor role. */

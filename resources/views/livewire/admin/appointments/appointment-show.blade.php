@@ -156,10 +156,10 @@
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Document</p>
                         <p class="mt-1 font-semibold text-slate-900">
-                            {{ $appointment->workspace?->template?->name ?? 'No document attached' }}
+                            {{ $appointment->workspace?->template?->name ?? ($appointment->workspace?->transaction_code ? 'Paperless: ' . $appointment->workspace->transaction_code : 'No document attached') }}
                         </p>
                     </div>
-                    @if($appointment->workspace?->generated_pdf_path)
+                    @if($appointment->workspace?->generated_pdf_path && ! $appointment->workspace->usesWorkflow())
                         <a href="{{ route('admin.transactions.download-pdf', $appointment->workspace) }}"
                             class="inline-flex items-center gap-1.5 rounded-xl bg-[#2A57B4] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -169,7 +169,12 @@
                 </div>
 
                 <div class="mt-4 rounded-xl border border-slate-100 bg-slate-50/50 p-3">
-                    @include('livewire.partials.document-preview', ['workspace' => $appointment->workspace])
+                    @if ($appointment->workspace?->usesWorkflow())
+                        <a href="{{ route('admin.workflow.show', $appointment->workspace->workspace_id) }}" wire:navigate
+                        class="text-sm font-semibold text-[#2A57B4] hover:underline">Open the paperless transaction &rarr;</a>
+                    @else
+                        @include('livewire.partials.document-preview', ['workspace' => $appointment->workspace])
+                    @endif
                 </div>
 
                 @if($appointment->workspace?->missed_count > 0)

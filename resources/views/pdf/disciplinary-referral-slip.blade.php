@@ -12,12 +12,7 @@
 @php
     $dateIssued = ($issuedAt ?? $submittedAt)?->format('F j, Y') ?? '';
 
-    $reporter = [
-        'name' => $v['reporter_name'] ?? '',
-        'signature' => $reporterSignature ?? null,
-        'signed_at' => null,
-        'seal' => '',
-    ];
+    $reporter = $reporterSigner;
 @endphp
 
 @section('body')

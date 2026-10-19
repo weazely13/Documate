@@ -55,6 +55,13 @@ class Index extends Component
             ->keys()
             ->all();
     }
+    private function staffKeys(): array
+    {
+        return collect(DocumentRegistry::all())
+            ->filter(fn ($d) => $d->issuerIsStaff())
+            ->keys()
+            ->all();
+    }
     private function base(): Builder
     {
         return StudentDocumentWorkspace::query()
@@ -68,7 +75,8 @@ class Index extends Component
         return match ($tab) {
             'attention' => $q->where(fn ($w) => $w
                 ->whereIn('workflow_status', ['submitted', 'approved'])
-                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereDoesntHave('approvals'))),
+                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereDoesntHave('approvals'))
+                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereIn('document_type', $this->staffKeys()))),
             'signing' => $q->where('workflow_status', 'under_review')->whereHas('approvals'),
             'submitted', 'action_required', 'approved', 'completed', 'rejected', 'voided' => $q->where('workflow_status', $tab),
             'issued' => $q->whereIn('document_type', $this->officeKeys()),

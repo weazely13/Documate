@@ -27,7 +27,7 @@
         @endforeach
     </div>
 
-    {{-- ============ ORGANIZATIONS ============ --}}
+        {{-- ============ ORGANIZATIONS ============ --}}
     @if ($panel === 'organizations')
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-1 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm h-fit">
@@ -43,12 +43,36 @@
                         <input type="text" wire:model="orgName" class="{{ $formInput }}">
                         @error('orgName') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
-                    <label class="flex items-start gap-2 text-sm text-gray-700">
-                        <input type="checkbox" wire:model.live="orgIsAcademic" class="mt-0.5 rounded border-gray-300 text-[#2A57B4]">
-                        <span>Academic organization (tied to programs).<br>
+
+                    {{-- Year level comes first: choosing one makes the org independent of programs --}}
+                    <div>
+                        <label class="{{ $label }}">Year level organization (optional)</label>
+                        <select wire:model.live="orgYearLevel" class="{{ $formInput }}">
+                            <option value="">Not a year level organization</option>
+                            <option value="1">1st year (Freshmen)</option>
+                            <option value="2">2nd year (Sophomore)</option>
+                            <option value="3">3rd year (Junior)</option>
+                            <option value="4">4th year (Senior)</option>
+                        </select>
+                        <p class="mt-1 text-[11px] text-gray-400">
+                            Matched to students by their year level only. It has no programs and is never picked in a student's profile.
+                        </p>
+                        @error('orgYearLevel') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    @if ($orgYearLevel)
+                        <div class="rounded-lg bg-purple-50 px-3 py-2 text-xs text-purple-700">
+                            This is a year level organization, so it is automatically non-academic and needs no programs.
+                        </div>
+                    @else
+                        <label class="flex items-start gap-2 text-sm text-gray-700">
+                            <input type="checkbox" wire:model.live="orgIsAcademic" class="mt-0.5 rounded border-gray-300 text-[#2A57B4]">
+                            <span>Academic organization (tied to programs).<br>
                             <span class="text-xs text-gray-400">Untick for non-academic. No programs needed, and its adviser signs by emailed link.</span></span>
-                    </label>
-                    @if ($orgIsAcademic)
+                        </label>
+                    @endif
+
+                    @if ($orgIsAcademic && ! $orgYearLevel)
                         <div>
                             <div class="flex items-center justify-between">
                                 <label class="{{ $label }}">
@@ -135,7 +159,7 @@
                             @error('orgProgramIds') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                         </div>
                     @endif
-                    
+
                     <div>
                         <label class="{{ $label }}">Description</label>
                         <textarea wire:model="orgDescription" rows="3" class="{{ $formInput }}"></textarea>
@@ -189,6 +213,13 @@
                                     <tr wire:key="org-{{ $org->id }}">
                                         <td class="px-4 py-3 font-medium text-gray-900 max-w-[220px]">
                                             <div class="truncate" title="{{ $org->name }}">{{ $org->name }}</div>
+                                            @if ($org->year_level)
+                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600">
+                                                    {{ $org->year_level }}{{ ['', 'st', 'nd', 'rd', 'th'][$org->year_level] ?? 'th' }} year
+                                                </span>
+                                            @elseif (! ($org->is_academic ?? true))
+                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">Non-academic</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-gray-600 max-w-[240px]">
                                             @forelse ($org->programs->take(2) as $prog)
@@ -197,14 +228,20 @@
                                                     {{ $prog->name }}
                                                 </div>
                                             @empty
-                                                <span class="text-xs text-amber-600">Unassigned</span>
+                                                @if ($org->year_level)
+                                                    <span class="text-xs text-gray-400">By year level</span>
+                                                @elseif (! ($org->is_academic ?? true))
+                                                    <span class="text-xs text-gray-400">None needed</span>
+                                                @else
+                                                    <span class="text-xs text-amber-600">Unassigned</span>
+                                                @endif
                                             @endforelse
                                             @if ($org->programs->count() > 2)
                                                 <span class="text-[10px] text-gray-400" title="{{ $org->programs->skip(2)->pluck('name')->implode(', ') }}">
                                                     +{{ $org->programs->count() - 2 }} more
                                                 </span>
                                             @endif
-</td>
+                                        </td>
                                         <td class="px-4 py-3 text-center text-gray-600">{{ $org->members_count }}</td>
                                         <td class="px-4 py-3 text-center text-gray-600">{{ $org->officers_count }}</td>
                                         <td class="px-4 py-3">
@@ -552,7 +589,7 @@
         @php
             $activeRoles = $signatoryRoles->where('is_active', true);
             $rolesWithoutHolder = $activeRoles->filter(fn ($r) => ($sigHolderCounts[$r->id] ?? 0) === 0);
-            $pendingInvites = $invitations->filter(fn ($i) => ! $i->used_at)->count();
+            $pendingInvites = $invitations->filter(fn ($i) => ! $i->used_at && ! $i->declined_at && ! $i->cancelled_at)->count();
             $scopeText = fn ($s) => ['organization' => 'Per organization', 'program' => 'Per program', 'college' => 'Per college'][$s] ?? 'Everyone';
             $selRole = $signatoryRoles->firstWhere('id', (int) $sigRoleId);
             $invRole = $signatoryRoles->firstWhere('id', (int) $invRoleId);
@@ -780,21 +817,29 @@
                             <div class="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm">
                                 <span class="min-w-0 truncate">
                                     <strong class="text-gray-900">{{ $sigSelectedUser->first_name }} {{ $sigSelectedUser->last_name }}</strong>
+                                    @if ($sigSelectedUser->student_number)
+                                        <span class="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{{ $sigSelectedUser->student_number }}</span>
+                                    @endif
                                     <span class="text-xs text-gray-500">{{ $sigSelectedUser->email }}</span>
                                 </span>
                                 <button type="button" wire:click="$set('sigSelectedUserId', null)" class="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-800">Change</button>
                             </div>
                         @else
                             <input type="text" wire:model.live.debounce.300ms="sigUserSearch"
-                                placeholder="Type a name, email or student number"
+                                placeholder="Search by name, student number or email"
                                 class="{{ $input }} mt-0 w-full">
-                            @if (strlen($sigUserSearch) >= 2)
+                            @if (strlen(trim($sigUserSearch)) >= 2)
                                 <div class="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
                                     @forelse ($this->sigUserResults as $u)
                                         <button type="button" wire:click="selectSigUser({{ $u->id }})" wire:key="siguser-{{ $u->id }}"
-                                                class="flex w-full items-center justify-between gap-2 px-3.5 py-2 text-left text-sm hover:bg-gray-50">
-                                            <span class="truncate">{{ $u->first_name }} {{ $u->last_name }}</span>
-                                            <span class="max-w-[160px] shrink-0 truncate text-xs text-gray-400">{{ $u->email }}</span>
+                                                class="flex w-full items-center justify-between gap-3 px-3.5 py-2 text-left text-sm hover:bg-gray-50">
+                                            <span class="min-w-0">
+                                                <span class="block truncate font-medium text-gray-900">{{ $u->first_name }} {{ $u->last_name }}</span>
+                                                <span class="block truncate text-xs text-gray-400">{{ $u->email }}</span>
+                                            </span>
+                                            @if ($u->student_number)
+                                                <span class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{{ $u->student_number }}</span>
+                                            @endif
                                         </button>
                                     @empty
                                         <p class="px-3.5 py-2 text-sm text-gray-400">No one found. Use "New person" if they have no account yet.</p>
@@ -1036,11 +1081,15 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($invitations as $inv)
                                 @php
-                                    [$text, $cls] = $inv->used_at
-                                        ? ['Account ready', 'bg-emerald-50 text-emerald-700']
-                                        : (($inv->expires_at && $inv->expires_at->isPast())
-                                            ? ['Link expired', 'bg-amber-50 text-amber-700']
-                                            : ['Waiting for them', 'bg-blue-50 text-blue-600']);
+                                    [$text, $cls] = match (true) {
+                                        (bool) $inv->used_at => ['Account ready', 'bg-emerald-50 text-emerald-700'],
+                                        (bool) $inv->declined_at => ['Declined', 'bg-rose-50 text-rose-700'],
+                                        (bool) $inv->cancelled_at => ['Cancelled', 'bg-gray-100 text-gray-500'],
+                                        $inv->expires_at && $inv->expires_at->isPast() => ['Link expired', 'bg-amber-50 text-amber-700'],
+                                        default => ['Waiting for them', 'bg-blue-50 text-blue-600'],
+                                    };
+                                    $closed = $inv->declined_at || $inv->cancelled_at;
+                                    $open = ! $inv->used_at && ! $closed;
                                 @endphp
                                 <tr wire:key="inv-{{ $inv->id }}">
                                     <td class="px-4 py-3">
@@ -1048,12 +1097,19 @@
                                         <div class="text-xs text-gray-400">{{ $inv->user->email ?? '' }}</div>
                                     </td>
                                     <td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $cls }}">{{ $text }}</span></td>
-                                    <td class="px-4 py-3 text-right">
+                                    <td class="px-4 py-3 text-right whitespace-nowrap">
                                         <button wire:click="resendInvitation({{ $inv->user_id }})"
                                                 wire:confirm="Email a new setup link? Older links stop working."
                                                 class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-[#2A57B4] hover:bg-blue-50">
-                                            {{ $inv->used_at ? 'Reset password' : 'Resend link' }}
+                                            {{ $inv->used_at ? 'Reset password' : ($closed ? 'Invite again' : 'Resend link') }}
                                         </button>
+                                        @if ($open)
+                                            <button wire:click="cancelInvitation({{ $inv->id }})"
+                                                    wire:confirm="Cancel this invitation? The link will stop working."
+                                                    class="ml-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100">
+                                                Cancel
+                                            </button>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

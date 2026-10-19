@@ -2,6 +2,7 @@
 
 namespace App\Workflow\Documents;
 
+
 use Carbon\Carbon;
 
 /**
@@ -57,8 +58,10 @@ final class DisciplinaryReferralSlip extends WorkflowDocument
 
     public function check(array $values): ?string
     {
-        // Their signature is the only one on this form, so they need one on file.
-        if (empty(auth()->user()?->signature_path)) {
+        $user = auth()->user();
+
+        // A signature is only required when the issuer has signing turned on.
+        if ($user?->signature_enabled && empty($user->signature_path)) {
             return 'Upload your signature in your profile before issuing this slip.';
         }
 
