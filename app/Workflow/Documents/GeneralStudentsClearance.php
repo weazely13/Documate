@@ -8,10 +8,10 @@ use App\Models\User;
 /**
  * F-SDM-020 Rev. 1 (03-31-23): General Students' Clearance.
  * Nothing to fill in: everything comes from the student's profile.
- *  - Profile organization (never a year level org): if academic -> its Treasurer and Adviser
- *    sign as the Academic Organization; if non-academic -> as the Non-Academic Organization.
- *  - Profile year level -> the year level organization (organizations.year_level = 1..4),
- *    completely independent of programs and of the profile organization. Its Treasurer signs.
+ *  - Profile organization: if academic -> its Treasurer and Adviser sign as the Academic Organization;
+ *    if non-academic -> they sign as the Non-Academic Organization. (A profile holds one organization.)
+ *  - Profile year level -> the year level organization (organizations.year_level = 1..4);
+ *    its Treasurer signs.
  *  - The Homeroom Adviser (student's program), College Chief Librarian and the VP always sign.
  * The organizations are frozen into the record when the student saves/submits, so the chain is stable.
  * No matching organization = that step is left out and its line stays blank on the printed form.
@@ -27,18 +27,13 @@ final class GeneralStudentsClearance extends ClearanceBase
     /** Organizations worked out from the profile at save time. */
     public function studentSnapshotExtras(User $user): array
     {
-        // Profile organization: a year level org is ignored here, it is derived from year level below.
-        $org = $user->organization_id
-            ? Organization::active()->notYearLevel()->find($user->organization_id)
-            : null;
-        $isAcademic = $org && ($org->is_academic ?? true);
-        $isNonAcademic = $org && ! ($org->is_academic ?? true);
+        $org = $user->organization_id ? Organization::active()->find($user->organization_id) : null;
+        $isYearOrg = $org && $org->year_level !== null;
+        $isAcademic = $org && ! $isYearOrg && ($org->is_academic ?? true);
+        $isNonAcademic = $org && ! $isYearOrg && ! ($org->is_academic ?? true);
 
-        // Year level organization: matched purely by the student's year level.
         $year = (int) preg_replace('/\D/', '', (string) $user->year_level);
-        $yearOrg = $year
-            ? Organization::active()->yearLevel()->where('year_level', $year)->first()
-            : null;
+        $yearOrg = $year ? Organization::active()->where('year_level', $year)->first() : null;
 
         return [
             'clr_academic_org_id' => $isAcademic ? (string) $org->id : null,
