@@ -145,7 +145,7 @@
                         <p class="font-mono text-[11px] font-semibold text-slate-400">{{ $a->workspace->transaction_code }}</p>
                         <p class="truncate text-sm font-semibold text-slate-900">{{ $doc?->name() ?? 'Document' }} for {{ $a->workspace->field_values['student_name'] ?? 'student' }}</p>
                         <p class="text-xs text-slate-500">
-                            {{ $a->label }} as {{ $a->role->label }}. Waiting {{ $a->opened_at?->diffForHumans(null, true) ?? 'since just now' }}
+                            {{ $a->label }} as {{ $a->role->label ?? 'Account signer' }}. Waiting {{ $a->opened_at?->diffForHumans(null, true) ?? 'since just now' }}
                             @if ($late) <span class="ml-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-700">Waiting long</span> @endif
                         </p>
                     </div>

@@ -66,7 +66,7 @@ final class AdmissionSlip extends WorkflowDocument
     /** The paper form is printed twice per page (student copy / professor copy). Set to 1 for a single slip. */
     public function pdfCopies(): int
     {
-        return 2;
+        return 1;
     }
 
     public function summary(array $values): string

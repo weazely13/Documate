@@ -18,6 +18,7 @@ use Livewire\Component;
 use App\Models\SigningRequest;
 use App\Models\TransactionAuditLog;
 use App\Models\CounselorAvailability;
+use App\Services\Workflow\ExternalSigning;
 
 /** One signing task. Approving re-checks the signer's password; rejecting needs a reason. */
 class Show extends Component
@@ -37,6 +38,8 @@ class Show extends Component
     public string $schedStart = '';
     public string $schedEnd = '';
     public string $inspectionRemarks = '';
+
+    public ?string $rating = null;
         
 
     public function mount(TransactionApproval $approval): void
@@ -112,6 +115,7 @@ class Show extends Component
             $this->password = '';
             $this->reason = '';
             $this->modal = $which;
+            $this->rating = null;
         }
     }
 
@@ -135,10 +139,13 @@ class Show extends Component
             return;
         }
 
+        $kind = $this->approval->signer_user_id ? ExternalSigning::kindFor($this->approval) : null;
+
         $this->validate([
             'password' => ['required', 'string'],
             'inspectionRemarks' => ['nullable', 'string', 'max:300'],
-        ], [], ['password' => 'password', 'inspectionRemarks' => 'remarks']);
+            'rating' => $kind === 'rating' ? ['required', 'in:1,2,3,4,5'] : ['nullable'],
+        ], ['rating.required' => 'Choose a rating.'], ['password' => 'password', 'inspectionRemarks' => 'remarks']);
 
         if (! Hash::check($this->password, $user->password)) {
             RateLimiter::hit($key, 60);
@@ -152,6 +159,7 @@ class Show extends Component
         try {
             app(TransactionWorkflow::class)->approve($this->approval, $user, 'account_password', [
                 'inspection_remarks' => $this->inspectionRemarks,
+                'rating' => $this->rating,
             ]);
         } catch (WorkflowException $e) {
             $this->password = '';
@@ -248,6 +256,7 @@ class Show extends Component
                 ? CounselorAvailability::where('user_id', $user->id)->whereDate('available_date', '>=', today())
                     ->orderBy('available_date')->orderBy('start_time')->limit(6)->get()
                 : collect(),
+            'kind' => $approval->signer_user_id ? ExternalSigning::kindFor($approval) : null,
         ])->layout('layouts.app', ['title' => 'Sign document']);
     }
         public function openSend(int $approvalId): void

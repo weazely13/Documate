@@ -8,6 +8,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
 use App\Services\Workflow\ExternalSigning;
 use App\Workflow\Documents\DocumentRegistry;
+use Illuminate\Support\HtmlString;
 
 
 /**
@@ -34,6 +35,7 @@ class ExternalSignerNotification extends Notification
         $doc = DocumentRegistry::get($ws->document_type);
         $student = $ws->field_values['student_name'] ?? 'a student';
         $org = $ws->field_values['non_academic_org'] ?? 'an organization';
+        $isRating = ExternalSigning::kindFor($approval) === 'rating';
 
         [$subject, $intro, $action, $disregard, $showStudent] = match (ExternalSigning::kindFor($approval)) {
             'review' => [
@@ -96,7 +98,9 @@ class ExternalSignerNotification extends Notification
             ->line('No account is required. You will first confirm your email address with a one-time verification code, then review the document and sign it on screen.')
             ->line('**Link validity:** this link expires on ' . $expires->format('l, F j, Y \a\t g:i A') . '. If it has expired, please ask the VPSD office to issue a new one.')
             ->line($disregard)
-            ->salutation('Respectfully, Office of the Vice President for Student Development, Leyte Normal University');
+            ->salutation($isRating
+                ? new HtmlString('Respectfully,<br>Office of the Vice President for Student Development,<br>Leyte Normal University')
+                : 'Respectfully, Office of the Vice President for Student Development, Leyte Normal University');
 
         return new self(MailBranding::apply($mail));
     }

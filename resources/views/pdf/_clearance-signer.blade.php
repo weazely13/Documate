@@ -1,9 +1,9 @@
 {{-- Needs: $s (signer array, may be empty), $caption (trusted HTML). --}}
-<div style="height:21pt; text-align:center; line-height:21pt;">
+<div style="height:30pt; text-align:center; line-height:30pt;">
     @if (! empty($s['signature']))
-        <img src="{{ $s['signature'] }}" style="height:20pt; vertical-align:bottom;">
+        <img src="{{ $s['signature'] }}" style="height:28pt; vertical-align:bottom;">
     @elseif (! empty($s['no_image']))
-        <span style="font-size:5.5pt; color:#777;">Signed electronically</span>
+        <span style="font-size:8pt; font-weight:bold; letter-spacing:1.2pt; color:#111;">APPROVED</span>
     @endif
 </div>
 <div class="sline">{{ $s['name'] ?? '' }}&nbsp;</div>

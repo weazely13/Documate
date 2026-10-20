@@ -16,7 +16,31 @@
              x-data="{
                 v: {},
                 rows: @js(collect(SA::DAYS)->map(fn ($d) => $d[1])),
-                init() { this.v = { ...$wire.values }; },
+                bad: {},
+                out: null,
+                init() { this.v = { ...$wire.values }; this.validate(); },
+                invalid(k, h, p) { const key = k + '_' + h + '_' + p; return !!this.bad[key] || this.out === key; },
+                validate() {
+                    const bad = {};
+                    for (const k of Object.keys(this.rows)) {
+                        for (const h of ['am', 'pm']) {
+                            const f = (this.v[k + '_' + h + '_from'] || '').slice(0, 5);
+                            const t = (this.v[k + '_' + h + '_to'] || '').slice(0, 5);
+                            if (f && !t) bad[k + '_' + h + '_to'] = true;       // start without end
+                            if (!f && t) bad[k + '_' + h + '_from'] = true;     // end without start
+                            if (f && t && t <= f) {                              // end not after start
+                                bad[k + '_' + h + '_from'] = true;
+                                bad[k + '_' + h + '_to'] = true;
+                            }
+                        }
+                        if (this.day(k) > 4) {                                   // more than 4 hours a day
+                            for (const h of ['am', 'pm']) for (const p of ['from', 'to']) {
+                                if (this.v[k + '_' + h + '_' + p]) bad[k + '_' + h + '_' + p] = true;
+                            }
+                        }
+                    }
+                    this.bad = bad;
+                },
                 dur(a, b) {
                     if (!a || !b) return 0;
                     const [h1, m1] = a.split(':'), [h2, m2] = b.split(':');
@@ -30,19 +54,22 @@
                 warn: '',
                 win: { am: ['07:00', '12:00'], pm: ['13:00', '20:00'] },
                 pick(k, h, p) {
-                    const key = k + '_' + h + '_' + p;
-                    const val = (this.v[key] || '').slice(0, 5);
-                    const [min, max] = this.win[h];
-                    if (val && (val < min || val > max)) {
-                        this.v[key] = '';
-                        this.warn = h === 'am'
-                            ? 'AM times must be between 7:00 AM and 12:00 PM.'
-                            : 'PM times must be between 1:00 PM and 8:00 PM.';
-                    } else {
-                        this.warn = '';
-                    }
-                    $wire.$set('values.' + key, this.v[key] || null, false);
-                },
+                const key = k + '_' + h + '_' + p;
+                const val = (this.v[key] || '').slice(0, 5);
+                const [min, max] = this.win[h];
+                if (val && (val < min || val > max)) {
+                    this.v[key] = '';
+                    this.out = key;   // stays red until the student picks a valid time
+                    this.warn = h === 'am'
+                        ? 'AM times must be between 7:00 AM and 12:00 PM.'
+                        : 'PM times must be between 1:00 PM and 8:00 PM.';
+                } else {
+                    if (this.out === key) this.out = null;
+                    this.warn = '';
+                }
+                $wire.$set('values.' + key, this.v[key] || null, false);
+                this.validate();
+            },
              }">
             @foreach (SA::DAYS as $k => [$label, $days])
                 <div wire:key="sched-{{ $k }}" class="rounded-xl border border-slate-200 p-3">
@@ -60,10 +87,14 @@
                                 <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{{ $H }}</p>
                                 <div class="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                                     <input type="time" x-model="v.{{ $k }}_{{ $h }}_from" @change="pick('{{ $k }}', '{{ $h }}', 'from')"
-                                           min="{{ $wMin }}" max="{{ $wMax }}" class="w-full min-w-0 rounded-lg border border-slate-300 px-2 py-2.5 text-base outline-none focus:border-[#2A57B4] focus:ring-2 focus:ring-blue-100 sm:text-sm">
+                                        min="{{ $wMin }}" max="{{ $wMax }}"
+                                        :class="invalid('{{ $k }}', '{{ $h }}', 'from') ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-[#2A57B4] focus:ring-blue-100'"
+                                        class="w-full min-w-0 rounded-lg border px-2 py-2.5 text-base outline-none focus:ring-2 sm:text-sm">
                                     <span class="text-xs text-slate-400">to</span>
                                     <input type="time" x-model="v.{{ $k }}_{{ $h }}_to" @change="pick('{{ $k }}', '{{ $h }}', 'to')"
-                                           min="{{ $wMin }}" max="{{ $wMax }}" class="w-full min-w-0 rounded-lg border border-slate-300 px-2 py-2.5 text-base outline-none focus:border-[#2A57B4] focus:ring-2 focus:ring-blue-100 sm:text-sm">
+                                        min="{{ $wMin }}" max="{{ $wMax }}"
+                                        :class="invalid('{{ $k }}', '{{ $h }}', 'to') ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-[#2A57B4] focus:ring-blue-100'"
+                                        class="w-full min-w-0 rounded-lg border px-2 py-2.5 text-base outline-none focus:ring-2 sm:text-sm">
                                 </div>
                             </div>
                         @endforeach

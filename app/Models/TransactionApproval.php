@@ -70,9 +70,12 @@ class TransactionApproval extends Model
         return $this->belongsTo(User::class, 'acted_by')->withTrashed();
     }
 
-    /** The signatory inbox: open approvals whose role the user currently holds. */
     public function isAssignedTo(User $user): bool
     {
+        if ($this->signer_user_id !== null) {
+            return (int) $this->signer_user_id === (int) $user->id;
+        }
+
         return $this->signatory_role_id !== null
             && SignatoryAssignment::current()
                 ->where('user_id', $user->id)
@@ -81,23 +84,25 @@ class TransactionApproval extends Model
                 ->exists();
     }
 
-    /** The signatory inbox: open approvals the user holds the role for, in the right scope. */
     public function scopeAssignableTo(Builder $query, User $user): Builder
     {
         $today = today()->toDateString();
 
         return $query->where('status', ApprovalStatus::Pending->value)
-            ->whereExists(function ($s) use ($user, $today) {
-                $s->selectRaw('1')->from('signatory_assignments as sa')
-                    ->whereColumn('sa.signatory_role_id', 'transaction_approvals.signatory_role_id')
-                    ->where('sa.user_id', $user->id)
-                    ->where('sa.is_active', true)
-                    ->where(fn ($d) => $d->whereNull('sa.active_from')->orWhere('sa.active_from', '<=', $today))
-                    ->where(fn ($d) => $d->whereNull('sa.active_until')->orWhere('sa.active_until', '>=', $today))
-                    ->where(fn ($d) => $d->whereNull('transaction_approvals.scope_type')
-                        ->orWhere(fn ($m) => $m
-                            ->whereColumn('sa.scope_type', 'transaction_approvals.scope_type')
-                            ->whereColumn('sa.scope_id', 'transaction_approvals.scope_id')));
+            ->where(function ($outer) use ($user, $today) {
+                $outer->where('signer_user_id', $user->id)
+                    ->orWhere(fn ($q) => $q->whereNull('signer_user_id')->whereExists(function ($s) use ($user, $today) {
+                        $s->selectRaw('1')->from('signatory_assignments as sa')
+                            ->whereColumn('sa.signatory_role_id', 'transaction_approvals.signatory_role_id')
+                            ->where('sa.user_id', $user->id)
+                            ->where('sa.is_active', true)
+                            ->where(fn ($d) => $d->whereNull('sa.active_from')->orWhere('sa.active_from', '<=', $today))
+                            ->where(fn ($d) => $d->whereNull('sa.active_until')->orWhere('sa.active_until', '>=', $today))
+                            ->where(fn ($d) => $d->whereNull('transaction_approvals.scope_type')
+                                ->orWhere(fn ($m) => $m
+                                    ->whereColumn('sa.scope_type', 'transaction_approvals.scope_type')
+                                    ->whereColumn('sa.scope_id', 'transaction_approvals.scope_id')));
+                    }));
             });
     }
 }

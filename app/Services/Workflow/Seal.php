@@ -77,6 +77,9 @@ final class Seal
             $parts[] = 'external';
             $parts[] = (string) $a->external_email;
             $parts[] = $a->response ?? []; // the rating itself is sealed
+        } elseif (! empty($a->response)) {
+            $parts[] = 'account';
+            $parts[] = $a->response;
         }
 
         return self::hmac($parts);

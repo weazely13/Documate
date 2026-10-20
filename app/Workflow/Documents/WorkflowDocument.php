@@ -332,4 +332,50 @@ abstract class WorkflowDocument
     {
         return [];
     }
+    /** Plain-language steps from start to finish, built from this form's own rules. */
+    public function guide(array $values = []): array
+    {
+        $steps = [];
+
+        $fill = 'Your name, program, year and section come from your profile. You only enter the details that are specific to this request.';
+        if ($this->usesNomineePicker()) {
+            $fill .= ' Search for the nominee and pick them from the list.';
+        }
+        if ($this->requiresItemPhoto()) {
+            $fill .= ' Take or upload a clear photo of the item.';
+        }
+        if ($this->requiresStudentSignature()) {
+            $fill .= ' Your profile e-signature is applied, so add it in your profile first.';
+        }
+        $steps[] = ['Fill in the form', $fill];
+
+        $steps[] = ['Submit to the VPSD office', 'You can save a draft first. Submitting sends it to the VPSD office for review. No printing, scanning or handwriting is needed.'];
+        $steps[] = ['VPSD review', 'The VPSD office checks your answers. If something needs fixing you are notified, edit the form and resubmit. A rejection ends the request.'];
+
+        try {
+            $chain = $this->chain($values);
+        } catch (\Throwable) {
+            $chain = [];
+        }
+
+        if ($chain === []) {
+            $steps[] = ['Signing', 'No other signatures are needed for this form.'];
+        } else {
+            $lines = [];
+            foreach ($chain as $i => $s) {
+                if (($s['type'] ?? 'internal') === 'external') {
+                    $lines[] = ($i + 1) . '. ' . $s['label'] . ': gets an email link and confirms with a one-time code (no account needed)';
+                } else {
+                    $role = SignatoryRole::where('key', $s['role'] ?? '')->value('label') ?: ($s['label'] ?? '');
+                    $lines[] = ($i + 1) . '. ' . $s['label'] . ': ' . $role;
+                }
+            }
+            $steps[] = ['Signatures, in order', "Each signer is notified in turn. You can follow progress on this page.\n" . implode("\n", $lines)];
+        }
+
+        $steps[] = ['Final verification', 'Once every signature is in, the VPSD office does the final check and marks the transaction Completed.'];
+        $steps[] = ['Download your copy', 'The official PDF appears on this page. Print it only if a physical copy is required. Anyone can verify it with the QR code or Reference No. and Fingerprint printed on it.'];
+
+        return $steps;
+    }
 }

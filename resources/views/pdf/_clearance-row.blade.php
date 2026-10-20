@@ -2,11 +2,11 @@
 @if ($center ?? false)
     <table class="sgrid">
         <tr>
-            <td style="width:24%;"></td>
-            <td style="width:52%; text-align:center;">
+            <td style="width:25%;"></td>
+            <td style="width:50%; text-align:center;">
                 @include('pdf._clearance-signer', ['s' => $l['s'] ?? [], 'caption' => $l['cap'] ?? ''])
             </td>
-            <td style="width:24%;"></td>
+            <td style="width:25%;"></td>
         </tr>
     </table>
 @else

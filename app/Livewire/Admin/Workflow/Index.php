@@ -3,11 +3,12 @@
 namespace App\Livewire\Admin\Workflow;
 
 use App\Models\StudentDocumentWorkspace;
+use App\Models\User;
+use App\Workflow\Documents\DocumentRegistry;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Workflow\Documents\DocumentRegistry;
 
 /** VPSD review queue for digital (workflow) transactions. Drafts are never shown. */
 class Index extends Component
@@ -22,9 +23,19 @@ class Index extends Component
         'approved' => 'Ready to complete',
         'completed' => 'Completed',
         'rejected' => 'Rejected',
-        'voided' => 'Voided',   
+        'voided' => 'Voided',
         'issued' => 'Issued by office',
         'all' => 'All',
+    ];
+
+    /** Sortable columns: key => [label, column or special handler]. */
+    public const SORTS = [
+        'code' => 'Code',
+        'student' => 'Student',
+        'document' => 'Document',
+        'submitted' => 'Submitted',
+        'signatures' => 'Signatures',
+        'status' => 'Status',
     ];
 
     #[Url(except: 'attention')]
@@ -33,9 +44,18 @@ class Index extends Component
     #[Url(except: '')]
     public string $search = '';
 
+    /** "key:asc" or "key:desc". Empty means the default order for the tab. */
+    #[Url(except: '')]
+    public string $sort = '';
+
     protected $paginationTheme = 'tailwind';
 
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSort(): void
     {
         $this->resetPage();
     }
@@ -47,6 +67,64 @@ class Index extends Component
             $this->resetPage();
         }
     }
+
+    /** Column header click: ascending, then descending, then back to the default order. */
+    public function sortBy(string $key): void
+    {
+        if (! array_key_exists($key, self::SORTS)) {
+            return;
+        }
+
+        [$current, $dir] = $this->parsedSort();
+
+        $this->sort = match (true) {
+            $current !== $key => "{$key}:asc",
+            $dir === 'asc' => "{$key}:desc",
+            default => '',
+        };
+
+        $this->resetPage();
+    }
+
+    public function clearSort(): void
+    {
+        $this->sort = '';
+        $this->resetPage();
+    }
+
+    /** @return array{0: ?string, 1: ?string} */
+    private function parsedSort(): array
+    {
+        [$key, $dir] = array_pad(explode(':', $this->sort, 2), 2, null);
+
+        if (! array_key_exists((string) $key, self::SORTS) || ! in_array($dir, ['asc', 'desc'], true)) {
+            return [null, null];
+        }
+
+        return [$key, $dir];
+    }
+
+    /** Options for the mobile sort menu. */
+    private function sortOptions(): array
+    {
+        $options = ['' => 'Default order'];
+
+        foreach (self::SORTS as $key => $label) {
+            $options["{$key}:asc"] = match ($key) {
+                'submitted' => 'Submitted: oldest first',
+                'signatures' => 'Signatures: fewest first',
+                default => "{$label}: A to Z",
+            };
+            $options["{$key}:desc"] = match ($key) {
+                'submitted' => 'Submitted: newest first',
+                'signatures' => 'Signatures: most first',
+                default => "{$label}: Z to A",
+            };
+        }
+
+        return $options;
+    }
+
     /** Document keys that the VPSD office or a role holder issues to students. */
     private function officeKeys(): array
     {
@@ -55,6 +133,7 @@ class Index extends Component
             ->keys()
             ->all();
     }
+
     private function staffKeys(): array
     {
         return collect(DocumentRegistry::all())
@@ -62,6 +141,7 @@ class Index extends Component
             ->keys()
             ->all();
     }
+
     private function base(): Builder
     {
         return StudentDocumentWorkspace::query()
@@ -84,6 +164,38 @@ class Index extends Component
         };
     }
 
+    private function applySort(Builder $q): void
+    {
+        [$key, $dir] = $this->parsedSort();
+
+        if (! $key) {
+            // Default: oldest first for the action queue, most recently touched first elsewhere.
+            $this->tab === 'attention' ? $q->orderBy('submitted_at') : $q->latest('updated_at');
+
+            return;
+        }
+
+        $table = $q->getModel()->getTable();
+
+        match ($key) {
+            'code' => $q->orderBy('transaction_code', $dir),
+            'document' => $q->orderBy('document_type', $dir),
+            'submitted' => $q->orderBy('submitted_at', $dir),
+            'signatures' => $q->orderBy('approvals_count', $dir),
+            'status' => $q->orderBy('workflow_status', $dir),
+            'student' => $q->orderBy(
+                User::select('last_name')->whereColumn('users.id', "{$table}.user_id")->limit(1),
+                $dir
+            )->orderBy(
+                User::select('first_name')->whereColumn('users.id', "{$table}.user_id")->limit(1),
+                $dir
+            ),
+        };
+
+        // Stable order when many rows share the same value.
+        $q->orderByDesc('updated_at');
+    }
+
     public function render()
     {
         $counts = collect(self::TABS)->map(fn ($label, $key) => $this->applyTab($this->base(), $key)->count());
@@ -103,12 +215,17 @@ class Index extends Component
                     ->orWhere('student_number', 'like', $s)));
         }
 
-        $this->tab === 'attention' ? $q->orderBy('submitted_at') : $q->latest('updated_at');
+        $this->applySort($q);
+
+        [$sortKey, $sortDir] = $this->parsedSort();
 
         return view('livewire.admin.workflow.index', [
             'rows' => $q->paginate(20),
             'counts' => $counts,
             'tabs' => self::TABS,
+            'sortKey' => $sortKey,
+            'sortDir' => $sortDir,
+            'sortOptions' => $this->sortOptions(),
         ])->layout('layouts.app', ['title' => 'Workflow Review']);
     }
 }

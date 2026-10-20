@@ -29,6 +29,25 @@
         </div>
         <span class="rounded-full px-3 py-1 text-xs font-semibold ring-1 {{ $badge }}">{{ $status?->label() ?? 'New' }}</span>
     </div>
+    @unless ($document->issuedByOffice())
+        <details class="rounded-2xl border border-blue-100 bg-blue-50/50 shadow-sm" @if (! $ws) open @endif>
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-[#2A57B4]">
+                How this transaction works, start to finish
+                <span class="text-xs font-medium text-slate-400">tap to show or hide</span>
+            </summary>
+            <ol class="space-y-3 border-t border-blue-100 px-4 py-4">
+                @foreach ($document->guide($ws?->field_values ?? $values) as $i => [$title, $text])
+                    <li class="flex gap-3" wire:key="guide-{{ $i }}">
+                        <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#2A57B4] text-xs font-bold text-white">{{ $i + 1 }}</span>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-900">{{ $title }}</p>
+                            <p class="whitespace-pre-line text-xs leading-relaxed text-slate-600">{{ $text }}</p>
+                        </div>
+                    </li>
+                @endforeach
+            </ol>
+        </details>
+    @endunless
     @if ($this->document->studentNote())
         <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
             {{ $this->document->studentNote() }}
@@ -258,7 +277,7 @@
                                     @endforeach
                                 </select>
                             @else
-                                <input wire:model="values.{{ $name }}"
+                                <input wire:model{{ str_ends_with($name, '_email') ? '.blur' : '' }}="values.{{ $name }}"
                                     type="{{ ['date' => 'date', 'time' => 'time'][$f['type']] ?? 'text' }}"
                                     @if ($f['type'] === 'date')
                                         @if (! empty($f['future'])) min="{{ now()->toDateString() }}"
@@ -268,6 +287,9 @@
                                     placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $input }}">
                             @endif
                             @if (! empty($f['help'])) <p class="mt-1 text-xs text-slate-400">{{ $f['help'] }}</p> @endif
+                            @if ($editable && str_ends_with($name, '_email') && ! empty($values[$name]) && \App\Services\Workflow\ExternalSigning::accountFor($values[$name], auth()->id()))
+                                <p class="mt-1 text-xs font-medium text-emerald-600">This person has a DocuMate signatory account. They will sign from their account, no email link needed.</p>
+                            @endif
                         @else
                             <p class="mt-1 whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-800">{{ $document->formatValue($f, $values[$name] ?? null) ?: '—' }}</p>
                         @endif

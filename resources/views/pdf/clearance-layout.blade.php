@@ -1,8 +1,7 @@
-{{-- Three identical copies side by side on 8.5 x 13 in landscape, like the paper form.
-     Child views fill: doc_title, copy. Needs: $code, $formCode, $fingerprint, $seal, $qr, $copies, $preview. --}}
+{{-- One clearance per A4 page, same mechanism as the Admission Slip.
+     Child views fill: doc_title, copy. Needs: $code, $formCode, $fingerprint, $seal, $qr, $preview, $issuedAt. --}}
 @php
     $lookup = preg_replace('#^https?://#', '', route('document.lookup'));
-    $copies = max(1, (int) ($copies ?? 3));
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -10,85 +9,91 @@
 <meta charset="utf-8">
 <title>@yield('doc_title') {{ $code }}</title>
 <style>
-    @page { margin: 10pt; }
-    body { font-family: 'Helvetica', Arial, sans-serif; font-size: 8.5pt; color: #000; line-height: 1.25; margin: 0; }
-    table { border-collapse: collapse; width: 100%; }
+    @page { margin: 34pt 54pt 96pt 54pt; }
+    body { font-family: 'Helvetica', Arial, sans-serif; font-size: 10pt; color: #000; margin: 0; }
+    table { border-collapse: collapse; width: 100%; table-layout: fixed; }
     td { padding: 0; vertical-align: top; }
-    .mono { font-family: 'DejaVu Sans Mono', monospace; }
     .serif { font-family: 'Times', 'Times New Roman', serif; }
+    .mono { font-family: 'DejaVu Sans Mono', monospace; }
 
-    table.sheet { table-layout: fixed; }
-    td.copy { border: .8pt solid #000; padding: 8pt 9pt 5pt; height: 566pt; }
-
-    /* Letterhead */
-    table.hdr td { vertical-align: middle; }
-    .hdr .t { font-size: 7.5pt; line-height: 1.2; }
+    .hdr td { vertical-align: middle; }
+    .hdr .t { font-size: 10pt; line-height: 1.15; }
     .hdr .b { font-weight: bold; }
     .hdr .blue { color: #1a6fc4; }
+    .title { text-align: center; font-weight: bold; font-size: 11.5pt; margin: 16pt 0 16pt; }
 
-    .title { text-align: center; font-weight: bold; font-size: 10pt; margin: 12pt 0 10pt; }
-    .stmt { font-size: 8.5pt; line-height: 1.35; }
-    .ul { border-bottom: .6pt solid #000; font-weight: bold; padding: 0 3pt; }
-    .cap { font-size: 6pt; line-height: 1.1; padding-left: 70pt; margin-bottom: 1pt; }
-    .rule { border-top: 2pt solid #000; margin: 8pt 0 6pt; }
+    /* Full-width certification lines: label | stretchy underlined value | trailing text */
+    table.cl { table-layout: auto; width: 100%; margin-top: 2pt; }
+    table.cl td { vertical-align: bottom; }
+    .cl-pre, .cl-post { width: 1%; white-space: nowrap; line-height: 13pt; }
+    .cl-pre  { padding-right: 3pt; text-align: left; }
+    .cl-post { padding-left: 3pt; text-align: right; }
+    .cl-val  { border-bottom: .6pt solid #000; text-align: center; font-weight: bold; white-space: nowrap; overflow: hidden; line-height: 13pt; }
+    .cl-cap  { font-size: 7.5pt; font-style: italic; text-align: center; line-height: 10pt; padding-bottom: 5pt; }
 
-    /* Signatures */
-    table.sgrid { margin-top: 3pt; }
-    table.sgrid td.col { width: 48%; text-align: center; }
-    table.sgrid td.gap { width: 4%; }
-    .sline { border-top: .6pt solid #000; padding-top: 1pt; font-size: 6.5pt; font-weight: bold; text-transform: uppercase; text-align: center; }
-    .scap { font-size: 7pt; line-height: 1.2; text-align: center; }
-    .sseal { font-size: 5pt; color: #777; text-align: center; margin-top: 1pt; }
+    /* Justified closing paragraph */
+    .stmt { text-align: justify; line-height: 20pt; margin-top: 4pt; width: 100%; }
 
-    /* Form number, verification */
-    .fno { border-top: 1.2pt solid #000; margin-top: 8pt; padding-top: 2pt; }
-    .fno .no { font-size: 9pt; font-weight: bold; font-style: italic; }
-    .vline { font-size: 5pt; color: #666; }
+    .stmt { line-height: 20pt; text-align: justify; margin-top: 2pt; }
+    .ul { border-bottom: .6pt solid #000; font-weight: bold; padding: 0 4pt; }
+    .rule { border-top: 2pt solid #000; margin: 14pt 0 10pt; }
 
+    /* Signature grid */
+    table.sgrid { margin-top: 8pt; page-break-inside: avoid; }
+    table.sgrid td.col { width: 46%; text-align: center; }
+    table.sgrid td.gap { width: 8%; }
+    .sline { border-top: .6pt solid #000; padding-top: 2pt; font-size: 8.5pt; font-weight: bold; text-transform: uppercase; text-align: center; }
+    .scap { font-size: 9pt; line-height: 1.25; text-align: center; }
+    .sseal { font-size: 6pt; color: #777; text-align: center; margin-top: 2pt; }
+
+    .formno { border-top: .6pt solid #c8c8c8; margin-top: 14pt; padding-top: 4pt; font-size: 10pt; font-weight: bold; font-style: italic; }
+
+    /* Verification footer (identical to the Admission Slip) */
+    .foot { position: fixed; left: 0; right: 0; bottom: -78pt; height: 72pt; border-top: .6pt solid #c8c8c8; font-family: 'DejaVu Sans', sans-serif; }
+    .foot > div { position: absolute; white-space: nowrap; }
+    .foot-qr { left: 0; top: 8pt; }
+    .foot-k { left: 72pt; top: 9pt; font-size: 6.5pt; color: #888; text-transform: uppercase; letter-spacing: .8pt; }
+    .foot-t { left: 72pt; top: 21pt; font-size: 7.5pt; color: #444; }
+    .foot-r { left: 72pt; top: 35pt; font-size: 7.5pt; color: #444; }
+    .foot-f { left: 72pt; top: 47pt; font-size: 7.5pt; color: #444; }
+    .foot-v { font-size: 8pt; font-weight: bold; color: #111; }
+    .foot-form { right: 0; top: 9pt; font-size: 7pt; color: #888; }
     @if ($preview ?? false)
         html { background: #e5e7eb; }
-        body { zoom: .55; width: 936pt; margin: 0 auto; background: #fff; position: relative; }
-        .watermark { position: absolute; top: 2pt; right: 10pt; font-size: 8pt; letter-spacing: 1pt; color: #b45309; background: #fffbeb; border: .6pt solid #fcd34d; padding: 2pt 6pt; }
+        body { max-width: 520pt; margin: 16pt auto; padding: 30pt 40pt; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.15); position: relative; }
+        .watermark { position: absolute; top: 6pt; right: 10pt; font-size: 7pt; letter-spacing: 1pt; color: #b45309; background: #fffbeb; border: .6pt solid #fcd34d; padding: 2pt 6pt; border-radius: 3pt; }
     @endif
 </style>
 </head>
 <body>
 
-<table class="sheet">
+<table class="hdr">
     <tr>
-        @for ($c = 0; $c < $copies; $c++)
-            <td class="copy" style="width: {{ round(100 / $copies, 3) }}%;">
-
-                <table class="hdr">
-                    <tr>
-                        <td style="width:60pt;">@if ($seal)<img src="{{ $seal }}" width="50" height="50">@endif</td>
-                        <td class="t serif">
-                            <div>LEYTE NORMAL UNIVERSITY</div>
-                            <div>Tacloban City</div>
-                            <div class="b">OFFICE OF THE VICE PRESIDENT<br>FOR STUDENT DEVELOPMENT</div>
-                            <div class="blue">vpsdas@lnu.edu.ph</div>
-                            <div class="blue">053 888 0855 local 260</div>
-                        </td>
-                    </tr>
-                </table>
-
-                @yield('copy')
-
-                <div class="fno">
-                    <table>
-                        <tr>
-                            <td class="no">{{ $formCode }}</td>
-                            <td style="width:30pt; text-align:right;">@if ($qr)<img src="{{ $qr }}" width="26" height="26">@endif</td>
-                        </tr>
-                    </table>
-                    @unless ($preview ?? false)
-                        <div class="vline">Verify at {{ $lookup }} &middot; Ref. <span class="mono">{{ $code }}</span> &middot; Fingerprint <span class="mono">{{ $fingerprint ?: '-' }}</span></div>
-                    @endunless
-                </div>
-            </td>
-        @endfor
+        <td style="width:70pt;">@if ($seal)<img src="{{ $seal }}" width="58" height="58">@endif</td>
+        <td class="t serif">
+            <div>LEYTE NORMAL UNIVERSITY</div>
+            <div>Tacloban City</div>
+            <div class="b">OFFICE OF THE VICE PRESIDENT<br>FOR STUDENT DEVELOPMENT</div>
+            <div class="blue">vpsdas@lnu.edu.ph</div>
+            <div class="blue">053 888 0855 local 260</div>
+        </td>
     </tr>
 </table>
+
+@yield('copy')
+
+<div class="formno">{{ $formCode }}</div>
+
+@unless ($preview ?? false)
+<div class="foot">
+    <div class="foot-qr">@if ($qr)<img src="{{ $qr }}" width="58" height="58">@endif</div>
+    <div class="foot-k">Verify this document</div>
+    <div class="foot-t">Scan the QR code, or go to <strong>{{ $lookup }}</strong> and enter:</div>
+    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">{{ $code }}</span></div>
+    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">{{ $fingerprint ?: '-' }}</span></div>
+    <div class="foot-form">{{ $formCode }}</div>
+</div>
+@endunless
 
 @if ($preview ?? false)
     <div class="watermark">PREVIEW{{ $issuedAt ? '' : ' · NOT YET ISSUED' }}</div>

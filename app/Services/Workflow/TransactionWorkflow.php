@@ -267,19 +267,24 @@ class TransactionWorkflow
                 $ws->forceFill(['field_values' => $values])->save();
             }
 
-            $steps = collect(DocumentRegistry::get($ws->document_type)->chain($values))->values()->map(function ($s, $i) use ($values, $ws) {
+            $steps = collect($doc->chain($values))->values()->map(function ($s, $i) use ($values, $ws, $doc) {
                 if (($s['type'] ?? 'internal') === 'external') {
                     $email = Str::lower(trim((string) ($values[$s['email_field']] ?? '')));
                     if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                         throw WorkflowException::externalEmailMissing();
                     }
 
+                    // Email belongs to an account: sign from the account, not the emailed link.
+                    $account = $doc->manualExternalInvites() ? null : ExternalSigning::accountFor($email, $ws->user_id);
+
                     return (object) [
                         'id' => null, 'step_order' => $i + 1, 'label' => $s['label'],
                         'signatory_role_id' => null, 'role' => null,
-                        'external' => true,
+                        'external' => ! $account,
+                        'account' => $account,
                         'name' => trim((string) ($values[$s['name_field']] ?? '')) ?: null,
                         'email' => $email,
+                        'scope_type' => null, 'scope_id' => null,
                     ];
                 }
 
@@ -303,7 +308,7 @@ class TransactionWorkflow
                 return (object) [
                     'id' => null, 'step_order' => $i + 1, 'label' => $s['label'],
                     'signatory_role_id' => $role->id, 'role' => $role,
-                    'external' => false, 'name' => null, 'email' => null,
+                    'external' => false, 'account' => null, 'name' => null, 'email' => null,
                     'scope_type' => $scopeType, 'scope_id' => $scopeId,
                 ];
             });
@@ -345,13 +350,20 @@ class TransactionWorkflow
                     'signatory_role_id' => $step->signatory_role_id,
                     'label' => $step->label,
                     'signer_type' => $step->external ? 'external' : 'internal',
-                    'external_name' => $step->name,
-                    'external_email' => $step->email,
+                    'signer_user_id' => $step->account?->id,
+                    'external_name' => $step->external ? $step->name : null,
+                    'external_email' => $step->external ? $step->email : null,
                     'status' => $i === 0 ? ApprovalStatus::Pending : ApprovalStatus::Waiting,
                     'opened_at' => $i === 0 ? now() : null,
                     'scope_type' => $step->scope_type ?? null,
                     'scope_id' => $step->scope_id ?? null,
                 ])->save();
+                if ($step->account) {
+                    $this->audit($ws, $reviewer, 'approval.routed_to_account', null, null, [
+                        'label' => $step->label,
+                        'account' => trim($step->account->first_name . ' ' . $step->account->last_name),
+                    ], $approval->id);
+                }
                 $first ??= $approval;
             }
             if ($needsCheck) {
@@ -365,7 +377,7 @@ class TransactionWorkflow
                 ], $externalApproval?->id);
             }
             $this->audit($ws, $reviewer, 'review.accepted', TransactionStatus::UnderReview, null, [
-                'steps' => $steps->map(fn ($s) => "{$s->step_order}. {$s->label} (" . ($s->role->key ?? 'external')
+                'steps' => $steps->map(fn ($s) => "{$s->step_order}. {$s->label} (" . ($s->role->key ?? ($s->account ? 'account' : 'external'))
                     . (($s->scope_type ?? null) ? ", {$s->scope_type}#{$s->scope_id}" : '') . ')')->all(),
             ]);
 
@@ -564,6 +576,11 @@ class TransactionWorkflow
             $approval = $this->lockApproval($approval->id);
             $this->assertActionable($ws, $approval, $signer);
 
+            // Double-click / stale page guard.
+            if ($approval->seal !== null) {
+                throw WorkflowException::approvalNotActionable();
+            }
+
             $doc = DocumentRegistry::get($ws->document_type);
             if ($doc->signerSetsSchedule() && empty($ws->field_values['counseling_date'])) {
                 throw new WorkflowException('Set the counselling date and time before signing.');
@@ -576,6 +593,27 @@ class TransactionWorkflow
                 $approval->unsetRelation('workspace'); // so the seal is computed from the saved remarks
             }
 
+            // Account signers who replace an external step must also give the rating/attestation.
+            $response = null;
+            if ($approval->signer_user_id) {
+                $kind = ExternalSigning::kindFor($approval);
+                if ($kind === 'rating') {
+                    $n = (int) ($extra['rating'] ?? 0);
+                    if ($n < 1 || $n > 5) {
+                        throw new WorkflowException('Choose a rating.');
+                    }
+                    $response = ['rating' => $n, 'rating_label' => \App\Workflow\Documents\ModelStudentRating::RATINGS[$n] ?? '', 'attested' => true];
+                } else {
+                    $response = match ($kind) {
+                        'review' => ['reviewed' => true, 'attested' => true],
+                        'consent' => ['consented' => true, 'attested' => true],
+                        'guardian' => ['guardian_signed' => true, 'attested' => true],
+                        'witness' => ['witnessed' => true, 'attested' => true],
+                        default => ['endorsed' => true, 'attested' => true],
+                    };
+                }
+            }
+
             // ONE save. The model's saving hook archives the signature, fills the name and hashes, and seals it.
             $approval->forceFill([
                 'status' => ApprovalStatus::Approved,
@@ -583,7 +621,7 @@ class TransactionWorkflow
                 'auth_method' => $authMethod,
                 'signature_path' => $signer->signature_enabled ? $signer->signature_path : null,
                 'acted_at' => now(),
-            ])->save();
+            ] + ($response !== null ? ['response' => $response] : []))->save();
 
             if ($doc->signerRecordsInspection()) {
                 Appointment::where('workspace_id', $ws->workspace_id)->where('status', 'approved')->get()
@@ -596,7 +634,7 @@ class TransactionWorkflow
             $this->audit($ws, $signer, 'approval.approved', $ws->workflow_status, $ws->workflow_status, [
                 'step' => $approval->step_order,
                 'label' => $approval->label,
-                'role' => $approval->role->key,
+                'role' => $approval->role?->key ?? 'account',
                 'auth_method' => $authMethod,
             ], $approval->id);
 
@@ -659,6 +697,10 @@ class TransactionWorkflow
             $approval = $this->lockApproval($approval->id);
             $this->assertActionable($ws, $approval, $signer);
 
+            if ($approval->seal !== null) {
+                throw WorkflowException::approvalNotActionable();
+            }
+
             $approval->forceFill([
                 'status' => ApprovalStatus::Rejected,
                 'acted_by' => $signer->id,
@@ -673,7 +715,7 @@ class TransactionWorkflow
             $this->audit($ws, $signer, 'approval.rejected', $from, TransactionStatus::Rejected, [
                 'step' => $approval->step_order,
                 'label' => $approval->label,
-                'role' => $approval->role->key,
+                'role' => $approval->role?->key ?? 'account',
                 'reason' => $reason,
             ], $approval->id);
 

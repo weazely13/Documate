@@ -41,7 +41,7 @@
     @endif
 
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 class="text-sm font-semibold text-slate-900">You are signing as: {{ $approval->role->label }} ({{ $approval->label }})</h3>
+        <h3 class="text-sm font-semibold text-slate-900">You are signing as: {{ $approval->role->label ?? 'Account signer' }} ({{ $approval->label }})</h3>
         <div class="mt-4 border-t border-slate-100 pt-4">@include('livewire.workflow._preview', [
             'src' => route('signatory.preview', $approval->id),
             'version' => $ws->updated_at?->timestamp . '-' . $approvals->whereNotNull('acted_at')->count(),
@@ -236,6 +236,18 @@
                         <textarea wire:model="inspectionRemarks" rows="3" maxlength="300" placeholder="e.g. Haircut done. Cleared."
                                 class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-[#2A57B4] focus:ring-4 focus:ring-blue-100"></textarea>
                         @error('inspectionRemarks') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
+                    @endif
+                    @if (($kind ?? null) === 'rating')
+                        <p class="mt-4 text-sm font-medium text-slate-700">Your rating</p>
+                        <div class="mt-1.5 space-y-1.5">
+                            @foreach (\App\Workflow\Documents\ModelStudentRating::RATINGS as $n => $label)
+                                <label wire:key="rt-{{ $n }}" class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50">
+                                    <input type="radio" wire:model="rating" value="{{ $n }}" class="h-4 w-4 accent-[#2A57B4]">
+                                    <span class="font-medium text-slate-800">{{ $label }}</span><span class="ml-auto text-slate-400">({{ $n }})</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('rating') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
                     @endif
                     <label class="mt-4 block text-sm font-medium text-slate-700">Enter your password to sign</label>
                     <input type="password" wire:model="password" wire:keydown.enter="approve" autocomplete="current-password"

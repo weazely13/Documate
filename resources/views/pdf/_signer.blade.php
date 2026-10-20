@@ -3,7 +3,7 @@
     @if (! empty($s['signature']))
         <img src="{{ $s['signature'] }}" style="height:38pt; vertical-align:bottom;">
     @elseif (! empty($s['no_image']))
-        <span style="font-size:7pt; color:#777;">Signed electronically</span>
+        <span style="font-size:9pt; font-weight:bold; letter-spacing:1.5pt; color:#111;">APPROVED</span>
     @endif
 </td></tr></table>
 <div class="sig-name">{{ $s['name'] ?? '' }}&nbsp;</div>

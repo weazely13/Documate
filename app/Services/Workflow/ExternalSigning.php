@@ -7,6 +7,7 @@ use App\Models\TransactionApproval;
 use App\Notifications\ExternalSignerNotification;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use App\Models\User;
 
 /**
  * Creates the emailed signing link for an external approval step.
@@ -85,5 +86,21 @@ class ExternalSigning
         [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
 
         return Str::substr($local, 0, 1) . '***@' . $domain;
+    }
+    /** An active, set-up Signatory account that owns this email (never the student themselves). */
+    public static function accountFor(?string $email, ?int $exceptUserId = null): ?User
+    {
+        $email = Str::lower(trim((string) $email));
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+
+        return User::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->where('account_status', 'active')
+            ->whereNotNull('email_verified_at') // invite accepted, so the account is really set up
+            ->whereHas('role', fn ($q) => $q->where('role_name', 'Signatory'))
+            ->when($exceptUserId, fn ($q) => $q->where('id', '!=', $exceptUserId))
+            ->first();
     }
 }

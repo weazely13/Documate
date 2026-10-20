@@ -11,7 +11,7 @@
                 default => 'bg-slate-300',
             };
             $name = $a->signer_name ?: ($a->actor ? trim($a->actor->first_name . ' ' . $a->actor->last_name) : ($external ? $a->external_name : null));
-            $roleLabel = $external ? 'External signer' : ($a->role->label ?? '-');
+            $roleLabel = $external ? 'External signer' : ($a->role->label ?? ($a->signer_user_id ? 'Account signer' : '-'));
             $text = match ($v) {
                 'approved' => 'Signed by ' . ($name ?: 'unknown') . ($a->acted_at ? ', ' . $a->acted_at->format('M j, Y g:i A') : ''),
                 'pending' => 'Waiting for ' . ($external ? ($a->external_name ?: 'the rater') : ($a->role->label ?? 'signatory')),

@@ -90,8 +90,18 @@ class Show extends Component
 
     private function needsIdentityCheck(): bool
     {
-        return collect(DocumentRegistry::get($this->workspace->document_type)->chain($this->workspace->field_values ?? []))
-            ->contains(fn ($s) => ($s['type'] ?? 'internal') === 'external');
+        $ws = $this->workspace;
+        $values = $ws->field_values ?? [];
+        $doc = DocumentRegistry::get($ws->document_type);
+
+        return collect($doc->chain($values))->contains(function ($s) use ($values, $ws, $doc) {
+            if (($s['type'] ?? 'internal') !== 'external') {
+                return false;
+            }
+
+            return $doc->manualExternalInvites()
+                || ! ExternalSigning::accountFor($values[$s['email_field']] ?? null, $ws->user_id);
+        });
     }
 
     public function complete(): void
@@ -200,10 +210,20 @@ class Show extends Component
         $values = $ws->field_values ?? [];
         $ws->loadMissing('user.program');
 
-        $chainPreview = collect($document->chain($values))->map(function ($step) use ($values, $ws) {
+        $chainPreview = collect($document->chain($values))->map(function ($step) use ($values, $ws, $document) {
             if (($step['type'] ?? 'internal') === 'external') {
                 $name = trim((string) ($values[$step['name_field']] ?? ''));
                 $email = trim((string) ($values[$step['email_field']] ?? ''));
+
+                // Email belongs to a signatory account: they sign from the account, not the emailed link.
+                $account = $document->manualExternalInvites() ? null : ExternalSigning::accountFor($email, $ws->user_id);
+                if ($account) {
+                    return [
+                        'label' => $step['label'],
+                        'role' => 'Signs from their DocuMate account',
+                        'holders' => [trim($account->first_name . ' ' . $account->last_name)],
+                    ];
+                }
 
                 return [
                     'label' => $step['label'],
@@ -236,6 +256,8 @@ class Show extends Component
                         . (! empty($log->meta['note']) ? ': ' . $log->meta['note'] : '')
                     : null),
         ])->reverse()->values();
+
+        
 
         return view('livewire.admin.workflow.show', [
             'ws' => $ws,

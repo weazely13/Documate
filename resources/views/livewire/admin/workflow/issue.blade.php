@@ -117,6 +117,11 @@
 
         {{-- The document's fields --}}
         <div class="mt-5 space-y-4">
+            @if (collect($this->document->fields())->contains(fn ($f) => ($f['type'] ?? '') === 'radio'))
+                <p class="rounded-xl bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600 sm:hidden">
+                    <strong>Scale:</strong> 5 Outstanding &middot; 4 Very Satisfactory &middot; 3 Satisfactory &middot; 2 Good &middot; 1 Poor
+                </p>
+            @endif
             @foreach ($this->document->fields() as $name => $f)
                 @continue(! empty($f['hidden']))
                 @continue(($f['group'] ?? null) === 'rating_rows')
@@ -139,15 +144,15 @@
                         @if ($kind === 'textarea')
                             <textarea wire:model="values.{{ $name }}" rows="4" maxlength="{{ $f['max'] ?? 500 }}" class="{{ $input }}"></textarea>
                         @elseif ($kind === 'radio')
-                            <div class="mt-1.5 flex flex-wrap gap-2">
+                            <div class="mt-1.5 grid grid-cols-5 gap-1 sm:gap-2">
                                 @foreach ($f['options'] as $opt)
                                     <label wire:key="r-{{ $name }}-{{ $opt }}"
-                                        class="flex min-w-[84px] flex-1 cursor-pointer flex-col items-center rounded-xl border border-slate-300 px-2 py-2 text-center hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50">
+                                        class="flex min-w-0 cursor-pointer flex-col items-center rounded-xl border border-slate-300 px-1 py-2 text-center hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50">
                                         <input type="radio" name="values_{{ $name }}" value="{{ $opt }}" wire:model="values.{{ $name }}"
                                             class="h-4 w-4 accent-[#2A57B4]">
                                         <span class="mt-1 text-sm font-semibold text-slate-800">{{ $opt }}</span>
                                         @if (! empty($f['option_labels'][$opt]))
-                                            <span class="text-[10px] leading-tight text-slate-500">{{ $f['option_labels'][$opt] }}</span>
+                                            <span class="hidden w-full truncate text-[10px] leading-tight text-slate-500 sm:block">{{ $f['option_labels'][$opt] }}</span>
                                         @endif
                                     </label>
                                 @endforeach

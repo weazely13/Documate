@@ -50,17 +50,6 @@ abstract class ClearanceBase extends WorkflowDocument
         return null;
     }
 
-    /** Three copies on one landscape long bond page. */
-    public function pdfCopies(): int
-    {
-        return 3;
-    }
-
-    /** 8.5 x 13 in = 612 x 936 pt, landscape. */
-    public function pdfPaper(): array
-    {
-        return [[0, 0, 612, 936], 'landscape'];
-    }
 
     public function summary(array $values): string
     {
