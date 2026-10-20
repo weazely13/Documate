@@ -209,9 +209,16 @@ class AdminReportService
             ->pluck('total', 'name')
             ->all();
 
+        $driver = DB::connection()->getDriverName();
+        $hoursExpression = match ($driver) {
+            'sqlite' => '(julianday(completed_at) - julianday(created_at)) * 24',
+            'pgsql' => 'EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600',
+            default => 'TIMESTAMPDIFF(HOUR, created_at, completed_at)',
+        };
+
         $avgCompletionHours = (clone $q)
             ->whereNotNull('completed_at')
-            ->select(DB::raw('AVG(TIMESTAMPDIFF(HOUR, created_at, completed_at)) as avg_hours'))
+            ->select(DB::raw("AVG($hoursExpression) as avg_hours"))
             ->value('avg_hours');
 
         return [
@@ -468,8 +475,14 @@ class AdminReportService
 
     protected function monthlyTrend(string $table, array $filters, string $column = 'created_at'): array
     {
+        $monthExpression = match (DB::connection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m', $column)",
+            'pgsql' => "to_char($column, 'YYYY-MM')",
+            default => "DATE_FORMAT($column, '%Y-%m')",
+        };
+
         $query = DB::table($table)
-            ->select(DB::raw("DATE_FORMAT($column, '%Y-%m') as ym"), DB::raw('count(*) as total'))
+            ->select(DB::raw("$monthExpression as ym"), DB::raw('count(*) as total'))
             ->when($filters['date_from'], fn ($q) => $q->whereDate($column, '>=', $filters['date_from']))
             ->when($filters['date_to'], fn ($q) => $q->whereDate($column, '<=', $filters['date_to']))
             ->when(!$filters['date_from'] && !$filters['date_to'], fn ($q) => $q->where($column, '>=', now()->subMonths(6)))

@@ -50,7 +50,7 @@
                 <div class="chatbot-mini-avatar"><i class='bx bx-bot'></i></div>
 
                 <div class="max-w-[78%] min-w-0 rounded-2xl px-3.5 py-2.5 text-sm chatbot-bubble-bot chatbot-choice-bubble">
-                    <div class="chatbot-choice-label">Choose an option:</div>
+                    <div class="chatbot-choice-label">How can we assist you today?</div>
                     <div class="chatbot-choice-list">
                         @foreach ($quickReplies as $reply)
                             <button type="button"

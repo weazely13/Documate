@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -203,6 +204,10 @@ class ManageUsers extends Component
 
     protected function getUsersQuery()
     {
+        $yearLevelOrder = DB::connection()->getDriverName() === 'sqlite'
+            ? "CASE WHEN trim(year_level) <> '' AND trim(year_level) NOT GLOB '*[^0-9]*' THEN CAST(trim(year_level) AS INTEGER) ELSE 999 END ASC"
+            : "CASE WHEN year_level REGEXP '^[0-9]+$' THEN CAST(year_level AS UNSIGNED) ELSE 999 END ASC";
+
         return User::with(['role', 'organization', 'program', 'officerRecord.position'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
@@ -236,7 +241,7 @@ class ManageUsers extends Component
             ->when($this->yearFilter !== '', function ($query) {
                 $query->where('year_level', $this->yearFilter);
             })
-            ->orderByRaw("CASE WHEN year_level REGEXP '^[0-9]+$' THEN CAST(year_level AS UNSIGNED) ELSE 999 END ASC")
+            ->orderByRaw($yearLevelOrder)
             ->orderBy('last_name')
             ->orderBy('first_name');
     }

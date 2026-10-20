@@ -130,7 +130,7 @@ class AppointmentsBoard extends Component
             ->with('user', 'workspace.template')
             ->whereIn('user_id', $page->pluck('user_id'))
             ->orderByDesc('appointment_date')
-            ->orderByRaw("FIELD(session, 'afternoon', 'morning')")
+            ->orderByRaw("CASE session WHEN 'afternoon' THEN 0 WHEN 'morning' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at')
             ->get()
             ->groupBy('user_id');
@@ -269,9 +269,9 @@ class AppointmentsBoard extends Component
     {
         return Appointment::with('user', 'workspace.template')
             ->whereDate('appointment_date', $this->selectedDate)
-            ->orderByRaw("FIELD(status, 'pending', 'approved', 'attended', 'missed', 'rejected', 'retracted')")
-            ->orderByRaw("FIELD(ai_flag, 'flagged', 'review_failed', 'pending', 'clean')")
-            ->orderByRaw("CAST(JSON_UNQUOTE(JSON_EXTRACT(ai_findings, '$.incorrect_probability')) AS UNSIGNED) DESC")
+            ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 WHEN 'attended' THEN 2 WHEN 'missed' THEN 3 WHEN 'rejected' THEN 4 WHEN 'retracted' THEN 5 ELSE 6 END")
+            ->orderByRaw("CASE ai_flag WHEN 'flagged' THEN 0 WHEN 'review_failed' THEN 1 WHEN 'pending' THEN 2 WHEN 'clean' THEN 3 ELSE 4 END")
+            ->orderByAiRisk()
             ->orderBy('session')
             ->orderBy('created_at')
             ->get();
@@ -282,7 +282,7 @@ class AppointmentsBoard extends Component
     {
         $all = Appointment::with('user', 'workspace.template')
             ->whereDate('appointment_date', $this->selectedDate)
-            ->orderByRaw("CAST(JSON_UNQUOTE(JSON_EXTRACT(ai_findings, '$.incorrect_probability')) AS UNSIGNED) DESC")
+            ->orderByAiRisk()
             ->orderBy('created_at')
             ->get();
 

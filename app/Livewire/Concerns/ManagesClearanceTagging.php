@@ -6,6 +6,7 @@ use App\Models\ClearanceStatus;
 use App\Models\Semester;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
 trait ManagesClearanceTagging
@@ -24,6 +25,10 @@ trait ManagesClearanceTagging
 
     protected function monitoredUsersQuery(): Builder
     {
+        $yearLevelOrder = DB::connection()->getDriverName() === 'sqlite'
+            ? "CASE WHEN trim(users.year_level) <> '' AND trim(users.year_level) NOT GLOB '*[^0-9]*' THEN CAST(trim(users.year_level) AS INTEGER) ELSE 999 END ASC"
+            : "CASE WHEN users.year_level REGEXP '^[0-9]+$' THEN CAST(users.year_level AS UNSIGNED) ELSE 999 END ASC";
+
         return User::query()
             ->select('users.*')
             ->leftJoin('organizations', 'organizations.id', '=', 'users.organization_id')
@@ -33,7 +38,7 @@ trait ManagesClearanceTagging
                 fn (Builder $query, int $orgId) => $query->where('users.organization_id', $orgId)
             )
             ->orderBy('organizations.name')
-            ->orderByRaw("CASE WHEN users.year_level REGEXP '^[0-9]+$' THEN CAST(users.year_level AS UNSIGNED) ELSE 999 END ASC")
+            ->orderByRaw($yearLevelOrder)
             ->orderBy('users.last_name')
             ->orderBy('users.first_name');
     }

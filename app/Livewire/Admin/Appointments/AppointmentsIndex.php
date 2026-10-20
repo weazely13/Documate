@@ -32,8 +32,8 @@ class AppointmentsIndex extends Component
         $appointments = match ($this->tab) {
             'review' => $this->baseQuery()
                 ->where('status', 'pending')
-                ->orderByRaw("FIELD(ai_flag, 'flagged', 'review_failed', 'pending', 'clean')")
-                ->orderByRaw("CAST(JSON_UNQUOTE(JSON_EXTRACT(ai_findings, '$.incorrect_probability')) AS UNSIGNED) DESC")
+                ->orderByRaw("CASE ai_flag WHEN 'flagged' THEN 0 WHEN 'review_failed' THEN 1 WHEN 'pending' THEN 2 WHEN 'clean' THEN 3 ELSE 4 END")
+                ->orderByAiRisk()
                 ->orderBy('created_at') // first-come-first-served within the same risk tier
                 ->get(),
             'daily' => $this->baseQuery()->whereDate('appointment_date', now())->where('status', 'approved')->orderBy('session')->orderBy('queue_number')->get(),

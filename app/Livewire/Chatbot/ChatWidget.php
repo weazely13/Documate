@@ -25,7 +25,7 @@ class ChatWidget extends Component
         } else {
             $this->messages = [[
                 'role' => 'assistant',
-                'content' => 'Hello! this is DocuMate Assistant. Where should we start?',
+                'content' => 'Hello! DocuMate Assistant at your service.',
             ]];
             $this->persist();
         }
@@ -35,39 +35,43 @@ class ChatWidget extends Component
 
     protected function defaultQuickReplies(): array
     {
-        return [
-            'Could you explain this answer further?',
-            'What is the next step for this matter?',
-        ];
+        return $this->faqQuestions(['Form Processing']);
+    }
+
+    protected function faqQuestions(array $categories = []): array
+    {
+        $faqs = config('faqs', []);
+
+        return collect($categories)
+            ->flatMap(fn ($category) => collect($faqs[$category] ?? [])->pluck('q'))
+            ->filter(fn ($question) => is_string($question) && str_ends_with(trim($question), '?'))
+            ->map(fn ($question) => trim($question))
+            ->unique()
+            ->take(5)
+            ->values()
+            ->all();
     }
 
     protected function followUpReplies(string $question, string $answer = ''): array
     {
         $question = mb_strtolower($question . ' ' . $answer);
 
-        return match (true) {
+        $categories = match (true) {
             str_contains($question, 'office'), str_contains($question, 'registrar'), str_contains($question, 'cashier') => [
-                'Where is this office located?',
-                'What are this office\'s hours?',
-                'How can I contact this office?',
+                'General',
             ],
             str_contains($question, 'appointment'), str_contains($question, 'schedule'), str_contains($question, 'booking') => [
-                'How can I check my appointment?',
-                'When are appointments available?',
-                'How do I reschedule an appointment?',
+                'Form Processing',
+                'Documents & Transactions',
             ],
-            str_contains($question, 'document'), str_contains($question, 'transaction'), str_contains($question, 'request') => [
-                'How can I check my document status?',
-                'Which documents can I request?',
-                'How can I book an appointment?',
+            str_contains($question, 'document'), str_contains($question, 'transaction'), str_contains($question, 'request'), str_contains($question, 'form'), str_contains($question, 'process') => [
+                'Form Processing',
+                'Documents & Transactions',
             ],
-            str_contains($question, 'handbook'), str_contains($question, 'policy'), str_contains($question, 'rule') => [
-                'What other handbook policy should I explain?',
-                'Could you explain this policy further?',
-                'What does the handbook say about this policy?',
-            ],
-            default => $this->defaultQuickReplies(),
+            default => ['Form Processing'],
         };
+
+        return $this->faqQuestions($categories);
     }
 
     protected function withFollowUpQuestion(string $answer, string $question): string
@@ -132,10 +136,12 @@ class ChatWidget extends Component
             $chatbot = app(ChatbotService::class);
             $result = $chatbot->ask($this->messages, auth()->user());
 
+            $faqQuestions = $this->faqQuestions(array_keys(config('faqs', [])));
             $reply = trim((string) ($result['reply'] ?? ''));
             $quickReplies = collect($result['quick_replies'] ?? [])
                 ->filter(fn ($suggestion) => is_string($suggestion)
                     && trim($suggestion) !== ''
+                    && in_array(trim($suggestion), $faqQuestions, true)
                     && str_ends_with(trim($suggestion), '?'))
                 ->map(fn ($suggestion) => trim($suggestion))
                 ->unique()

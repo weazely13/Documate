@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ChatbotService
@@ -246,6 +247,7 @@ class ChatbotService
                 'category' => (string) $category,
                 'question' => (string) ($item['q'] ?? ''),
                 'answer' => (string) ($item['a'] ?? ''),
+                'keywords' => (array) ($item['keywords'] ?? []),
             ]))
             ->values();
         $matches = [];
@@ -259,7 +261,16 @@ class ChatbotService
             foreach ($faqs as $faq) {
                 $normalizedQuestion = trim(preg_replace('/[^\pL\pN]+/u', ' ', Str::lower(Str::ascii($faq['question']))) ?? '');
                 $normalizedAnswer = Str::lower(Str::ascii($faq['answer']));
+                $normalizedKeywords = collect($faq['keywords'])
+                    ->map(fn ($keyword) => trim(preg_replace('/[^\pL\pN]+/u', ' ', Str::lower(Str::ascii((string) $keyword))) ?? ''))
+                    ->filter();
                 $score = $normalizedPart !== '' && str_contains($normalizedQuestion, $normalizedPart) ? 100 : 0;
+
+                foreach ($normalizedKeywords as $keyword) {
+                    if ($keyword !== '' && str_contains($normalizedPart, $keyword)) {
+                        $score += 5;
+                    }
+                }
 
                 foreach ($terms as $term) {
                     if (str_contains($normalizedQuestion, $term)) {
@@ -382,6 +393,11 @@ Reply formatting (this matters):
 - You may call one information function and suggest_quick_replies in the same turn. Suggestions must stay directly related to the user's question and be useful next actions, not a substitute for the answer.
 
 When the user asks about their own requests, appointments, or clearance status, call the relevant tool instead of guessing.
+- When an authenticated user asks about their own account status or enrollment verification result, call get_my_account_status. It returns only that user's current account and verification data. Do not ask for their student number or email.
+- For verification, distinguish the current-period status from the latest submission attempt: a current-period status of verified means the user has a verified record for that period, even if a later attempt was rejected. If no verification period exists, say the system has no current period to report.
+- Explain account steps from the Account & Access FAQs. Keep new registration separate from re-verifying an existing inactive account. Never claim a verification is pending, approved, or failed unless the FAQ or current-user status tool supports that statement.
+- For an authenticated Admin asking for current dashboard figures, action counts, today's appointments, or recent activity, call get_admin_dashboard_summary and report only the returned data. State its "as_of" time when giving live counts. Never expose the admin dashboard tool or its results to students, officers, or unauthenticated users.
+- The admin dashboard's Pending Transactions count includes workspaces whose status is pending; Pending Appointment Review counts appointments with pending status; Today's Appointments counts appointments scheduled for today's date. Clearance Rate is the rounded percentage of all clearance records marked Cleared. Do not interpret these counts as broader totals.
 - Never write tool names, JSON, or "suggest_quick_replies" in your reply text. Tools are called silently.
 - When the user asks what documents they can request, call list_document_templates and present the returned names as a short list. Link New Transaction using the navigation map.
 - For get_template_requirements, preserve the returned field names and instructions; do not invent field types or requirements.
@@ -487,13 +503,15 @@ HYMN
         try {
             for ($round = 1; $round <= $maxRounds; $round++) {
                 $isLast = $round === $maxRounds;
-                $requiredTool = $round === 1 ? $this->requiredKnowledgeTool($latestUserMessage) : null;
+                $requiredTool = $round === 1 ? $this->requiredKnowledgeTool($latestUserMessage, $user) : null;
                 $includeNavigationTool = $this->isNavigationRequest($latestUserMessage);
+                $includeAdminDashboardTool = $this->isAdmin($user);
                 $response = $this->callGroq(
                     $messages,
                     withTools: ! $isLast,
                     requiredTool: $requiredTool,
                     includeNavigationTool: $includeNavigationTool,
+                    includeAdminDashboardTool: $includeAdminDashboardTool,
                 );
 
                 if ($response->failed()) {
@@ -833,6 +851,7 @@ HYMN
         bool $withTools = true,
         ?string $requiredTool = null,
         bool $includeNavigationTool = true,
+        bool $includeAdminDashboardTool = false,
     )
     {
         $payload = [
@@ -843,7 +862,7 @@ HYMN
         ];
 
         if ($withTools) {
-            $payload['tools'] = $this->tools($includeNavigationTool);
+            $payload['tools'] = $this->tools($includeNavigationTool, $includeAdminDashboardTool);
             $payload['tool_choice'] = $requiredTool
                 ? ['type' => 'function', 'function' => ['name' => $requiredTool]]
                 : 'auto';
@@ -859,9 +878,22 @@ HYMN
         return $request->post('https://api.groq.com/openai/v1/chat/completions', $payload);
     }
 
-    protected function requiredKnowledgeTool(string $query): ?string
+    protected function requiredKnowledgeTool(string $query, ?\App\Models\User $user = null): ?string
     {
         $query = Str::lower(Str::ascii($query));
+
+        if ($this->isAdmin($user)
+            && preg_match('/\b(?:dashboard|action center|system overview|recent activity|today(?:\x27s)? appointments?|pending verifications?|pending transactions?|appointment requests?|appointments? (?:awaiting|pending) (?:review|approval)|clearance rate|active accounts?|students and officers|how many (?:students|accounts|transactions|verifications|appointments))\b/', $query)) {
+            return 'get_admin_dashboard_summary';
+        }
+
+        if ($user && preg_match('/\b(?:my account status|check my account|show my account|my verification status|check my verification|my latest verification|my verification result|when (?:was|did) i (?:verify|complete verification)|am i (?:verified|active)|is my (?:account|e.?slip) (?:active|verified)|my e.?slip status|why (?:is|was) my account (?:inactive|disabled|locked)|why can.?t i (?:log in|login|sign in))\b/', $query)) {
+            return 'get_my_account_status';
+        }
+
+        if ($this->isNavigationRequest($query)) {
+            return 'get_navigation_help';
+        }
 
         if (preg_match('/\b(?:my clearance|clearance status|am i (?:cleared|uncleared)|clearance tagging status)\b/', $query)) {
             return 'get_my_clearance_status';
@@ -883,21 +915,17 @@ HYMN
             return 'get_appointment_availability';
         }
 
-        if (preg_match('/\b(?:what|which|list|show)\b.*\b(?:documents?|forms?)\b.*\b(?:available|request|choose|submit)\b/', $query)) {
+        if (preg_match('/\b(?:what|which|list|show|find)\b.*\b(?:documents?|forms?|paperwork|templates?|certificates?|transcripts?)\b.*\b(?:available|request|get|apply|choose|select|submit|complete|fill)\b/', $query)) {
             return 'list_document_templates';
         }
 
-        if (preg_match('/\b(?:requirements?|what do i need|what should i (?:submit|provide)|which fields)\b/', $query)
-            && preg_match('/\b(?:document|form|application|certificate|permit|transcript|good moral)\b/', $query)) {
+        if (preg_match('/\b(?:requirements?|what do i need|what should i (?:submit|provide|prepare)|which fields|what fields|what information|how do i fill)\b/', $query)
+            && preg_match('/\b(?:document|form|paperwork|application|certificate|permit|transcript|good moral)\b/', $query)) {
             return 'get_template_requirements';
         }
 
-        if (preg_match('/\b(faq|frequently asked|what is documate|who can|is my data secure|which office|forgot(?:ten)? (?:my )?password|password reset|create an account|sign up|who can view|privacy policy|terms and conditions)\b/', $query)) {
+        if (preg_match('/\b(faq|frequently asked|what is documate|who can|is my data secure|which office|forgot(?:ten)? (?:my )?password|password reset|create an account|sign up|signup|register|registration|student account|email address|log in|login|sign in|enrollment slip|e.?slip|verification failed|update profile|change password|who can view|privacy policy|terms and conditions)\b/', $query)) {
             return 'search_faqs';
-        }
-
-        if ($this->isNavigationRequest($query)) {
-            return 'get_navigation_help';
         }
 
         return null;
@@ -953,7 +981,7 @@ HYMN
     }
 
 
-    protected function tools(bool $includeNavigation = true): array
+    protected function tools(bool $includeNavigation = true, bool $includeAdminDashboard = false): array
     {
         $tools = [
             [
@@ -1033,6 +1061,14 @@ HYMN
             [
                 'type' => 'function',
                 'function' => [
+                    'name' => 'get_my_account_status',
+                    'description' => 'Get only the authenticated user\'s account active/inactive state and enrollment verification status for the current verification period, including the latest submission status. Use when the user asks about their own account or verification status. Do not ask them to provide an ID.',
+                    'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
                     'name' => 'get_appointment_availability',
                     'description' => 'Check open appointment slots (morning/afternoon) for a given date, or the next several days if no date given.',
                     'parameters' => [
@@ -1082,11 +1118,30 @@ HYMN
             $tools = array_filter($tools, fn ($tool) => ($tool['function']['name'] ?? null) !== 'get_navigation_help');
         }
 
+        if ($includeAdminDashboard) {
+            $tools[] = [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'get_admin_dashboard_summary',
+                    'description' => 'Get current Admin Dashboard metrics, pending action counts, today\'s appointments, and recent activity. Use for administrator questions about live dashboard figures or workload. The result is only available to an authenticated Admin.',
+                    'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+                ],
+            ];
+        }
+
         return array_values($tools);
     }
 
     protected function executeTool(string $name, array $args, ?int $userId, ?\App\Models\User $user = null): array
     {
+        if ($name === 'get_admin_dashboard_summary') {
+            if (! $this->isAdmin($user)) {
+                return ['error' => 'This dashboard data is available only to an authenticated Admin.'];
+            }
+
+            return $this->adminDashboardSummary();
+        }
+
         if ($name === 'search_offices') {
             $directory = $this->officeDirectory();
             $query = (string) ($args['query'] ?? '');
@@ -1178,11 +1233,142 @@ HYMN
                 ->get(['organization', 'status', 'remarks', 'tagged_at'])
                 ->toArray(),
 
+            'get_my_account_status' => $this->myAccountStatus($userId),
+
             'get_appointment_availability' => $this->availabilityFor($args['date'] ?? null),
             'get_template_requirements' => $this->templateRequirements($args['template_name'] ?? ''),
 
             default => ['error' => "Unknown tool: {$name}"],
         };
+    }
+
+    protected function myAccountStatus(int $userId): array
+    {
+        $user = \App\Models\User::query()->with('role')->find($userId);
+        $period = \App\Models\Setting::query()->with('semester')->latest('id')->first();
+
+        $currentPeriodSubmission = $period
+            ? \App\Models\StudentVerification::query()
+                ->where('user_id', $userId)
+                ->where('setting_id', $period->id)
+                ->latest('id')
+                ->first()
+            : null;
+        $verifiedForCurrentPeriod = $period
+            ? \App\Models\StudentVerification::query()
+                ->where('user_id', $userId)
+                ->where('setting_id', $period->id)
+                ->where('status', \App\Models\StudentVerification::STATUS_VERIFIED)
+                ->exists()
+            : false;
+
+        $latestSubmission = \App\Models\StudentVerification::query()
+            ->where('user_id', $userId)
+            ->latest('id')
+            ->first();
+
+        $periodIsCurrent = $period && $latestSubmission
+            ? (int) $latestSubmission->setting_id === (int) $period->id
+            : false;
+
+        return [
+            'account_status' => $user?->account_status ?? 'unknown',
+            'role' => $user?->role?->role_name ?? 'unknown',
+            'verification_period' => $period ? [
+                'semester' => $period->semester?->label(),
+                'starts' => $period->verification_start_date?->toDateString(),
+                'ends' => $period->verification_end_date?->toDateString(),
+                'is_open' => $period->verification_start_date && $period->verification_end_date
+                    ? $period->isOpen()
+                    : null,
+                'status' => $verifiedForCurrentPeriod
+                    ? \App\Models\StudentVerification::STATUS_VERIFIED
+                    : ($currentPeriodSubmission?->status ?? 'not_submitted'),
+            ] : null,
+            'latest_submission' => $latestSubmission ? [
+                'status' => $latestSubmission->status,
+                'semester' => $latestSubmission->semester,
+                'academic_year' => $latestSubmission->academic_year,
+                'submitted_at' => $latestSubmission->created_at?->toDateTimeString(),
+                'verified_at' => $latestSubmission->verified_at?->toDateTimeString(),
+                'for_current_period' => $periodIsCurrent,
+            ] : null,
+        ];
+    }
+
+    protected function isAdmin(?\App\Models\User $user): bool
+    {
+        return Str::lower($user?->role?->role_name ?? '') === 'admin';
+    }
+
+    protected function adminDashboardSummary(): array
+    {
+        $totalStudents = DB::table('users')
+            ->join('roles', 'roles.id', '=', 'users.role_id')
+            ->whereIn('roles.role_name', ['Student', 'Officer'])
+            ->count();
+        $activeAccounts = DB::table('users')->where('account_status', 'active')->count();
+        $pendingVerifications = DB::table('student_verifications')->where('status', 'pending')->count();
+        $pendingTransactions = DB::table('student_document_workspaces')->where('status', 'pending')->count();
+        $todayAppointmentsCount = DB::table('appointments')->whereDate('appointment_date', today())->count();
+        $pendingAppointmentReview = DB::table('appointments')->where('status', 'pending')->count();
+        $clearanceTotal = DB::table('clearance_statuses')->count();
+        $clearedCount = DB::table('clearance_statuses')->where('status', 'Cleared')->count();
+
+        $recentAppointments = DB::table('appointments as a')
+            ->join('users as u', 'u.id', '=', 'a.user_id')
+            ->select(
+                DB::raw("'appointment' as type"),
+                'a.appointment_id as id',
+                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
+                'a.status',
+                'a.created_at'
+            )
+            ->orderByDesc('a.created_at')
+            ->limit(5);
+        $recentTransactions = DB::table('student_document_workspaces as w')
+            ->join('users as u', 'u.id', '=', 'w.user_id')
+            ->select(
+                DB::raw("'transaction' as type"),
+                'w.workspace_id as id',
+                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
+                'w.status',
+                'w.created_at'
+            )
+            ->orderByDesc('w.created_at')
+            ->limit(5);
+
+        return [
+            'as_of' => now()->toDateTimeString(),
+            'dashboard_metrics' => [
+                'students_and_officers' => $totalStudents,
+                'active_accounts' => $activeAccounts,
+                'pending_verifications' => $pendingVerifications,
+                'pending_transactions' => $pendingTransactions,
+                'todays_appointments' => $todayAppointmentsCount,
+                'pending_appointment_review' => $pendingAppointmentReview,
+                'clearance_rate_percent' => $clearanceTotal > 0 ? round(($clearedCount / $clearanceTotal) * 100) : 0,
+            ],
+            'action_center' => [
+                'pending_verifications' => $pendingVerifications,
+                'pending_transactions' => $pendingTransactions,
+                'appointment_requests' => $pendingAppointmentReview,
+            ],
+            'todays_appointments_preview' => DB::table('appointments as a')
+                ->join('users as u', 'u.id', '=', 'a.user_id')
+                ->select('a.appointment_id', 'a.appointment_date', 'a.status', DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"))
+                ->whereDate('a.appointment_date', today())
+                ->orderBy('a.appointment_date')
+                ->limit(5)
+                ->get()
+                ->toArray(),
+            'recent_activity' => $recentAppointments
+                ->unionAll($recentTransactions)
+                ->orderByDesc('created_at')
+                ->limit(8)
+                ->get()
+                ->toArray(),
+        ];
     }
 
     protected function navigationPages(?\App\Models\User $user): array
@@ -1225,6 +1411,13 @@ HYMN
 
         $pages[] = ['label' => 'Notifications', 'route' => null, 'description' => 'Select the bell icon in the top-right toolbar to view notifications; this is a control, not a separate page.', 'keywords' => 'alerts updates unread messages'];
         $pages[] = ['label' => 'FAQs', 'route' => 'faqs', 'description' => 'Read DocuMate frequently asked questions.', 'keywords' => 'help questions answers'];
+        $pages[] = ['label' => 'Sign in', 'route' => 'login', 'description' => 'Sign in using your student number or registered email and password.', 'keywords' => 'login log in credentials access'];
+        $pages[] = ['label' => 'Create an account', 'route' => 'register', 'description' => 'Register a DocuMate student account and verify enrollment.', 'keywords' => 'sign up signup registration new account'];
+        $pages[] = ['label' => 'Password reset', 'route' => 'password.request', 'description' => 'Request an email link to reset your password.', 'keywords' => 'forgot password recover change password'];
+
+        if (in_array($role, ['student', 'officer'], true)) {
+            $pages[] = ['label' => 'Account Verification', 'route' => 'verify.page', 'description' => 'Upload an enrollment slip to verify or reactivate your account.', 'keywords' => 'verify account e-slip enrollment slip inactive'];
+        }
 
         return collect($pages)
             ->filter(fn ($page) => empty($page['route']) || \Illuminate\Support\Facades\Route::has($page['route']))
@@ -1280,9 +1473,10 @@ HYMN
 
     protected function processGuide(string $query, ?\App\Models\User $user): string
     {
-        $q = Str::lower($query);
+        $q = Str::lower(Str::ascii($query));
         $role = Str::lower($user->role->role_name ?? 'student');
         $isStaff = in_array($role, ['officer', 'student officer', 'admin'], true);
+        $isAdmin = $this->isAdmin($user);
 
         $overview = <<<TXT
     DOCUMATE OVERVIEW (use only these facts for "how do I..." questions):
@@ -1305,6 +1499,13 @@ HYMN
     Timeline: each document page shows an Activity Timeline (created, PDF generated, appointment status, photo uploaded, AI review, completed).
     TXT;
 
+        if ($isAdmin) {
+            $transaction = <<<'TXT'
+    ADMIN DOCUMENT TRANSACTIONS:
+    Open Transactions to review student document workspaces. Use the transaction records/logbooks tabs, status filters, search, sorting, and folder or table views to locate records. Open a record to review its document and activity timeline. Use Document Uploads to review final copies after an appointment is marked attended; its statuses include Needs Upload, Needs Re-upload, and Verified.
+    TXT;
+        }
+
         $appointment = <<<TXT
     HOW TO SET AN APPOINTMENT (4 steps):
     You can book from the Appointments tab (Book Appointment button) or from inside a document (Set Appointment).
@@ -1322,6 +1523,13 @@ HYMN
     - Appointment statuses: pending, approved, rejected, attended, missed, retracted. Past ones appear in the Past History tab.
     TXT;
 
+        if ($isAdmin) {
+            $appointment = <<<'TXT'
+    ADMIN APPOINTMENT REVIEW:
+    Open Appointments to review requests and the appointment calendar. Pending requests are grouped for review using the AI recommendation; the staff member makes the final decision. Open a request to inspect its details, then approve, reject with a reason, or reschedule with a date, session, and reason. The board also supports queue oversight, appointment history, and missed appointments. Use the Availability page or calendar to manage open dates and session capacity.
+    TXT;
+        }
+
         $clearance = $isStaff ? <<<TXT
     HOW TO TAG CLEARANCE (officers and admins):
     1. Open the clearance monitoring tab to see the list of students and their clearance status. Officers only see students of their own organization. Admins see all students.
@@ -1333,15 +1541,31 @@ HYMN
 
         $parts = [$overview];
 
-        $wants = fn (array $words) => collect($words)->contains(fn ($w) => str_contains($q, $w));
+        if ($isAdmin) {
+            $parts[] = <<<'TXT'
+    ADMIN DASHBOARD REFERENCE:
+    The dashboard refreshes automatically every 10 seconds. The Action Center highlights pending verifications, pending transactions, and appointment requests awaiting review. System Overview shows Students & Officers, Active Accounts, Pending Transactions, Clearance Rate, Today's Appointments, and Pending Appointment Review. Recent Activity combines the latest appointments and transactions. Today's Appointments shows up to five scheduled appointments. Use the live dashboard summary tool for current counts and activity; these descriptions explain what the dashboard sections represent.
+    Related admin pages: Verification handles account submissions; Transactions reviews document requests; Appointments manages booking requests and availability; Document Uploads reviews final document images; Clearance Monitoring manages student clearance; Reports provides system reports; Manage Users controls accounts and roles; Document Templates manages forms.
+    TXT;
+        }
+
+        $wants = fn (array $words) => collect($words)->contains(function ($word) use ($q) {
+            $word = Str::lower(Str::ascii($word));
+
+            return str_contains($word, ' ')
+                ? str_contains($q, $word)
+                : preg_match('/\b' . preg_quote($word, '/') . '(?:s|es|ed|ing)?\b/', $q) === 1;
+        });
 
         $matchedAny = false;
 
-        if ($wants(['transaction', 'document', 'workspace', 'pdf', 'print', 'sign', 'complete', 'process', 'step', 'how do i', 'how to', 'request', 'start', 'photo', 'upload', 'secretary', 'vpsd'])) {
+        if ($wants(['transaction', 'transactions', 'document', 'documents', 'form', 'forms', 'application', 'paperwork', 'workspace', 'pdf', 'print', 'sign', 'signature', 'signatory', 'submission', 'submit', 'submitted', 'fill out', 'verify', 'verification', 'photo', 'upload', 'secretary', 'vpsd', 'template', 'edit', 'update'])) {
             $parts[] = $transaction;
             $matchedAny = true;
         }
-        if ($wants(['appointment', 'appoint', 'book', 'schedule', 'queue', 'reschedule', 'reapply', 'missed', 'slot', 'session', 'retract', 'transaction', 'process'])) {
+        // Keep appointment instructions tied to appointment intent. Generic terms such as
+        // "form", "request", and "processing" otherwise add unrelated booking steps.
+        if ($wants(['appointment', 'appointments', 'appoint', 'book', 'booking', 'schedule', 'queue', 'reschedule', 'reapply', 'missed', 'slot', 'session', 'retract'])) {
             $parts[] = $appointment;
             $matchedAny = true;
         }
