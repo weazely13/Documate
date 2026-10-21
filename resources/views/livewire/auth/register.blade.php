@@ -86,7 +86,7 @@
 
                     <div>
                         <label class="text-sm font-medium text-gray-700">Email <span class="text-red-500">*</span></label>
-                        <input wire:model.live="email" placeholder="e.g. juan@gmail.com"
+                        <input wire:model.live.debounce.500ms="email" placeholder="e.g. juan@gmail.com"
                             class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30
                             @error('email') border-red-500 @enderror
                             @if($email && !$errors->has('email')) border-green-500 @endif">

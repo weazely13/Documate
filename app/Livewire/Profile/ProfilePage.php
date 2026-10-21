@@ -388,6 +388,24 @@ class ProfilePage extends Component
         $this->isOfficerLocked = method_exists($user, 'isOfficer') ? $user->isOfficer() : false;
         $this->signature_enabled = (bool) ($user->signature_enabled ?? true);
     }
+    public function updatedEmail(): void
+    {
+        $this->resetErrorBag('email');
+        $email = strtolower(trim($this->email));
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $taken = User::withTrashed()
+            ->where('id', '<>', Auth::id())
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->exists();
+
+        if ($taken) {
+            $this->addError('email', 'That email is already used by another account.');
+        }
+    }
 
     public function render()
     {

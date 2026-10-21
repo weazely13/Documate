@@ -945,8 +945,22 @@
                         </div>
                         <div>
                             <label class="{{ $label }}">Official email</label>
-                            <input type="email" wire:model="invEmail" placeholder="name@lnu.edu.ph" class="{{ $formInput }}">
+                            <input type="email" wire:model.live.debounce.500ms="invEmail" placeholder="name@lnu.edu.ph" class="{{ $formInput }}">
                             @error('invEmail') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+
+                            @if ($invEmailMatch)
+                                <div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+                                    @if ($invEmailMatch['trashed'])
+                                        This email belongs to a <strong>removed</strong> account ({{ $invEmailMatch['name'] }}). Restore it under the Users tab first.
+                                    @else
+                                        <strong>{{ $invEmailMatch['name'] }}</strong> already has an account ({{ $invEmailMatch['role'] }}).
+                                        <button type="button" class="font-semibold text-[#2A57B4] underline"
+                                                @click="$wire.useExistingForInvite().then(() => addMode = 'existing')">
+                                            Assign them as a signatory instead
+                                        </button>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                         <div>
                             <label class="{{ $label }}">Signs as</label>
@@ -987,7 +1001,8 @@
                         </details>
 
                         <button type="button" wire:click="inviteSignatory" wire:loading.attr="disabled"
-                                class="w-full {{ $primaryBtn }} py-2.5 disabled:opacity-60">
+                            @disabled($invEmailMatch)
+                            class="w-full {{ $primaryBtn }} py-2.5 disabled:opacity-60">
                             <span wire:loading.remove wire:target="inviteSignatory">Send invitation</span>
                             <span wire:loading wire:target="inviteSignatory">Sending…</span>
                         </button>
@@ -1113,11 +1128,13 @@
                                         </td>
                                         <td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $cls }}">{{ $text }}</span></td>
                                         <td class="whitespace-nowrap px-4 py-3 text-right">
-                                            <button wire:click="resendInvitation({{ $inv->user_id }})"
-                                                    wire:confirm="Email a new setup link? Older links stop working."
-                                                    class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-[#2A57B4] hover:bg-blue-50">
-                                                {{ $inv->used_at ? 'Reset password' : ($closed ? 'Invite again' : 'Resend link') }}
-                                            </button>
+                                            @unless ($inv->used_at)
+                                                <button wire:click="resendInvitation({{ $inv->user_id }})"
+                                                        wire:confirm="Email a new setup link? Older links stop working."
+                                                        class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-[#2A57B4] hover:bg-blue-50">
+                                                    {{ $closed ? 'Invite again' : 'Resend link' }}
+                                                </button>
+                                            @endunless
                                             @if ($open)
                                                 <button wire:click="cancelInvitation({{ $inv->id }})"
                                                         wire:confirm="Cancel this invitation? The link will stop working."

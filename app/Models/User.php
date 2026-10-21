@@ -144,7 +144,9 @@ class User extends Authenticatable
 
     public function isOfficer(): bool
     {
-        return $this->officerRecord()->exists();
+        return $this->relationLoaded('officerRecord')
+            ? $this->officerRecord !== null
+            : $this->officerRecord()->exists();
     }
 
     public function isAdmin(): bool

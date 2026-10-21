@@ -155,10 +155,28 @@ class VerificationManagement extends Component
             return 'not_submitted';
         }
 
-        $record = $user->verifications
-            ->firstWhere('setting_id', $period->id);
+        $records = $user->verifications->filter(fn ($v) => $this->belongsToPeriod($v, $period));
 
-        return $record?->status ?? 'not_submitted';
+        // Verified wins over pending, pending over rejected, regardless of order.
+        foreach (['verified', 'pending', 'rejected'] as $status) {
+            if ($records->contains('status', $status)) {
+                return $status;
+            }
+        }
+
+        return $records->first()?->status ?? 'not_submitted';
+    }
+
+    protected function belongsToPeriod($verification, Setting $period): bool
+    {
+        if ($verification->setting_id) {
+            return (int) $verification->setting_id === (int) $period->id;
+        }
+
+        // Records saved without a period (e.g. registered before any period existed):
+        // match on the semester and academic year instead.
+        return $verification->semester === $period->current_semester
+            && $verification->academic_year === $period->academic_year;
     }
 
     protected function buildRecords(): Collection

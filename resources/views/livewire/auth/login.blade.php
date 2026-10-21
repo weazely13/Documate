@@ -38,7 +38,9 @@
             <p class="text-sm text-gray-500 text-center mb-6">
                 Welcome back — sign in to continue to DocuMate.
             </p>
-
+            @if (session('status'))
+                <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+            @endif
             <form wire:submit.prevent="loginUser" class="space-y-4">
 
                 <!-- LOGIN -->
@@ -55,6 +57,16 @@
                     @error('login')
                         <p class="error">{{ $message }}</p>
                     @enderror
+                    @if ($canRecover)
+                        <div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+                            Your account was removed, but it can be restored.
+                            <button type="button" wire:click="sendRecovery" wire:loading.attr="disabled" wire:target="sendRecovery"
+                                    class="font-semibold text-[#2A57B4] underline">
+                                <span wire:loading.remove wire:target="sendRecovery">Email me a recovery link</span>
+                                <span wire:loading wire:target="sendRecovery">Sending…</span>
+                            </button>
+                        </div>
+                    @endif
                 </div>
 
 
@@ -94,6 +106,11 @@
                     @error('password')
                         <p class="error">{{ $message }}</p>
                     @enderror
+                    <div class="mt-1.5 text-right">
+                        <button type="button" wire:click="$set('showForgot', true)" class="text-xs font-medium text-[#2A57B4] hover:underline">
+                            Forgot password?
+                        </button>
+                    </div>
                 </div>
 
                 {{-- "Keep me signed in" checkbox removed per request --}}
@@ -218,5 +235,23 @@
             </div>
         </div>
     </div>
+        @if ($showForgot)
+        <div class="fixed inset-0 z-[100] flex items-center justify-center px-4" role="dialog" aria-modal="true">
+            <div class="absolute inset-0 bg-black/50" wire:click="$set('showForgot', false)"></div>
+            <form wire:submit="sendResetLink" class="relative w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
+                <h3 class="text-lg font-bold text-[#2A57B4]">Reset your password</h3>
+                <p class="text-sm text-gray-500">Enter the email on your account and we'll send you a reset link.</p>
+                <div>
+                    <input type="email" wire:model="resetEmail" placeholder="you@gmail.com" autofocus
+                        class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30 @error('resetEmail') border-red-500 @enderror">
+                    @error('resetEmail') <p class="error">{{ $message }}</p> @enderror
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" wire:click="$set('showForgot', false)" class="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="rounded-full bg-[#2A57B4] px-5 py-2 text-sm font-semibold text-white hover:opacity-90">Send link</button>
+                </div>
+            </form>
+        </div>
+    @endif
 
 </div>

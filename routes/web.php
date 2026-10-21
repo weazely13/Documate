@@ -27,6 +27,7 @@ use App\Livewire\Student\StudentHandbook;
 use App\Livewire\Admin\SemesterManagement;
 use App\Livewire\Admin\Reports;
 use App\Http\Controllers\VerifyDocumentController;
+use App\Models\User;
 
 
 
@@ -51,6 +52,16 @@ Route::get('/sign/{token}', \App\Livewire\External\Sign::class)
 
 Route::get('/register', Register::class)->name('register');
 Route::get('/login', Login::class)->name('login');
+Route::get('/reset-password/{token}', \App\Livewire\Auth\ResetPassword::class)
+    ->middleware('guest')->name('password.reset');
+
+Route::get('/account/recover/{user}', function (int $user) {
+    User::onlyTrashed()->findOrFail($user)->restore();
+
+    return redirect()->route('login')->with('status', 'Your account was restored. You can sign in now.');
+})->middleware(['signed', 'throttle:6,1'])->name('account.recover');
+
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', ProfilePage::class)->name('profile');
 

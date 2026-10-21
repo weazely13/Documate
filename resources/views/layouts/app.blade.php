@@ -209,9 +209,9 @@
                         <i class='bx bx-bar-chart link-icon'></i>
                         <span class="link-text">Reports</span>
                     </a>
-                    <a href="{{ route('admin.users') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.users') ? 'active' : '' }}" data-tooltip="Manage Users">
+                    <a href="{{ route('admin.users') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.users') ? 'active' : '' }}" data-tooltip="Users and Access">
                         <i class='bx bx-group link-icon'></i>
-                        <span class="link-text">Manage Users</span>
+                        <span class="link-text">Users and Access</span>
                     </a>
                     <a href="{{ route('admin.templates') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.templates*') ? 'active' : '' }}" data-tooltip="Document Templates">
                         <i class='bx bx-file link-icon'></i>

@@ -167,6 +167,7 @@
                                     <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 {{ $roleColors[$roleName] ?? 'bg-gray-100 text-gray-600 ring-gray-200' }}">
                                         {{ ucfirst($roleName) }}
                                     </span>
+                                    <x-admin.signatory-badges :user="$user" class="mt-1.5 max-w-[170px]" />
                                 </td>
 
                                 {{-- Actions --}}
@@ -245,6 +246,7 @@
                         @if ($user->isOfficer())
                             <span class="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-600">{{ $user->officerRecord->position->title ?? 'Officer' }}</span>
                         @endif
+                        <x-admin.signatory-badges :user="$user" class="mt-1.5 max-w-[170px]" />
                     </div>
 
                     <dl class="mt-3 space-y-1 text-sm">
@@ -273,79 +275,149 @@
         <div class="mb-12 mt-4">{{ $users->links() }}</div>
 
         {{-- ============ USER DETAILS MODAL ============ --}}
-        @if($showModal && $selectedUser)
+        @if ($showModal && $selectedUser)
+            @php
+                $u = $selectedUser;
+                $fmt = fn ($d, $f = 'M d, Y') => $d ? \Illuminate\Support\Carbon::parse($d)->format($f) : '—';
+                $fullName = trim(implode(' ', array_filter([$u->first_name, $u->middle_name, $u->last_name, $u->suffix]))) ?: '—';
+                $age = $u->date_of_birth ? \Illuminate\Support\Carbon::parse($u->date_of_birth)->age : null;
+                $roleName = $u->role->role_name ?? 'User';
+                $sigs = $u->signatoryAssignments->filter(fn ($a) => $a->role);
+
+                $sections = [
+                    'Personal information' => [
+                        'Full name' => $fullName,
+                        'Sex' => $u->sex ?: '—',
+                        'Date of birth' => $fmt($u->date_of_birth) . ($age !== null ? " ({$age} yrs)" : ''),
+                        'Contact number' => $u->contact_number ?: '—',
+                        'Email' => $u->email ?: '—',
+                        'Address' => $u->address ?: '—',
+                    ],
+                    'Academic profile' => [
+                        'Student no.' => $u->student_number ?: '—',
+                        'College' => $u->college ?: ($u->program->college->name ?? '—'),
+                        'Program' => $u->program->name ?? '—',
+                        'Year level' => $u->year_level ? 'Year ' . $u->year_level : '—',
+                        'Section' => $u->section ?: '—',
+                        'Academic status' => $u->academic_status ?: '—',
+                        'Organization' => $u->organization->name ?? '—',
+                        'Officer position' => $u->isOfficer() ? ($u->officerRecord->position->title ?? 'Officer') : '—',
+                    ],
+                    'Account' => [
+                        'Role' => ucfirst($roleName),
+                        'Account status' => $u->trashed() ? 'Removed' : ucfirst(str_replace('_', ' ', $u->account_status ?? 'inactive')),
+                        'Email verified' => $u->email_verified_at ? $fmt($u->email_verified_at, 'M d, Y g:i A') : 'Not verified',
+                        'E-signature' => $u->signature_path ? ($u->signature_enabled ? 'On file, enabled' : 'On file, disabled') : 'Not set up',
+                        'Created' => $fmt($u->created_at, 'M d, Y g:i A'),
+                        'Last updated' => $fmt($u->updated_at, 'M d, Y g:i A'),
+                        ...($u->trashed() ? ['Removed on' => $fmt($u->deleted_at, 'M d, Y g:i A')] : []),
+                    ],
+                ];
+                $wide = ['Address', 'Email', 'Program'];
+            @endphp
+
             <div class="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
-                wire:click.self="closeModal" role="dialog" aria-modal="true">
+                wire:click.self="closeModal" role="dialog" aria-modal="true" aria-label="User details">
+                <div class="relative flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
 
-                <div class="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
-
-                    <div class="relative bg-gradient-to-br from-[#2A57B4] to-[#1d3f85] px-5 py-6 text-white sm:px-7 sm:py-7">
+                    {{-- Header --}}
+                    <div class="relative bg-gradient-to-br from-[#2A57B4] to-[#1d3f85] px-5 py-6 text-white sm:px-7">
                         <button wire:click="closeModal" aria-label="Close"
-                            class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                            </svg>
+                                class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                         </button>
 
-                        <div class="flex items-center gap-4 pr-6 sm:gap-5">
-                            <div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl shadow-lg ring-2 ring-white/40">
-                                @if($selectedUser->profile_picture)
-                                    <img src="{{ asset('storage/' . $selectedUser->profile_picture) }}" class="h-full w-full object-cover" alt="">
+                        <div class="flex items-center gap-4 pr-8 sm:gap-5">
+                            <div class="h-20 w-20 shrink-0 overflow-hidden rounded-2xl shadow-lg ring-2 ring-white/40">
+                                @if ($u->profile_picture)
+                                    <img src="{{ asset('storage/' . $u->profile_picture) }}" class="h-full w-full object-cover" alt="">
                                 @else
-                                    <div class="flex h-full w-full items-center justify-center bg-white/15 text-lg font-bold text-white">
-                                        {{ strtoupper(substr($selectedUser->first_name, 0, 1) . substr($selectedUser->last_name, 0, 1)) }}
+                                    <div class="flex h-full w-full items-center justify-center bg-white/15 text-xl font-bold">
+                                        {{ strtoupper(substr($u->first_name ?? 'U', 0, 1) . substr($u->last_name ?? '', 0, 1)) }}
                                     </div>
                                 @endif
                             </div>
-
                             <div class="min-w-0">
-                                <div class="truncate text-lg font-semibold">{{ $selectedUser->first_name }} {{ $selectedUser->last_name }}</div>
-                                <div class="truncate text-sm text-white/70">{{ $selectedUser->email }}</div>
-
+                                <div class="truncate text-lg font-semibold sm:text-xl">{{ $fullName }}</div>
+                                <div class="truncate text-sm text-white/70">{{ $u->email }}</div>
                                 <div class="mt-2.5 flex flex-wrap gap-1.5">
-                                    <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs
-                                        {{ $selectedUser->account_status === 'active' ? 'bg-emerald-400/20 text-emerald-100' : 'bg-red-400/20 text-red-100' }}">
-                                        <span class="h-1.5 w-1.5 rounded-full {{ $selectedUser->account_status === 'active' ? 'bg-emerald-300' : 'bg-red-300' }}"></span>
-                                        {{ ucfirst($selectedUser->account_status ?? 'inactive') }}
-                                    </span>
-                                    <span class="rounded-full bg-white/15 px-2.5 py-1 text-xs">{{ ucfirst($selectedUser->role->role_name ?? 'User') }}</span>
-                                    @if ($selectedUser->isOfficer())
-                                        <span class="rounded-full bg-amber-400/20 px-2.5 py-1 text-xs text-amber-100">
-                                            {{ $selectedUser->officerRecord->position->title ?? 'Officer' }}
+                                    @if ($u->trashed())
+                                        <span class="rounded-full bg-gray-300/25 px-2.5 py-1 text-xs">Removed</span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs {{ $u->account_status === 'active' ? 'bg-emerald-400/20 text-emerald-100' : 'bg-red-400/20 text-red-100' }}">
+                                            <span class="h-1.5 w-1.5 rounded-full {{ $u->account_status === 'active' ? 'bg-emerald-300' : 'bg-red-300' }}"></span>
+                                            {{ ucfirst(str_replace('_', ' ', $u->account_status ?? 'inactive')) }}
                                         </span>
                                     @endif
+                                    <span class="rounded-full bg-white/15 px-2.5 py-1 text-xs">{{ ucfirst($roleName) }}</span>
+                                    @if ($u->isOfficer())
+                                        <span class="rounded-full bg-amber-400/20 px-2.5 py-1 text-xs text-amber-100">{{ $u->officerRecord->position->title ?? 'Officer' }}</span>
+                                    @endif
+                                    @foreach ($sigs->where('is_active', true) as $a)
+                                        <span class="rounded-full bg-violet-300/20 px-2.5 py-1 text-xs text-violet-100">{{ $a->role->label }}</span>
+                                    @endforeach
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    {{-- Body --}}
                     <div class="min-h-0 flex-1 space-y-6 overflow-y-auto p-5 sm:p-7">
-                        <div>
-                            <h3 class="mb-3 text-sm font-semibold text-gray-700">Personal</h3>
-                            <dl class="grid grid-cols-1 gap-x-4 gap-y-4 rounded-xl bg-gray-50/70 p-4 text-sm sm:grid-cols-2">
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Full name</dt><dd class="font-medium text-gray-800">{{ $selectedUser->first_name }} {{ $selectedUser->middle_name }} {{ $selectedUser->last_name }}</dd></div>
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Sex</dt><dd class="font-medium text-gray-800">{{ $selectedUser->sex ?? '—' }}</dd></div>
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Birthdate</dt><dd class="font-medium text-gray-800">{{ $selectedUser->date_of_birth ?? '—' }}</dd></div>
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Contact</dt><dd class="font-medium text-gray-800">{{ $selectedUser->contact_number ?? '—' }}</dd></div>
-                            </dl>
-                        </div>
+                        @foreach ($sections as $title => $fields)
+                            <section>
+                                <h3 class="mb-3 text-sm font-semibold text-gray-700">{{ $title }}</h3>
+                                <dl class="grid grid-cols-1 gap-x-6 gap-y-4 rounded-xl bg-gray-50/70 p-4 text-sm sm:grid-cols-2">
+                                    @foreach ($fields as $label => $value)
+                                        <div class="min-w-0 {{ in_array($label, $wide, true) ? 'sm:col-span-2' : '' }}">
+                                            <dt class="mb-0.5 text-xs text-gray-400">{{ $label }}</dt>
+                                            <dd class="break-words font-medium text-gray-800">{{ $value }}</dd>
+                                        </div>
+                                    @endforeach
+                                </dl>
+                            </section>
+                        @endforeach
 
-                        <div>
-                            <h3 class="mb-3 text-sm font-semibold text-gray-700">Academic</h3>
-                            <dl class="grid grid-cols-1 gap-x-4 gap-y-4 rounded-xl bg-gray-50/70 p-4 text-sm sm:grid-cols-2">
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Student no.</dt><dd class="font-medium text-gray-800">{{ $selectedUser->student_number ?? '—' }}</dd></div>
-                                <div><dt class="mb-0.5 text-xs text-gray-400">College</dt><dd class="font-medium text-gray-800">{{ $selectedUser->college ?? '—' }}</dd></div>
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Program</dt><dd class="font-medium text-gray-800">{{ $selectedUser->program->name ?? '—' }}</dd></div>
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Year level</dt><dd class="font-medium text-gray-800">{{ $selectedUser->year_level ?? '—' }}</dd></div>
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Organization</dt><dd class="font-medium text-gray-800">{{ $selectedUser->organization->name ?? '—' }}</dd></div>
-                                <div><dt class="mb-0.5 text-xs text-gray-400">Academic status</dt><dd class="font-medium text-gray-800">{{ $selectedUser->academic_status ?? '—' }}</dd></div>
-                            </dl>
-                        </div>
+                        {{-- Signatory roles --}}
+                        <section>
+                            <h3 class="mb-3 text-sm font-semibold text-gray-700">Signatory roles</h3>
+                            @if ($sigs->isEmpty())
+                                <p class="rounded-xl bg-gray-50/70 p-4 text-sm text-gray-400">This account holds no signatory role.</p>
+                            @else
+                                <ul class="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-100">
+                                    @foreach ($sigs as $a)
+                                        @php
+                                            $today = \Illuminate\Support\Carbon::today();
+                                            [$st, $stCls] = match (true) {
+                                                ! $a->is_active => ['Ended', 'bg-gray-100 text-gray-500'],
+                                                $a->active_from && $a->active_from->gt($today) => ['Upcoming', 'bg-blue-50 text-blue-600'],
+                                                $a->active_until && $a->active_until->lt($today) => ['Expired', 'bg-amber-50 text-amber-700'],
+                                                default => ['Can sign now', 'bg-emerald-50 text-emerald-700'],
+                                            };
+                                        @endphp
+                                        <li wire:key="modal-sig-{{ $a->id }}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                                            <div class="min-w-0">
+                                                <p class="font-medium text-gray-800">{{ $a->role->label }}</p>
+                                                @if ($a->scope_name)<p class="text-xs text-gray-400">for {{ $a->scope_name }}</p>@endif
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold {{ $stCls }}">{{ $st }}</span>
+                                                <p class="mt-1 text-[11px] text-gray-400">{{ $a->active_from?->format('M j, Y') ?? 'Now' }} &rarr; {{ $a->active_until?->format('M j, Y') ?? 'Ongoing' }}</p>
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </section>
                     </div>
 
-                    <div class="flex justify-end border-t border-gray-100 px-5 py-4 sm:px-7">
+                    {{-- Footer --}}
+                    <div class="flex flex-col-reverse gap-2 border-t border-gray-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+                        @if ($u->trashed())
+                            <button wire:click="restoreUser({{ $u->id }})" wire:confirm="Restore this user?"
+                                    class="rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 sm:py-2">Restore user</button>
+                        @endif
                         <button wire:click="closeModal"
-                            class="w-full rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 sm:w-auto sm:py-2">Close</button>
+                                class="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 sm:py-2">Close</button>
                     </div>
                 </div>
             </div>

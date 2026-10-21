@@ -49,6 +49,7 @@ class Register extends Component
 
     protected $messages = [
         'email.regex' => 'Only Gmail, Yahoo, or Outlook emails are allowed.',
+        'email.unique' => 'This email is already registered. Sign in, or use "Forgot password?" on the login page. If your account was removed, sign in to request recovery.',
         'contact_number.regex' => 'Enter a valid PH number (09XXXXXXXXX or +639XXXXXXXXX).',
         'date_of_birth.before_or_equal' => 'You must be at least 15 years old to register.',
     ];
@@ -92,6 +93,21 @@ class Register extends Component
         }
                     
     }   
+    protected function emailTakenMessage(): string
+    {
+        return 'This email is already registered. Sign in, or use "Forgot password?" on the login page. If your account was removed, sign in to request recovery.';
+    }
+
+    public function updatedEmail(): void
+    {
+        $this->resetErrorBag('email');
+        $email = strtolower(trim((string) $this->email));
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)
+            && User::withTrashed()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
+            $this->addError('email', $this->emailTakenMessage());
+        }
+    }
 
     public function prevStep()
     {
@@ -385,9 +401,10 @@ class Register extends Component
             'sex' => 'required',
             'date_of_birth' => $this->dobRules(),
             'password' => ['required', 'confirmed'],
-            'email' => ['required', 'email', 'regex:/^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook)\.com$/'],
+            'email' => ['required', 'email', 'regex:/^[a-zA-Z0-9._%+-]+@(gmail|yahoo|outlook)\.com$/', 'unique:users,email'],
             'contact_number' => ['required', 'regex:/^(09|\+639)\d{9}$/'],
             'profile_picture' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+            
         ]));
 
         $profilePath = null;
@@ -403,7 +420,7 @@ class Register extends Component
             'suffix' => $this->suffix,
             'sex' => $this->sex,
             'date_of_birth' => $this->date_of_birth,
-            'email' => $this->email,
+            'email' => strtolower(trim($this->email)),
             'contact_number' => $this->contact_number,
             'college' => $this->college,
             'program_id' => $this->program_id,

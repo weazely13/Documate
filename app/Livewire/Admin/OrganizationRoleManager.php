@@ -98,6 +98,7 @@ class OrganizationRoleManager extends Component
     public string $sigRoleScope = 'none';
     public ?int $sigScopeId = null;
     public ?int $invScopeId = null;
+    public ?array $invEmailMatch = null;
 
     public function updatedInvRoleId(): void { $this->invScopeId = null; }
 
@@ -831,6 +832,13 @@ class OrganizationRoleManager extends Component
 
     public function inviteSignatory(): void
     {
+        $this->updatedInvEmail();
+        if ($this->invEmailMatch) {
+            $this->addError('invEmail', $this->invEmailMatch['trashed']
+                ? 'That email belongs to a removed account. Restore it under Users first.'
+                : 'That email already has an account. Use "They already have an account" instead.');
+            return;
+        }
         $data = $this->validate([
             'invFirst' => ['required', 'string', 'max:100'],
             'invLast' => ['required', 'string', 'max:100'],
@@ -877,6 +885,11 @@ class OrganizationRoleManager extends Component
     /** New setup link. Also serves as "reset password" for a signatory who already has one. */
     public function resendInvitation(int $userId): void
     {
+        $alreadyActive = UserInvitation::where('user_id', $userId)->whereNotNull('used_at')->exists();
+        if ($alreadyActive) {
+            session()->flash('sig_invite_message', 'This person already set up their account. They can use "Forgot password?" on the login page.');
+            return;
+        }
         $user = User::whereHas('role', fn ($q) => $q->where('role_name', 'Signatory'))->findOrFail($userId);
 
         try {
@@ -889,6 +902,39 @@ class OrganizationRoleManager extends Component
         }
 
         session()->flash('sig_invite_message', 'A new setup link was emailed to ' . $user->email . '. Older links no longer work.');
+    }
+
+    public function updatedInvEmail(): void
+    {
+        $this->invEmailMatch = null;
+        $email = strtolower(trim($this->invEmail));
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $u = User::withTrashed()->with('role')->whereRaw('LOWER(email) = ?', [$email])->first();
+
+        if ($u) {
+            $this->invEmailMatch = [
+                'id' => $u->id,
+                'name' => trim($u->first_name . ' ' . $u->last_name),
+                'role' => $u->role->role_name ?? 'User',
+                'trashed' => $u->trashed(),
+            ];
+        }
+    }
+
+    /** Switch from "invite" to "assign" with this person preselected. */
+    public function useExistingForInvite(): void
+    {
+        if (! $this->invEmailMatch || $this->invEmailMatch['trashed']) {
+            return;
+        }
+
+        $this->sigSelectedUserId = $this->invEmailMatch['id'];
+        $this->sigRoleId = $this->invRoleId;
+        $this->reset(['invFirst', 'invLast', 'invEmail', 'invEmailMatch']);
     }
 
     // =========================================================

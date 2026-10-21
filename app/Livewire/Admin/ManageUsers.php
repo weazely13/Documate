@@ -21,7 +21,7 @@ class ManageUsers extends Component
     public $statusFilter = '';
     public string $yearFilter = '';
 
-    public $selectedUser = null;
+    public ?int $selectedUserId = null;
     public $showModal = false;
     public $userPendingDeletion = null;
     public bool $showDeleteModal = false;
@@ -41,17 +41,6 @@ class ManageUsers extends Component
         $this->activeTab = in_array($tab, ['users', 'org-roles'], true) ? $tab : 'users';
     }
 
-    public function openModal($userId)
-    {
-        $this->selectedUser = User::withTrashed()->find($userId);
-        $this->showModal = true;
-    }
-
-    public function closeModal()
-    {
-        $this->showModal = false;
-        $this->selectedUser = null;
-    }
     public function restoreUser(int $userId): void
     {
         $user = User::onlyTrashed()->findOrFail($userId);
@@ -95,6 +84,17 @@ class ManageUsers extends Component
         $this->userPendingDeletion = null;
     }
 
+    public function openModal($userId)
+    {
+        $this->selectedUserId = (int) $userId;
+        $this->showModal = true;
+    }
+
+    public function closeModal()
+    {
+        $this->showModal = false;
+        $this->selectedUserId = null;
+    }
     public function deleteUser(): void
     {
         if (! $this->userPendingDeletion) {
@@ -135,7 +135,7 @@ class ManageUsers extends Component
 
         $deletedName = $this->displayName($user);
 
-        if ($this->selectedUser?->id === $user->id) {
+        if ($this->selectedUserId === $user->id) {
             $this->closeModal();
         }
 
@@ -236,7 +236,7 @@ class ManageUsers extends Component
             ? "CASE WHEN trim(year_level) <> '' AND trim(year_level) NOT GLOB '*[^0-9]*' THEN CAST(trim(year_level) AS INTEGER) ELSE 999 END ASC"
             : "CASE WHEN year_level REGEXP '^[0-9]+$' THEN CAST(year_level AS UNSIGNED) ELSE 999 END ASC";
 
-        return User::with(['role', 'organization', 'program', 'officerRecord.position'])
+        return User::with(['role', 'organization', 'program', 'officerRecord.position', 'signatoryAssignments.role'])
             ->when($this->showRemoved, fn ($q) => $q->onlyTrashed())
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
@@ -281,9 +281,16 @@ class ManageUsers extends Component
 
         $roles = Role::orderBy('role_name')->get();
 
+        $selectedUser = $this->showModal && $this->selectedUserId
+            ? User::withTrashed()
+                ->with(['role', 'organization', 'program.college', 'officerRecord.position', 'signatoryAssignments.role'])
+                ->find($this->selectedUserId)
+            : null;
+
         return view('livewire.admin.manage-users', [
             'users' => $users,
-            'roles' => $roles
-        ])->layout('layouts.app', ['title' => 'Manage Users']);
+            'roles' => $roles,
+            'selectedUser' => $selectedUser,
+        ])->layout('layouts.app', ['title' => 'Users & Access']);
     }
 }

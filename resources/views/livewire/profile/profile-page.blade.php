@@ -408,7 +408,7 @@
                     <div>
                         <label for="email" class="block text-xs font-semibold uppercase tracking-wider text-gray-500">Email Address</label>
                         @if ($editing)
-                            <input wire:model="email" id="email" type="email" class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]" />
+                            <input wire:model.live.debounce.500ms="email" id="email" type="email" class="mt-1.5 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]" />
                             @error('email') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         @else
                             <div class="mt-1 break-all rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-900">
@@ -430,7 +430,15 @@
                             {{ $role_name }}
                         </div>
                     </div>
-
+                    @php $mySigs = auth()->user()->loadMissing('signatoryAssignments.role'); @endphp
+                    @if ($mySigs->signatoryAssignments->isNotEmpty())
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500">Signatory Role</label>
+                            <div class="mt-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                                <x-admin.signatory-badges :user="$mySigs" />
+                            </div>
+                        </div>
+                    @endif
                     {{-- Password Section --}}
                     <div class="border-t border-gray-100 pt-4">
                         <div class="flex items-center justify-between">
