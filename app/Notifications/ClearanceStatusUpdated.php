@@ -26,10 +26,10 @@ class ClearanceStatusUpdated extends Notification
     public function toArray(object $notifiable): array
     {
         [$icon, $color] = match (strtolower($this->status)) {
-            'approved', 'cleared'   => ['bx-check-circle', 'text-emerald-500 bg-emerald-50'],
-            'rejected', 'declined' => ['bx-x-circle', 'text-rose-500 bg-rose-50'],
-            'pending'              => ['bx-time-five', 'text-amber-500 bg-amber-50'],
-            default                => ['bx-info-circle', 'text-blue-500 bg-blue-50'],
+            'approved', 'cleared'  => ['bx-check-circle', 'text-emerald-600 bg-emerald-100'],
+            'rejected', 'declined' => ['bx-x-circle', 'text-rose-600 bg-rose-100'],
+            'pending'              => ['bx-time-five', 'text-amber-600 bg-amber-100'],
+            default                => ['bx-info-circle', 'text-blue-600 bg-blue-100'],
         };
 
         return [
@@ -38,10 +38,13 @@ class ClearanceStatusUpdated extends Notification
             'organization' => $this->organization,
             'semester_id' => $this->semester->id,
             'semester_label' => $this->semester->label(),
+            'title' => 'Clearance ' . strtolower($this->status),
             'message' => "Your clearance status with {$this->organization} was updated to \"{$this->status}\" for {$this->semester->label()}.",
             'url' => route('student.clearance-status'),
             'icon' => $icon,
             'color' => $color,
+            'actor_name' => null,
+            'actor_avatar' => null,
         ];
     }
 }

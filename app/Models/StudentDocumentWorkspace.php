@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\HasTransactionWorkflow;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentDocumentWorkspace extends Model
 {
-    use HasTransactionWorkflow;
+    use HasTransactionWorkflow, SoftDeletes;
     protected $table = 'student_document_workspaces';
     protected $primaryKey = 'workspace_id';
 

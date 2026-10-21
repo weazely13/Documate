@@ -144,7 +144,7 @@ class TransactionWorkflow
 
             $removed = $ws->approvals()->whereIn('status', ApprovalStatus::openValues())->delete();
 
-            $from = $this->transition($ws, TransactionStatus::ActionRequired, ['workflow_note' => $message]);
+            $from = $this->transition($ws, TransactionStatus::ActionRequired, ['workflow_note' => $message], $reviewer);
             $this->audit($ws, $reviewer, 'review.action_requested', $from, TransactionStatus::ActionRequired, [
                 'message' => $message,
                 'signing_tasks_removed' => $removed,
@@ -184,7 +184,7 @@ class TransactionWorkflow
                 'voided_by' => $reviewer->id,
                 'void_reason' => $reason,
                 'superseded_by' => $replacement?->workspace_id,
-            ]);
+            ], $reviewer);
 
             $this->audit($ws, $reviewer, 'document.voided', $from, TransactionStatus::Voided, [
                 'reason' => $reason,
@@ -211,7 +211,7 @@ class TransactionWorkflow
 
             $this->skipOpenApprovals($ws);
 
-            $from = $this->transition($ws, TransactionStatus::Rejected, ['workflow_note' => $reason]);
+            $from = $this->transition($ws, TransactionStatus::Rejected, ['workflow_note' => $reason], $reviewer);
             $this->audit($ws, $reviewer, 'review.rejected', $from, TransactionStatus::Rejected, ['reason' => $reason]);
 
             return $ws;
@@ -401,7 +401,7 @@ class TransactionWorkflow
             $from = $this->transition($ws, TransactionStatus::Completed, [
                 'completed_at' => now(),
                 'issued_at' => now(),
-            ]);
+            ], $reviewer);
             $this->audit($ws, $reviewer, 'transaction.completed', $from, TransactionStatus::Completed);
 
             DB::afterCommit(fn () => TransactionCompleted::dispatch($ws));
@@ -524,10 +524,10 @@ class TransactionWorkflow
             $wsId = $ws->workspace_id;
             if (! $doc->issuedToSelf()) {
                 $wsId = $ws->workspace_id;
-                DB::afterCommit(function () use ($wsId) {
+                DB::afterCommit(function () use ($wsId, $issuer) {   // <- added $issuer
                     try {
                         $fresh = StudentDocumentWorkspace::with('user')->find($wsId);
-                        $fresh?->user?->notify(WorkflowNotification::forIssued($fresh));
+                        $fresh?->user?->notify(WorkflowNotification::forIssued($fresh, $issuer));   // <- added $issuer
                     } catch (\Throwable $e) {
                         report($e);
                     }
@@ -681,10 +681,10 @@ class TransactionWorkflow
             ], $approval->id);
 
             $wsId = $ws->workspace_id;
-            DB::afterCommit(function () use ($wsId) {
+            DB::afterCommit(function () use ($wsId, $signer) {   // <- added $signer
                 try {
                     $fresh = StudentDocumentWorkspace::with('user')->find($wsId);
-                    $fresh?->user?->notify(WorkflowNotification::forSchedule($fresh));
+                    $fresh?->user?->notify(WorkflowNotification::forSchedule($fresh, $signer));   // <- added $signer
                 } catch (\Throwable $e) {
                     report($e);
                 }
@@ -717,7 +717,7 @@ class TransactionWorkflow
 
             $this->skipOpenApprovals($ws);
 
-            $from = $this->transition($ws, TransactionStatus::Rejected, ['workflow_note' => $reason]);
+            $from = $this->transition($ws, TransactionStatus::Rejected, ['workflow_note' => $reason], $signer);
             $this->audit($ws, $signer, 'approval.rejected', $from, TransactionStatus::Rejected, [
                 'step' => $approval->step_order,
                 'label' => $approval->label,
@@ -984,9 +984,8 @@ class TransactionWorkflow
         return TransactionApproval::query()->whereKey($id)->lockForUpdate()->firstOrFail();
     }
 
-    /** Validate + apply a status change. Returns the previous status. */
-    protected function transition(StudentDocumentWorkspace $ws, TransactionStatus $to, array $attributes = []): TransactionStatus
-    {
+    protected function transition(StudentDocumentWorkspace $ws, TransactionStatus $to, array $attributes = [], ?User $actor = null): TransactionStatus
+{
         $from = $ws->workflow_status;
 
         if ($from === null) {
@@ -999,22 +998,24 @@ class TransactionWorkflow
 
         $ws->forceFill($attributes + ['workflow_status' => $to])->save();
 
-        $this->notifyAfterTransition($ws->workspace_id, $from, $to);
+        $this->notifyAfterTransition($ws->workspace_id, $from, $to, $actor?->id);
 
         return $from;
     }
     /** Student: changes requested / rejected / completed. Reviewers: submitted or resubmitted. */
-    protected function notifyAfterTransition(int $workspaceId, TransactionStatus $from, TransactionStatus $to): void
+    protected function notifyAfterTransition(int $workspaceId, TransactionStatus $from, TransactionStatus $to, ?int $actorId = null): void
     {
-        DB::afterCommit(function () use ($workspaceId, $from, $to) {
+        DB::afterCommit(function () use ($workspaceId, $from, $to, $actorId) {
             try {
                 $ws = StudentDocumentWorkspace::with('user')->find($workspaceId);
                 if (! $ws) {
                     return;
                 }
 
+                $actor = $actorId ? User::find($actorId) : null;
+
                 if (in_array($to, [TransactionStatus::ActionRequired, TransactionStatus::Rejected, TransactionStatus::Completed, TransactionStatus::Voided], true)) {
-                    $ws->user?->notify(WorkflowNotification::forStudent($ws, $to));
+                    $ws->user?->notify(WorkflowNotification::forStudent($ws, $to, $actor));
                 }
 
                 $resubmitted = $to === TransactionStatus::UnderReview && $from === TransactionStatus::ActionRequired;
@@ -1023,7 +1024,7 @@ class TransactionWorkflow
                     Notification::send($admins, WorkflowNotification::forReviewers($ws, $resubmitted ? 'resubmitted' : 'submitted'));
                 }
             } catch (\Throwable $e) {
-                report($e); // a notification failure must never undo a state change
+                report($e);
             }
         });
     }

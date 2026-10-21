@@ -19,14 +19,12 @@
 <div class="mx-auto max-w-6xl space-y-5">
 
     <x-admin.page-header
-        :title="$document->name()"
-        :description="$ws->transaction_code"
-        :crumbs="['Admin' => $homeUrl, 'Workflow Review' => route('admin.workflow.index'), ($ws->transaction_code ?: 'Review') => null]">
+        :title="$ws->transaction_code"
+        :crumbs="['Admin' => $homeUrl, $this->backLabel => $this->backUrl, $ws->transaction_code => null]">
         <x-slot:actions>
-            @include('livewire.workflow._badge', ['status' => $ws->workflow_status])
-            <a href="{{ route('admin.workflow.report', $ws->workspace_id) }}"
-               class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                Download report
+            <a href="{{ $this->backUrl }}" wire:navigate
+               class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 sm:w-auto sm:py-2">
+                <i class='bx bx-arrow-back'></i> Back to {{ strtolower($this->backLabel) }}
             </a>
         </x-slot:actions>
     </x-admin.page-header>

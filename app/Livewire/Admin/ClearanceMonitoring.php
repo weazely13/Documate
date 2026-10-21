@@ -228,6 +228,7 @@ class ClearanceMonitoring extends Component
 
         return view('livewire.admin.clearance-monitoring', [
             'records' => $records,
+            'totalCount' => $filteredRecords->count(),
             'organizations' => Organization::query()
                 ->orderBy('name')
                 ->pluck('name')

@@ -56,7 +56,7 @@
     </div>
 
     {{-- Toolbar: bulk select + sort (mirrors Appointments toolbar) --}}
-    @if ($tab !== 'issued')
+    @if (! in_array($tab, ['issued', 'completed', 'closed'], true))
         <div class="flex flex-col gap-3 rounded-xl bg-slate-50/80 p-3 sm:flex-row sm:items-center sm:justify-between border border-slate-100">
             <div class="flex items-center gap-2.5">
                 <label class="flex items-center gap-2 cursor-pointer">

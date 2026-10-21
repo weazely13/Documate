@@ -16,6 +16,8 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use App\Services\Workflow\ExternalSigning;
 use App\Services\Workflow\SignatoryScope;
+use Livewire\Attributes\Url;
+use Illuminate\Support\Facades\Route;
 
 /** Review one workflow transaction. Every button maps to one TransactionWorkflow method. */
 class Show extends Component
@@ -30,6 +32,33 @@ class Show extends Component
 
     public bool $reissue = true;
     public array $reviewerValues = [];
+    #[Url(as: 'from', keep: true)]
+    public string $from = '';
+
+    #[Computed]
+    public function cameFromTransactions(): bool
+    {
+        return $this->from === 'transactions';
+    }
+
+    #[Computed]
+    public function backUrl(): string
+    {
+        if ($this->cameFromTransactions) {
+            return route('admin.transactions.index');
+        }
+
+        // adjust this route name to your Workflow Review index
+        return Route::has('admin.workflow.index')
+            ? route('admin.workflow.index')
+            : route('admin.dashboard');
+    }
+
+    #[Computed]
+    public function backLabel(): string
+    {
+        return $this->cameFromTransactions ? 'Transactions' : 'Workflow Review';
+    }
 
     public function mount(StudentDocumentWorkspace $workspace): void
     {

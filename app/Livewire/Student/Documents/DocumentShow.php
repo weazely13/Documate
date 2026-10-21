@@ -92,15 +92,9 @@ class DocumentShow extends Component
 
     public function deleteWorkspace()
     {
-        if ($this->workspace->generated_pdf_path) {
-            Storage::disk('public')->delete($this->workspace->generated_pdf_path);
-        }
-        if ($this->workspace->supporting_file_path) {
-            Storage::disk('public')->delete($this->workspace->supporting_file_path);
-        }
-        if ($this->workspace->reference_image_path) {
-            Storage::disk('public')->delete($this->workspace->reference_image_path);
-        }
+        $this->workspace->appointments()
+            ->whereIn('status', ['pending', 'approved'])
+            ->update(['status' => 'retracted']);
 
         $this->workspace->delete();
 

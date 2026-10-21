@@ -52,20 +52,25 @@ class DocumentsIndex extends Component
 
     public function toggleSelectAll(): void
     {
+        if ($this->tab === 'completed') {
+            return;
+        }
         $this->selectAll = ! $this->selectAll;
         $this->selected = $this->selectAll ? $this->currentWorkspaceIds() : [];
+    }
+
+    private function currentWorkspaceIds(): array
+    {
+        return $this->baseQuery()
+            ->whereNull('workflow_status')
+            ->where('status', '!=', 'completed')
+            ->pluck('workspace_id')->map(fn ($id) => (string) $id)->all();
     }
     /** Documents the VPSD office issued to this student that still need their attention. */
     #[Computed]
     public function officeNotices()
     {
         return StudentDocumentWorkspace::officeNoticesFor((int) Auth::id());
-    }
-    /** Only old template rows can be bulk-selected; paperless records are never deleted from here. */
-    private function currentWorkspaceIds(): array
-    {
-        return $this->baseQuery()->whereNull('workflow_status')
-            ->pluck('workspace_id')->map(fn ($id) => (string) $id)->all();
     }
 
     private function issuedKeys(): array
@@ -147,10 +152,18 @@ class DocumentsIndex extends Component
         $workspace = StudentDocumentWorkspace::where('workspace_id', $this->deletingId)
             ->where('user_id', Auth::id())
             ->whereNull('workflow_status')   // paperless records are kept for the audit trail
+            ->where('status', '!=', 'completed')
             ->first();
 
         if ($workspace) {
-            $this->purgeWorkspaceFiles($workspace);
+            $workspace->appointments()
+                ->whereIn('status', ['pending', 'approved'])
+                ->get()
+                ->each(function ($appt) {
+                    $appt->update(['status' => 'retracted']);
+                    $appt->logStatus('retracted', 'Document deleted by student.');
+                });
+
             $workspace->delete();
         }
 
@@ -174,24 +187,23 @@ class DocumentsIndex extends Component
     {
         StudentDocumentWorkspace::where('user_id', Auth::id())
             ->whereNull('workflow_status')
+            ->where('status', '!=', 'completed')
             ->whereIn('workspace_id', $this->selected)
             ->get()
             ->each(function (StudentDocumentWorkspace $workspace) {
-                $this->purgeWorkspaceFiles($workspace);
+                $workspace->appointments()
+                    ->whereIn('status', ['pending', 'approved'])
+                    ->get()
+                    ->each(function ($appt) {
+                        $appt->update(['status' => 'retracted']);
+                        $appt->logStatus('retracted', 'Document deleted by student.');
+                    });
+
                 $workspace->delete();
             });
 
         $this->confirmingBulkDelete = false;
         $this->resetSelection();
-    }
-
-    private function purgeWorkspaceFiles(StudentDocumentWorkspace $workspace): void
-    {
-        foreach (['generated_pdf_path', 'supporting_file_path', 'reference_image_path'] as $field) {
-            if ($workspace->{$field}) {
-                Storage::disk('public')->delete($workspace->{$field});
-            }
-        }
     }
 
     public function render()

@@ -21,11 +21,11 @@ class NotifyApprovalHolders
         
         try {
             $approval = $event->approval->fresh(['workspace', 'role']);
-            if ($approval->signer_user_id) {
-                    User::find($approval->signer_user_id)?->notify(WorkflowNotification::forSigner($approval));
-                    return;
-                }
             if (! $approval) {
+                return;
+            }
+            if ($approval->signer_user_id) {
+                User::find($approval->signer_user_id)?->notify(WorkflowNotification::forSigner($approval));
                 return;
             }
 

@@ -157,10 +157,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.transactions.index');
 
         Route::get('/admin/transactions/{workspace}', TransactionRecordShow::class)
-            ->name('admin.transactions.show');
+            ->name('admin.transactions.show')
+            ->withTrashed();
 
         Route::get('/admin/transactions/{workspace}/download-pdf', [StudentDocumentWorkspaceController::class, 'downloadPdf'])
-            ->name('admin.transactions.download-pdf');
+            ->name('admin.transactions.download-pdf')
+            ->withTrashed();
 
         Route::get('/admin/transactions/verification/{verification}/download', [AdminTransactionDocumentController::class, 'downloadVerification'])
             ->name('admin.transactions.download-verification');

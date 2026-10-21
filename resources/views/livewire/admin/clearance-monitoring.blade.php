@@ -1,243 +1,263 @@
-<div class="space-y-6">
+@php
+    $homeUrl = \Illuminate\Support\Facades\Route::has('admin.dashboard') ? route('admin.dashboard') : url('/');
+    $heading = $pageHeading ?? 'Clearance Monitoring';
+    $fieldClass = 'rounded-lg border-gray-300 py-2.5 text-base shadow-sm sm:py-2 sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
+
+    $badgeFor = fn (string $s) => match ($s) {
+        'Cleared' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+        'Pending' => 'bg-amber-50 text-amber-700 ring-amber-200',
+        'Uncleared' => 'bg-rose-50 text-rose-700 ring-rose-200',
+        default => 'bg-gray-100 text-gray-500 ring-gray-200',
+    };
+    $sm = 'w-full rounded-lg border-gray-300 py-2 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] sm:py-1.5';
+
+    $pageIds = $records->pluck('user_id')->all();
+    $allOnPage = $records->isNotEmpty() && collect($pageIds)->every(fn ($id) => in_array($id, $selectedIds));
+    $activeFilters = collect([$statusFilter, $organizationFilter, $yearFilter, $dateFrom, $dateTo])->filter(fn ($v) => $v !== '')->count();
+@endphp
+
+<div class="{{ count($selectedIds) > 0 ? 'pb-40 sm:pb-0' : '' }}">
+    <x-admin.page-header
+        :title="$heading"
+        :description="$pageDescription ?? 'Track and tag student clearance status by semester.'"
+        :crumbs="['Admin' => $homeUrl, $heading => null]" />
+
     @include('livewire.admin._admin-nav')
 
-    <div>
-        <h1 class="text-3xl font-bold tracking-tight text-slate-900">
-            {{ $pageHeading ?? 'Clearance Monitoring' }}
-        </h1>
-        <p class="mt-1 text-sm text-slate-500">
-            {{ $pageDescription ?? 'Track and tag student clearance status by semester' }}
-        </p>
-    </div>
+    @unless ($selectedSemesterId)
+        <x-admin.alert message="Select a semester to view and tag clearance records." type="warning" />
+    @endunless
 
-    {{-- SEMESTER SELECTOR CARD --}}
-    <div class="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-r from-white via-slate-50/50 to-white p-4 sm:p-5 shadow-sm shadow-slate-200/50 transition-all duration-200">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            
-            {{-- Left Section: Label & Icon --}}
-            <div class="flex items-center gap-3">
-                <div class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2A57B4]/10 text-[#2A57B4] ring-1 ring-[#2A57B4]/20 shadow-inner">
-                    <i class='bx bx-calendar-check text-xl'></i>
-                </div>
-                <div class="min-w-0">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Academic Context</h3>
-                    <p class="truncate text-sm font-bold text-slate-800">Viewing &amp; Tagging Semester</p>
-                </div>
+    {{-- Toolbar --}}
+    <div class="mb-2 space-y-2 rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:space-y-0 sm:p-3">
+        <div class="sm:w-64">
+            <select wire:model.live="selectedSemesterId" aria-label="Semester" class="{{ $sm }}">
+                <option value="">Select a semester…</option>
+                @foreach ($semesters as $semester)
+                    <option value="{{ $semester->id }}">{{ \Illuminate\Support\Str::limit($semester->label(), 40) }}{{ $semester->is_current ? ' (Current)' : '' }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="flex items-center gap-2 sm:contents">
+            <div class="relative min-w-0 flex-1 sm:min-w-[220px]">
+                <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.2-5.2m0 0A7.5 7.5 0 1 0 5.2 5.2a7.5 7.5 0 0 0 10.6 10.6Z" />
+                </svg>
+                <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, no., organization…"
+                    class="{{ $sm }} pl-9 pr-3">
             </div>
 
-            {{-- Right Section: Select Dropdown & Indicators --}}
-            <div class="flex flex-1 sm:flex-none items-center gap-3">
-                <div class="relative w-full sm:w-80">
-                    <select wire:model.live="selectedSemesterId"
-                        class="w-full appearance-none rounded-xl border border-slate-200 bg-white/80 pl-4 pr-10 py-2.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-sm transition-all duration-200 cursor-pointer hover:border-slate-300 hover:bg-white focus:border-[#2A57B4] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#2A57B4]/15">
-                        <option value="">Select a semester...</option>
-                        @foreach($semesters as $semester)
-                            <option value="{{ $semester->id }}">
-                                {{ \Illuminate\Support\Str::limit($semester->label(), 40) }}{{ $semester->is_current ? ' (Current)' : '' }}
-                            </option>
+            <button type="button" wire:click="toggleFilters" aria-expanded="{{ $showFilters ? 'true' : 'false' }}" aria-label="Filters"
+                    class="relative inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-gray-50 sm:px-4 sm:py-1.5
+                        {{ $showFilters ? 'border-[#2A57B4]/40 text-[#2A57B4]' : 'border-gray-200 text-gray-700' }}">
+                <i class='bx bx-slider-alt text-base'></i>
+                <span class="hidden sm:inline">Filters</span>
+                @if ($activeFilters)
+                    <span class="absolute -right-1.5 -top-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#2A57B4] px-1 text-[10px] font-semibold text-white sm:static sm:h-auto sm:min-w-0 sm:px-1.5 sm:text-[11px]">{{ $activeFilters }}</span>
+                @endif
+            </button>
+        </div>
+
+        <p class="px-0.5 text-[11px] text-gray-500 sm:ml-auto sm:text-xs">{{ number_format($totalCount) }} {{ \Illuminate\Support\Str::plural('student', $totalCount) }}</p>
+    </div>
+
+    {{-- Filter panel --}}
+    @if ($showFilters)
+        <div class="mb-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
+                <div class="col-span-2 sm:col-span-1">
+                    <label class="mb-0.5 block text-[11px] font-medium text-gray-500 sm:text-xs">Status</label>
+                    <select wire:model.live="statusFilter" class="{{ $sm }}">
+                        <option value="">All</option>
+                        @foreach ($filterStatuses as $status)
+                            <option value="{{ $status }}">{{ \Illuminate\Support\Str::limit($status, 40) }}</option>
                         @endforeach
                     </select>
-
-                    {{-- Custom Dropdown Caret --}}
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
                 </div>
-
-                {{-- Livewire Loading Spinner --}}
-                <div wire:loading wire:target="selectedSemesterId" class="shrink-0">
-                    <i class='bx bx-loader-alt animate-spin text-lg text-[#2A57B4]'></i>
+                <div class="col-span-2 sm:col-span-1">
+                    <label class="mb-0.5 block text-[11px] font-medium text-gray-500 sm:text-xs">Organization</label>
+                    <select wire:model.live="organizationFilter" class="{{ $sm }}">
+                        <option value="">All</option>
+                        @foreach ($organizations as $organization)
+                            <option value="{{ $organization }}">{{ \Illuminate\Support\Str::limit($organization, 40) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-span-2 sm:col-span-1">
+                    <label class="mb-0.5 block text-[11px] font-medium text-gray-500 sm:text-xs">Year level</label>
+                    <select wire:model.live="yearFilter" class="{{ $sm }}">
+                        <option value="">All</option>
+                        <option value="1">1st year</option>
+                        <option value="2">2nd year</option>
+                        <option value="3">3rd year</option>
+                        <option value="4">4th year</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-0.5 block text-[11px] font-medium text-gray-500 sm:text-xs">Tagged from</label>
+                    <input type="date" wire:model.live="dateFrom" class="{{ $sm }}">
+                </div>
+                <div>
+                    <label class="mb-0.5 block text-[11px] font-medium text-gray-500 sm:text-xs">Tagged to</label>
+                    <input type="date" wire:model.live="dateTo" class="{{ $sm }}">
                 </div>
             </div>
-        </div>
 
-        {{-- Status Banner / Helper Text --}}
-        @if(!$selectedSemesterId)
-            <div class="mt-3.5 flex items-center gap-2 rounded-xl border border-amber-200/60 bg-amber-50/70 px-3.5 py-2 text-xs font-semibold text-amber-800 backdrop-blur-sm">
-                <span class="relative flex h-2 w-2 shrink-0">
-                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
-                    <span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
-                </span>
-                <i class='bx bx-info-circle text-base text-amber-600'></i>
-                <span class="truncate">Select an active semester above to view and tag clearance records.</span>
-            </div>
-        @endif
-    </div>
-
-    {{-- SEARCH + FILTER --}}
-    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="flex flex-wrap items-center gap-3">
-            <div class="relative flex-1 min-w-[240px]">
-                <i class='bx bx-search absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400'></i>
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search name, student number, organization..."
-                    class="w-full rounded-xl border border-slate-300 py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#2A57B4] focus:ring-4 focus:ring-[#2A57B4]/10">
-            </div>
-
-            <div class="relative">
-                <button type="button" wire:click="toggleFilters"
-                    class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                    <i class='bx bx-slider-alt'></i> Filter
-                </button>
-
-                @if($showFilters)
-                    <div class="absolute right-0 top-full z-20 mt-2 w-[300px] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
-                        <div class="grid grid-cols-2 gap-3">
-                            <select wire:model.live="statusFilter" class="col-span-2 rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                                <option value="">Status</option>
-                                @foreach($filterStatuses as $status)
-                                    <option value="{{ $status }}">{{ \Illuminate\Support\Str::limit($status, 40) }}</option>
-                                @endforeach
-                            </select>
-
-                            <select wire:model.live="organizationFilter" class="col-span-2 rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                                <option value="">Organization</option>
-                                @foreach($organizations as $organization)
-                                    <option value="{{ $organization }}">{{ \Illuminate\Support\Str::limit($organization, 40) }}</option>
-                                @endforeach
-                            </select>
-
-                            <select wire:model.live="yearFilter" class="col-span-2 rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                                <option value="">Year Level</option>
-                                <option value="1">1st Year</option>
-                                <option value="2">2nd Year</option>
-                                <option value="3">3rd Year</option>
-                                <option value="4">4th Year</option>
-                            </select>
-
-                            <div>
-                                <label class="text-xs text-slate-400">From</label>
-                                <input type="date" wire:model.live="dateFrom" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                            </div>
-                            <div>
-                                <label class="text-xs text-slate-400">To</label>
-                                <input type="date" wire:model.live="dateTo" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                            </div>
-                        </div>
-
-                        <div class="mt-3 flex gap-2">
-                            <button wire:click="applyFilters" class="flex-1 rounded-xl bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white hover:bg-[#214795]">Apply</button>
-                            <button wire:click="resetFilters" class="flex-1 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Reset</button>
-                        </div>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    {{-- BULK TAG BAR --}}
-    @if(count($selectedIds) > 0)
-        <div class="fixed left-1/2 top-4 z-50 w-[92vw] max-w-2xl -translate-x-1/2 rounded-2xl border border-[#2A57B4]/30 bg-[#2A57B4] px-6 py-4 text-white shadow-lg shadow-[#2A57B4]/20">
-            <div class="flex flex-wrap items-center gap-3">
-                <span class="inline-flex items-center gap-1.5 text-sm font-semibold whitespace-nowrap">
-                    <i class='bx bx-check-square text-base'></i> {{ count($selectedIds) }} selected
-                </span>
-
-                <select wire:model="bulkStatus" class="rounded-xl border-0 bg-white/15 px-3 py-2 text-sm font-semibold text-white outline-none">
-                    <option value="" class="text-slate-800">Select status...</option>
-                    @foreach($statuses as $status)
-                        <option value="{{ $status }}" class="text-slate-800">{{ \Illuminate\Support\Str::limit($status, 40) }}</option>
-                    @endforeach
-                </select>
-
-                <input type="text" wire:model="bulkRemarks" placeholder="Remarks (optional)"
-                    class="flex-1 min-w-[180px] rounded-xl border-0 bg-white/15 px-3 py-2 text-sm text-white placeholder-white/70 outline-none">
-
-                <button wire:click="bulkTag" class="rounded-xl bg-white px-5 py-2 text-sm font-semibold text-[#2A57B4] transition hover:bg-white/90">
-                    Apply Tag
-                </button>
-                <button wire:click="$set('selectedIds', [])" class="text-sm font-medium text-white/80 hover:text-white">
-                    Clear
-                </button>
+            <div class="mt-3 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                <button type="button" wire:click="resetFilters"
+                        class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 sm:py-1.5">Reset</button>
+                <button type="button" wire:click="applyFilters"
+                        class="rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 sm:py-1.5">Apply</button>
             </div>
         </div>
     @endif
 
-    {{-- TABLE --}}
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    {{-- Bulk tag bar: bottom sheet on mobile, floating bar on desktop --}}
+    @if (count($selectedIds) > 0)
+        <div class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-[#2A57B4]/30 bg-[#2A57B4] px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-4 text-white shadow-2xl
+                    sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-4 sm:w-[92vw] sm:max-w-3xl sm:-translate-x-1/2 sm:rounded-xl sm:border sm:p-4">
+            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <div class="flex items-center justify-between sm:justify-start">
+                    <span class="inline-flex items-center gap-1.5 text-sm font-semibold">
+                        <i class='bx bx-check-square text-base'></i> {{ count($selectedIds) }} selected
+                    </span>
+                    <button type="button" wire:click="$set('selectedIds', [])" class="text-sm font-medium text-white/80 hover:text-white sm:hidden">Clear</button>
+                </div>
+
+                <select wire:model="bulkStatus" aria-label="Status to apply"
+                        class="rounded-lg border-0 bg-white/15 px-3 py-2.5 text-base font-medium text-white focus:ring-2 focus:ring-white/40 sm:py-2 sm:text-sm">
+                    <option value="" class="text-gray-800">Select status…</option>
+                    @foreach ($statuses as $status)
+                        <option value="{{ $status }}" class="text-gray-800">{{ \Illuminate\Support\Str::limit($status, 40) }}</option>
+                    @endforeach
+                </select>
+
+                <input type="text" wire:model="bulkRemarks" placeholder="Remarks (optional)"
+                       class="min-w-0 rounded-lg border-0 bg-white/15 px-3 py-2.5 text-base text-white placeholder-white/70 focus:ring-2 focus:ring-white/40 sm:flex-1 sm:py-2 sm:text-sm">
+
+                <button type="button" wire:click="bulkTag" wire:loading.attr="disabled" wire:target="bulkTag"
+                        class="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-[#2A57B4] transition hover:bg-white/90 disabled:opacity-60 sm:py-2">
+                    Apply tag
+                </button>
+                <button type="button" wire:click="$set('selectedIds', [])" class="hidden text-sm font-medium text-white/80 hover:text-white sm:block">Clear</button>
+            </div>
+        </div>
+    @endif
+
+    {{-- ============ DESKTOP TABLE ============ --}}
+    <div class="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
         <div class="overflow-x-auto">
-            <table class="min-w-full text-sm table-fixed">
-                <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
+            <table class="w-full table-fixed text-sm">
+                <thead class="border-b border-gray-100 bg-gray-50 text-xs font-medium text-gray-500">
                     <tr>
-                        <th class="w-10 px-4 py-3">
-                            <input type="checkbox" wire:click="toggleSelectAllOnPage({{ json_encode($records->pluck('user_id')->all()) }})"
-                                @checked($records->isNotEmpty() && $records->pluck('user_id')->every(fn($id) => in_array($id, $selectedIds)))
-                                class="rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]">
+                        <th class="w-12 px-5 py-3 text-left">
+                            <input type="checkbox" aria-label="Select all on page"
+                                   wire:click="toggleSelectAllOnPage({{ json_encode($pageIds) }})"
+                                   @checked($allOnPage)
+                                   class="rounded border-gray-300 text-[#2A57B4] focus:ring-[#2A57B4]">
                         </th>
-                        <th class="px-4 py-3 text-left font-semibold w-1/4">Student</th>
-                        <th class="px-4 py-3 text-left font-semibold w-[12%]">Student No.</th>
-                        <th class="px-4 py-3 text-left font-semibold w-1/5">Organization</th>
-                        <th class="px-4 py-3 text-left font-semibold w-[8%]">Year</th>
-                        <th class="px-4 py-3 text-left font-semibold w-[12%]">Status</th>
-                        <th class="px-4 py-3 text-left font-semibold w-1/5">Tagged By</th>
+                        <th class="w-1/4 px-5 py-3 text-left">Student</th>
+                        <th class="w-[13%] px-5 py-3 text-left">Student no.</th>
+                        <th class="w-1/5 px-5 py-3 text-left">Organization</th>
+                        <th class="w-[9%] px-5 py-3 text-left">Year</th>
+                        <th class="w-[13%] px-5 py-3 text-left">Status</th>
+                        <th class="w-1/6 px-5 py-3 text-left">Tagged by</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($records as $record)
-                        @php
-                            $badge = match ($record['status']) {
-                                'Cleared' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                'Pending' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                'Uncleared' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                default => 'bg-slate-100 text-slate-500 border-slate-200',
-                            };
-                            $initials = strtoupper(mb_substr($record['student_name'], 0, 1));
-                        @endphp
-                        <tr class="hover:bg-[#2A57B4]/[0.03] cursor-pointer transition"
-                            wire:key="clearance-row-{{ $record['user_id'] }}"
-                            wire:click="goToProfile({{ $record['user_id'] }})">
-                            <td class="px-4 py-3" wire:click.stop>
-                                <input type="checkbox" wire:model.live="selectedIds" value="{{ $record['user_id'] }}"
-                                    class="rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]">
+                <tbody class="divide-y divide-gray-100">
+                    @forelse ($records as $record)
+                        <tr wire:key="clearance-row-{{ $record['user_id'] }}"
+                            wire:click="goToProfile({{ $record['user_id'] }})"
+                            class="cursor-pointer align-middle transition-colors hover:bg-gray-50/70">
+                            <td class="px-5 py-3.5" wire:click.stop>
+                                <input type="checkbox" wire:model.live="selectedIds" value="{{ $record['user_id'] }}" aria-label="Select {{ $record['student_name'] }}"
+                                       class="rounded border-gray-300 text-[#2A57B4] focus:ring-[#2A57B4]">
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2.5 min-w-0">
-                                    @if(!empty($record['profile_picture']))
-                                        <img src="{{ $record['profile_picture'] }}" 
-                                            alt="{{ $record['student_name'] }}" 
-                                            class="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-slate-200">
+                            <td class="px-5 py-3.5">
+                                <div class="flex min-w-0 items-center gap-3">
+                                    @if (!empty($record['profile_picture']))
+                                        <img src="{{ $record['profile_picture'] }}" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-gray-200">
                                     @else
-                                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2A57B4]/10 text-xs font-bold text-[#2A57B4]">
-                                            {{ $initials }}
-                                        </span>
+                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2A57B4]/10 text-xs font-semibold text-[#2A57B4]">{{ strtoupper(mb_substr($record['student_name'], 0, 1)) }}</span>
                                     @endif
-                                    <span class="truncate font-medium text-slate-800" title="{{ $record['student_name'] }}">{{ $record['student_name'] }}</span>
+                                    <span class="truncate font-medium text-gray-900" title="{{ $record['student_name'] }}">{{ $record['student_name'] }}</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-slate-600 truncate" title="{{ $record['student_number'] }}">{{ $record['student_number'] }}</td>
-                            <td class="max-w-0 px-4 py-3 text-slate-600">
-                                <div class="truncate" title="{{ $record['organization'] }}">{{ $record['organization'] }}</div>
-                            </td>
-                            <td class="px-4 py-3 text-slate-600 truncate">{{ $record['year_level'] }}</td>
-                            <td class="px-4 py-3 truncate">
-                                <span class="inline-flex max-w-full truncate rounded-full border px-2.5 py-1 text-xs font-bold uppercase tracking-wide {{ $badge }}">
-                                    {{ $record['status'] }}
+                            <td class="truncate px-5 py-3.5 text-gray-600" title="{{ $record['student_number'] }}">{{ $record['student_number'] }}</td>
+                            <td class="px-5 py-3.5 text-gray-600"><div class="truncate" title="{{ $record['organization'] }}">{{ $record['organization'] }}</div></td>
+                            <td class="truncate px-5 py-3.5 text-gray-600">{{ $record['year_level'] }}</td>
+                            <td class="px-5 py-3.5">
+                                <span class="inline-flex max-w-full items-center gap-1.5 truncate rounded-full px-2.5 py-1 text-xs font-medium ring-1 {{ $badgeFor($record['status']) }}">
+                                    <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-current"></span>{{ $record['status'] }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-slate-500">
-                                <div class="truncate" title="{{ $record['tagged_by'] }}">{{ $record['tagged_by'] }}</div>
-                            </td>
+                            <td class="px-5 py-3.5 text-gray-500"><div class="truncate" title="{{ $record['tagged_by'] }}">{{ $record['tagged_by'] }}</div></td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="7" class="px-4 py-10 text-center text-slate-400">
-                                No students match your current filters.
-                            </td>
-                        </tr>
+                        <tr><td colspan="7" class="px-5 py-12 text-center text-sm text-gray-400">No students match your current filters.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
-        @if($totalPages > 1)
-            <div class="flex items-center justify-center gap-2 border-t border-slate-100 px-4 py-4">
-                <button wire:click="previousPage" @disabled($currentPage === 1)
-                    class="rounded-lg px-4 py-1.5 text-sm border {{ $currentPage === 1 ? 'text-slate-300 border-slate-100' : 'text-slate-700 border-slate-300 hover:bg-slate-50' }}">Prev</button>
-                <span class="text-sm text-slate-500 px-2">{{ $currentPage }} / {{ $totalPages }}</span>
-                <button wire:click="nextPage({{ $totalPages }})" @disabled($currentPage === $totalPages)
-                    class="rounded-lg px-4 py-1.5 text-sm border {{ $currentPage === $totalPages ? 'text-slate-300 border-slate-100' : 'text-slate-700 border-slate-300 hover:bg-slate-50' }}">Next</button>
-            </div>
-        @endif
     </div>
+
+    {{-- ============ MOBILE CARDS ============ --}}
+    <div class="space-y-3 md:hidden">
+        @if ($records->isNotEmpty())
+            <label class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm">
+                <input type="checkbox" wire:click="toggleSelectAllOnPage({{ json_encode($pageIds) }})" @checked($allOnPage)
+                       class="h-5 w-5 rounded border-gray-300 text-[#2A57B4] focus:ring-[#2A57B4]">
+                Select all on this page
+            </label>
+        @endif
+
+        @forelse ($records as $record)
+            <div wire:key="clearance-card-{{ $record['user_id'] }}"
+                 class="flex items-start gap-3 rounded-xl border bg-white p-4 shadow-sm {{ in_array($record['user_id'], $selectedIds) ? 'border-[#2A57B4]/40 bg-[#2A57B4]/[0.03]' : 'border-gray-200' }}">
+                <input type="checkbox" wire:model.live="selectedIds" value="{{ $record['user_id'] }}" aria-label="Select {{ $record['student_name'] }}"
+                       class="mt-1 h-5 w-5 shrink-0 rounded border-gray-300 text-[#2A57B4] focus:ring-[#2A57B4]">
+                <button type="button" wire:click="goToProfile({{ $record['user_id'] }})" class="min-w-0 flex-1 text-left">
+                    <div class="flex items-center gap-3">
+                        @if (!empty($record['profile_picture']))
+                            <img src="{{ $record['profile_picture'] }}" alt="" class="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-gray-200">
+                        @else
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2A57B4]/10 text-sm font-semibold text-[#2A57B4]">{{ strtoupper(mb_substr($record['student_name'], 0, 1)) }}</span>
+                        @endif
+                        <div class="min-w-0">
+                            <p class="truncate font-medium text-gray-900">{{ $record['student_name'] }}</p>
+                            <p class="truncate text-xs text-gray-500">{{ $record['student_number'] }} · {{ $record['year_level'] }}</p>
+                        </div>
+                    </div>
+                    <p class="mt-2 truncate text-xs text-gray-500">{{ $record['organization'] }}</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 {{ $badgeFor($record['status']) }}">
+                            <span class="h-1.5 w-1.5 rounded-full bg-current"></span>{{ $record['status'] }}
+                        </span>
+                        @if ($record['tagged_by'] !== '-')
+                            <span class="text-xs text-gray-400">by {{ $record['tagged_by'] }}</span>
+                        @endif
+                    </div>
+                </button>
+            </div>
+        @empty
+            <p class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-400">No students match your current filters.</p>
+        @endforelse
+    </div>
+
+    {{-- Pagination --}}
+    @if ($totalPages > 1)
+        <div class="mb-12 mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p class="text-xs text-gray-500">
+                Showing {{ (($currentPage - 1) * $perPage) + 1 }}–{{ min($currentPage * $perPage, $totalCount) }} of {{ number_format($totalCount) }}
+            </p>
+            <div class="flex w-full overflow-hidden rounded-lg border border-gray-200 bg-white text-sm shadow-sm sm:inline-flex sm:w-auto">
+                <button type="button" wire:click="previousPage" @disabled($currentPage === 1)
+                        class="flex-1 px-4 py-2 transition sm:flex-none {{ $currentPage === 1 ? 'cursor-not-allowed text-gray-300' : 'text-gray-600 hover:bg-gray-50' }}">Prev</button>
+                <div class="flex items-center justify-center border-x border-gray-200 px-4 text-gray-600">{{ $currentPage }} / {{ $totalPages }}</div>
+                <button type="button" wire:click="nextPage({{ $totalPages }})" @disabled($currentPage === $totalPages)
+                        class="flex-1 px-4 py-2 transition sm:flex-none {{ $currentPage === $totalPages ? 'cursor-not-allowed text-gray-300' : 'text-gray-600 hover:bg-gray-50' }}">Next</button>
+            </div>
+        </div>
+    @endif
 </div>

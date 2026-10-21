@@ -1,366 +1,338 @@
-<div class="space-y-4" x-data>
+@php
+    $fieldClass = 'rounded-lg border-gray-300 py-2.5 text-base shadow-sm sm:py-2 sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
+    $smField = 'rounded-lg border-gray-300 py-2 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
+@endphp
 
-    {{-- Flash success --}}
-    @if (session('logbook-success'))
-        <div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-            <i class='bx bx-check-circle text-lg'></i> {{ session('logbook-success') }}
-        </div>
-    @endif
+<div class="space-y-5" x-data>
 
-    {{-- ============ TOP ROW: analytics (3/4) + uploaded files list (1/4) ============ --}}
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
+    <x-admin.alert :message="session('logbook-success')" type="success" class="!mb-0" />
 
-        {{-- ================= LEFT (3/4): analytics carousel ================= --}}
-        <div class="lg:col-span-3">
-            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                 x-data="{
-                     activeChart: 0,
-                     chartOrder: ['purpose', 'monthly', 'program'],
-                     chartTitles: { purpose: 'Requests by Purpose', monthly: 'Monthly Trend', program: 'Requests by Course / Program' },
-                     prevChart() { this.activeChart = (this.activeChart + this.chartOrder.length - 1) % this.chartOrder.length; $dispatch('chart-switched'); },
-                     nextChart() { this.activeChart = (this.activeChart + 1) % this.chartOrder.length; $dispatch('chart-switched'); },
-                 }">
+    {{-- ============ TOP ROW: analytics (3/4) + uploaded files (1/4) ============ --}}
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-4">
 
-                {{-- Carousel header: title of the active chart on the left; dots + prev/next
-                     chart tabs on the right. --}}
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900">Current Status of the Logbook</h3>
-                        <p class="text-xs font-semibold text-[#2A57B4]" x-text="chartTitles[chartOrder[activeChart]]"></p>
+        {{-- ===== Analytics carousel ===== --}}
+        <div class="lg:col-span-3"
+             x-data="{
+                 activeChart: 0,
+                 chartOrder: ['purpose', 'monthly', 'program'],
+                 chartTitles: { purpose: 'Requests by purpose', monthly: 'Monthly trend', program: 'Requests by course / program' },
+                 prevChart() { this.activeChart = (this.activeChart + this.chartOrder.length - 1) % this.chartOrder.length; $dispatch('chart-switched'); },
+                 nextChart() { this.activeChart = (this.activeChart + 1) % this.chartOrder.length; $dispatch('chart-switched'); },
+             }">
+            <x-admin.section title="Logbook analytics" description="Always shows the current filters and selected upload.">
+                <x-slot:actions>
+                    <div class="flex items-center gap-1">
+                        <template x-for="(key, i) in chartOrder" :key="key">
+                            <span class="h-1.5 w-1.5 rounded-full transition" :class="i === activeChart ? 'bg-[#2A57B4]' : 'bg-gray-200'"></span>
+                        </template>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <div class="flex items-center gap-1">
-                            <template x-for="(key, i) in chartOrder" :key="key">
-                                <span class="h-1.5 w-1.5 rounded-full transition" :class="i === activeChart ? 'bg-[#2A57B4]' : 'bg-slate-200'"></span>
-                            </template>
-                        </div>
-                        <div class="inline-flex overflow-hidden rounded-lg border border-slate-200">
-                            <button type="button" @click="prevChart()"
-                                    class="border-r border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-[#2A57B4]" title="Previous chart">
-                                <i class='bx bx-chevron-left'></i>
-                            </button>
-                            <button type="button" @click="nextChart()"
-                                    class="p-2 text-slate-500 transition hover:bg-slate-50 hover:text-[#2A57B4]" title="Next chart">
-                                <i class='bx bx-chevron-right'></i>
-                            </button>
-                        </div>
+                    <div class="inline-flex overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        <button type="button" @click="prevChart()" aria-label="Previous chart"
+                                class="border-r border-gray-200 px-2.5 py-1.5 text-gray-500 transition hover:bg-gray-50 hover:text-[#2A57B4]">
+                            <i class='bx bx-chevron-left'></i>
+                        </button>
+                        <button type="button" @click="nextChart()" aria-label="Next chart"
+                                class="px-2.5 py-1.5 text-gray-500 transition hover:bg-gray-50 hover:text-[#2A57B4]">
+                            <i class='bx bx-chevron-right'></i>
+                        </button>
                     </div>
-                </div>
+                </x-slot:actions>
 
-                {{-- Chart canvases — wire:ignore so Livewire never destroys them; refreshed via $wire.getChartData().
-                     All three canvases stay mounted at all times (so Chart.js instances persist); only the active
-                     one is visible, toggled purely by Alpine — switching charts never needs a server round trip. --}}
+                {{-- wire:ignore keeps Chart.js canvases alive; refreshed via $wire.getChartData() --}}
                 <div wire:ignore
                      x-data="logbookCharts({{ \Illuminate\Support\Js::from(['purpose' => $purpose, 'purposeMeta' => $purposeMeta, 'monthly' => $monthly, 'monthlyMeta' => $monthlyMeta, 'program' => $program, 'programMeta' => $programMeta]) }})"
                      x-init="init()"
                      x-on:chart-switched.window="handleChartSwitch()">
 
-                    <div class="mb-3 flex items-center justify-between">
-                        <p class="text-xs text-slate-400">
-                            <span x-text="meta(chartOrder[activeChart]).rangeLabel"></span>
-                            &middot; <span x-text="meta(chartOrder[activeChart]).totalEntries"></span> entries
-                        </p>
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <p class="text-sm font-semibold text-[#2A57B4]" x-text="chartTitles[chartOrder[activeChart]]"></p>
+                            <p class="text-xs text-gray-500">
+                                <span x-text="meta(chartOrder[activeChart]).rangeLabel"></span>
+                                · <span x-text="meta(chartOrder[activeChart]).totalEntries"></span> entries
+                            </p>
+                        </div>
                         <button type="button" @click="download(chartOrder[activeChart] + 'Chart', 'logbook-' + chartOrder[activeChart])"
-                                class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-[#2A57B4]">
-                            <i class='bx bx-download'></i> PNG
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 hover:text-[#2A57B4]">
+                            <i class='bx bx-download'></i> Export PNG
                         </button>
                     </div>
 
-                    <div class="relative h-80 rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+                    <div class="relative h-64 rounded-lg border border-gray-100 bg-gray-50/60 p-3 sm:h-80">
                         <div class="absolute inset-3 transition-opacity duration-150"
-                            :class="chartOrder[activeChart] === 'purpose' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                             :class="chartOrder[activeChart] === 'purpose' ? 'z-10 opacity-100' : 'pointer-events-none z-0 opacity-0'">
                             <canvas x-ref="purposeChart"></canvas>
                         </div>
                         <div class="absolute inset-3 transition-opacity duration-150"
-                            :class="chartOrder[activeChart] === 'monthly' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                             :class="chartOrder[activeChart] === 'monthly' ? 'z-10 opacity-100' : 'pointer-events-none z-0 opacity-0'">
                             <canvas x-ref="monthlyChart"></canvas>
                         </div>
                         <div class="absolute inset-3 transition-opacity duration-150"
-                            :class="chartOrder[activeChart] === 'program' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'">
+                             :class="chartOrder[activeChart] === 'program' ? 'z-10 opacity-100' : 'pointer-events-none z-0 opacity-0'">
                             <canvas x-ref="programChart"></canvas>
                         </div>
                     </div>
                 </div>
-            </div>
+            </x-admin.section>
         </div>
 
-        {{-- ================= RIGHT (1/4): uploaded files list, no card wrapper ================= --}}
-        {{-- This top row sits flush with the top of the page (same row as the "Transaction
-             Records / Logbooks" tabs above), with the upload button anchoring it. --}}
+        {{-- ===== Uploaded logbooks ===== --}}
         <div class="lg:col-span-1">
-            <div class="mb-3 flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-bold text-slate-800">Uploaded Logbooks</h3>
-                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">{{ $uploads->count() }}</span>
+            <x-admin.section title="Uploaded logbooks" :description="$uploads->count() . ' ' . \Illuminate\Support\Str::plural('file', $uploads->count())" :padded="false" class="h-full">
+                <x-slot:actions>
+                    <label class="relative inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                           wire:loading.class="pointer-events-none opacity-70" wire:target="file" title="Upload logbook (Excel)">
+                        <i class='bx bx-upload'></i>
+                        <span wire:loading.remove wire:target="file">Upload</span>
+                        <span wire:loading wire:target="file">Reading…</span>
+                        <input type="file" class="hidden" wire:model="file" accept=".xlsx,.xls">
+                    </label>
+                </x-slot:actions>
+
+                <div class="max-h-72 divide-y divide-gray-100 overflow-y-auto lg:max-h-[26rem]">
+                    @forelse ($uploads as $upload)
+                        <div wire:key="upload-card-{{ $upload->id }}"
+                             class="group flex items-start gap-2 px-4 py-3 transition {{ $selectedUploadId === $upload->id ? 'bg-[#2A57B4]/5' : 'hover:bg-gray-50' }}">
+                            <button type="button" wire:click="openUploadBatch({{ $upload->id }})" class="flex min-w-0 flex-1 items-start gap-3 text-left">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                                    <i class='bx bxs-file-blank text-lg'></i>
+                                </span>
+                                <span class="min-w-0">
+                                    @if ($selectedUploadId === $upload->id)
+                                        <span class="mb-1 inline-block rounded-full bg-[#2A57B4] px-1.5 py-0.5 text-[10px] font-medium text-white">Viewing</span>
+                                    @endif
+                                    <span class="block truncate text-sm font-medium text-gray-900 group-hover:text-[#2A57B4]" title="{{ $upload->original_filename }}">{{ $upload->original_filename }}</span>
+                                    <span class="block text-xs text-gray-500">{{ number_format($upload->entries_count) }} rows · {{ $upload->column_count }} cols</span>
+                                    <span class="block text-xs text-gray-400">{{ $upload->uploaded_at->diffForHumans() }}</span>
+                                </span>
+                            </button>
+                            <button type="button" wire:click="deleteUpload({{ $upload->id }})"
+                                    wire:confirm="Delete this logbook and all {{ $upload->entries_count }} of its rows? This can't be undone."
+                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                                    title="Delete upload" aria-label="Delete upload">
+                                <i class='bx bx-trash'></i>
+                            </button>
+                        </div>
+                    @empty
+                        <div class="px-4 py-12 text-center">
+                            <p class="text-sm text-gray-400">No logbooks uploaded yet.</p>
+                            <p class="mt-1 text-xs text-gray-400">Use Upload to add an Excel export.</p>
+                        </div>
+                    @endforelse
                 </div>
-
-                <label class="relative inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1f4494]"
-                       wire:loading.class="pointer-events-none opacity-70" wire:target="file" title="Upload Logbook (Excel)">
-                    <i class='bx bx-upload'></i>
-                    <span wire:loading.remove wire:target="file" class="hidden sm:inline">Upload</span>
-                    <span wire:loading wire:target="file" class="hidden sm:inline">Reading…</span>
-                    <input type="file" class="hidden" wire:model="file" accept=".xlsx,.xls">
-                </label>
-            </div>
-
-            <div class="max-h-[70vh] space-y-2 overflow-y-auto pr-1">
-                @forelse($uploads as $upload)
-                    <div wire:key="upload-card-{{ $upload->id }}"
-                         class="group relative flex items-start gap-2.5 rounded-xl border p-3 transition {{ $selectedUploadId === $upload->id ? 'border-[#2A57B4] bg-[#2A57B4]/5 ring-1 ring-[#2A57B4]/20' : 'border-slate-200 bg-white hover:border-[#2A57B4]/40 hover:bg-slate-50' }}">
-                        <button type="button" wire:click="openUploadBatch({{ $upload->id }})" class="flex min-w-0 flex-1 items-start gap-2.5 text-left">
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50">
-                                <i class='bx bxs-file-blank text-lg text-emerald-500'></i>
-                            </div>
-                            <div class="min-w-0">
-                                @if($selectedUploadId === $upload->id)
-                                    <span class="mb-1 inline-flex items-center gap-1 rounded-full bg-[#2A57B4] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                                        <i class='bx bx-show'></i> Viewing
-                                    </span>
-                                @endif
-                                <h4 class="truncate text-xs font-bold text-slate-900 group-hover:text-[#2A57B4]" title="{{ $upload->original_filename }}">
-                                    {{ $upload->original_filename }}
-                                </h4>
-                                <p class="mt-0.5 text-[11px] text-slate-500">{{ $upload->entries_count }} rows &middot; {{ $upload->column_count }} cols</p>
-                                <p class="mt-0.5 text-[11px] text-slate-400">{{ $upload->uploaded_at->diffForHumans() }}</p>
-                            </div>
-                        </button>
-                        <button type="button" wire:click="deleteUpload({{ $upload->id }})"
-                                wire:confirm="Delete this logbook and all {{ $upload->entries_count }} of its rows? This can't be undone."
-                                class="shrink-0 rounded-lg p-1 text-slate-300 transition hover:bg-rose-50 hover:text-rose-500" title="Delete upload">
-                            <i class='bx bx-trash'></i>
-                        </button>
-                    </div>
-                @empty
-                    <div class="rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center">
-                        <i class='bx bx-folder-open text-2xl text-slate-300'></i>
-                        <p class="mt-2 text-xs text-slate-500">No logbooks uploaded yet.</p>
-                        <p class="mt-1 text-[11px] text-slate-400">Use the upload button above to add one.</p>
-                    </div>
-                @endforelse
-            </div>
+            </x-admin.section>
         </div>
     </div>
 
-    {{-- ============ ENTRIES TABLE — full width, combined across every uploaded logbook ============ --}}
-    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-
-        {{-- Highlight banner: unmistakable indicator of which file's entries are being viewed --}}
-        @if($selectedUpload)
-            <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#2A57B4]/30 bg-[#2A57B4]/5 px-4 py-2.5">
-                <p class="flex items-center gap-2 text-sm font-semibold text-[#2A57B4]">
-                    <i class='bx bxs-file-blank text-base'></i>
-                    Viewing entries from <span class="underline decoration-2 underline-offset-2">{{ $selectedUpload->original_filename }}</span>
-                </p>
-                <button type="button" wire:click="closeUploadBatch"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-[#2A57B4]/30 bg-white px-3 py-1.5 text-xs font-semibold text-[#2A57B4] transition hover:bg-[#2A57B4]/10">
-                    <i class='bx bx-arrow-back'></i> All uploads
-                </button>
+    {{-- ============ ENTRIES ============ --}}
+    <div>
+        @if ($selectedUpload)
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#2A57B4]/20 bg-[#2A57B4]/5 px-4 py-2.5 text-sm text-[#2A57B4]">
+                <span>Viewing entries from <strong>{{ $selectedUpload->original_filename }}</strong></span>
+                <button type="button" wire:click="closeUploadBatch" class="text-xs font-semibold underline hover:text-blue-900">Show all uploads</button>
             </div>
         @endif
 
         {{-- Toolbar --}}
-        <div class="mb-5 space-y-3">
-
-            {{-- Row 1: heading + search — search is the primary action, so it gets top billing and its own breathing room --}}
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 class="text-sm font-bold text-slate-800">
-                    @if($selectedUpload)
-                        Entries in this upload
-                    @else
-                        All Logbook Entries <span class="font-normal text-slate-400">(every upload combined)</span>
-                    @endif
-                </h3>
-
-                <div class="relative w-full sm:w-80">
-                    <i class='bx bx-search absolute left-3.5 top-1/2 -translate-y-1/2 text-lg text-slate-400'></i>
-                    <input type="text"
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Search applicant, program, purpose…"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-[#2A57B4] focus:bg-white focus:ring-4 focus:ring-[#2A57B4]/10">
-                </div>
+        <div class="col-span-2 grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:col-span-1 sm:flex">
+            <div class="relative col-span-2 sm:min-w-[240px] sm:flex-1">
+                <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.2-5.2m0 0A7.5 7.5 0 1 0 5.2 5.2a7.5 7.5 0 0 0 10.6 10.6Z" />
+                </svg>
+                <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search applicant, program, purpose…"
+                       class="w-full pl-9 pr-3 {{ $fieldClass }}">
             </div>
 
-            {{-- Row 2: filters — its own row so it wraps freely without fighting the heading/search for space --}}
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5">
-                <div class="flex items-center gap-1.5">
-                    <label class="text-xs font-semibold text-slate-500">From</label>
-                    <input type="date" wire:model.live="dateFrom"
-                        class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/10">
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <label class="text-xs font-semibold text-slate-500">To</label>
-                    <input type="date" wire:model.live="dateTo"
-                        class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/10">
-                </div>
+            <select wire:model.live="filterProgram" aria-label="Filter by program" class="w-full sm:w-auto sm:max-w-[200px] {{ $fieldClass }}">
+                <option value="">All programs</option>
+                @foreach ($this->programOptions as $program)
+                    <option value="{{ $program }}">{{ $program }}</option>
+                @endforeach
+            </select>
 
-                <span class="hidden h-5 w-px bg-slate-200 sm:block"></span>
+            <select wire:model.live="filterPurpose" aria-label="Filter by purpose" class="w-full sm:w-auto sm:max-w-[200px] {{ $fieldClass }}">
+                <option value="">All purposes</option>
+                @foreach ($this->purposeOptions as $purpose)
+                    <option value="{{ $purpose }}">{{ $purpose }}</option>
+                @endforeach
+            </select>
 
-                <div class="flex items-center gap-1.5">
-                    <label class="text-xs font-semibold text-slate-500">Program</label>
-                    <select wire:model.live="filterProgram"
-                        class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/10">
-                        <option value="">All Programs</option>
-                        @foreach($this->programOptions as $program)
-                            <option value="{{ $program }}">{{ $program }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <label class="text-xs font-semibold text-slate-500">Purpose</label>
-                    <select wire:model.live="filterPurpose"
-                        class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/10">
-                        <option value="">All Purposes</option>
-                        @foreach($this->purposeOptions as $purpose)
-                            <option value="{{ $purpose }}">{{ $purpose }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                @if($dateFrom || $dateTo || $filterProgram || $filterPurpose)
-                    <button type="button" wire:click="clearAllFilters"
-                            class="ml-auto inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-rose-500">
-                        <i class='bx bx-x'></i> Clear
-                    </button>
-                @endif
+            <div class="flex items-center gap-1.5">
+                <input type="date" wire:model.live="dateFrom" aria-label="From date" class="w-full sm:w-auto {{ $fieldClass }}">
+                <span class="text-xs text-gray-400">to</span>
+                <input type="date" wire:model.live="dateTo" aria-label="To date" class="w-full sm:w-auto {{ $fieldClass }}">
             </div>
+
+            @if ($dateFrom || $dateTo || $filterProgram || $filterPurpose)
+                <button type="button" wire:click="clearAllFilters"
+                        class="col-span-2 py-2 text-center text-xs font-medium text-gray-500 hover:text-red-600 sm:col-span-1 sm:px-2 sm:py-0">Clear filters</button>
+            @endif
+
+            <span class="col-span-2 text-xs text-gray-500 sm:ml-auto">{{ number_format($totalCount) }} {{ \Illuminate\Support\Str::plural('entry', $totalCount) }}</span>
         </div>
 
-        <div class="overflow-hidden rounded-xl border border-slate-200">
+        {{-- Table --}}
+        <div class="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
             <div class="overflow-x-auto">
-                <table class="min-w-full border-collapse text-sm">
-                    <thead class="bg-slate-50">
-                        <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            <th class="px-4 py-3">Date</th>
-                            <th class="px-4 py-3">Time</th>
-                            {{-- Purpose: the key column, so it comes first and is visually emphasized --}}
-                            <th class="min-w-[14rem] border-l-4 border-[#2A57B4] bg-[#2A57B4]/10 px-4 py-3 text-[#2A57B4]">
-                                <span class="inline-flex items-center gap-1.5"><i class='bx bxs-bookmark-star text-sm'></i> Purpose</span>
-                            </th>
-                            <th class="px-4 py-3">Name of Applicant</th>
-                            <th class="px-4 py-3">Course / Program</th>
-                            <th class="px-4 py-3">Complete Address</th>
-                            <th class="px-4 py-3">Issued To</th>
-                            <th class="px-4 py-3">Relation</th>
-                            <th class="px-4 py-3">Date &amp; Time Released</th>
+                <table class="w-full text-sm">
+                    <thead class="border-b border-gray-100 bg-gray-50 text-xs font-medium text-gray-500">
+                        <tr>
+                            <th class="px-5 py-3 text-left">Date</th>
+                            <th class="px-5 py-3 text-left">Time</th>
+                            <th class="min-w-[14rem] border-l-2 border-[#2A57B4] bg-[#2A57B4]/5 px-5 py-3 text-left text-[#2A57B4]">Purpose</th>
+                            <th class="px-5 py-3 text-left">Applicant</th>
+                            <th class="px-5 py-3 text-left">Course / Program</th>
+                            <th class="px-5 py-3 text-left">Address</th>
+                            <th class="px-5 py-3 text-left">Issued to</th>
+                            <th class="px-5 py-3 text-left">Relation</th>
+                            <th class="px-5 py-3 text-left">Released</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($entries as $entry)
-                            <tr wire:key="logbook-entry-{{ $entry->id }}" class="text-slate-600 transition hover:bg-slate-50/70">
-                                <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500">{{ $entry->entry_date }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500">{{ $entry->entry_time }}</td>
-
-                                {{-- Purpose: highlighted --}}
-                                <td class="min-w-[14rem] border-l-4 border-[#2A57B4] bg-[#2A57B4]/5 px-4 py-3 align-top">
-                                    @if(filled($entry->purpose))
-                                        <span class="text-sm font-bold leading-snug text-[#2A57B4]">{!! $this->highlight($entry->purpose) !!}</span>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($entries as $entry)
+                            <tr wire:key="logbook-entry-{{ $entry->id }}" class="align-top text-gray-600 transition-colors hover:bg-gray-50/70">
+                                <td class="whitespace-nowrap px-5 py-3.5 text-xs text-gray-500">{{ $entry->entry_date }}</td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-xs text-gray-500">{{ $entry->entry_time }}</td>
+                                <td class="min-w-[14rem] border-l-2 border-[#2A57B4] bg-[#2A57B4]/[0.03] px-5 py-3.5">
+                                    @if (filled($entry->purpose))
+                                        <span class="font-medium text-[#2A57B4]">{!! $this->highlight($entry->purpose) !!}</span>
                                     @else
-                                        <span class="text-xs italic text-slate-400">No purpose recorded</span>
+                                        <span class="text-xs italic text-gray-400">No purpose recorded</span>
                                     @endif
                                 </td>
-
-                                <td class="px-4 py-3 font-medium text-slate-800">{!! $this->highlight($entry->applicant_name) !!}</td>
-                                <td class="px-4 py-3">{!! $this->highlight($entry->program) !!}</td>
-                                <td class="px-4 py-3 text-xs text-slate-500">{!! $this->highlight($entry->address) !!}</td>
-                                <td class="px-4 py-3">{!! $this->highlight($entry->issued_to) !!}</td>
-                                <td class="px-4 py-3 text-xs text-slate-500">{{ $entry->relation }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500">{{ $entry->released_at }}</td>
+                                <td class="px-5 py-3.5 font-medium text-gray-900">{!! $this->highlight($entry->applicant_name) !!}</td>
+                                <td class="px-5 py-3.5">{!! $this->highlight($entry->program) !!}</td>
+                                <td class="px-5 py-3.5 text-xs text-gray-500">{!! $this->highlight($entry->address) !!}</td>
+                                <td class="px-5 py-3.5">{!! $this->highlight($entry->issued_to) !!}</td>
+                                <td class="px-5 py-3.5 text-xs text-gray-500">{{ $entry->relation }}</td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-xs text-gray-500">{{ $entry->released_at }}</td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="9" class="px-4 py-14 text-center">
-                                    <i class='bx bx-search-alt text-3xl text-slate-300'></i>
-                                    <p class="mt-2 text-sm text-slate-500">No logbook entries matched.</p>
-                                </td>
-                            </tr>
+                            <tr><td colspan="9" class="px-5 py-12 text-center text-sm text-gray-400">No logbook entries matched.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+        {{-- Mobile: entry cards --}}
+        <div class="space-y-3 md:hidden">
+            @forelse ($entries as $entry)
+                <div wire:key="logbook-card-{{ $entry->id }}" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div class="border-l-2 border-[#2A57B4] pl-3">
+                        @if (filled($entry->purpose))
+                            <p class="text-sm font-semibold text-[#2A57B4]">{!! $this->highlight($entry->purpose) !!}</p>
+                        @else
+                            <p class="text-xs italic text-gray-400">No purpose recorded</p>
+                        @endif
+                        <p class="mt-0.5 text-xs text-gray-400">{{ $entry->entry_date }} {{ $entry->entry_time }}</p>
+                    </div>
+
+                    <dl class="mt-3 space-y-1.5 text-sm">
+                        <div class="flex justify-between gap-3">
+                            <dt class="shrink-0 text-gray-400">Applicant</dt>
+                            <dd class="text-right font-medium text-gray-900">{!! $this->highlight($entry->applicant_name) ?: '—' !!}</dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt class="shrink-0 text-gray-400">Program</dt>
+                            <dd class="text-right text-gray-700">{!! $this->highlight($entry->program) ?: '—' !!}</dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt class="shrink-0 text-gray-400">Address</dt>
+                            <dd class="text-right text-xs text-gray-600">{!! $this->highlight($entry->address) ?: '—' !!}</dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt class="shrink-0 text-gray-400">Issued to</dt>
+                            <dd class="text-right text-gray-700">{!! $this->highlight($entry->issued_to) ?: '—' !!}
+                                @if ($entry->relation)<span class="text-xs text-gray-400">({{ $entry->relation }})</span>@endif
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt class="shrink-0 text-gray-400">Released</dt>
+                            <dd class="text-right text-xs text-gray-600">{{ $entry->released_at ?: '—' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            @empty
+                <p class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-400">No logbook entries matched.</p>
+            @endforelse
+        </div>
 
         {{-- Pagination --}}
-        @if($totalCount > 0)
-            <div class="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
-                <p class="text-xs text-slate-400">
-                    Showing {{ (($currentPage - 1) * $perPage) + 1 }}–{{ min($currentPage * $perPage, $totalCount) }} of {{ $totalCount }}
+        @if ($totalCount > 0)
+            <div class="mb-12 mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <p class="text-xs text-gray-500">
+                    Showing {{ (($currentPage - 1) * $perPage) + 1 }}–{{ min($currentPage * $perPage, $totalCount) }} of {{ number_format($totalCount) }}
                 </p>
-                <div class="inline-flex overflow-hidden rounded-xl border border-slate-200 text-sm">
-                    <button type="button" wire:click="$set('currentPage', {{ max(1, $currentPage - 1) }})" @disabled($currentPage === 1)
-                            class="px-4 py-2 transition {{ $currentPage === 1 ? 'cursor-not-allowed bg-slate-50 text-slate-300' : 'bg-white text-slate-600 hover:bg-slate-50' }}">
+                <div class="inline-flex overflow-hidden rounded-lg border border-gray-200 bg-white text-sm shadow-sm">
+                    <button type="button" wire:click="$set('currentPage', {{ max(1, $currentPage - 1) }})" @disabled($currentPage === 1) aria-label="Previous page"
+                            class="px-3.5 py-2 transition {{ $currentPage === 1 ? 'cursor-not-allowed text-gray-300' : 'text-gray-600 hover:bg-gray-50' }}">
                         <i class='bx bx-chevron-left'></i>
                     </button>
-                    <div class="flex items-center border-x border-slate-200 bg-white px-4 text-slate-600">
-                        {{ $currentPage }} / {{ $totalPages }}
-                    </div>
-                    <button type="button" wire:click="$set('currentPage', {{ min($totalPages, $currentPage + 1) }})" @disabled($currentPage === $totalPages)
-                            class="px-4 py-2 transition {{ $currentPage === $totalPages ? 'cursor-not-allowed bg-slate-50 text-slate-300' : 'bg-white text-slate-600 hover:bg-slate-50' }}">
+                    <div class="flex items-center border-x border-gray-200 px-4 text-gray-600">{{ $currentPage }} / {{ $totalPages }}</div>
+                    <button type="button" wire:click="$set('currentPage', {{ min($totalPages, $currentPage + 1) }})" @disabled($currentPage === $totalPages) aria-label="Next page"
+                            class="px-3.5 py-2 transition {{ $currentPage === $totalPages ? 'cursor-not-allowed text-gray-300' : 'text-gray-600 hover:bg-gray-50' }}">
                         <i class='bx bx-chevron-right'></i>
                     </button>
                 </div>
             </div>
         @endif
     </div>
-    {{-- ============ CONFIRM UPLOAD MODAL ============ --}}
-    @if($showConfirmModal)
-      
-        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/50 p-4" wire:key="confirm-upload-modal">
-            <div class="flex max-h-[85vh] w-full max-w-4xl flex-col rounded-2xl bg-white shadow-xl">
 
-                <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900">Confirm Logbook Upload</h3>
-                        <p class="text-xs text-slate-500">
-                            {{ $previewFilename }} &middot; {{ $previewRowCount }} rows &middot; {{ $previewColumnCount }} columns
-                        </p>
+    {{-- ============ CONFIRM UPLOAD MODAL ============ --}}
+    @if ($showConfirmModal)
+        <div class="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+             wire:key="confirm-upload-modal" role="dialog" aria-modal="true" aria-label="Confirm logbook upload">
+            <div class="flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
+
+                <div class="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 sm:px-6">
+                    <div class="min-w-0">
+                        <h3 class="text-base font-semibold text-gray-900">Confirm logbook upload</h3>
+                        <p class="truncate text-xs text-gray-500">{{ $previewFilename }} · {{ number_format($previewRowCount) }} rows · {{ $previewColumnCount }} columns</p>
                     </div>
-                    <button type="button" wire:click="cancelUpload" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                    <button type="button" wire:click="cancelUpload" aria-label="Close"
+                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">
                         <i class='bx bx-x text-xl'></i>
                     </button>
                 </div>
 
-                <div class="flex-1 overflow-auto p-6">
-                    <p class="mb-3 text-xs text-slate-500">Review the entries below before saving. This is a preview — nothing is stored yet.</p>
+                <div class="min-h-0 flex-1 overflow-auto p-5 sm:p-6">
+                    <p class="mb-3 text-xs text-gray-500">Review the entries below. This is a preview and nothing is stored until you confirm.</p>
 
-                    <div class="overflow-hidden rounded-xl border border-slate-200">
+                    <div class="overflow-hidden rounded-lg border border-gray-200">
                         <div class="overflow-x-auto">
-                            <table class="min-w-full border-collapse text-xs">
-                                <thead class="bg-slate-50">
-                                    <tr class="border-b border-slate-200 text-left font-semibold uppercase tracking-wide text-slate-500">
-                                        @foreach($previewHeaders as $header)
-                                            <th class="whitespace-nowrap px-3 py-2">{{ $header }}</th>
+                            <table class="w-full text-xs">
+                                <thead class="border-b border-gray-100 bg-gray-50 font-medium text-gray-500">
+                                    <tr>
+                                        @foreach ($previewHeaders as $header)
+                                            <th class="whitespace-nowrap px-3 py-2.5 text-left">{{ $header }}</th>
                                         @endforeach
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    @forelse($this->previewRows as $i => $row)
-                                        <tr wire:key="preview-row-{{ $i }}" class="text-slate-700">
-                                            @foreach($previewHeaders as $header)
+                                <tbody class="divide-y divide-gray-100">
+                                    @forelse ($this->previewRows as $i => $row)
+                                        <tr wire:key="preview-row-{{ $i }}" class="text-gray-700">
+                                            @foreach ($previewHeaders as $header)
                                                 <td class="whitespace-nowrap px-3 py-2">{{ $row[$header] ?? '' }}</td>
                                             @endforeach
                                         </tr>
                                     @empty
-                                        <tr>
-                                            <td colspan="{{ count($previewHeaders) }}" class="px-3 py-8 text-center text-slate-400">
-                                                No rows found in this file.
-                                            </td>
-                                        </tr>
+                                        <tr><td colspan="{{ max(1, count($previewHeaders)) }}" class="px-3 py-8 text-center text-gray-400">No rows found in this file.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    @if($this->previewTotalPages > 1)
+                    @if ($this->previewTotalPages > 1)
                         <div class="mt-3 flex items-center justify-between">
-                            <p class="text-xs text-slate-400">Page {{ $previewPage }} of {{ $this->previewTotalPages }}</p>
-                            <div class="inline-flex overflow-hidden rounded-lg border border-slate-200 text-xs">
-                                <button type="button" wire:click="previewPreviousPage" @disabled($previewPage === 1)
-                                        class="px-3 py-1.5 {{ $previewPage === 1 ? 'cursor-not-allowed bg-slate-50 text-slate-300' : 'bg-white text-slate-600 hover:bg-slate-50' }}">
+                            <p class="text-xs text-gray-500">Page {{ $previewPage }} of {{ $this->previewTotalPages }}</p>
+                            <div class="inline-flex overflow-hidden rounded-lg border border-gray-200 bg-white text-xs shadow-sm">
+                                <button type="button" wire:click="previewPreviousPage" @disabled($previewPage === 1) aria-label="Previous"
+                                        class="px-3 py-1.5 {{ $previewPage === 1 ? 'cursor-not-allowed text-gray-300' : 'text-gray-600 hover:bg-gray-50' }}">
                                     <i class='bx bx-chevron-left'></i>
                                 </button>
-                                <button type="button" wire:click="previewNextPage" @disabled($previewPage === $this->previewTotalPages)
-                                        class="border-l border-slate-200 px-3 py-1.5 {{ $previewPage === $this->previewTotalPages ? 'cursor-not-allowed bg-slate-50 text-slate-300' : 'bg-white text-slate-600 hover:bg-slate-50' }}">
+                                <button type="button" wire:click="previewNextPage" @disabled($previewPage === $this->previewTotalPages) aria-label="Next"
+                                        class="border-l border-gray-200 px-3 py-1.5 {{ $previewPage === $this->previewTotalPages ? 'cursor-not-allowed text-gray-300' : 'text-gray-600 hover:bg-gray-50' }}">
                                     <i class='bx bx-chevron-right'></i>
                                 </button>
                             </div>
@@ -368,37 +340,34 @@
                     @endif
                 </div>
 
-                <div class="flex items-center justify-end gap-2 border-t border-slate-200 px-6 py-4">
+                <div class="flex flex-col-reverse gap-2 border-t border-gray-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
                     <button type="button" wire:click="cancelUpload"
-                            class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
-                        Cancel
-                    </button>
+                            class="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 sm:py-2">Cancel</button>
                     <button type="button" wire:click="confirmUpload" wire:loading.attr="disabled" wire:target="confirmUpload"
-                            class="rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1f4494] disabled:opacity-60">
-                        <span wire:loading.remove wire:target="confirmUpload">Confirm &amp; Save {{ $previewRowCount }} Entries</span>
+                            class="rounded-lg bg-[#2A57B4] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 sm:py-2">
+                        <span wire:loading.remove wire:target="confirmUpload">Confirm &amp; save {{ number_format($previewRowCount) }} entries</span>
                         <span wire:loading wire:target="confirmUpload">Saving…</span>
                     </button>
                 </div>
             </div>
         </div>
-
-        
     @endif
 
     {{-- ============ INVALID FILE MODAL ============ --}}
-    @if($showInvalidFileModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" wire:key="invalid-file-modal">
-            <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-                <div class="flex items-center gap-2 text-rose-600">
-                    <i class='bx bx-error-circle text-xl'></i>
-                    <h3 class="text-sm font-bold">Invalid File</h3>
+    @if ($showInvalidFileModal)
+        <div class="fixed inset-0 z-[10000] flex items-end justify-center bg-black/60 sm:items-center sm:px-4"
+             wire:key="invalid-file-modal" role="dialog" aria-modal="true">
+            <div class="w-full max-w-md rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
+                <div class="flex items-start gap-4">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-2xl text-red-500">!</div>
+                    <div class="min-w-0">
+                        <h3 class="text-xl font-semibold text-gray-900">Invalid file</h3>
+                        <p class="mt-2 text-sm leading-6 text-gray-500">{{ $invalidFileMessage }}</p>
+                    </div>
                 </div>
-                <p class="mt-2 text-sm text-slate-600">{{ $invalidFileMessage }}</p>
-                <div class="mt-5 flex justify-end">
+                <div class="mt-6 flex justify-end">
                     <button type="button" wire:click="dismissInvalidFileModal"
-                            class="rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1f4494]">
-                        OK
-                    </button>
+                            class="w-full rounded-lg bg-[#2A57B4] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto sm:py-2">OK</button>
                 </div>
             </div>
         </div>

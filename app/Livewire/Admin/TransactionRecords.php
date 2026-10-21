@@ -11,20 +11,37 @@ use Illuminate\Support\Str;
 use Livewire\Component;
 use App\Enums\TransactionStatus;
 use App\Workflow\Documents\DocumentRegistry;
+use Livewire\Attributes\Url;
 
 class TransactionRecords extends Component
 {
-    // NEW: which top-level section is showing — 'transactions' or 'logbooks'.
+   #[Url(as: 'tab', except: 'transactions')]
     public string $activeTab = 'transactions';
 
+    #[Url(as: 'q', except: '')]
     public string $search = '';
+
+    #[Url(as: 'status', except: 'All')]
     public string $statusFilter = 'All';
+
+    #[Url(as: 'view', except: 'table')]
     public string $viewMode = 'table';
+
+    #[Url(as: 'sort', except: 'date_desc')]
     public string $sortBy = 'date_desc';
+
+    #[Url(as: 'folder', except: '')]
     public ?string $selectedFolder = null;
+
+    #[Url(as: 'page', except: 1)]
     public int $currentPage = 1;
+
     public int $perPage = 30;
-    public string $sourceFilter = 'All'; // All | Student-filed | Issued by office
+
+    #[Url(as: 'source', except: 'All')]
+    public string $sourceFilter = 'All';
+    
+
 
     protected array $mainTabs = [
         'transactions' => 'Transaction Records',
@@ -116,7 +133,7 @@ class TransactionRecords extends Component
 
     protected function workspaces(): Collection
     {
-        return StudentDocumentWorkspace::query()
+        return StudentDocumentWorkspace::withTrashed()
             ->with([
                 'user.latestVerification',
                 'template.currentVersion.fields',
@@ -156,7 +173,8 @@ class TransactionRecords extends Component
                 'summary' => $document ? $document->summary($workspace->field_values ?? []) : '',
                 'date_label' => optional($when)->format('F j, Y') ?: 'N/A',
                 'date_sort' => optional($when)?->timestamp ?: 0,
-                'appointment' => $paperless ? '—' : $this->resolveSessionLabel($workspace),
+                'appointment' => $paperless ? '' : $this->resolveSessionLabel($workspace),
+                'session_label' => $paperless ? 'No appointment needed' : $this->resolveSessionLabel($workspace),
                 'status' => $status,
                 'preview_url' => $workspace->version?->image_path
                     ? Storage::disk('public')->url($workspace->version->image_path)
@@ -175,6 +193,10 @@ class TransactionRecords extends Component
                 'search_snippet' => null,
                 'search_snippet_label' => null,
                 'issued' => (bool) $document?->issuedByOffice(),
+                'deleted_by_student' => $workspace->trashed(),
+                'url' => $paperless
+                    ? route('admin.workflow.show', [$workspace->workspace_id, 'from' => 'transactions'])
+                    : route('admin.transactions.show', $workspace->workspace_id),
             ];
         })->values();
     }

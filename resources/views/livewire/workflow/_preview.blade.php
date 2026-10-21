@@ -1,12 +1,16 @@
-{{-- Needs: $src, $version. Renders the document on a fixed A4-width canvas and scales it to fit the screen. --}}
+{{-- Needs: $src, $version. Renders the document on a fixed A4-width canvas and scales it to fill the container. --}}
 <div wire:key="doc-preview-{{ $version }}"
+     class="w-full"
      x-data="{
         w: 840, h: 1188, scale: 1,
-        fit() { this.scale = Math.min(1, this.$el.clientWidth / this.w); }
+        fit() {
+            const cw = this.$refs.box.clientWidth;
+            if (cw > 0) this.scale = cw / this.w;
+        }
      }"
-     x-init="fit()"
-     @resize.window.debounce.100ms="fit()">
-    <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+     x-init="fit(); new ResizeObserver(() => fit()).observe($refs.box)">
+    <div x-ref="box"
+         class="w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
          :style="`height:${h * scale}px`">
         <iframe src="{{ $src }}?v={{ $version }}"
                 title="Document preview"

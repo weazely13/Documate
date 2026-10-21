@@ -70,7 +70,8 @@ class Appointment extends Model
 
     public function workspace()
     {
-        return $this->belongsTo(StudentDocumentWorkspace::class, 'workspace_id', 'workspace_id');
+        return $this->belongsTo(StudentDocumentWorkspace::class, 'workspace_id', 'workspace_id')
+            ->withTrashed();
     }
 
     public function reviewer()

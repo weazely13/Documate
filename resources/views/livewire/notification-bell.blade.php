@@ -9,22 +9,32 @@
     </button>
 
     <div x-show="open" x-cloak x-transition
-        class="absolute right-0 z-50 mt-2 w-80 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl transition-all duration-200 {{ $this->isExpanded ? 'max-h-[34rem]' : 'max-h-96' }}">
+        class="absolute right-0 z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl transition-all duration-200 {{ $this->isExpanded ? 'max-h-[34rem]' : 'max-h-[28rem]' }}">
 
-        <div class="sticky top-0 z-10 border-b border-slate-100 bg-white px-4 py-3">
-            <p class="text-sm font-semibold text-slate-900">Notifications</p>
+        <div class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
+            <p class="text-base font-bold text-slate-900">Notifications</p>
+            @if($this->unreadCount > 0)
+                <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-[#2A57B4]">
+                    {{ $this->unreadCount }} new
+                </span>
+            @endif
         </div>
 
         @if($this->todayNotifications->isEmpty() && $this->earlierNotifications->isEmpty())
-            <p class="px-4 py-6 text-center text-sm text-slate-400">No notifications yet.</p>
+            <div class="px-4 py-10 text-center">
+                <i class='bx bx-bell-off text-4xl text-slate-300'></i>
+                <p class="mt-2 text-sm text-slate-400">No notifications yet.</p>
+            </div>
         @else
             <!-- Today -->
             @if($this->todayNotifications->isNotEmpty())
                 <p class="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Today</p>
 
-                @foreach($this->todayNotifications as $n)
-                    @include('livewire.partials.notification-item', ['n' => $n])
-                @endforeach
+                <div class="divide-y divide-slate-100">
+                    @foreach($this->todayNotifications as $n)
+                        @include('livewire.partials.notification-item', ['n' => $n])
+                    @endforeach
+                </div>
 
                 @if($this->hasMoreToday)
                     <button wire:click="showMoreToday" @click.stop
@@ -38,9 +48,11 @@
             @if($this->earlierNotifications->isNotEmpty())
                 <p class="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400 border-t border-slate-100">Earlier</p>
 
-                @foreach($this->earlierNotifications as $n)
-                    @include('livewire.partials.notification-item', ['n' => $n])
-                @endforeach
+                <div class="divide-y divide-slate-100">
+                    @foreach($this->earlierNotifications as $n)
+                        @include('livewire.partials.notification-item', ['n' => $n])
+                    @endforeach
+                </div>
 
                 @if($this->hasMoreEarlier)
                     <button wire:click="showAllPrevious" @click.stop

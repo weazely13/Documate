@@ -13,5 +13,5 @@
             @isset($actions)<div class="flex items-center gap-2">{{ $actions }}</div>@endisset
         </div>
     @endif
-    <div @class(['p-5' => $padded])>{{ $slot }}</div>
+    <div @class(['p-4 sm:p-5' => $padded])>{{ $slot }}</div>
 </section>
