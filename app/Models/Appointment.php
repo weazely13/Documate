@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Appointment extends Model
 {
@@ -22,6 +24,15 @@ class Appointment extends Model
         'ai_findings' => 'array', 
         'ai_reviewed_at' => 'datetime',
     ];
+
+    public function scopeOrderByAiRisk(Builder $query): Builder
+    {
+        $expression = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(json_extract(ai_findings, '$.incorrect_probability') AS INTEGER) DESC"
+            : "CAST(JSON_UNQUOTE(JSON_EXTRACT(ai_findings, '$.incorrect_probability')) AS UNSIGNED) DESC";
+
+        return $query->orderByRaw($expression);
+    }
 
     public function user()
     {

@@ -7,7 +7,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["executive administration", "university governance", "institutional policy", "strategic leadership"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Gil Nicetas B. Villarino","title":"University President"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Office of the University Board Secretary",
@@ -17,7 +19,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["Board of Regents documentation", "board meeting support", "official board records", "governance coordination"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Atty. Divina Patty B. Sibay","title":"Concurrent OIC University and Board Secretary"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Vice President for Administration and Finance",
@@ -27,7 +31,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["administrative services", "financial management", "resource management", "campus operations"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Solomon D. Faller, Jr.","title":"Vice President for Administration and Finance"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Office of the Chief Administrative Officer for Administration",
@@ -37,7 +43,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["administrative management", "administrative coordination", "institutional operations"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Mr. Oreste M. Ortega, Jr.","title":"Chief Administrative Officer for Administration"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Office of the Chief Administrative Officer for Finance",
@@ -47,7 +55,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["financial administration", "financial coordination", "budget and finance operations"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Josisa C. Conchada","title":"Chief Administrative Officer for Finance"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Human Resource Management Office",
@@ -57,7 +67,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["employee records", "recruitment", "personnel services", "employee development", "staff welfare"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Jasmin M. Graveles","title":"Head, Human Resource Management Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "IGO Business Affairs Office",
@@ -67,7 +79,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["business affairs", "income generating activities", "institutional business services"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Mr. Cesar B. Blanco","title":"Concurrent Head, Income Generating Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Records Office",
@@ -77,7 +91,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["records management", "document archiving", "records retrieval", "official records"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Mr. Cesar B. Blanco","title":"Head, Records Management Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Admissions Office",
@@ -87,7 +103,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["admission inquiries", "application assistance", "admission requirements", "applicant assistance"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Prof. Ryan G. Destura","title":"Director, Admissions Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Budget Office",
@@ -97,7 +115,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["budget preparation", "budget monitoring", "fund allocation", "financial planning"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Cherylin E. Pido","title":"OIC Head, Budget Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Physical Plant Director's Office",
@@ -107,7 +127,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["facility maintenance", "infrastructure management", "utilities coordination", "building maintenance"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Prof. Michael Jun M. Ponciano","title":"Director, Physical Plants and Facilities Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Reproduction Office",
@@ -117,7 +139,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["document reproduction", "printing support", "document production"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Internal Audit Office",
@@ -127,7 +151,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["internal auditing", "compliance review", "financial audit", "operational audit"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Nora C. Cabriana","title":"Head, Internal Audit Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Cashier's Office",
@@ -137,7 +163,9 @@
     "floor": "1st Floor - Facade",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["tuition payment", "school fee payment", "cash collections", "official receipts"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Jocelyn C. Aboy","title":"Head, Cashiering Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Accounting Office",
@@ -147,7 +175,9 @@
     "floor": "1st Floor - Facade",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["financial records", "accounting services", "financial reporting", "payroll", "accounts management"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Arra Jen L. Dagalea, CPA","title":"OIC Head, Accounting Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Registrar's Office",
@@ -157,7 +187,9 @@
     "floor": "1st Floor - Facade",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["student records", "certification", "authentication", "transcript requests", "grades", "graduation records"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Gay A. Pinote","title":"Head, Registrar’s Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Supply Office",
@@ -167,7 +199,9 @@
     "floor": "1st Floor - Parking",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["supply management", "inventory", "property management", "asset issuance"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Maria Gina C. Durango","title":"Head, Supply and Property Management Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Commission on Audit",
@@ -177,7 +211,9 @@
     "floor": "1st Floor - Parking",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["government audit", "financial audit", "compliance audit", "audit examination"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Bids and Awards Office",
@@ -187,7 +223,9 @@
     "floor": "1st Floor - Parking",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["public bidding", "procurement", "bid evaluation", "bidding documentation"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Planning and Development Office",
@@ -197,7 +235,9 @@
     "floor": "1st Floor - Parking",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["institutional planning", "development planning", "project planning", "planning coordination"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Danielle Anne S. Durna","title":"Head, Planning Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Vice President for Academic Services",
@@ -207,7 +247,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["academic administration", "academic policy", "academic program coordination", "curriculum support"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Lina G. Fabian","title":"Vice President for Academic Services"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Institutional and External Linkages Office",
@@ -217,7 +259,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["institutional partnerships", "external partnerships", "linkages", "inter-agency coordination"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Vice President for Student Development",
@@ -227,7 +271,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["student development", "student welfare", "student leadership", "student support programs"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Joyce M. Magtolis","title":"Vice President for Student Development"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Dean of Graduate School",
@@ -237,7 +283,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["graduate program inquiries", "graduate student services", "graduate academic coordination"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Cleofe L. Lajara","title":"Dean, Graduate School"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Office of the Vice President for Research, Innovation, and Extension",
@@ -247,7 +295,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["research administration", "innovation", "extension", "research development", "institutional research"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Jonas P. Villas","title":"Vice President for Research, Innovation, Extension, and Internationalization"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Community Extension Services Office",
@@ -257,7 +307,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["community extension programs", "community development", "livelihood programs", "training", "outreach"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Lowell A. Quisumbing","title":"Director, Community Extension Services Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Center for Teacher Education Research Technologies and Innovation",
@@ -267,7 +319,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["teacher education research", "educational technology", "innovation", "research projects"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Michael Dell A. Tuazon","title":"Director, CTERTI"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Public Affairs Marketing Communications Office",
@@ -277,7 +331,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["public information", "official announcements", "media coordination", "marketing communications", "institutional promotions"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Gillian Mae G. Villaflor","title":"Director, Public Affairs and Marketing Communications Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "IT Support Office",
@@ -287,7 +343,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["technical support", "computer assistance", "network support", "system support", "IT troubleshooting"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Mark Lester P. Laurente","title":"Director, Information Technology Support Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Guidance Office",
@@ -297,7 +355,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["guidance counseling", "student counseling", "career guidance", "student assessment", "referrals"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Prof. Melba M. Navarra","title":"Director, Guidance Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Scholarship Office",
@@ -307,7 +367,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["scholarship applications", "financial assistance", "student grants", "scholarship inquiries"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Prof. Liza T. Bacierra","title":"Head, Scholarship and Financial Assistance Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Testing Office",
@@ -317,7 +379,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["student testing", "assessment", "entrance testing", "psychological testing"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Mr. Jumar O. Lumapak","title":"Head, Testing Office and Concurrent Manager, Career Placement Office"},
+    "signatory_source": "https://www.lnu.edu.ph/coordinators-special-designees/"
   },
   {
     "name": "SSC and SOAD Director's Office",
@@ -327,7 +391,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["student organizations", "student activities", "student leadership", "student council coordination"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Prof. Ariel G. Salarda","title":"Director, Student Organizations and Activities Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Sports Director",
@@ -337,7 +403,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["sports programs", "athletics", "student athlete support", "sports activities"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Prof. Glenn Rey A. Estrada","title":"Director, Sports Development Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Gender and Development Director",
@@ -347,7 +415,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["gender and development programs", "gender equality", "GAD activities", "gender-responsive programs"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Michell T. Acala","title":"Director, Gender and Development Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Research Ethics Director",
@@ -357,7 +427,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["research ethics review", "ethical research guidance", "research compliance", "research ethics documentation"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Prof. Christian G. Abalos","title":"Director, Research Ethics Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "LNU Clinic",
@@ -367,7 +439,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["medical consultation", "health screening", "first aid", "student health services", "employee health services"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Ruthchel C. Zeta","title":"Head, Medical Services Office"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Dental Clinic",
@@ -377,7 +451,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["dental consultation", "oral health services", "dental examination", "dental assistance"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Sentro ng Wika at Kultura",
@@ -387,7 +463,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["language programs", "Filipino language activities", "cultural programs", "language research"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Rowena N. Ariaso","title":"Director, Sentro ng Wika at Kultura"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "NSTP Office",
@@ -397,7 +475,9 @@
     "floor": "3rd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["NSTP enrollment", "NSTP coordination", "CWTS", "ROTC", "NSTP records"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Prof. Bienvenido P. Roncal, Jr.","title":"NSTP Coordinator"},
+    "signatory_source": "https://www.lnu.edu.ph/coordinators-special-designees/"
   },
   {
     "name": "Center for Continuing Education and Lifelong Learning",
@@ -407,7 +487,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["continuing education", "professional development", "training programs", "lifelong learning"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Marife N. Daga","title":"Director, Center for Continuing Education and Lifelong Learning"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Quality Assurance Office",
@@ -417,7 +499,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["quality assurance", "quality monitoring", "academic quality", "institutional quality improvement"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Accreditation Office",
@@ -427,7 +511,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["accreditation assistance", "accreditation documentation", "program accreditation", "accreditation preparation"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Dean of College of Education",
@@ -437,7 +523,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["college administration", "academic advising", "faculty coordination", "student concerns"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Billy A. Danday","title":"Dean, College of Education"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Learning Resource Center",
@@ -447,7 +535,9 @@
     "floor": "1st-4th Floors",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["library services", "research assistance", "learning resources", "reference services", "information resources"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Ms. Luzviminda F. Alcober","title":"OIC Head, Learning Resource Center"},
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Office of the Dean of College of Education",
@@ -457,7 +547,9 @@
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["college administration", "academic advising", "faculty coordination", "student concerns"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": {"name":"Dr. Billy A. Danday","title":"Dean, College of Education"},
+    "signatory_source": "https://www.lnu.edu.ph/key-officials/"
   },
   {
     "name": "Quality Assurance Office",
@@ -467,7 +559,9 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["quality assurance", "quality monitoring", "academic quality", "institutional quality improvement"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   },
   {
     "name": "Accreditation Office",
@@ -477,6 +571,8 @@
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
     "services": ["accreditation assistance", "accreditation documentation", "program accreditation", "accreditation preparation"],
-    "contact": "info@lnu.edu.ph"
+    "contact": "info@lnu.edu.ph",
+    "signatory": null,
+    "signatory_source": "https://www.lnu.edu.ph/acad-admin-staffs/"
   }
 ]

@@ -74,8 +74,36 @@ class ChatbotKnowledgeTest extends TestCase
             ['role' => 'user', 'content' => 'I forgot my password. What should I do?'],
         ]);
 
-        $this->assertStringContainsString('Use the password reset option on the sign-in page.', $result['reply']);
-        $this->assertStringContainsString('contact the VPSD office or the system administrators', $result['reply']);
+        $this->assertStringContainsString('Open the [password reset page](/forgot-password)', $result['reply']);
+        $this->assertStringContainsString('contact a DocuMate administrator', $result['reply']);
+        Http::assertSent(fn (Request $request) => ($request['tool_choice']['function']['name'] ?? null) === 'search_faqs');
+    }
+
+    public function test_student_registration_question_returns_the_account_requirements_faq(): void
+    {
+        config([
+            'services.groq.api_key' => 'test-key',
+            'services.groq.model' => 'test-model',
+        ]);
+
+        Http::fakeSequence()->push(['choices' => [['message' => [
+            'tool_calls' => [[
+                'id' => 'account-faq-call',
+                'type' => 'function',
+                'function' => [
+                    'name' => 'search_faqs',
+                    'arguments' => json_encode(['query' => 'How do I create a student account?']),
+                ],
+            ]],
+        ]]]]);
+
+        $result = app(ChatbotService::class)->ask([
+            ['role' => 'user', 'content' => 'How do I create a student account?'],
+        ]);
+
+        $this->assertStringContainsString('Complete the Personal and Academic sections', $result['reply']);
+        $this->assertStringContainsString('enrollment slip (up to 5 MB)', $result['reply']);
+        $this->assertStringContainsString('at least 15 years old', $result['reply']);
         Http::assertSent(fn (Request $request) => ($request['tool_choice']['function']['name'] ?? null) === 'search_faqs');
     }
 
