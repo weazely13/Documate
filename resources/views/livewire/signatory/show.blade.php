@@ -209,8 +209,10 @@
         </section>
     @endif
     @if ($canAct)
-        <div class="flex flex-wrap gap-2">
-            <button type="button" wire:click="openModal('approve')" @disabled(! $signatureReady || ($document->signerSetsSchedule() && ! $schedDate)) class="{{ $btn }} bg-[#2A57B4] text-white hover:bg-[#24499A]">Approve and sign</button>
+    <div class="flex flex-wrap gap-2">
+            <button type="button" wire:click="openModal('approve')"
+                    @disabled(! $signatureReady || ($canSchedule && ! $schedDate))
+                    class="{{ $btn }} bg-[#2A57B4] text-white hover:bg-[#24499A]">Approve and sign</button>
             <button type="button" wire:click="openModal('reject')" class="{{ $btn }} border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100">Reject</button>
         </div>
     @endif

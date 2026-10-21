@@ -48,8 +48,23 @@ class DocumentPdf
     public function previewHtml(StudentDocumentWorkspace $ws): string
     {
         $document = DocumentRegistry::get($ws->document_type);
+        $html = view($document->pdfView(), $this->viewData($ws, preview: true))->render();
 
-        return view($document->pdfView(), $this->viewData($ws, preview: true))->render();
+        $fix = <<<'HTML'
+    <style>html{overflow-x:hidden}body{width:520pt!important;max-width:none!important}</style>
+    <script>
+    (function(){
+    function fit(){
+        var b=document.body; b.style.zoom='';
+        var need=b.offsetWidth+40, have=document.documentElement.clientWidth;
+        if(have<need) b.style.zoom=(have/need).toFixed(3);
+    }
+    addEventListener('DOMContentLoaded',fit); addEventListener('resize',fit);
+    })();
+    </script>
+    HTML;
+
+        return str_ireplace('</head>', $fix . '</head>', $html);
     }
 
     /** Single source of data for BOTH the official PDF and the on-screen preview. */

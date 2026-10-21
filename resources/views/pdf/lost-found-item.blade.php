@@ -108,7 +108,7 @@
 
 {{-- Lost --}}
 <div class="opt">
-    <div class="cb">@if ($kind === 'Lost')X@endif</div>
+    <div class="cb">{{ $kind === 'Lost' ? 'X' : '' }}</div>
     <div class="body">
         <div class="stmt">May I respectfully report to your office a/an</div>
         @foreach ($lostRows as $i => $line)
@@ -123,7 +123,7 @@
 
 {{-- Found --}}
 <div class="opt">
-    <div class="cb">@if ($kind === 'Found')X@endif</div>
+    <div class="cb">{{ $kind === 'Found' ? 'X' : '' }}</div>
     <div class="body">
         <div class="stmt">May I respectfully turn over to your office a/an</div>
         @foreach ($foundRows as $i => $line)

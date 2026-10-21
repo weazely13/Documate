@@ -116,76 +116,97 @@
         @endif
 
         {{-- The document's fields --}}
-        <div class="mt-5 space-y-4">
-            @if (collect($this->document->fields())->contains(fn ($f) => ($f['type'] ?? '') === 'radio'))
-                <p class="rounded-xl bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600 sm:hidden">
-                    <strong>Scale:</strong> 5 Outstanding &middot; 4 Very Satisfactory &middot; 3 Satisfactory &middot; 2 Good &middot; 1 Poor
-                </p>
-            @endif
-            @foreach ($this->document->fields() as $name => $f)
-                @continue(! empty($f['hidden']))
-                @continue(($f['group'] ?? null) === 'rating_rows')
-                @php
-                    $kind = $f['type'] ?? 'text';
-                    $dep = $f['show_when'] ?? null;
-                    $xShow = $dep ? '$wire.values.' . array_key_first($dep) . ' === ' . json_encode($dep[array_key_first($dep)]) : null;
-                @endphp
-                <div wire:key="f-{{ $this->type }}-{{ $name }}" @if ($xShow) x-show="{{ $xShow }}" x-cloak @endif>
-                    @if ($kind === 'checkbox')
-                        <label class="flex items-center gap-2.5 text-sm font-medium text-slate-700">
-                            <input type="checkbox" wire:model="values.{{ $name }}" class="h-4 w-4 accent-[#2A57B4]">
-                            {{ $f['label'] }}
-                        </label>
-                    @else
-                        <label class="block text-sm font-medium text-slate-700">
-                            {{ $f['label'] }} @if ($f['required'] ?? false)<span class="text-rose-500">*</span>@endif
-                        </label>
 
-                        @if ($kind === 'textarea')
-                            <textarea wire:model="values.{{ $name }}" rows="4" maxlength="{{ $f['max'] ?? 500 }}" class="{{ $input }}"></textarea>
-                        @elseif ($kind === 'radio')
-                            <div class="mt-1.5 grid grid-cols-5 gap-1 sm:gap-2">
-                                @foreach ($f['options'] as $opt)
-                                    <label wire:key="r-{{ $name }}-{{ $opt }}"
-                                        class="flex min-w-0 cursor-pointer flex-col items-center rounded-xl border border-slate-300 px-1 py-2 text-center hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50">
-                                        <input type="radio" name="values_{{ $name }}" value="{{ $opt }}" wire:model="values.{{ $name }}"
-                                            class="h-4 w-4 accent-[#2A57B4]">
-                                        <span class="mt-1 text-sm font-semibold text-slate-800">{{ $opt }}</span>
-                                        @if (! empty($f['option_labels'][$opt]))
-                                            <span class="hidden w-full truncate text-[10px] leading-tight text-slate-500 sm:block">{{ $f['option_labels'][$opt] }}</span>
-                                        @endif
-                                    </label>
-                                @endforeach
-                            </div>
-                        @elseif ($kind === 'select')
-                            <select wire:model="values.{{ $name }}" class="{{ $input }}">
-                                <option value="">Choose…</option>
-                                @foreach ($f['options'] as $opt)
-                                    <option value="{{ $opt }}">{{ $opt }}</option>
-                                @endforeach
-                            </select>
-                        @else
-                            <input wire:model="values.{{ $name }}"
-                                type="{{ ['date' => 'date', 'time' => 'time'][$kind] ?? 'text' }}"
-                                @if ($kind === 'date')
-                                        @if (! empty($f['past'])) max="{{ now()->toDateString() }}"
-                                        @else min="{{ now()->toDateString() }}" @endif
-                                    @endif
-                                @if (isset($f['max'])) maxlength="{{ $f['max'] }}" @endif
-                                placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $input }}">
-                        @endif
+        @php
+            $paperMap = [
+                'model_student_rating_signatory' => 'rating',
+                'ymca_award_rating_signatory' => 'rating',
+                'college_model_nomination_signatory' => 'nomination',
+                'ymca_award_nomination_signatory' => 'nomination',
+                'disciplinary_referral_slip' => 'referral',
+                'disciplinary_action_slip' => 'action-slip',
+                'student_advisement_form' => 'advisement',
+                'student_assistantship_recommendation' => 'recommendation',
+                'student_assistant_evaluation' => 'evaluation',
+                'disciplinary_case_report' => 'case-report',
+                'college_model_interview_rating' => 'interview-rating',
+            ];
+            $paper = $paperMap[$this->type] ?? null;
+        @endphp
 
-                        @if (! empty($f['help'])) <p class="mt-1 text-xs text-slate-400">{{ $f['help'] }}</p> @endif
+        @if ($paper && view()->exists("livewire.workflow.issue-paper.$paper"))
+            <div class="mt-5" wire:key="paper-{{ $this->type }}">
+                @include("livewire.workflow.issue-paper.$paper", ['student' => $student, 'doc' => $this->document])
+            </div>
+        @else
+            {{-- ORIGINAL generic field loop (unchanged) --}}
+            <div class="mt-5 space-y-4">
+                <div class="mt-5 space-y-4">
+                    @if (collect($this->document->fields())->contains(fn ($f) => ($f['type'] ?? '') === 'radio'))
+                        <p class="rounded-xl bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600 sm:hidden">
+                            <strong>Scale:</strong> 5 Outstanding &middot; 4 Very Satisfactory &middot; 3 Satisfactory &middot; 2 Good &middot; 1 Poor
+                        </p>
                     @endif
-                    @error("values.$name") <p class="mt-1 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
+                    @foreach ($this->document->fields() as $name => $f)
+                        @continue(! empty($f['hidden']))
+                        @continue(($f['group'] ?? null) === 'rating_rows')
+                        @php
+                            $kind = $f['type'] ?? 'text';
+                            $dep = $f['show_when'] ?? null;
+                            $xShow = $dep ? '$wire.values.' . array_key_first($dep) . ' === ' . json_encode($dep[array_key_first($dep)]) : null;
+                        @endphp
+                        <div wire:key="f-{{ $this->type }}-{{ $name }}" @if ($xShow) x-show="{{ $xShow }}" x-cloak @endif>
+                            @if ($kind === 'checkbox')
+                                <label class="flex items-center gap-2.5 text-sm font-medium text-slate-700">
+                                    <input type="checkbox" wire:model="values.{{ $name }}" class="h-4 w-4 accent-[#2A57B4]">
+                                    {{ $f['label'] }}
+                                </label>
+                            @else
+                                <label class="block text-sm font-medium text-slate-700">
+                                    {{ $f['label'] }} @if ($f['required'] ?? false)<span class="text-rose-500">*</span>@endif
+                                </label>
+
+                                @if ($kind === 'textarea')
+                                    <textarea wire:model="values.{{ $name }}" rows="4" maxlength="{{ $f['max'] ?? 500 }}" class="{{ $input }}"></textarea>
+                                @elseif ($kind === 'radio')
+                                    <div class="mt-1.5 grid grid-cols-5 gap-1 sm:gap-2">
+                                        @foreach ($f['options'] as $opt)
+                                            <label wire:key="r-{{ $name }}-{{ $opt }}"
+                                                class="flex min-w-0 cursor-pointer flex-col items-center rounded-xl border border-slate-300 px-1 py-2 text-center hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50">
+                                                <input type="radio" name="values_{{ $name }}" value="{{ $opt }}" wire:model="values.{{ $name }}"
+                                                    class="h-4 w-4 accent-[#2A57B4]">
+                                                <span class="mt-1 text-sm font-semibold text-slate-800">{{ $opt }}</span>
+                                                @if (! empty($f['option_labels'][$opt]))
+                                                    <span class="hidden w-full truncate text-[10px] leading-tight text-slate-500 sm:block">{{ $f['option_labels'][$opt] }}</span>
+                                                @endif
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @elseif ($kind === 'select')
+                                    <select wire:model="values.{{ $name }}" class="{{ $input }}">
+                                        <option value="">Choose…</option>
+                                        @foreach ($f['options'] as $opt)
+                                            <option value="{{ $opt }}">{{ $opt }}</option>
+                                        @endforeach
+                                    </select>
+                                @else
+                                    <input wire:model="values.{{ $name }}"
+                                        type="{{ ['date' => 'date', 'time' => 'time'][$kind] ?? 'text' }}"
+                                        @if ($kind === 'date')
+                                                @if (! empty($f['past'])) max="{{ now()->toDateString() }}"
+                                                @else min="{{ now()->toDateString() }}" @endif
+                                            @endif
+                                        @if (isset($f['max'])) maxlength="{{ $f['max'] }}" @endif
+                                        placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $input }}">
+                                @endif
+
+                                @if (! empty($f['help'])) <p class="mt-1 text-xs text-slate-400">{{ $f['help'] }}</p> @endif
+                            @endif
+                            @error("values.$name") <p class="mt-1 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
+                        </div>
+                    @endforeach
                 </div>
-            @endforeach
-        </div>
-        @if ($this->document->key() === 'college_model_interview_rating')
-            @include('livewire.workflow._rating-grid')
-            @foreach (array_keys($this->document->fields()) as $fieldName)
-                @error("values.$fieldName") <p class="mt-1 text-xs font-medium text-rose-500">{{ $message }}</p> @enderror
-            @endforeach
+            </div>
         @endif
 
         <div class="mt-6 flex justify-end gap-2">

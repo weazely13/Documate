@@ -17,8 +17,8 @@
     $cTime = trim($fmtT($v['counseling_time'] ?? null)
         . (! empty($v['counseling_time_end']) ? ' to ' . $fmtT($v['counseling_time_end']) : ''));
 
-    $vp = $signers[0] ?? [];
-    $gc = $signers[1] ?? [];
+    $vp = collect($signers)->firstWhere('label', 'Approved') ?? [];
+    $gc = collect($signers)->firstWhere('label', 'Counselling Completed') ?? [];
     $vpDate = ! empty($vp['signed_at']) ? $vp['signed_at']->format('F j, Y') : '';
     $gcDate = ! empty($gc['signed_at']) ? $gc['signed_at']->format('F j, Y') : '';
     $dateIssued = $issuedAt ? $issuedAt->format('F j, Y') : '';

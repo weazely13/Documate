@@ -21,7 +21,7 @@
         h2 { margin:0 0 10px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
         dl { margin:0; display:grid; grid-template-columns: 1fr; gap:10px; }
         dt { font-size:12px; color:var(--muted); }
-        dd { margin:2px 0 0; font-size:15px; font-weight:600; word-break:break-word; }
+        dd { margin:2px 0 0; font-size:15px; font-weight:600; word-break:break-word; white-space: pre-line; }
         ul { list-style:none; margin:0; padding:0; }
         li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
         li:first-child { border-top:0; padding-top:0; }

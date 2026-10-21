@@ -207,7 +207,7 @@
 
             <section class="{{ $card }}">
                 <h3 class="text-sm font-semibold text-slate-900">Document preview</h3>
-                <p class="text-xs text-slate-400">This is exactly what the official PDF will contain.</p>
+                <p class="text-xs text-slate-400">A preview of the document layout. The downloaded PDF is the official copy, so spacing may differ slightly.</p>
                 <div class="mt-3">
                     @include('livewire.workflow._preview', [
                         'src' => route('admin.workflow.preview', $ws->workspace_id),

@@ -41,6 +41,8 @@ abstract class WorkflowDocument
     {
         return false;
     }
+    /** False = the student is not notified when this is issued. */
+    public function notifiesStudent(): bool { return true; }
 
     /** True when the student must attach a photo. It is stored privately and never printed. */
     public function requiresItemPhoto(): bool
@@ -75,6 +77,11 @@ abstract class WorkflowDocument
     public function issuedMessage(array $values): ?string
     {
         return null;
+    }
+    /** Role key of the signer who sets the counselling schedule. */
+    public function scheduleRoleKey(): string
+    {
+        return 'guidance_counselor';
     }
 
     /** Last chance to fill in system values before the chain opens. Must be safe to run twice. */
@@ -120,6 +127,9 @@ abstract class WorkflowDocument
 
         if ($type === 'checkbox') {
             return $v ? 'Yes' : 'No';
+        }
+        if ($type === 'slots') {
+            return implode("\n", method_exists(static::class, 'slotLines') ? static::slotLines(['activity_slots' => $v]) : []);
         }
         if ($v === null || $v === '') {
             return '';

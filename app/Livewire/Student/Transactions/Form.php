@@ -87,6 +87,12 @@ class Form extends Component
         }
         foreach ($this->document->fields() as $name => $f) {
             $saved_value = $saved[$name] ?? null;
+
+            if (($f['type'] ?? 'text') === 'slots') {
+                $this->values[$name] = $this->initialSlots($saved, $name);
+                continue;
+            }
+
             $this->values[$name] = ($f['type'] ?? 'text') === 'checkbox' ? (bool) $saved_value : $saved_value;
         }
     }
@@ -147,10 +153,69 @@ class Form extends Component
         return $status === null || $status === TransactionStatus::Draft || $status === TransactionStatus::ActionRequired;
     }
 
+    // new helpers
+    private static function blankSlot(): array
+    {
+        return ['date' => '', 'from' => '', 'to' => ''];
+    }
+
+    private function initialSlots(array $saved, string $name): array
+    {
+        if (! empty($saved[$name]) && is_array($saved[$name])) {
+            return array_map(fn ($s) => [
+                'date' => (string) ($s['date'] ?? ''),
+                'from' => substr((string) ($s['from'] ?? ''), 0, 5),
+                'to' => substr((string) ($s['to'] ?? ''), 0, 5),
+            ], array_values($saved[$name]));
+        }
+        if (! empty($saved['activity_date'])) {   // older drafts
+            return [['date' => $saved['activity_date'], 'from' => substr((string) ($saved['activity_time'] ?? ''), 0, 5), 'to' => '']];
+        }
+
+        return [self::blankSlot()];
+    }
+
+    private function isSlotsField(string $name): bool
+    {
+        return (($this->document->fields()[$name]['type'] ?? '') === 'slots');
+    }
+
+    private function pruneSlots(): void
+    {
+        foreach ($this->document->fields() as $name => $f) {
+            if (($f['type'] ?? '') !== 'slots') {
+                continue;
+            }
+            $rows = array_values(array_filter($this->values[$name] ?? [], fn ($r) =>
+                trim((string) ($r['date'] ?? '')) !== '' || trim((string) ($r['from'] ?? '')) !== '' || trim((string) ($r['to'] ?? '')) !== ''));
+            $this->values[$name] = $rows ?: [self::blankSlot()];
+        }
+    }
+
+    public function addSlot(string $name): void
+    {
+        if (! $this->isEditable || ! $this->isSlotsField($name)) {
+            return;
+        }
+        if (count($this->values[$name] ?? []) < ($this->document->fields()[$name]['max_slots'] ?? 10)) {
+            $this->values[$name][] = self::blankSlot();
+        }
+    }
+
+    public function removeSlot(string $name, int $index): void
+    {
+        if (! $this->isEditable || ! $this->isSlotsField($name)) {
+            return;
+        }
+        unset($this->values[$name][$index]);
+        $this->values[$name] = array_values($this->values[$name]) ?: [self::blankSlot()];
+    }
+
     /* ------------------------------------------------------------------ */
 
     public function saveDraft()
     {
+        $this->pruneSlots();
         $this->validate($this->rules(false), [], $this->attributes());
 
         try {
@@ -172,6 +237,7 @@ class Form extends Component
 
     public function submit()
     {
+        $this->pruneSlots();
         $snapshot = $this->studentSnapshot();
 
         $missing = collect($this->document->systemFields())
@@ -296,6 +362,20 @@ class Form extends Component
             }
 
             $value = is_string($value) ? trim($value) : $value;
+
+            if (($f['type'] ?? 'text') === 'slots') {
+                $rows = collect(is_array($value) ? $value : [])
+                    ->map(fn ($r) => [
+                        'date' => trim((string) ($r['date'] ?? '')),
+                        'from' => substr(trim((string) ($r['from'] ?? '')), 0, 5),
+                        'to' => substr(trim((string) ($r['to'] ?? '')), 0, 5) ?: null,
+                    ])
+                    ->filter(fn ($r) => $r['date'] !== '' || $r['from'] !== '')
+                    ->sortBy(fn ($r) => $r['date'] . ' ' . $r['from'])
+                    ->values()->all();
+                $answers[$name] = $rows ?: null;
+                continue;
+            }
             $answers[$name] = $value === '' ? null : $value;
         }
         $payload = $answers + $this->studentSnapshot() + $this->signaturePayload(null) + $this->photoPayload(null) + $this->nomineePayload(null);
@@ -329,7 +409,7 @@ class Form extends Component
     public function updatedItemPhoto(): void
     {
         try {
-            $this->validateOnly('itemPhoto', ['itemPhoto' => ['image', 'mimes:jpg,jpeg,png', 'max:5120']]);
+            $this->validateOnly('itemPhoto', ['itemPhoto' => ['image', 'mimes:jpg,jpeg,png', 'max:10240']]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->reset('itemPhoto');
             throw $e;
@@ -347,6 +427,14 @@ class Form extends Component
                 $rules["values.$name"] = ['nullable', 'boolean'];
                 continue;
             }
+            if ($type === 'slots') {
+                $req = $strict && ($f['required'] ?? false);
+                $rules["values.$name"] = [$req ? 'required' : 'nullable', 'array', 'max:' . ($f['max_slots'] ?? 10)];
+                $rules["values.$name.*.date"] = [$strict ? 'required' : 'nullable', 'date', 'after_or_equal:today'];
+                $rules["values.$name.*.from"] = [$strict ? 'required' : 'nullable', 'date_format:H:i,H:i:s'];
+                $rules["values.$name.*.to"] = ['nullable', 'date_format:H:i,H:i:s'];
+                continue;
+            }
 
             $r = [$strict && ($f['required'] ?? false) ? 'required' : 'nullable'];
             $r[] = match ($type) {
@@ -360,7 +448,7 @@ class Form extends Component
 
             $rules["values.$name"] = array_merge($r, $f['rules'] ?? []);
         }
-        $rules['itemPhoto'] = ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'];
+        $rules['itemPhoto'] = ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:10240'];
         return $rules;
     }
 
@@ -369,6 +457,12 @@ class Form extends Component
         $attrs = [];
         foreach ($this->document->fields() as $name => $f) {
             $attrs["values.$name"] = strtolower($f['label']);
+
+            if (($f['type'] ?? '') === 'slots') {
+                $attrs["values.$name.*.date"] = 'date';
+                $attrs["values.$name.*.from"] = 'start time';
+                $attrs["values.$name.*.to"] = 'end time';
+            }
         }
 
         return $attrs;

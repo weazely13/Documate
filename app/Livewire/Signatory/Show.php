@@ -241,7 +241,9 @@ class Show extends Component
                 ->groupBy('approval_id')
                 ->map(fn ($g) => $g->last()->action === 'external.identity_checked')
             : collect();
-
+        $isScheduler = $document->signerSetsSchedule()
+                && $approval->role?->key === $document->scheduleRoleKey();
+                
         return view('livewire.signatory.show', [
             'approval' => $approval,
             'ws' => $ws,
@@ -251,8 +253,9 @@ class Show extends Component
             'signatureReady' => $this->signatureReady(),
             'canSend' => $canSend, 'members' => $members, 'requests' => $requests,
             'verified' => $verified,
-            'canSchedule' => $canAct && $document->signerSetsSchedule(),
-            'slots' => $canAct && $document->signerSetsSchedule()
+
+            'canSchedule' => $canAct && $isScheduler,
+            'slots' => $canAct && $isScheduler
                 ? CounselorAvailability::where('user_id', $user->id)->whereDate('available_date', '>=', today())
                     ->orderBy('available_date')->orderBy('start_time')->limit(6)->get()
                 : collect(),

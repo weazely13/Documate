@@ -247,6 +247,10 @@
                 @continue(! empty($f['staff_only']))
                 @continue(! $editable && (($dep && ($values[$depKey] ?? null) !== $depVal) || $hiddenNow))
                 @continue(($f['group'] ?? null) === 'schedule')
+                @if (($f['type'] ?? '') === 'slots')
+                    @include('livewire.workflow._slots-field', ['name' => $name, 'f' => $f])
+                    @continue
+                @endif
                 <div wire:key="f-{{ $name }}"
                     @if ($editable && $xShow) x-show="{{ $xShow }}" x-cloak @endif>
                     @if ($f['type'] === 'checkbox')
@@ -316,9 +320,19 @@
                 @endif
 
                 @if ($editable)
-                    <input type="file" wire:model="itemPhoto" accept="image/png,image/jpeg" capture="environment"
-                        class="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-[#2A57B4] file:px-3.5 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#24499A]">
-                    <p class="mt-1 text-xs text-slate-400">On a phone this opens the camera. JPG or PNG, up to 5 MB. Not printed on the form.</p>
+                    <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-1 md:max-w-xs">
+                        {{-- Camera: phones/tablets only --}}
+                        <label class="cursor-pointer rounded-xl bg-[#2A57B4] px-3.5 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#24499A] md:hidden">
+                            Take a photo
+                            <input type="file" wire:model="itemPhoto" accept="image/png,image/jpeg" capture="environment" class="hidden">
+                        </label>
+                        <label class="cursor-pointer rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50 md:bg-[#2A57B4] md:text-white md:hover:bg-[#24499A]">
+                            <span class="md:hidden">Choose from gallery</span>
+                            <span class="hidden md:inline">Upload a photo</span>
+                            <input type="file" wire:model="itemPhoto" accept="image/png,image/jpeg" class="hidden">
+                        </label>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-400">JPG or PNG, up to 10 MB. Not printed on the form.</p>
                     <div wire:loading wire:target="itemPhoto" class="mt-1 text-xs text-[#2A57B4]">Uploading photo…</div>
                 @endif
 

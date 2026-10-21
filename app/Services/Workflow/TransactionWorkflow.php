@@ -424,7 +424,7 @@ class TransactionWorkflow
             }
             $this->assertCanIssue($issuer, $doc);
             
-            if (! $doc->issuedToSelf()) {
+            if (! $doc->issuedToSelf() && $doc->notifiesStudent()) {
                 $student->loadMissing('role');
                 if (! in_array($student->role?->role_name, ['Student', 'Officer'], true) || $student->account_status !== 'active') {
                     throw WorkflowException::studentNotEligible();
@@ -582,9 +582,13 @@ class TransactionWorkflow
             }
 
             $doc = DocumentRegistry::get($ws->document_type);
-            if ($doc->signerSetsSchedule() && empty($ws->field_values['counseling_date'])) {
+            $approval->loadMissing('role');
+            if ($doc->signerSetsSchedule()
+                && $approval->role?->key === $doc->scheduleRoleKey()
+                && empty($ws->field_values['counseling_date'])) {
                 throw new WorkflowException('Set the counselling date and time before signing.');
             }
+        
             if ($doc->signerRecordsInspection()) {
                 $values = $ws->field_values ?? [];
                 $values['inspection_remarks'] = trim(mb_substr((string) ($extra['inspection_remarks'] ?? ''), 0, 300)) ?: null;
@@ -649,7 +653,9 @@ class TransactionWorkflow
             $approval = $this->lockApproval($approval->id);
             $this->assertActionable($ws, $approval, $signer);
 
-            if (! DocumentRegistry::get($ws->document_type)->signerSetsSchedule()) {
+            $doc = DocumentRegistry::get($ws->document_type);
+            $approval->loadMissing('role');
+            if (! $doc->signerSetsSchedule() || $approval->role?->key !== $doc->scheduleRoleKey()) {
                 throw WorkflowException::approvalNotActionable();
             }
             if (! strtotime($date) || \Carbon\Carbon::parse($date)->lt(today())) {

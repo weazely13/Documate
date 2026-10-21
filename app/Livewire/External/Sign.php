@@ -286,7 +286,7 @@ class Sign extends Component
         $keys = match ($this->kind()) {
             'review', 'guardian', 'witness' => $doc->externalOverviewFields(),
             'consent' => [],
-            default => ['activity', 'purposes', 'activity_date', 'activity_time', 'venue', 'persons_involved'],
+            default => ['activity', 'purposes', 'activity_slots', 'venue', 'persons_involved'],
         };
 
         $details = collect($doc->allFields())

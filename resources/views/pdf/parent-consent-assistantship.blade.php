@@ -96,11 +96,11 @@
 
 {{-- ___, my son/daughter/ward, is a/an ___ --}}
 <div class="ln">
-    <div class="val" style="left:0; width:210pt; font-size:{{ $fit($name, 210) }}pt;">{{ $name }}</div>
-    <div class="cap" style="left:0; width:210pt;">(Name of Student)</div>
-    <div class="lbl" style="left:214pt; width:132pt;">, my {{ $relText }}, is a/an</div>
-    <div class="val" style="left:348pt; width:139pt; font-size:{{ $fit($program, 139) }}pt;">{{ $program }}</div>
-    <div class="cap" style="left:348pt; width:139pt;">(Program/Year/Section)</div>
+    <div class="val" style="left:0; width:165pt; font-size:{{ $fit($name, 165) }}pt;">{{ $name }}</div>
+    <div class="cap" style="left:0; width:165pt;">(Name of Student)</div>
+    <div class="lbl" style="left:169pt; width:132pt;">, my {{ $relText }}, is a/an</div>
+    <div class="val" style="left:303pt; width:184pt; font-size:{{ $fit($program, 184) }}pt;">{{ $program }}</div>
+    <div class="cap" style="left:303pt; width:184pt;">(Program/Year/Section)</div>
 </div>
 
 <div style="line-height:1.5;">

@@ -58,14 +58,6 @@ final class PermitToEnterCampus extends WorkflowDocument
         return null;
     }
 
-    public function chain(array $values = []): array
-    {
-        return [
-            ['role' => 'vpsd', 'label' => 'Approved'],
-            ['role' => 'guidance_counselor', 'label' => 'Counselling Completed'],
-        ];
-    }
-
     public function pdfView(): string
     {
         return 'pdf.permit-to-enter-campus';
@@ -87,20 +79,42 @@ final class PermitToEnterCampus extends WorkflowDocument
         ];
     }
 
-   public function beforeSigning(array $values): array
+   public function signerSetsSchedule(): bool { return true; }
+
+    public function issuedMessage(array $values): string
     {
-        return empty($values['counseling_date']) ? $values + static::counselingSlot() : $values;
+        if (empty($values['counseling_date'])) {
+            return 'The Guidance Counselor will set your counselling schedule.';
+        }
+
+        return rtrim('Your counselling schedule for the Permit to Enter the Campus is set. See the Guidance Counselor ' . $this->counselingWhen($values)) . '.';
     }
 
     public function noticeLine(array $values): string
     {
-        return rtrim('Have your permit signed by the Guidance Counselor ' . $this->counselingWhen($values)) . '.';
+        return empty($values['counseling_date'])
+            ? 'Wait for the Guidance Counselor to set your counselling schedule.'
+            : rtrim('Visit the Guidance Office ' . $this->counselingWhen($values)) . '.';
+    }
+
+    public function chain(array $values = []): array
+    {
+        return [
+            ['role' => 'guidance_counselor', 'label' => 'Counselling Completed'],
+            ['role' => 'vpsd', 'label' => 'Approved'],
+        ];
     }
 
     public function studentNote(): ?string
     {
-        return 'The VPSD signs your permit first. Then visit the Guidance Office on the scheduled Wednesday so the Guidance Counselor can sign it. Your permit is issued after both signatures.';
+        return 'The Guidance Counselor sets your counselling schedule and you are notified. Visit the Guidance Office on that date. After the Guidance Counselor signs, the VPSD signs your permit and it is issued.';
     }
+
+    public function signingNote(): ?string
+    {
+        return 'Set the counselling date and time first. Sign only after the student has completed counselling.';
+    }
+
     public function showsAsNotice(): bool { return true; }
 
     public function noticeDate(array $values): ?string { return $values['counseling_date'] ?? null; }

@@ -7,7 +7,7 @@ use Carbon\Carbon;
 /** F-SDM-006 Rev. 1 (03-31-23): Permit to Conduct an In-Campus Student Activity Form. */
 final class PermitToConductActivity extends WorkflowDocument
 {
-    use HasHostedBy;
+    use HasHostedBy, HasActivitySlots;
 
     public function key(): string
     {
@@ -40,15 +40,6 @@ final class PermitToConductActivity extends WorkflowDocument
                 'label' => 'Purpose/s', 'type' => 'textarea', 'required' => true, 'max' => 600,
                 'help' => 'Briefly state why the activity is being held.',
             ],
-            'activity_date' => [
-                'label' => 'Date of the Activity/Event', 'type' => 'date', 'required' => true,
-                'future' => true,
-                'rules' => ['after_or_equal:today'],
-            ],
-            'activity_time' => [
-                'label' => 'Time', 'type' => 'time', 'required' => true,
-                'rules' => ['date_format:H:i'],
-            ],
             'venue' => [
                 'label' => 'Venue', 'type' => 'text', 'required' => true, 'max' => 150,
                 'placeholder' => 'e.g. University Gymnasium',
@@ -57,8 +48,18 @@ final class PermitToConductActivity extends WorkflowDocument
                 'label' => 'Persons Involved', 'type' => 'text', 'required' => true, 'max' => 250,
                 'placeholder' => 'e.g. BSIT students, faculty advisers',
             ],
-            ...$this->hostedByFields(),
+            ...$this->slotsField(),
         ];
+    }
+
+    public function check(array $values): ?string
+    {
+        return $this->checkSlots($values) ?? $this->checkHostedBy($values);
+    }
+
+    public function summary(array $values): string
+    {
+        return collect([$values['activity'] ?? null, $this->slotsSummary($values)])->filter()->implode(' · ');
     }
 
     public function chain(array $values = []): array
@@ -69,10 +70,6 @@ final class PermitToConductActivity extends WorkflowDocument
         ];
     }
 
-    public function check(array $values): ?string
-    {
-        return $this->checkHostedBy($values);
-    }
 
     /** "Name and Signature of the Student" is on the paper form. */
     public function requiresStudentSignature(): bool
@@ -85,10 +82,4 @@ final class PermitToConductActivity extends WorkflowDocument
         return 'pdf.permit-to-conduct-activity';
     }
 
-    public function summary(array $values): string
-    {
-        $date = ! empty($values['activity_date']) ? Carbon::parse($values['activity_date'])->format('M j, Y') : null;
-
-        return collect([$values['activity'] ?? null, $date])->filter()->implode(' · ');
-    }
 }

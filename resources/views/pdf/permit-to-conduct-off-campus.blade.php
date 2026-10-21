@@ -18,10 +18,7 @@
 
     $activity = $one($v['activity'] ?? '');
     $venue    = $one($v['venue'] ?? '');
-    $date = ! empty($v['activity_date']) ? \Carbon\Carbon::parse($v['activity_date'])->format('F j, Y') : '';
-    $time = ! empty($v['activity_time'])
-        ? \Carbon\Carbon::createFromFormat('H:i', substr((string) $v['activity_time'], 0, 5))->format('g:i A')
-        : '';
+    $slotLines = \App\Workflow\Documents\PermitToConductOffCampus::slotLines($v) ?: [''];
 
     // Purpose: ruled rows, minimum 3 (as on the paper form).
     $rows = $wrap((string) ($v['purposes'] ?? ''), 74, 3);
@@ -142,14 +139,20 @@
     </div>
 </div>
 
-{{-- Date / Time / Venue --}}
+{{-- Dates and times: one ruled row per date --}}
+<div class="purp">
+    <div class="lbl" style="width:100pt;">Date/s and Time:</div>
+    <div class="rows" style="margin-left:102pt;">
+        @foreach ($slotLines as $line)
+            <div class="rrow" style="font-size:{{ $fit($line, 385, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+        @endforeach
+    </div>
+</div>
+
+{{-- Venue --}}
 <div class="ln">
-    <div class="lbl" style="left:0; width:142pt;">Date of the Activity/Event:</div>
-    <div class="val" style="left:144pt; width:100pt; font-size:{{ $fit($date, 100) }}pt;">{{ $date }}</div>
-    <div class="lbl" style="left:252pt; width:32pt;">Time:</div>
-    <div class="val" style="left:286pt; width:58pt; font-size:{{ $fit($time, 58) }}pt;">{{ $time }}</div>
-    <div class="lbl" style="left:354pt; width:40pt;">Venue:</div>
-    <div class="val" style="left:396pt; width:91pt; font-size:{{ $fit($venue, 91) }}pt;">{{ $venue }}</div>
+    <div class="lbl" style="left:0; width:44pt;">Venue:</div>
+    <div class="val" style="left:46pt; width:441pt; font-size:{{ $fit($venue, 441) }}pt;">{{ $venue }}</div>
 </div>
 
 {{-- Persons Involved: two columns of ruled lines --}}

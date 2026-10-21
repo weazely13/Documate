@@ -80,6 +80,7 @@
     .lbl { height: 13pt; line-height: 13pt; white-space: nowrap; overflow: hidden; }
     .val { height: 13pt; line-height: 13pt; border-bottom: .6pt solid #000; text-align: left; font-weight: bold; white-space: nowrap; overflow: hidden; }
     .cap { top: 15pt; font-size: 7.5pt; font-style: italic; text-align: center; line-height: 9pt; white-space: nowrap; overflow: hidden; }
+    .ln > .cap, .dr > .cap { top: 15pt; }
 
     .opt { position: relative; margin-bottom: 8pt; }
     .opt .cb { position: absolute; left: 0; top: 0; width: 13pt; height: 13pt; border: 1.2pt solid #000; text-align: center; line-height: 13pt; font-weight: bold; font-size: 10pt; }
@@ -144,7 +145,7 @@
 
 {{-- Doctor --}}
 <div class="opt">
-    <div class="cb">@if ($doctor)X@endif</div>
+    <div class="cb">{{ $doctor ? 'X' : '' }}</div>
     <div class="body">
         <div class="dr">
             <div class="lbl" style="left:0; width:200pt;">Advised to see the University Doctor for</div>
@@ -158,7 +159,7 @@
 
 {{-- Haircut --}}
 <div class="opt">
-    <div class="cb">@if ($haircut)X@endif</div>
+    <div class="cb">{{ $haircut ? 'X' : '' }}</div>
     <div class="body">
         <div style="height:15pt; line-height:15pt;">Advised to have haircut/mustache shave and to report</div>
         <div class="dr" style="height:30pt;">
@@ -172,7 +173,7 @@
 
 {{-- Others --}}
 <div class="opt">
-    <div class="cb">@if ($others)X@endif</div>
+    <div class="cb">{{ $others ? 'X' : '' }}</div>
     <div class="body">
         <div class="dr">
             <div class="lbl" style="left:0; width:104pt;">Others, pls. specify:</div>

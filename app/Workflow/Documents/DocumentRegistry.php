@@ -36,6 +36,8 @@ final class DocumentRegistry
             new StudentComplaintGrievance(), 
             new ParentConsentForAssistantship(),
             new YmcaAwardRating(),
+            new ModelStudentRatingBySignatory(),
+            new YmcaAwardRatingBySignatory(),
             new YmcaAwardNomination(),
             new YmcaAwardNominationBySignatory(),
         ])->keyBy(fn (WorkflowDocument $d) => $d->key())->all();

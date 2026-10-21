@@ -10,7 +10,7 @@ use Carbon\Carbon;
  */
 final class PermitToConductOffCampus extends WorkflowDocument
 {
-    use HasHostedBy;
+    use HasHostedBy, HasActivitySlots;
 
     public function key(): string
     {
@@ -43,15 +43,6 @@ final class PermitToConductOffCampus extends WorkflowDocument
                 'label' => 'Purpose/s', 'type' => 'textarea', 'required' => true, 'max' => 600,
                 'help' => 'Briefly state why the activity is being held or attended.',
             ],
-            'activity_date' => [
-                'label' => 'Date of the Activity/Event', 'type' => 'date', 'required' => true,
-                'future' => true,
-                'rules' => ['after_or_equal:today'],
-            ],
-            'activity_time' => [
-                'label' => 'Time', 'type' => 'time', 'required' => true,
-                'rules' => ['date_format:H:i'],
-            ],
             'venue' => [
                 'label' => 'Venue', 'type' => 'text', 'required' => true, 'max' => 150,
                 'placeholder' => 'e.g. Ormoc City Hall',
@@ -60,7 +51,7 @@ final class PermitToConductOffCampus extends WorkflowDocument
                 'label' => 'Persons Involved', 'type' => 'textarea', 'required' => true, 'max' => 500,
                 'help' => 'List the students or groups taking part.',
             ],
-            ...$this->hostedByFields(),
+            ...$this->slotsField(),
             'parents_permit_ack' => [
                 'label' => "I will submit the notarized Parents' Permit of Students to the VPSD office.",
                 'type' => 'checkbox',
@@ -79,6 +70,8 @@ final class PermitToConductOffCampus extends WorkflowDocument
 
     public function check(array $values): ?string
     {
+        if ($m = $this->checkSlots($values)) { return $m; }
+
         if (empty($values['parents_permit_ack'])) {
             return "Please confirm that you will submit the notarized Parents' Permit of Students.";
         }
@@ -99,8 +92,6 @@ final class PermitToConductOffCampus extends WorkflowDocument
 
     public function summary(array $values): string
     {
-        $date = ! empty($values['activity_date']) ? Carbon::parse($values['activity_date'])->format('M j, Y') : null;
-
-        return collect([$values['activity'] ?? null, $date])->filter()->implode(' · ');
+        return collect([$values['activity'] ?? null, $this->slotsSummary($values)])->filter()->implode(' · ');
     }
 }
