@@ -36,7 +36,14 @@
                     class="text-sm text-gray-600 hover:text-[#2A57B4] transition">
                         Don't have an account yet? Sign up here.
                     </a>
-                    <a href="{{ route('document.lookup') }}">Verify a document</a>
+                    <a href="{{ route('document.lookup') }}"
+                    class="inline-flex items-center gap-2 text-sm font-semibold text-[#2A57B4] hover:underline underline-offset-4 transition">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 3v6c0 4.5-3.2 8.3-8 9-4.8-.7-8-4.5-8-9V6l8-3Z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/>
+                        </svg>
+                        Verify a document
+                    </a>
 
                 </div>
 

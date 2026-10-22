@@ -93,6 +93,19 @@
         .modal-scroll::-webkit-scrollbar { width: 6px; }
         .org-scroll::-webkit-scrollbar-thumb,
         .modal-scroll::-webkit-scrollbar-thumb { background: rgba(42,87,180,.3); border-radius: 10px; }
+        /* ---------- Active nav link (scroll-spy) ---------- */
+        .nav-link { position: relative; }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            left: 0; bottom: -6px;
+            width: 0; height: 3px;
+            border-radius: 2px;
+            background: var(--accent);
+            transition: width .3s ease;
+        }
+        .nav-link.active { color: #2A57B4; }
+        .nav-link.active::after { width: 100%; }
     </style>
 
     @stack('head')
@@ -101,14 +114,14 @@
 <body class="font-sans bg-white text-gray-800 scroll-smooth">
 
     @php
-        // Anchors use url('/') so they also work from the FAQs page.
+        // [label, href, section id used by the scroll-spy]
         $navLinks = [
-            ['About',        url('/') . '#about'],
-            ['System',       url('/') . '#system'],
-            ['Organization', url('/') . '#orgchart'],
-            ['Location',     url('/') . '#location'],
-            ['FAQs',         route('faqs')],
-            ['Creators',     url('/') . '#creators'],
+            ['About',        url('/') . '#about',    'about'],
+            ['System',       url('/') . '#system',   'system'],
+            ['Organization', url('/') . '#orgchart', 'orgchart'],
+            ['Location',     url('/') . '#location', 'location'],
+            ['FAQs',         route('faqs'),          'faqs'],
+            ['Creators',     url('/') . '#creators', 'creators'],
         ];
     @endphp
 
@@ -124,11 +137,23 @@
                 </span>
             </a>
 
-            <!-- Navigation -->
             <nav class="hidden md:flex items-center space-x-8 text-sm font-semibold">
-                @foreach ($navLinks as [$label, $href])
-                    <a href="{{ $href }}" class="text-gray-700 text-lg hover:text-[#2A57B4] transition">{{ $label }}</a>
+                @foreach ($navLinks as [$label, $href, $key])
+                    <a href="{{ $href }}" data-spy="{{ $key }}"
+                        @if (request()->routeIs('faqs') && $key === 'faqs') aria-current="true" @endif
+                        class="nav-link text-gray-700 text-lg hover:text-[#2A57B4] transition {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
+                        {{ $label }}
+                    </a>
                 @endforeach
+
+                <a href="{{ route('document.lookup') }}"
+                    class="inline-flex items-center gap-2 px-5 py-2 rounded-full border-2 border-[#2A57B4] text-[#2A57B4] text-base font-semibold hover:bg-[#2A57B4] hover:text-white transition">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 3v6c0 4.5-3.2 8.3-8 9-4.8-.7-8-4.5-8-9V6l8-3Z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/>
+                    </svg>
+                    Verify Document
+                </a>
             </nav>
 
             <!-- Mobile menu button -->
@@ -141,9 +166,17 @@
 
         <!-- Mobile menu panel -->
         <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 px-8 py-4 flex flex-col gap-4 text-base font-semibold">
-            @foreach ($navLinks as [$label, $href])
-                <a href="{{ $href }}" class="text-gray-700 hover:text-[#2A57B4] transition">{{ $label }}</a>
+            @foreach ($navLinks as [$label, $href, $key])
+                <a href="{{ $href }}" data-spy="{{ $key }}"
+                    class="nav-link w-fit text-gray-700 hover:text-[#2A57B4] transition {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
+                    {{ $label }}
+                </a>
             @endforeach
+
+            <a href="{{ route('document.lookup') }}"
+                class="mt-2 text-center px-5 py-2.5 rounded-full border-2 border-[#2A57B4] text-[#2A57B4] hover:bg-[#2A57B4] hover:text-white transition">
+                Verify Document
+            </a>
         </div>
     </header>
 
@@ -266,6 +299,44 @@
         menu.querySelectorAll('a').forEach(function (a) {
             a.addEventListener('click', function () { menu.classList.add('hidden'); });
         });
+        /* ---------- Scroll-spy: highlight the nav link of the section in view ---------- */
+        var spyLinks = document.querySelectorAll('[data-spy]');
+        var spyIds = [];
+        spyLinks.forEach(function (a) {
+            var id = a.getAttribute('data-spy');
+            if (spyIds.indexOf(id) === -1) spyIds.push(id);
+        });
+        var spySections = spyIds
+            .map(function (id) { return document.getElementById(id); })
+            .filter(Boolean);
+
+        // Only runs on pages that actually contain the sections (so the FAQs page keeps its server-side highlight)
+        if (spySections.length) {
+            var updateSpy = function () {
+                var offset = header.offsetHeight + 40;
+                var current = null;
+
+                spySections.forEach(function (s) {
+                    if (s.getBoundingClientRect().top <= offset) current = s.id;
+                });
+
+                // At the very bottom, always highlight the last section
+                if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+                    current = spySections[spySections.length - 1].id;
+                }
+
+                spyLinks.forEach(function (a) {
+                    var on = a.getAttribute('data-spy') === current;
+                    a.classList.toggle('active', on);
+                    if (on) a.setAttribute('aria-current', 'true');
+                    else a.removeAttribute('aria-current');
+                });
+            };
+
+            window.addEventListener('scroll', updateSpy, { passive: true });
+            window.addEventListener('resize', updateSpy);
+            updateSpy();
+        }
 
         /* ---------- Scroll reveal ---------- */
         var observer = new IntersectionObserver(function (entries) {

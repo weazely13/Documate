@@ -409,7 +409,7 @@ class Form extends Component
     public function updatedItemPhoto(): void
     {
         try {
-            $this->validateOnly('itemPhoto', ['itemPhoto' => ['image', 'mimes:jpg,jpeg,png', 'max:10240']]);
+            $this->validateOnly('itemPhoto', ['itemPhoto' => ['image', 'mimes:jpg,jpeg,jfif,png', 'max:10240']]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->reset('itemPhoto');
             throw $e;
@@ -448,7 +448,7 @@ class Form extends Component
 
             $rules["values.$name"] = array_merge($r, $f['rules'] ?? []);
         }
-        $rules['itemPhoto'] = ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:10240'];
+        $rules['itemPhoto'] = ['nullable', 'image', 'mimes:jpg,jpeg,jfif,png', 'max:10240'];
         return $rules;
     }
 
