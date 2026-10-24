@@ -193,11 +193,20 @@ PROMPT;
             return self::failure('invalid_json', 'The review service response could not be parsed: ' . json_last_error_msg());
         }
 
-       $matches = (bool) ($data['matches_document'] ?? false);
-       // Sanity check: the transcription of a real complaint form should contain the form's title words
+        $matches = (bool) ($data['matches_document'] ?? false);
+
+        // Optional sanity check: transcript should contain at least some distinctive
+        // words from the expected document name (e.g. "affidavit", "permit").
         $transcript = strtolower($data['extracted_text'] ?? '');
-        if ($matches && $transcript !== '' && ! str_contains($transcript, 'complaint') && ! str_contains($transcript, 'grievance')) {
-            $matches = false;
+        if ($matches && $transcript !== '') {
+            $stopWords = ['form', 'of', 'the', 'and', 'for', 'a', 'an'];
+            $titleWords = collect(preg_split('/[^a-z]+/', strtolower($documentName)))
+                ->filter(fn ($w) => strlen($w) > 2 && ! in_array($w, $stopWords, true));
+
+            if ($titleWords->isNotEmpty()
+                && ! $titleWords->contains(fn ($w) => str_contains($transcript, $w))) {
+                $matches = false;
+            }
         }
 
         return [

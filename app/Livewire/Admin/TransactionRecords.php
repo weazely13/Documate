@@ -174,7 +174,7 @@ class TransactionRecords extends Component
                 'date_label' => optional($when)->format('F j, Y') ?: 'N/A',
                 'date_sort' => optional($when)?->timestamp ?: 0,
                 'appointment' => $paperless ? '' : $this->resolveSessionLabel($workspace),
-                'session_label' => $paperless ? 'No appointment needed' : $this->resolveSessionLabel($workspace),
+                'session_label' => $paperless ? 'Not Applicable' : $this->resolveSessionLabel($workspace),
                 'status' => $status,
                 'preview_url' => $workspace->version?->image_path
                     ? Storage::disk('public')->url($workspace->version->image_path)
