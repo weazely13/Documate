@@ -3,6 +3,7 @@
 namespace App\Workflow\Documents;
 
 use Carbon\Carbon;
+use App\Enums\DocumentCategory;
 use App\Models\User;
 use App\Models\CounselorAvailability;
 use App\Models\SignatoryRole;
@@ -43,6 +44,12 @@ abstract class WorkflowDocument
     }
     /** False = the student is not notified when this is issued. */
     public function notifiesStudent(): bool { return true; }
+
+    /** Group on the student's New transaction page. */
+    public function category(): DocumentCategory
+    {
+        return DocumentCategory::Other;
+    }
 
     /** True when the student must attach a photo. It is stored privately and never printed. */
     public function requiresItemPhoto(): bool

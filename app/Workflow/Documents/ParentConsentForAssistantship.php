@@ -11,6 +11,8 @@ use Illuminate\Validation\Rule;
  */
 final class ParentConsentForAssistantship extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Consents; }
+
     private const RELATIONSHIPS = ['Son', 'Daughter', 'Ward'];
 
     public function key(): string { return 'parent_consent_assistantship'; }

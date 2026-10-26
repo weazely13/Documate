@@ -9,6 +9,8 @@ namespace App\Workflow\Documents;
  */
 abstract class ClearanceBase extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Clearances; }
+
     /** True for the forms only an organization officer may file. */
     protected function officersOnly(): bool
     {

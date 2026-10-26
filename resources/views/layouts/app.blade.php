@@ -172,15 +172,8 @@
                         <i class='bx bx-home link-icon'></i>
                         <span class="link-text">Dashboard</span>
                     </a>
-                    <a href="{{ route('admin.transactions.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}" data-tooltip="Transactions">
-                        <i class='bx bx-transfer link-icon'></i>
-                        <span class="link-text">Transactions</span>
-                    </a>
                     @php
-                        $reviewCount = \App\Models\StudentDocumentWorkspace::usingWorkflow()->whereNotNull('document_type')
-                            ->where(fn ($w) => $w->whereIn('workflow_status', ['submitted', 'approved'])
-                                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereDoesntHave('approvals')))
-                            ->count();
+                        $reviewCount = \App\Support\ReviewQueue::query('attention')->count();
                     @endphp
                     <a href="{{ route('admin.workflow.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.workflow.*') ? 'active' : '' }}" data-tooltip="Workflow Review">
                         <i class='bx bx-task link-icon'></i>
@@ -189,33 +182,31 @@
                             <span class="ml-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ $reviewCount }}</span>
                         @endif
                     </a>
+                    <a href="{{ route('admin.transactions.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}" data-tooltip="Transaction Records">
+                        <i class='bx bx-transfer link-icon'></i>
+                        <span class="link-text">Transaction Records</span>
+                    </a>
                     <a href="{{ route('admin.appointments.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.appointments.*') ? 'active' : '' }}" data-tooltip="Appointments">
                         <i class='bx bx-calendar link-icon'></i>
                         <span class="link-text">Appointments</span>
                     </a>
-                    <a href="{{ route('admin.document-uploads.index') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.document-uploads.*') ? 'active' : '' }}" data-tooltip="Document Uploads">
-                        <i class='bx bx-camera link-icon'></i>
-                        <span class="link-text">Document Uploads</span>
+                    {{-- Templates and Uploads share one area --}}
+                    <a href="{{ route('admin.templates') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.document-uploads.*', 'admin.templates*') ? 'active' : '' }}" data-tooltip="Templates & Uploads">
+                        <i class='bx bx-file link-icon'></i>
+                        <span class="link-text">Templates &amp; Uploads</span>
                     </a>
-                    <a href="{{ route('admin.clearance-monitoring') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.clearance-monitoring') ? 'active' : '' }}" data-tooltip="Clearance Management">
+                    <a href="{{ route('admin.clearance-monitoring') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.clearance-monitoring*', 'admin.semesters') ? 'active' : '' }}" data-tooltip="Clearance">
                         <i class='bx bx-clipboard link-icon'></i>
-                        <span class="link-text">Clearance Management</span>
+                        <span class="link-text">Clearance</span>
                     </a>
-                    <a href="{{ route('admin.verification') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.verification') ? 'active' : '' }}" data-tooltip="Verification">
-                        <i class='bx bx-id-card link-icon'></i>
-                        <span class="link-text">Verification</span>
+                    {{-- Accounts, verifications, organizations and signatories share one area with its own sidebar --}}
+                    <a href="{{ route('admin.users') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.users', 'admin.verification') ? 'active' : '' }}" data-tooltip="Users and Accounts Manager">
+                        <i class='bx bx-group link-icon'></i>
+                        <span class="link-text">User Manager</span>
                     </a>
                     <a href="{{ route('admin.reports') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.reports') ? 'active' : ''}}" data-tooltip="Reports">
                         <i class='bx bx-bar-chart link-icon'></i>
                         <span class="link-text">Reports</span>
-                    </a>
-                    <a href="{{ route('admin.users') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.users') ? 'active' : '' }}" data-tooltip="Users and Access">
-                        <i class='bx bx-group link-icon'></i>
-                        <span class="link-text">Users and Access</span>
-                    </a>
-                    <a href="{{ route('admin.templates') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.templates*') ? 'active' : '' }}" data-tooltip="Document Templates">
-                        <i class='bx bx-file link-icon'></i>
-                        <span class="link-text">Document Templates</span>
                     </a>
                     <a href="{{ route('profile') }}" wire:navigate class="sidebar-link {{ request()->routeIs('profile') ? 'active' : '' }}" data-tooltip="Profile">
                         <i class='bx bx-user-circle link-icon'></i>

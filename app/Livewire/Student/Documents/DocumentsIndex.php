@@ -13,94 +13,58 @@ use Livewire\Component;
 use App\Enums\TransactionStatus;
 use Carbon\Carbon;
 
+/**
+ * The student's documents in two lists: Active (still moving) and History (finished).
+ * Documents the office issued to the student sit in the same lists, tagged "From VPSD".
+ */
 class DocumentsIndex extends Component
 {
-    /** Paperless statuses per tab. Old (template) rows keep using the `status` column. */
-    private const WORKFLOW_TABS = [
-        'pending' => ['draft', 'submitted', 'under_review', 'action_required', 'approved'],
-        'completed' => ['completed'],
-        'closed' => ['rejected', 'voided'],
-        'issued' => []
-    ];
+    /** Paperless statuses that are finished. Paper-based rows use `status = completed`. */
+    private const FINISHED = ['completed', 'rejected', 'voided'];
 
-    public string $tab = 'pending';
+    public const TABS = ['active' => 'Active', 'history' => 'History'];
+
+    public string $tab = 'active';
     public string $search = '';
-    public string $sort = 'desc';
-    public array $selected = [];
-    public bool $selectAll = false;
     public ?string $deletingId = null;
-    public bool $confirmingBulkDelete = false;
 
     public function updatedTab(): void
     {
-        if (! array_key_exists($this->tab, self::WORKFLOW_TABS)) {
-            $this->tab = 'pending';
+        if (! array_key_exists($this->tab, self::TABS)) {
+            $this->tab = 'active';
         }
-        $this->resetSelection();
     }
 
-    public function updatedSearch(): void
-    {
-        $this->resetSelection();
-    }
-
-    public function resetSelection(): void
-    {
-        $this->selected = [];
-        $this->selectAll = false;
-    }
-
-    public function toggleSelectAll(): void
-    {
-        if ($this->tab === 'completed') {
-            return;
-        }
-        $this->selectAll = ! $this->selectAll;
-        $this->selected = $this->selectAll ? $this->currentWorkspaceIds() : [];
-    }
-
-    private function currentWorkspaceIds(): array
-    {
-        return $this->baseQuery()
-            ->whereNull('workflow_status')
-            ->where('status', '!=', 'completed')
-            ->pluck('workspace_id')->map(fn ($id) => (string) $id)->all();
-    }
-    /** Documents the VPSD office issued to this student that still need their attention. */
+    /** Keys of documents the office (or a staff member) issues to students. */
     #[Computed]
-    public function officeNotices()
-    {
-        return StudentDocumentWorkspace::officeNoticesFor((int) Auth::id());
-    }
-
-    private function issuedKeys(): array
+    public function issuedKeys(): array
     {
         return collect(DocumentRegistry::all())->filter(fn ($d) => $d->issuedByOffice())->keys()->all();
     }
 
     private function tabQuery(string $tab): Builder
     {
-        $issued = $this->issuedKeys();
         $q = StudentDocumentWorkspace::query()->where('user_id', Auth::id());
 
-        if ($tab === 'issued') {
-            return $q->whereNotNull('workflow_status')->whereIn('document_type', $issued);
-        }
-
-        return $q
-            ->where(function (Builder $q) use ($tab) {
-                if ($tab !== 'closed') {
-                    $q->where(fn (Builder $l) => $l->whereNull('workflow_status')->where('status', $tab));
-                }
-                $q->orWhereIn('workflow_status', self::WORKFLOW_TABS[$tab] ?? []);
-            })
-            ->where(fn (Builder $w) => $w->whereNull('document_type')->orWhereNotIn('document_type', $issued));
+        return $tab === 'history'
+            ? $q->where(fn (Builder $w) => $w
+                ->whereIn('workflow_status', self::FINISHED)
+                ->orWhere(fn (Builder $l) => $l->whereNull('workflow_status')->where('status', 'completed')))
+            : $q->where(fn (Builder $w) => $w
+                ->where(fn (Builder $x) => $x->whereNotNull('workflow_status')->whereNotIn('workflow_status', self::FINISHED))
+                ->orWhere(fn (Builder $l) => $l->whereNull('workflow_status')->where('status', '!=', 'completed')));
     }
 
     #[Computed]
-    public function issuedCount(): int
+    public function activeCount(): int
     {
-        return $this->tabQuery('issued')->count();
+        return $this->tabQuery('active')->count();
+    }
+
+    #[Computed]
+    public function historyCount(): int
+    {
+        return $this->tabQuery('history')->count();
     }
 
     private function baseQuery(): Builder
@@ -117,24 +81,6 @@ class DocumentsIndex extends Component
                 ->orWhereIn('document_type', $keys)
                 ->orWhere('transaction_code', 'like', "%{$term}%"));
         });
-    }
-
-    #[Computed]
-    public function pendingCount(): int
-    {
-        return $this->tabQuery('pending')->count();
-    }
-
-    #[Computed]
-    public function completedCount(): int
-    {
-        return $this->tabQuery('completed')->count();
-    }
-
-    #[Computed]
-    public function closedCount(): int
-    {
-        return $this->tabQuery('closed')->count();
     }
 
     public function confirmDelete(string $workspaceId): void
@@ -168,70 +114,29 @@ class DocumentsIndex extends Component
         }
 
         $this->deletingId = null;
-        $this->resetSelection();
-    }
-
-    public function confirmBulkDelete(): void
-    {
-        if (! empty($this->selected)) {
-            $this->confirmingBulkDelete = true;
-        }
-    }
-
-    public function cancelBulkDelete(): void
-    {
-        $this->confirmingBulkDelete = false;
-    }
-
-    public function bulkDelete(): void
-    {
-        StudentDocumentWorkspace::where('user_id', Auth::id())
-            ->whereNull('workflow_status')
-            ->where('status', '!=', 'completed')
-            ->whereIn('workspace_id', $this->selected)
-            ->get()
-            ->each(function (StudentDocumentWorkspace $workspace) {
-                $workspace->appointments()
-                    ->whereIn('status', ['pending', 'approved'])
-                    ->get()
-                    ->each(function ($appt) {
-                        $appt->update(['status' => 'retracted']);
-                        $appt->logStatus('retracted', 'Document deleted by student.');
-                    });
-
-                $workspace->delete();
-            });
-
-        $this->confirmingBulkDelete = false;
-        $this->resetSelection();
     }
 
     public function render()
     {
-        $workspaces = $this->baseQuery()
-            ->with('template')
+        if (! array_key_exists($this->tab, self::TABS)) {
+            $this->tab = 'active';
+        }
+
+        $q = $this->baseQuery()
+            ->with(['template', 'approvals.role'])
             ->withCount([
                 'approvals',
                 'approvals as approved_count' => fn ($q) => $q->where('status', 'approved'),
-            ])
-            ->orderBy('updated_at', $this->sort)
-            ->get();
+            ]);
 
-        $issuedGroups = null;
-        if ($this->tab === 'issued') {
-            $isDone = fn ($w) => $w->workflow_status?->value === 'completed';
-            $isClosed = fn ($w) => in_array($w->workflow_status?->value, ['rejected', 'voided'], true);
-
-            $issuedGroups = [
-                'open' => $workspaces->reject($isDone)->reject($isClosed)->values(),
-                'completed' => $workspaces->filter($isDone)->values(),
-                'closed' => $workspaces->filter($isClosed)->values(),
-            ];
+        // Active: what needs the student goes first (changes asked, drafts), then newest.
+        if ($this->tab === 'active') {
+            $q->orderByRaw("CASE workflow_status WHEN 'action_required' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END");
         }
 
         return view('livewire.student.documents.documents-index', [
-            'workspaces' => $workspaces,
-            'issuedGroups' => $issuedGroups,
-        ])->layout('layouts.app', ['title' => 'Documents']);
+            'workspaces' => $q->latest('updated_at')->get(),
+            'tabs' => self::TABS,
+        ])->layout('layouts.app', ['title' => 'My Documents']);
     }
 }

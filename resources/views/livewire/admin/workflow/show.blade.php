@@ -18,8 +18,18 @@
 
 <div class="mx-auto max-w-6xl space-y-5">
 
+    @php
+        $who = $ws->field_values['student_name'] ?? trim(($ws->user?->first_name ?? '') . ' ' . ($ws->user?->last_name ?? ''));
+        $headerLine = collect([
+            $who ?: null,
+            $ws->user?->student_number,
+            $document->name(),
+            $issuer ? 'Issued by ' . $issuer : null,
+        ])->filter()->implode(' · ');
+    @endphp
     <x-admin.page-header
         :title="$ws->transaction_code"
+        :description="$headerLine"
         :crumbs="['Admin' => $homeUrl, $this->backLabel => $this->backUrl, $ws->transaction_code => null]">
         <x-slot:actions>
             <a href="{{ $this->backUrl }}" wire:navigate

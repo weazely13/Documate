@@ -5,6 +5,8 @@ namespace App\Workflow\Documents;
 /** Shared parts of F-SDM-025 Rev. 1 (03-31-23): College Model Student Nomination Form. */
 abstract class CollegeModelNominationBase extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Awards; }
+
     public function formCode(): string { return 'F-SDM-025 Rev. 1 (03-31-23)'; }
 
     /** Only the nominator signs, so there are no approval steps. */

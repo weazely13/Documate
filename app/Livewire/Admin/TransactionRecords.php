@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\StudentDocumentWorkspace;
 use App\Models\User;
+use App\Support\Issuers;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -13,57 +14,51 @@ use App\Enums\TransactionStatus;
 use App\Workflow\Documents\DocumentRegistry;
 use Livewire\Attributes\Url;
 
+/**
+ * Look-up of every transaction, paperless and paper-based. Nothing is acted on here:
+ * open transactions are worked from Workflow Review (paperless) or Appointments (paper).
+ */
 class TransactionRecords extends Component
 {
-   #[Url(as: 'tab', except: 'transactions')]
+    #[Url(as: 'tab', except: 'transactions')]
     public string $activeTab = 'transactions';
 
     #[Url(as: 'q', except: '')]
     public string $search = '';
 
-    #[Url(as: 'status', except: 'All')]
-    public string $statusFilter = 'All';
+    #[Url(as: 'result', except: 'all')]
+    public string $result = 'all';
 
-    #[Url(as: 'view', except: 'table')]
-    public string $viewMode = 'table';
-
-    #[Url(as: 'sort', except: 'date_desc')]
-    public string $sortBy = 'date_desc';
-
-    #[Url(as: 'folder', except: '')]
-    public ?string $selectedFolder = null;
+    #[Url(as: 'period', except: 'all')]
+    public string $period = 'all';
 
     #[Url(as: 'page', except: 1)]
     public int $currentPage = 1;
 
-    public int $perPage = 30;
+    /** Students per page. */
+    public int $perPage = 20;
 
-    #[Url(as: 'source', except: 'All')]
-    public string $sourceFilter = 'All';
-    
+    protected array $mainTabs = ['transactions', 'logbooks'];
 
-
-    protected array $mainTabs = [
-        'transactions' => 'Transaction Records',
-        'logbooks' => 'Logbooks',
+    public const RESULTS = [
+        'all' => 'All results',
+        'open' => 'Still open',
+        'completed' => 'Completed',
+        'closed' => 'Rejected, voided or missed',
     ];
 
-    protected array $statusTabs = [
-        'All', 'Pending', 'For Appointment', 'In Review', 'Completed', 'Rejected', 'Voided',
+    public const PERIODS = [
+        'all' => 'All time',
+        '30d' => 'Last 30 days',
+        'year' => 'This year',
     ];
 
-    protected array $sortOptions = [
-        'date_desc' => 'Newest First',
-        'date_asc' => 'Oldest First',
-        'name_asc' => 'Student Name (A–Z)',
-        'name_desc' => 'Student Name (Z–A)',
-        'status' => 'Status',
-    ];
+    /** Statuses that end a transaction without completing it. */
+    private const CLOSED = ['Rejected', 'Voided', 'Missed'];
 
-    // NEW
     public function setActiveTab(string $tab): void
     {
-        if (! array_key_exists($tab, $this->mainTabs)) {
+        if (! in_array($tab, $this->mainTabs, true)) {
             return;
         }
         $this->activeTab = $tab;
@@ -72,49 +67,9 @@ class TransactionRecords extends Component
 
     public function updated($property): void
     {
-        if (in_array($property, ['search', 'statusFilter', 'viewMode', 'sortBy', 'sourceFilter'], true)) {
+        if (in_array($property, ['search', 'result', 'period'], true)) {
             $this->currentPage = 1;
         }
-    }
-
-    public function setSourceFilter(string $source): void
-    {
-        if (! in_array($source, ['All', 'Student-filed', 'Issued by office'], true)) {
-            return;
-        }
-        $this->sourceFilter = $source;
-        $this->currentPage = 1;
-    }
-
-    public function setStatusFilter(string $status): void
-    {
-        if (! in_array($status, $this->statusTabs, true)) {
-            return;
-        }
-        $this->statusFilter = $status;
-        $this->currentPage = 1;
-    }
-
-    public function setViewMode(string $mode): void
-    {
-        if (! in_array($mode, ['table', 'folder'], true)) {
-            return;
-        }
-        $this->viewMode = $mode;
-        $this->currentPage = 1;
-        $this->selectedFolder = null;
-    }
-
-    public function openFolder(string $type): void
-    {
-        $this->selectedFolder = $type;
-        $this->currentPage = 1;
-    }
-
-    public function closeFolder(): void
-    {
-        $this->selectedFolder = null;
-        $this->currentPage = 1;
     }
 
     public function previousPage(): void
@@ -135,9 +90,9 @@ class TransactionRecords extends Component
     {
         return StudentDocumentWorkspace::withTrashed()
             ->with([
+                'user.role',
                 'user.latestVerification',
                 'template.currentVersion.fields',
-                'version',
             ])
             ->where(fn ($q) => $q->whereNull('workflow_status')->orWhere('workflow_status', '!=', 'draft'))
             ->latest('updated_at')
@@ -146,7 +101,10 @@ class TransactionRecords extends Component
 
     protected function buildRecords(): Collection
     {
-        return $this->workspaces()->map(function (StudentDocumentWorkspace $workspace) {
+        $workspaces = $this->workspaces();
+        $issuers = Issuers::for($workspaces);
+
+        return $workspaces->map(function (StudentDocumentWorkspace $workspace) use ($issuers) {
             $user = $workspace->user;
             $status = $this->resolveStatus($workspace);
             $analysisData = $workspace->analysis_data ?? [];
@@ -166,20 +124,19 @@ class TransactionRecords extends Component
                     ? route('admin.workflow.show', $workspace->workspace_id)
                     : route('admin.transactions.show', $workspace->workspace_id),
                 'student_name' => $user ? $this->fullName($user) : 'Unknown student',
-                'student_number' => $user?->student_number ?: 'N/A',
+                // Staff records (e.g. an interviewer's own rating sheet) have no student number: show the role.
+                'student_number' => $user?->student_number ?: ($user?->role?->role_name ?? 'N/A'),
+                'issuer' => Issuers::label($issuers[$workspace->workspace_id] ?? null),
                 'type' => $paperless
                     ? ($document?->name() ?? $workspace->document_type)
                     : ($workspace->template?->name ?: 'Untitled template'),
                 'summary' => $document ? $document->summary($workspace->field_values ?? []) : '',
-                'date_label' => optional($when)->format('F j, Y') ?: 'N/A',
+                'date_label' => optional($when)->format('M j, Y') ?: 'N/A',
                 'date_sort' => optional($when)?->timestamp ?: 0,
                 'appointment' => $paperless ? '' : $this->resolveSessionLabel($workspace),
                 'session_label' => $paperless ? 'Not Applicable' : $this->resolveSessionLabel($workspace),
                 'status' => $status,
-                'preview_url' => $workspace->version?->image_path
-                    ? Storage::disk('public')->url($workspace->version->image_path)
-                    : null,
-                'updated_label' => optional($workspace->updated_at)->diffForHumans() ?: 'Recently',
+                'result' => $this->resultFor($status),
                 'ocr_text' => $workspace->ocr_text ?: '',
                 'analysis_summary' => $workspace->analysis_summary ?: '',
                 'analysis_missing_fields' => !empty($analysisData['missing_fields'])
@@ -195,7 +152,7 @@ class TransactionRecords extends Component
                 'issued' => (bool) $document?->issuedByOffice(),
                 'deleted_by_student' => $workspace->trashed(),
                 'url' => $paperless
-                    ? route('admin.workflow.show', [$workspace->workspace_id, 'from' => 'transactions'])
+                    ? route('admin.transactions.online', $workspace->workspace_id)
                     : route('admin.transactions.show', $workspace->workspace_id),
             ];
         })->values();
@@ -215,6 +172,7 @@ class TransactionRecords extends Component
                         $record['status'],
                         $record['appointment'],
                         $record['transaction_id'],
+                        $record['issuer'],
                         $record['ocr_text'],
                         $record['analysis_summary'],
                         $record['analysis_missing_fields'],
@@ -223,11 +181,29 @@ class TransactionRecords extends Component
                     ])), $needle);
                 })->map(fn (array $record) => $this->attachSearchSnippet($record));
             })
-            ->when($this->statusFilter !== 'All', fn (Collection $r) => $r->where('status', $this->statusFilter))
-            ->when($this->sourceFilter === 'Issued by office', fn (Collection $r) => $r->where('issued', true))
-            ->when($this->sourceFilter === 'Student-filed', fn (Collection $r) => $r->where('issued', false));
+            ->filter(fn (array $r) => match ($this->result) {
+                'open' => $r['result'] === 'open',
+                'completed' => $r['result'] === 'completed',
+                'closed' => $r['result'] === 'closed',
+                default => true,
+            })
+            ->filter(fn (array $r) => match ($this->period) {
+                '30d' => $r['date_sort'] >= now()->subDays(30)->timestamp,
+                'year' => $r['date_sort'] >= now()->startOfYear()->timestamp,
+                default => true,
+            });
 
-        return $this->applySort($records);
+        return $records->sortByDesc('date_sort')->values();
+    }
+
+    /** open / completed / closed, for the Result filter and the row's dot colour. */
+    protected function resultFor(string $status): string
+    {
+        return match (true) {
+            $status === 'Completed' => 'completed',
+            in_array($status, self::CLOSED, true) => 'closed',
+            default => 'open',
+        };
     }
 
     protected function attachSearchSnippet(array $record): array
@@ -241,6 +217,7 @@ class TransactionRecords extends Component
             $record['status'],
             $record['transaction_id'],
             $record['appointment'],
+            $record['issuer'],
         ]));
 
         if (Str::contains($visibleHaystack, Str::lower($needle))) {
@@ -297,75 +274,6 @@ class TransactionRecords extends Component
         return $prefix . $highlighted . $suffix;
     }
 
-    protected function applySort(Collection $records): Collection
-    {
-        return match ($this->sortBy) {
-            'date_asc' => $records->sortBy('date_sort')->values(),
-            'name_asc' => $records->sortBy(fn ($r) => Str::lower($r['student_name']))->values(),
-            'name_desc' => $records->sortByDesc(fn ($r) => Str::lower($r['student_name']))->values(),
-            'status' => $records->sortBy('status')->values(),
-            default => $records->sortByDesc('date_sort')->values(),
-        };
-    }
-
-    protected function foldersFromRecords(Collection $records): Collection
-    {
-        return $records
-            ->groupBy('type')
-            ->map(function (Collection $items, string $type) {
-                $matchedItem = $items->first(fn ($i) => filled($i['search_snippet'] ?? null));
-
-                return [
-                    'type' => $type,
-                    'count' => $items->count(),
-                    'pending_count' => $items->where('status', 'Pending')->count(),
-                    'for_appointment_count' => $items->where('status', 'For Appointment')->count(),
-                    'completed_count' => $items->where('status', 'Completed')->count(),
-                    'preview_url' => $items->first()['preview_url'] ?? null,
-                    'latest_date' => $items->max('date_sort'),
-                    'items' => $items->values(),
-                    'search_snippet' => $matchedItem['search_snippet'] ?? null,
-                    'search_snippet_label' => $matchedItem['search_snippet_label'] ?? null,
-                    'in_review_count' => $items->where('status', 'In Review')->count(),
-                ];
-            })
-            ->sortByDesc('latest_date')
-            ->values();
-    }
-    protected function groupByStudent(Collection $records): Collection
-    {
-        $students = $records
-            ->groupBy(fn (array $r) => $r['user_id'] ?? 'unknown')
-            ->map(function (Collection $forms) {
-                // Latest form always on top inside a student
-                $forms = $forms->sortByDesc('date_sort')->values();
-                $latest = $forms->first();
-                $matched = $forms->first(fn ($f) => filled($f['search_snippet'] ?? null));
-
-                return [
-                    'key' => $latest['user_id'] ?? 'unknown',
-                    'student_name' => $latest['student_name'],
-                    'student_number' => $latest['student_number'],
-                    'forms' => $forms,
-                    'total' => $forms->count(),
-                    'latest_sort' => $latest['date_sort'],
-                    'latest_label' => $latest['date_label'],
-                    'latest_status' => $latest['status'],
-                    'status_counts' => $forms->countBy(fn ($f) => $f['status'])->all(),
-                    'search_snippet' => $matched['search_snippet'] ?? null,
-                    'search_snippet_label' => $matched['search_snippet_label'] ?? null,
-                ];
-            });
-
-        return match ($this->sortBy) {
-            'date_asc' => $students->sortBy('latest_sort')->values(),
-            'name_asc' => $students->sortBy(fn ($s) => Str::lower($s['student_name']))->values(),
-            'name_desc' => $students->sortByDesc(fn ($s) => Str::lower($s['student_name']))->values(),
-            'status' => $students->sortBy('latest_status')->values(),
-            default => $students->sortByDesc('latest_sort')->values(),
-        };
-    }
-
     protected function resolveStatus(StudentDocumentWorkspace $workspace): string
     {
         if ($workspace->usesWorkflow()) {
@@ -373,6 +281,7 @@ class TransactionRecords extends Component
                 TransactionStatus::Completed => 'Completed',
                 TransactionStatus::Rejected => 'Rejected',
                 TransactionStatus::Voided => 'Voided',
+                TransactionStatus::ActionRequired => 'Waiting on Student',
                 default => 'In Review',
             };
         }
@@ -406,88 +315,41 @@ class TransactionRecords extends Component
         ])))) ?: ('User #' . $user->id);
     }
 
-    protected function statusCount(Collection $records, string $status): int
-    {
-        return $records->where('status', $status)->count();
-    }
-
     public function render()
     {
-        // NEW: skip building transaction data entirely while on the Logbooks tab.
-        $sharedData = [
-            'mainTabs' => $this->mainTabs,
-            'activeTab' => $this->activeTab,
-            'statusTabs' => $this->statusTabs,
-            'sortOptions' => $this->sortOptions,
-            'inReviewCount' => 0,
-            'students' => collect(), 
-        ];
-
-        if ($this->activeTab === 'logbooks') {
-            return view('livewire.admin.transaction-records', array_merge($sharedData, [
-                'records' => collect(),
-                'folders' => collect(),
-                'totalPages' => 1,
-                'totalCount' => 0,
-                'selectedFolder' => null,
-                'pendingCount' => 0,
-                'forAppointmentCount' => 0,
-                'completedCount' => 0,
-            ]))->layout('layouts.app', ['title' => 'Transactions']);
+        if (! in_array($this->activeTab, $this->mainTabs, true)) {
+            $this->activeTab = 'transactions';
         }
+        $this->result = array_key_exists($this->result, self::RESULTS) ? $this->result : 'all';
+        $this->period = array_key_exists($this->period, self::PERIODS) ? $this->period : 'all';
 
-        $allRecords = $this->buildRecords();
-        $filteredRecords = $this->filteredRecords();
+        // Skip building transaction data entirely while on the Logbooks view.
+        $records = $this->activeTab === 'logbooks' ? collect() : $this->filteredRecords();
 
-        $sharedData += [
-            'pendingCount' => $this->statusCount($allRecords, 'Pending'),
-            'forAppointmentCount' => $this->statusCount($allRecords, 'For Appointment'),
-            'completedCount' => $this->statusCount($allRecords, 'Completed'),
-            'inReviewCount' => $this->statusCount($allRecords, 'In Review'),
-        ];
-
-        if ($this->viewMode === 'folder') {
-            $folders = $this->foldersFromRecords($filteredRecords);
-
-            $records = collect();
-            $totalCount = 0;
-            $totalPages = 1;
-
-            if ($this->selectedFolder !== null) {
-                $activeFolder = $folders->firstWhere('type', $this->selectedFolder);
-                $folderItems = $activeFolder['items'] ?? collect();
-                $totalCount = $folderItems->count();
-                $totalPages = max(1, (int) ceil($totalCount / $this->perPage));
-                $this->currentPage = min($this->currentPage, $totalPages);
-                $records = $folderItems->slice(($this->currentPage - 1) * $this->perPage, $this->perPage)->values();
-            }
-
-            return view('livewire.admin.transaction-records', array_merge($sharedData, [
-                'records' => $records,
-                'folders' => $folders,
-                'totalPages' => $totalPages,
-                'totalCount' => $totalCount,
-                'selectedFolder' => $this->selectedFolder,
-            ]))->layout('layouts.app', ['title' => 'Transactions']);
-        }
-
-        $students = $this->groupByStudent($filteredRecords);
+        // One group per student so the name is shown once. Newest activity first, inside and across groups.
+        $students = $records
+            ->groupBy(fn (array $r) => $r['user_id'] ?? 'unknown')
+            ->map(fn ($forms, $key) => [
+                'key' => $key,
+                'student_name' => $forms->first()['student_name'],
+                'student_number' => $forms->first()['student_number'],
+                'latest_label' => $forms->first()['date_label'],
+                'open_count' => $forms->where('result', 'open')->count(),
+                'forms' => $forms->values(),
+            ])
+            ->values();
 
         $totalCount = $students->count();
         $totalPages = max(1, (int) ceil($totalCount / $this->perPage));
-        $this->currentPage = min($this->currentPage, $totalPages);
+        $this->currentPage = min(max(1, $this->currentPage), $totalPages);
 
-        $students = $students
-            ->slice(($this->currentPage - 1) * $this->perPage, $this->perPage)
-            ->values();
-
-        return view('livewire.admin.transaction-records', array_merge($sharedData, [
-            'students' => $students,
-            'records' => collect(),
-            'folders' => collect(),
-            'totalPages' => $totalPages,
+        return view('livewire.admin.transaction-records', [
+            'students' => $students->slice(($this->currentPage - 1) * $this->perPage, $this->perPage)->values(),
+            'recordCount' => $records->count(),
             'totalCount' => $totalCount,
-            'selectedFolder' => null,
-        ]))->layout('layouts.app', ['title' => 'Transactions']);
+            'totalPages' => $totalPages,
+            'results' => self::RESULTS,
+            'periods' => self::PERIODS,
+        ])->layout('layouts.app', ['title' => 'Transaction Records']);
     }
 }

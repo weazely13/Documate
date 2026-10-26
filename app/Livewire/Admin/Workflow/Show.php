@@ -16,8 +16,6 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use App\Services\Workflow\ExternalSigning;
 use App\Services\Workflow\SignatoryScope;
-use Livewire\Attributes\Url;
-use Illuminate\Support\Facades\Route;
 
 /** Review one workflow transaction. Every button maps to one TransactionWorkflow method. */
 class Show extends Component
@@ -32,32 +30,18 @@ class Show extends Component
 
     public bool $reissue = true;
     public array $reviewerValues = [];
-    #[Url(as: 'from', keep: true)]
-    public string $from = '';
 
-    #[Computed]
-    public function cameFromTransactions(): bool
-    {
-        return $this->from === 'transactions';
-    }
-
+    /** This page is Workflow Review's; Transaction Records has its own read-only page. */
     #[Computed]
     public function backUrl(): string
     {
-        if ($this->cameFromTransactions) {
-            return route('admin.transactions.index');
-        }
-
-        // adjust this route name to your Workflow Review index
-        return Route::has('admin.workflow.index')
-            ? route('admin.workflow.index')
-            : route('admin.dashboard');
+        return route('admin.workflow.index');
     }
 
     #[Computed]
     public function backLabel(): string
     {
-        return $this->cameFromTransactions ? 'Transactions' : 'Workflow Review';
+        return 'Workflow Review';
     }
 
     public function mount(StudentDocumentWorkspace $workspace): void
@@ -273,22 +257,10 @@ class Show extends Component
             ];
         });
 
-        $audit = $ws->auditLogs()->with('actor')->get()->map(fn ($log) => [
-            'text' => \App\Workflow\AuditLabels::label($log->action),
-            'who' => $log->actor ? trim($log->actor->first_name . ' ' . $log->actor->last_name) : 'System',
-            'role' => $log->actor_role,
-            'at' => $log->created_at,
-            'note' => $log->meta['message']
-                ?? $log->meta['reason']
-                ?? ($log->action === 'external.identity_checked'
-                    ? (TransactionWorkflow::IDENTITY_METHODS[$log->meta['method'] ?? ''] ?? '')
-                        . (! empty($log->meta['note']) ? ': ' . $log->meta['note'] : '')
-                    : null),
-        ])->reverse()->values();
-
-        
+        $audit = \App\Workflow\AuditLabels::history($ws);
 
         return view('livewire.admin.workflow.show', [
+            'issuer' => \App\Support\Issuers::label(\App\Support\Issuers::forOne($ws)),
             'ws' => $ws,
             'document' => $document,
             'approvals' => $approvals,

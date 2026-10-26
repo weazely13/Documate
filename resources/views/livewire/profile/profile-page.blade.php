@@ -531,11 +531,9 @@
             <div class="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5 lg:col-span-full"> 
                 <h2 class="text-sm font-semibold text-gray-900">E-signature</h2>
                 <p class="text-xs text-gray-500">Used on documents you approve. Stored privately; changing it never alters documents you already signed.</p>
-                <label class="mt-3 flex items-start gap-2 text-sm text-gray-700">
-                    <input type="checkbox" wire:click="toggleSignatureEnabled" @checked($signature_enabled) class="mt-0.5 h-4 w-4 accent-[#2A57B4]">
-                    <span>Apply my e-signature image to documents I sign.
-                        <span class="block text-xs text-gray-400">Turn off if you do not consent to your signature image appearing. Signing will still be recorded with your name and seal.</span></span>
-                </label>
+                @if (! $signature_enabled)
+                    <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">Your signature image is currently not applied to documents. Save a signature below to start using it.</p>
+                @endif
                 @if (auth()->user()->signature_path)
                     <p class="mt-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Current signature</p>
                     <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}"

@@ -1,28 +1,8 @@
 @php
-    $areas = ['users' => 'Users', 'org-roles' => 'Organizations & Roles'];
-    $homeUrl = \Illuminate\Support\Facades\Route::has('admin.dashboard') ? route('admin.dashboard') : url('/');
     $fieldClass = 'rounded-lg border-gray-300 py-2.5 text-base shadow-sm sm:py-2 sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
 @endphp
 
-<div>
-    <x-admin.page-header
-        title="Users & Access"
-        description="Manage accounts, roles, organizations, officer positions, programs and signatories."
-        :crumbs="['Admin' => $homeUrl, 'Users & Access' => null]" />
-
-    {{-- Area tabs --}}
-    <nav aria-label="Users and access sections" class="mb-6 flex gap-6 overflow-x-auto whitespace-nowrap border-b border-gray-200">
-        @foreach ($areas as $key => $text)
-            <button type="button" wire:click="setActiveTab('{{ $key }}')"
-                @if ($activeTab === $key) aria-current="page" @endif
-                class="-mb-px border-b-2 px-1 pb-3 text-sm font-medium transition
-                    {{ $activeTab === $key
-                        ? 'border-[#2A57B4] text-[#2A57B4]'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }}">
-                {{ $text }}
-            </button>
-        @endforeach
-    </nav>
+<x-admin.users-manager :active="$navKey">
 
     @if ($activeTab === 'org-roles')
 
@@ -454,4 +434,4 @@
         @endif
 
     @endif
-</div>
+</x-admin.users-manager>

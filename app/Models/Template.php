@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentCategory;
 use Illuminate\Database\Eloquent\Model;
 
 class Template extends Model
@@ -13,9 +14,14 @@ class Template extends Model
 
     protected $fillable = [
         'name',
+        'category',
         'created_by',
-        'status',  
+        'status',
         'current_version_id',
+    ];
+
+    protected $casts = [
+        'category' => DocumentCategory::class,
     ];
 
     /*

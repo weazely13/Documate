@@ -2,126 +2,164 @@
     use App\Enums\ApprovalStatus;
     use App\Enums\TransactionStatus;
 
-    $badge = match ($status) {
-        TransactionStatus::Draft => 'bg-slate-100 text-slate-600 ring-slate-200',
-        TransactionStatus::Submitted => 'bg-blue-50 text-blue-700 ring-blue-200',
-        TransactionStatus::UnderReview => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-        TransactionStatus::ActionRequired => 'bg-amber-50 text-amber-700 ring-amber-200',
-        TransactionStatus::Approved => 'bg-teal-50 text-teal-700 ring-teal-200',
-        TransactionStatus::Completed => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-        TransactionStatus::Rejected => 'bg-rose-50 text-rose-700 ring-rose-200',
-        TransactionStatus::Voided => 'bg-slate-200 text-slate-600 ring-slate-300',
-        default => 'bg-slate-100 text-slate-600 ring-slate-200',
-    };
     $editable = $this->isEditable;
     $document = $this->document;
     $input = 'mt-1.5 w-full min-w-0 rounded-xl border border-slate-300 px-3.5 py-3 text-base outline-none focus:border-[#2A57B4] focus:ring-4 focus:ring-blue-100 sm:py-2.5 sm:text-sm';
+
+    $signedCount = $approvals->where('status', ApprovalStatus::Approved)->count();
+    $waitingOn = $approvals->firstWhere('status', ApprovalStatus::Pending);
+
+    // One "what happens next" message. Amber = the student has to act.
+    [$nextTitle, $nextText, $nextTone] = match (true) {
+        ! $ws || $status === TransactionStatus::Draft => [null, null, null],
+        $status === TransactionStatus::ActionRequired => ['Your next step: update and resubmit', $ws->workflow_note ? '"' . $ws->workflow_note . '" (VPSD office)' : 'The VPSD office asked for changes. Update the form below and resubmit.', 'amber'],
+        $status === TransactionStatus::Rejected => ['Rejected', $ws->workflow_note ?: 'This transaction was rejected.', 'rose'],
+        $status === TransactionStatus::Voided => ['Voided by the VPSD office', $ws->void_reason ?: 'This document was withdrawn.', 'slate'],
+        $status === TransactionStatus::Completed => ['Completed and signed', 'Save your copy as a PDF. Print it only if a paper copy is required.', 'emerald'],
+        $status === TransactionStatus::Approved => ['Almost done', $afterReviewNote ?: 'Everyone has signed. The VPSD office will finish it.', 'blue'],
+        $status === TransactionStatus::UnderReview && $approvals->isNotEmpty() => ['In signing', 'Signed ' . $signedCount . ' of ' . $approvals->count() . '.' . ($waitingOn ? ' Waiting for ' . ($waitingOn->role->label ?? $waitingOn->label) . '. They are notified automatically.' : '') . ($afterReviewNote ? "\n" . $afterReviewNote : ''), 'blue'],
+        default => ['With the VPSD office', $afterReviewNote ?: 'The VPSD office is checking your submission. Nothing to do yet.', 'blue'],
+    };
+    $toneBox = [
+        'amber' => 'bg-amber-50 text-amber-900',
+        'rose' => 'bg-rose-50 text-rose-900',
+        'slate' => 'bg-slate-100 text-slate-800',
+        'emerald' => 'bg-emerald-50 text-emerald-900',
+        'blue' => 'bg-[#2A57B4]/5 text-slate-800',
+    ];
+    $closed = in_array($status, [TransactionStatus::Rejected, TransactionStatus::Voided], true);
 @endphp
 
 <div class="mx-auto w-full max-w-2xl space-y-5">
 
     {{-- Header --}}
-    <div class="flex flex-wrap items-start justify-between gap-3">
-        <div class="min-w-0">
-            <a href="{{ route('student.transactions.index') }}" wire:navigate class="text-xs font-semibold text-slate-500 hover:text-[#2A57B4]">&larr; Transactions</a>
-            <h2 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">{{ $document->name() }}</h2>
-            <p class="font-mono text-xs text-slate-400">{{ $ws?->transaction_code ?? 'Not saved yet' }}</p>
-        </div>
-        <span class="rounded-full px-3 py-1 text-xs font-semibold ring-1 {{ $badge }}">{{ $status?->label() ?? 'New' }}</span>
+    <div>
+        <a href="{{ $back['url'] }}" wire:navigate class="text-sm font-medium text-slate-500 hover:text-[#2A57B4]">&larr; {{ $back['label'] }}</a>
+        <h2 class="mt-2 break-words text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{{ $document->name() }}</h2>
+        @if ($ws?->transaction_code)
+            <p class="mt-0.5 text-xs text-slate-500">
+                {{ $ws->transaction_code }}
+                @if ($ws->submitted_at) &middot; Submitted {{ $ws->submitted_at->format('M j, Y') }} @endif
+            </p>
+        @endif
     </div>
-    @unless ($document->issuedByOffice())
-        <details class="rounded-2xl border border-blue-100 bg-blue-50/50 shadow-sm" @if (! $ws) open @endif>
-            <summary class="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-[#2A57B4]">
-                How this transaction works, start to finish
-                <span class="text-xs font-medium text-slate-400">tap to show or hide</span>
-            </summary>
-            <ol class="space-y-3 border-t border-blue-100 px-4 py-4">
-                @foreach ($document->guide($ws?->field_values ?? $values) as $i => [$title, $text])
-                    <li class="flex gap-3" wire:key="guide-{{ $i }}">
-                        <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#2A57B4] text-xs font-bold text-white">{{ $i + 1 }}</span>
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold text-slate-900">{{ $title }}</p>
-                            <p class="whitespace-pre-line text-xs leading-relaxed text-slate-600">{{ $text }}</p>
-                        </div>
-                    </li>
-                @endforeach
-            </ol>
-        </details>
-    @endunless
-    @if ($this->document->studentNote())
-        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-            {{ $this->document->studentNote() }}
-        </div>
-    @endif
 
     @if (session('workflow_message'))
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('workflow_message') }}</div>
+        <div class="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('workflow_message') }}</div>
     @endif
     @error('form')
-        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{{ $message }}</div>
+        <div class="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{{ $message }}</div>
     @enderror
 
-    {{-- Messages from the office --}}
-    @if ($status === TransactionStatus::ActionRequired && $ws->workflow_note)
-        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p class="text-xs font-bold uppercase tracking-wide text-amber-700">The VPSD office needs changes</p>
-            <p class="mt-1 text-sm text-amber-900">{{ $ws->workflow_note }}</p>
-        </div>
-    @elseif ($status === TransactionStatus::Rejected && $ws->workflow_note)
-        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4">
-            <p class="text-xs font-bold uppercase tracking-wide text-rose-700">Rejected</p>
-            <p class="mt-1 text-sm text-rose-900">{{ $ws->workflow_note }}</p>
-        </div>
-    @elseif ($status === TransactionStatus::Completed)
-        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-            <div>
-                <p class="text-sm font-semibold text-emerald-800">Completed and signed</p>
-                <p class="text-xs text-emerald-700">Save your copy as PDF. Print it only if a physical copy is required.</p>
-            </div>
-            <button type="button" wire:click="downloadPdf" wire:loading.attr="disabled"
-                    class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
-                <span wire:loading.remove wire:target="downloadPdf">Download PDF</span>
-                <span wire:loading wire:target="downloadPdf">Preparing…</span>
-            </button>
-            @if ($ws->verification_token)
-                <a href="{{ route('document.verify', $ws->verification_token) }}" target="_blank" class="text-xs font-semibold text-emerald-700 hover:underline">View verification page</a>
-            @endif
-        </div>
-    @elseif ($status === TransactionStatus::Voided)
-        <div class="rounded-xl border border-slate-300 bg-slate-100 p-4">
-            <p class="text-xs font-bold uppercase tracking-wide text-slate-600">Voided by the VPSD office</p>
-            <p class="mt-1 text-sm text-slate-800">{{ $ws->void_reason }}</p>
-            @if ($ws->superseded_by)
-                <a href="{{ route('student.transactions.show', $ws->superseded_by) }}" wire:navigate
-                class="mt-2 inline-block text-sm font-semibold text-[#2A57B4] hover:underline">Open the corrected draft &rarr;</a>
-            @endif
-        </div>
-    @endif
-    @if (! empty($afterReviewNote))
-        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <p class="text-xs font-bold uppercase tracking-wide text-blue-700">Next step</p>
-            <p class="mt-1 text-sm text-blue-900">{{ $afterReviewNote }}</p>
-        </div>
-    @endif
-
-    {{-- Progress --}}
-    @if ($progress !== null)
-        <ol class="grid grid-cols-4 gap-2">
-            @foreach (['Submitted', 'VPSD review', 'Signatures', 'Completed'] as $i => $label)
+    {{-- Status: one stepper and one next-step message --}}
+        <section x-data="{ guide: {{ $ws ? 'false' : 'true' }}, signers: false }" class="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 sm:p-5">
+            @unless ($closed)
                 @php
-                    $done = $i === 0 ? true : $progress > $i;
-                    $active = $i !== 0 && $progress === $i;
+                    // 0 = filling in, 1 = VPSD review, 2 = signatures, 3 = office finishing, 4 = done
+                    $step = $progress ?? 0;
                 @endphp
-                <li class="text-center">
-                    <div class="h-1.5 rounded-full {{ $done ? 'bg-emerald-500' : ($active ? 'bg-[#2A57B4] animate-pulse' : 'bg-slate-200') }}"></div>
-                    <p class="mt-1.5 text-[11px] font-semibold {{ $done || $active ? 'text-slate-700' : 'text-slate-400' }}">{{ $label }}</p>
-                </li>
-            @endforeach
-        </ol>
-    @endif
+                <ol class="grid grid-cols-4 gap-2">
+                    @foreach (['Submitted', 'VPSD review', 'Signatures', 'Done'] as $i => $label)
+                        @php
+                            $done = $step >= 4 || $i < $step;
+                            $current = ! $done && $i === $step;
+                            $bar = $done ? 'bg-emerald-500' : ($current ? ($nextTone === 'amber' ? 'bg-amber-400' : 'bg-[#2A57B4]') : 'bg-slate-200');
+                        @endphp
+                        <li class="min-w-0">
+                            <div class="h-1.5 rounded-full {{ $bar }}"></div>
+                            <p class="mt-1.5 text-[11px] leading-tight sm:text-xs {{ $current ? 'font-semibold text-slate-900' : ($done ? 'text-slate-700' : 'text-slate-500') }}">{{ $label }}</p>
+                        </li>
+                    @endforeach
+                </ol>
+            @endunless
+
+            @if ($nextTitle)
+                <div class="rounded-xl px-4 py-3.5 {{ $toneBox[$nextTone] }}">
+                    <p class="text-sm font-semibold">{{ $nextTitle }}</p>
+                    <p class="mt-0.5 whitespace-pre-line text-sm leading-relaxed opacity-90">{{ $nextText }}</p>
+
+                    @if ($status === TransactionStatus::Completed)
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <button type="button" wire:click="downloadPdf" wire:loading.attr="disabled"
+                                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+                                <span wire:loading.remove wire:target="downloadPdf">Download PDF</span>
+                                <span wire:loading wire:target="downloadPdf">Preparing…</span>
+                            </button>
+                            @if ($ws->verification_token)
+                                <a href="{{ route('document.verify', $ws->verification_token) }}" target="_blank" class="text-sm font-semibold text-emerald-800 hover:underline">Verification page</a>
+                            @endif
+                        </div>
+                    @elseif ($status === TransactionStatus::Voided && $ws->superseded_by)
+                        <a href="{{ route('student.transactions.show', $ws->superseded_by) }}" wire:navigate
+                           class="mt-2 inline-block text-sm font-semibold text-[#2A57B4] hover:underline">Open the corrected draft &rarr;</a>
+                    @endif
+                </div>
+            @endif
+
+            @if ($document->studentNote())
+                <p class="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ $document->studentNote() }}</p>
+            @endif
+
+            <div class="flex flex-wrap gap-x-5 gap-y-1">
+                @unless ($document->issuedByOffice())
+                    <button type="button" @click="guide = !guide" class="text-sm font-semibold text-[#2A57B4] hover:text-[#1E4090]"
+                            x-text="guide ? 'Hide how this works' : 'How this works'"></button>
+                @endunless
+                @if ($approvals->isNotEmpty())
+                    <button type="button" @click="signers = !signers" class="text-sm font-semibold text-[#2A57B4] hover:text-[#1E4090]"
+                            x-text="signers ? 'Hide signatures' : 'Signatures ({{ $signedCount }} of {{ $approvals->count() }})'"></button>
+                @endif
+            </div>
+
+            @unless ($document->issuedByOffice())
+                <ol x-show="guide" x-cloak class="space-y-3 border-t border-slate-100 pt-4">
+                    @foreach ($document->guide($ws?->field_values ?? $values) as $i => [$title, $text])
+                        <li class="flex gap-3" wire:key="guide-{{ $i }}">
+                            <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">{{ $i + 1 }}</span>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-slate-900">{{ $title }}</p>
+                                <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ $text }}</p>
+                            </div>
+                        </li>
+                    @endforeach
+                </ol>
+            @endunless
+
+            @if ($approvals->isNotEmpty())
+                <ol x-show="signers" x-cloak class="space-y-3 border-t border-slate-100 pt-4">
+                    @foreach ($approvals as $a)
+                        @php
+                            $dot = match ($a->status) {
+                                ApprovalStatus::Approved => 'bg-emerald-500',
+                                ApprovalStatus::Pending => 'bg-[#2A57B4]',
+                                ApprovalStatus::Rejected => 'bg-rose-500',
+                                default => 'bg-slate-300',
+                            };
+                            $text = match ($a->status) {
+                                ApprovalStatus::Approved => 'Signed' . ($a->acted_at ? ' · ' . $a->acted_at->format('M j, g:i A') : ''),
+                                ApprovalStatus::Pending => 'Waiting for signature',
+                                ApprovalStatus::Rejected => 'Rejected',
+                                ApprovalStatus::Skipped => 'Cancelled',
+                                default => 'Not started',
+                            };
+                        @endphp
+                        <li class="flex items-start gap-3" wire:key="appr-{{ $a->id }}">
+                            <span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full {{ $dot }}"></span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-800">{{ $a->role->label ?? $a->label }}</p>
+                                <p class="text-xs text-slate-500">{{ $text }}</p>
+                                @if ($a->status === ApprovalStatus::Rejected && $a->reason)
+                                    <p class="mt-1 text-xs text-rose-600">{{ $a->reason }}</p>
+                                @endif
+                            </div>
+                        </li>
+                    @endforeach
+                </ol>
+            @endif
+        </section>
 
     {{-- The form --}}
-    <section class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+    <section class="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm sm:p-5">
         @php
             $sysFields = $document->systemFields();
             $missing = collect($sysFields)->filter(fn ($label, $key) => trim((string) ($student[$key] ?? '')) === '')->values();
@@ -129,25 +167,31 @@
                 ? ($profileSignature ? route('profile.signature') : null)
                 : $savedSignature;
             $needsSig = $document->requiresStudentSignature();
+            $sysLine = collect($sysFields)->keys()->map(fn ($key) => trim((string) ($student[$key] ?? '')))->filter()->implode(' · ');
         @endphp
 
-        <div class="rounded-xl border border-blue-100 bg-blue-50/60 p-3.5">
-            <div class="flex items-center justify-between gap-2">
-                <p class="text-[11px] font-bold uppercase tracking-wide text-[#2A57B4]">Filled in by the system</p>
-                <span class="rounded bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 ring-1 ring-blue-100">Read-only</span>
+        {{-- Details from the student's account, shown on one line --}}
+        <div x-data="{ open: false }" class="border-b border-slate-100 pb-4">
+            <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <p class="min-w-0 text-sm text-slate-600">{{ $sysLine ?: 'Your details' }}</p>
+                <div class="flex shrink-0 items-center gap-4 text-sm">
+                    <button type="button" @click="open = !open" class="font-medium text-slate-500 hover:text-slate-800" x-text="open ? 'Hide details' : 'Details'"></button>
+                    @if ($editable)
+                        <a href="{{ route('profile') }}" wire:navigate class="font-medium text-[#2A57B4] hover:underline">Edit in profile</a>
+                    @endif
+                </div>
             </div>
 
-            <dl class="mt-2.5 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+            <dl x-show="open" x-cloak class="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                 @foreach ($sysFields as $key => $label)
                     <div wire:key="sys-{{ $key }}">
-                        <dt class="text-[11px] font-medium text-slate-400">{{ $label }}</dt>
-                        <dd class="text-sm font-semibold text-slate-900">{{ trim((string) ($student[$key] ?? '')) ?: '—' }}</dd>
+                        <dt class="text-xs text-slate-500">{{ $label }}</dt>
+                        <dd class="text-sm font-medium text-slate-900">{{ trim((string) ($student[$key] ?? '')) ?: '—' }}</dd>
                     </div>
                 @endforeach
-
                 @if ($needsSig)
                     <div class="sm:col-span-2" wire:key="sys-signature">
-                        <dt class="text-[11px] font-medium text-slate-400">Signature (from your profile)</dt>
+                        <dt class="text-xs text-slate-500">Signature (from your profile)</dt>
                         <dd>
                             @if ($sigImg)
                                 <img src="{{ $sigImg }}" alt="Your signature" class="mt-0.5 h-12 rounded-lg border border-slate-200 bg-white p-1">
@@ -160,20 +204,17 @@
             </dl>
 
             @if ($editable && ($missing->isNotEmpty() || ($needsSig && ! $sigImg)))
-                <p class="mt-2.5 text-xs text-amber-700">
-                    Some details are missing from your account.
+                <p class="mt-2.5 text-sm text-amber-800">
+                    Some details are missing from your account{{ $needsSig && ! $sigImg ? ', including your signature' : '' }}.
                     <a href="{{ route('profile') }}" wire:navigate class="font-semibold underline">Update your profile</a> before submitting.
                 </p>
             @endif
 
             @if (in_array($document->key(), ['permit_to_conduct_activity', 'permit_to_conduct_off_campus'], true))
                 @if (! empty($student['officer_position']))
-                    <p class="mt-2.5 text-sm text-slate-600">
-                        <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#2A57B4]">Officer</span>
-                        {{ $student['officer_position'] }}, {{ $student['officer_organization'] }}
-                    </p>
+                    <p class="mt-2 text-sm text-slate-600">Officer: {{ $student['officer_position'] }}, {{ $student['officer_organization'] }}</p>
                 @else
-                    <p class="mt-2.5 text-xs text-amber-700">You are not an officer. Organization-hosted permits can only be requested by officers.</p>
+                    <p class="mt-2 text-sm text-amber-800">You are not an officer. Organization-hosted permits can only be requested by officers.</p>
                 @endif
             @endif
         </div>
@@ -341,68 +382,34 @@
         @endif
 
         @if ($editable)
-            <div class="mt-6 flex flex-wrap gap-2">
+            <div class="mt-6 flex flex-col-reverse gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                 <button type="button" wire:click="saveDraft" wire:loading.attr="disabled"
-                        class="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Save draft</button>
+                        class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 sm:w-auto sm:border-0 sm:py-2.5">Save draft</button>
                 <button type="button" wire:click="submit" wire:loading.attr="disabled"
                         wire:confirm="Submit to the VPSD office? You can't edit it afterwards unless they ask for changes."
-                        class="flex-1 rounded-xl bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#24499A] disabled:opacity-50">
+                        class="w-full rounded-xl bg-[#2A57B4] px-6 py-3 text-sm font-semibold text-white hover:bg-[#24499A] disabled:opacity-50 sm:w-auto sm:py-2.5">
                     {{ $status === TransactionStatus::ActionRequired ? 'Resubmit' : 'Submit' }}
                 </button>
             </div>
         @endif
     </section>
 
-    {{-- Signatures --}}
-    @if ($approvals->isNotEmpty())
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-400">Signatures</h3>
-            <ol class="mt-3 space-y-3">
-                @foreach ($approvals as $a)
-                    @php
-                        $dot = match ($a->status) {
-                            ApprovalStatus::Approved => 'bg-emerald-500',
-                            ApprovalStatus::Pending => 'bg-blue-500 animate-pulse',
-                            ApprovalStatus::Rejected => 'bg-rose-500',
-                            default => 'bg-slate-300',
-                        };
-                        $text = match ($a->status) {
-                            ApprovalStatus::Approved => 'Signed' . ($a->acted_at ? ' · ' . $a->acted_at->format('M j, g:i A') : ''),
-                            ApprovalStatus::Pending => 'Waiting for signature',
-                            ApprovalStatus::Rejected => 'Rejected',
-                            ApprovalStatus::Skipped => 'Cancelled',
-                            default => 'Not started',
-                        };
-                    @endphp
-                    <li class="flex items-start gap-3" wire:key="appr-{{ $a->id }}">
-                        <span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full {{ $dot }}"></span>
-                        <div>
-                            <p class="text-sm font-medium text-slate-800">{{ $a->role->label ?? $a->label }}</p>
-                            <p class="text-xs text-slate-500">{{ $text }}</p>
-                            @if ($a->status === ApprovalStatus::Rejected && $a->reason)
-                                <p class="mt-1 text-xs text-rose-600">{{ $a->reason }}</p>
-                            @endif
-                        </div>
-                    </li>
-                @endforeach
-            </ol>
-        </section>
-    @endif
-
-    {{-- Activity --}}
+    {{-- Activity, folded away --}}
     @if (count($timeline))
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-400">Activity</h3>
-            <div class="mt-3 space-y-3">
+        <div x-data="{ open: false }" class="text-center">
+            <button type="button" @click="open = !open" class="text-sm font-medium text-slate-500 hover:text-slate-800"
+                    x-text="open ? 'Hide activity' : 'Show activity ({{ count($timeline) }})'"></button>
+            <section x-show="open" x-cloak class="mt-3 space-y-3 rounded-2xl border border-slate-200/70 bg-white p-5 text-left">
                 @foreach ($timeline as $item)
-                    <div class="relative pl-5">
-                        <span class="absolute left-0 top-1.5 h-2 w-2 rounded-full bg-slate-300"></span>
-                        <p class="text-sm font-medium text-slate-800">{{ $item['text'] }}</p>
-                        <p class="text-xs text-slate-400">{{ $item['at']->format('M j, Y g:i A') }}</p>
-                        @if ($item['note']) <p class="mt-0.5 text-xs text-slate-500">{{ $item['note'] }}</p> @endif
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-slate-800">{{ $item['text'] }}</p>
+                            @if ($item['note']) <p class="text-xs text-slate-500">{{ $item['note'] }}</p> @endif
+                        </div>
+                        <p class="shrink-0 text-xs text-slate-500">{{ $item['at']->format('M j, Y g:i A') }}</p>
                     </div>
                 @endforeach
-            </div>
-        </section>
+            </section>
+        </div>
     @endif
 </div>

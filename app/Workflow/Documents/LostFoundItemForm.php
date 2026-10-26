@@ -8,6 +8,8 @@ use Illuminate\Validation\Rule;
 /** F-SDM-012 Rev. 1 (03-31-23): Lost/Found Item Form. */
 final class LostFoundItemForm extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Reports; }
+
     private const KINDS = ['Lost', 'Found'];
 
     public function key(): string

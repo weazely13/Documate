@@ -6,6 +6,8 @@ use Carbon\Carbon;
 /** F-SDM-002 Rev. 1 (03-31-23): Permit to Enter the Campus / to Attend Classes. */
 final class PermitToEnterCampus extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Permits; }
+
     public function key(): string
     {
         return 'permit_to_enter_campus';

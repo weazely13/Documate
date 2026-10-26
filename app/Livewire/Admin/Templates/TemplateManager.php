@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Admin\Templates;
 
+use App\Enums\DocumentCategory;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\Template;
@@ -17,6 +19,7 @@ class TemplateManager extends Component
     public $showPanel = false;
 
     public $name;
+    public $category = '';
     public $paper_size = 'A4';
     public $orientation = 'portrait';
     public $image;
@@ -28,6 +31,7 @@ class TemplateManager extends Component
     {
         return [
             'name' => 'required|string|max:255',
+            'category' => ['required', Rule::enum(DocumentCategory::class)],
             'orientation' => 'required|in:portrait,landscape',
             'image' => 'required|image|max:2048',
             'custom_width' => 'nullable|numeric|min:1',
@@ -59,6 +63,7 @@ class TemplateManager extends Component
     public function resetForm()
     {
         $this->name = '';
+        $this->category = '';
         $this->paper_size = 'A4';
         $this->orientation = 'portrait';
         $this->image = null;
@@ -114,6 +119,7 @@ class TemplateManager extends Component
 
         $template = Template::create([
             'name' => $this->name,
+            'category' => $this->category,
             'created_by' => Auth::id(),
         ]);
 
@@ -133,6 +139,15 @@ class TemplateManager extends Component
         ]);
 
         return redirect()->route('admin.templates.editor', $template->template_id);
+    }
+
+    /** Inline category picker on each template card. */
+    public function setCategory(int $id, string $category): void
+    {
+        $value = DocumentCategory::tryFrom($category);
+
+        Template::whereKey($id)->update(['category' => $value?->value]);
+        $this->loadTemplates();
     }
 
     public function editTemplate($id)

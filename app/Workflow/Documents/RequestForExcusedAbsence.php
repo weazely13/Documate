@@ -10,6 +10,8 @@ use Carbon\Carbon;
  */
 final class RequestForExcusedAbsence extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Requests; }
+
     public function key(): string
     {
         return 'request_for_excused_absence';

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Student;
 
+use App\Enums\DocumentCategory;
 use App\Models\StudentDocumentWorkspace;
 use App\Models\Template;
 use App\Services\StudentDocumentPdfService;
@@ -30,12 +31,15 @@ class NewTransaction extends Component
     public ?string $savedMessage = null;
     public ?string $pdfUrl = null;
     public ?string $lastSavedAt = null;
-    public string $viewMode = 'grid';
     public ?int $editingWorkspaceId = null;
 
     //-- for searching templates --//
     #[Url(except: '')]
     public string $search = '';
+
+    /** Category chip on the picker: a DocumentCategory value, or "all". */
+    #[Url(as: 'type', except: 'all')]
+    public string $category = 'all';
 
     
 
@@ -258,11 +262,48 @@ class NewTransaction extends Component
         return ['filled' => $filled, 'total' => $total];
     }
 
+    /**
+     * Paperless forms and paper templates together, grouped by category in a fixed order.
+     * Each item: name, description, paper (bool), url.
+     *
+     * @return array<int, array{key: string, label: string, items: array}>
+     */
+    public function getGroupsProperty(): array
+    {
+        $items = collect($this->filteredDocuments)->map(fn ($d) => [
+            'category' => $d->category()->value,
+            'name' => $d->name(),
+            'description' => $d->description(),
+            'paper' => false,
+            'url' => route('student.transactions.new', ['type' => $d->key(), 'from' => 'new']),
+        ])->merge(collect($this->filteredTemplates)->map(fn ($t) => [
+            'category' => $t['category'],
+            'name' => $this->formatTitle($t['name']),
+            'description' => $t['description'],
+            'paper' => true,
+            'url' => route('student.new-transaction', ['template' => $t['template_id']]),
+        ]));
+
+        return collect(DocumentCategory::cases())
+            ->filter(fn (DocumentCategory $c) => $this->category === 'all' || $this->category === $c->value)
+            ->map(fn (DocumentCategory $c) => [
+                'key' => $c->value,
+                'label' => $c->label(),
+                'items' => $items->where('category', $c->value)->sortBy('name')->values()->all(),
+            ])
+            ->filter(fn ($g) => $g['items'] !== [])
+            ->values()
+            ->all();
+    }
+
     public function render()
     {
+        if ($this->category !== 'all' && ! DocumentCategory::tryFrom($this->category)) {
+            $this->category = 'all';
+        }
+
         return view('livewire.student.new-transaction', [
-            'filteredTemplates' => $this->filteredTemplates,
-            'filteredDocuments' => $this->filteredDocuments,
+            'groups' => $this->selectedTemplate ? [] : $this->groups,
         ])->layout('layouts.app', ['title' => 'New Transaction']);
     }
     private function programAbbreviation(string $program): string
@@ -406,6 +447,7 @@ class NewTransaction extends Component
                 'description' => $description,
                 'access_count' => (int) $template->student_workspaces_count,
                 'updated_at' => $lastUpdated ? $lastUpdated->diffForHumans() : null,
+                'category' => ($template->category ?? DocumentCategory::Other)->value,
             ];
         })->values()->all();
     }

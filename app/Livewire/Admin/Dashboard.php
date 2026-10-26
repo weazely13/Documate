@@ -2,188 +2,155 @@
 
 namespace App\Livewire\Admin;
 
-use Illuminate\Support\Facades\DB;
+use App\Models\Appointment;
+use App\Models\ClearanceStatus;
+use App\Models\OfficeAvailability;
+use App\Models\Semester;
+use App\Models\Setting;
+use App\Models\StudentDocumentWorkspace;
+use App\Models\StudentVerification;
+use App\Models\User;
+use App\Support\ReviewQueue;
+use App\Support\WaitingTime;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Livewire\Component;
 
+/**
+ * The office's overview: what needs action now, how long things have waited,
+ * today's queue, and this semester's clearance and verification.
+ */
 class Dashboard extends Component
 {
-    /**
-     * Dashboard KPIs.
-     *
-     * These values are intentionally kept focused on the
-     * administrative overview of the DocuMate system.
-     */
-    public function getKpisProperty(): array
-    {
-        $totalStudents = DB::table('users')
-            ->join('roles', 'roles.id', '=', 'users.role_id')
-            ->whereIn('roles.role_name', ['Student', 'Officer'])
-            ->count();
+    private const STUDENT_ROLES = ['Student', 'Officer'];
 
-        $activeAccounts = DB::table('users')
+    private function students(): Builder
+    {
+        return User::query()
             ->where('account_status', 'active')
-            ->count();
+            ->whereHas('role', fn ($q) => $q->whereIn('role_name', self::STUDENT_ROLES));
+    }
 
-        $pendingVerification = DB::table('student_verifications')
-            ->where('status', 'pending')
-            ->count();
+    /** Counts that each lead to a page where someone has to act. */
+    private function workload(): array
+    {
+        return [
+            'to_review' => ReviewQueue::query('attention')->count(),
+            'overdue' => ReviewQueue::overdue()->count(),
+            'ready' => ReviewQueue::base()->where('workflow_status', 'approved')->count(),
+            'signing' => ReviewQueue::query('signing')->count(),
+            'signing_late' => ReviewQueue::apply(ReviewQueue::overdue(), 'signing')->count(),
+            'appointment_requests' => Appointment::where('status', 'pending')->count(),
+            // Paper forms whose visit is done but whose signed copy has not been checked yet.
+            'uploads' => StudentDocumentWorkspace::query()
+                ->whereNull('workflow_status')
+                ->where('status', '!=', 'completed')
+                ->whereHas('appointments', fn ($q) => $q->where('status', 'attended'))
+                ->where(fn ($q) => $q->whereNull('analysis_status')->orWhere('analysis_status', '!=', 'approved'))
+                ->count(),
+        ];
+    }
 
-        $pendingTransactions = DB::table('student_document_workspaces')
-            ->whereNull('workflow_status')
-            ->where('status', 'pending')
-            ->count();
+    /** How long the open queue has been waiting, in the same bands as Workflow Review. */
+    private function waitingBreakdown(): array
+    {
+        $bands = ['new' => 0, 'due' => 0, 'follow_up' => 0, 'urgent' => 0, 'overdue' => 0];
 
-        $workflowReview = DB::table('student_document_workspaces as w')
-            ->where(fn ($q) => $q
-                ->whereIn('w.workflow_status', ['submitted', 'approved'])
-                ->orWhere(fn ($x) => $x->where('w.workflow_status', 'under_review')
-                    ->whereNotExists(fn ($s) => $s->from('transaction_approvals as a')
-                        ->whereColumn('a.workspace_id', 'w.workspace_id'))))
-            ->count();
+        ReviewQueue::withWaitingSince(
+            ReviewQueue::base()->where(fn ($w) => ReviewQueue::apply($w, 'attention')
+                ->orWhere(fn ($x) => ReviewQueue::apply($x, 'signing')))
+        )->get(['workspace_id', 'submitted_at'])->each(function ($ws) use (&$bands) {
+            $bands[WaitingTime::level(WaitingTime::schoolDays(ReviewQueue::waitingSince($ws))) ?? 'new']++;
+        });
 
-        $todaysAppointments = DB::table('appointments')
+        return $bands;
+    }
+
+    private function today(): array
+    {
+        $appointments = Appointment::query()
             ->whereDate('appointment_date', today())
-            ->count();
+            ->whereNotIn('status', ['retracted', 'rejected'])
+            ->get(['session', 'status']);
 
-        $pendingAppointmentReview = DB::table('appointments')
-            ->where('status', 'pending')
-            ->count();
-
-        $clearanceTotal = DB::table('clearance_statuses')
-            ->count();
-
-        $clearedCount = DB::table('clearance_statuses')
-            ->where('status', 'Cleared')
-            ->count();
+        $sessions = collect(['morning', 'afternoon'])->mapWithKeys(fn ($s) => [$s => [
+            'total' => $appointments->where('session', $s)->count(),
+            'attended' => $appointments->where('session', $s)->where('status', 'attended')->count(),
+            'now_serving' => OfficeAvailability::nowServingFor(today()->toDateString(), $s),
+        ]]);
 
         return [
-            'total_students' => $totalStudents,
-            'active_accounts' => $activeAccounts,
-            'pending_verification' => $pendingVerification,
-            'pending_transactions' => $pendingTransactions,
-            'workflow_review' => $workflowReview,          // add this line
-            'todays_appointments' => $todaysAppointments,
-            'pending_appointment_review' => $pendingAppointmentReview,
-            'clearance_rate' => $clearanceTotal > 0
-                ? round(($clearedCount / $clearanceTotal) * 100)
-                : 0,
+            'sessions' => $sessions,
+            'total' => $appointments->count(),
         ];
     }
 
-    /**
-     * Recent activity across appointments and transactions.
-     *
-     * This gives the admin a quick view of what has recently
-     * happened in the system.
-     */
-    public function getRecentActivityProperty()
+    private function clearance(?Semester $semester): array
     {
-        $appointments = DB::table('appointments as a')
-            ->join('users as u', 'u.id', '=', 'a.user_id')
-            ->select(
-                DB::raw("'appointment' as type"),
-                'a.appointment_id as id',
-                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
-                'a.status',
-                'a.created_at'
-            )
-            ->orderByDesc('a.created_at')
-            ->limit(5);
+        $total = $this->students()->count();
 
-        $transactions = DB::table('student_document_workspaces as w')
-            ->join('users as u', 'u.id', '=', 'w.user_id')
-            ->where(fn ($q) => $q->whereNull('w.workflow_status')->orWhere('w.workflow_status', '!=', 'draft'))
-            ->select(
-                DB::raw("'transaction' as type"),
-                'w.workspace_id as id',
-                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
-                DB::raw('COALESCE(w.workflow_status, w.status) as status'),
-                'w.created_at'
-            )
-            ->orderByDesc('w.created_at')
-            ->limit(5);
+        if (! $semester) {
+            return ['total' => $total, 'Cleared' => 0, 'Pending' => 0, 'Uncleared' => 0, 'not_tagged' => $total];
+        }
 
-        return $appointments
-            ->unionAll($transactions)
-            ->orderByDesc('created_at')
-            ->limit(8)
-            ->get();
-    }
+        // A student can have several records for a semester: their latest one counts.
+        // Only active students, the same group as the total.
+        $latest = ClearanceStatus::query()
+            ->where('semester_id', $semester->id)
+            ->whereIn('user_id', $this->students()->select('id'))
+            ->orderBy('id')
+            ->get(['user_id', 'status'])
+            ->keyBy('user_id');
 
-    /**
-     * Quick action data.
-     *
-     * Keeps the Blade template clean while allowing the
-     * Action Center to dynamically reflect current workload.
-     */
-    public function getActionItemsProperty(): array
-    {
+        $counts = $latest->countBy('status');
+
         return [
-            [
-                'label' => 'Pending Verifications',
-                'count' => $this->kpis['pending_verification'],
-                'description' => 'Student accounts waiting for verification.',
-                'route' => 'admin.verification',
-                'icon' => 'bx-id-card',
-                'tone' => 'amber',
-            ],
-            [
-                'label' => 'Pending Transactions',
-                'count' => $this->kpis['pending_transactions'],
-                'description' => 'Transactions that still need attention.',
-                'route' => 'admin.transactions.index',
-                'icon' => 'bx-transfer',
-                'tone' => 'blue',
-            ],
-            [
-                'label' => 'Appointment Requests',
-                'count' => $this->kpis['pending_appointment_review'],
-                'description' => 'Appointments awaiting admin review.',
-                'route' => 'admin.appointments.index',
-                'icon' => 'bx-calendar-exclamation',
-                'tone' => 'red',
-            ],
-            [
-                'label' => 'Workflow Review',
-                'count' => $this->kpis['workflow_review'],
-                'description' => 'Paperless transactions waiting for the office.',
-                'route' => 'admin.workflow.index',
-                'icon' => 'bx-task',
-                'tone' => 'blue',
-            ],
+            'total' => $total,
+            'Cleared' => $counts['Cleared'] ?? 0,
+            'Pending' => $counts['Pending'] ?? 0,
+            'Uncleared' => $counts['Uncleared'] ?? 0,
+            'not_tagged' => max(0, $total - $latest->count()),
         ];
     }
 
-    /**
-     * Today's appointment overview.
-     */
-    public function getTodaysAppointmentsProperty()
+    private function verification(?Setting $period): ?array
     {
-        return DB::table('appointments as a')
-            ->join('users as u', 'u.id', '=', 'a.user_id')
-            ->select(
-                'a.appointment_id',
-                'a.appointment_date',
-                'a.status',
-                'a.created_at',
-                'a.session',
-                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name")
-            )
-            ->whereDate('a.appointment_date', today())
-            ->orderBy('a.appointment_date')
-            ->limit(5)
-            ->get();
+        if (! $period) {
+            return null;
+        }
+
+        $total = $this->students()->count();
+        $verified = $this->students()
+            ->whereHas('verifications', fn ($q) => $q
+                ->where('status', StudentVerification::STATUS_VERIFIED)
+                ->where(fn ($p) => $p->where('setting_id', $period->id)
+                    ->orWhere(fn ($old) => $old->whereNull('setting_id')
+                        ->where('semester', $period->current_semester)
+                        ->where('academic_year', $period->academic_year))))
+            ->count();
+
+        return [
+            'total' => $total,
+            'verified' => $verified,
+            'deadline' => $period->verification_end_date ? Carbon::parse($period->verification_end_date) : null,
+        ];
     }
 
     public function render()
     {
+        $semester = Semester::current();
+        $period = Setting::query()->latest('id')->first();
+        $verification = $this->verification($period);
+
         return view('livewire.admin.dashboard', [
-            'kpis' => $this->kpis,
-            'recentActivity' => $this->recentActivity,
-            'actionItems' => $this->actionItems,
-            'todaysAppointments' => $this->todaysAppointments,
-        ])->layout('layouts.app', [
-            'title' => 'Dashboard',
-        ]);
+            'firstName' => auth()->user()?->first_name ?: 'there',
+            'semesterLabel' => $semester?->label(),
+            'work' => $this->workload(),
+            'waiting' => $this->waitingBreakdown(),
+            'today' => $this->today(),
+            'clearance' => $this->clearance($semester),
+            'verification' => $verification,
+            'unverified' => $verification ? max(0, $verification['total'] - $verification['verified']) : 0,
+        ])->layout('layouts.app', ['title' => 'Dashboard']);
     }
 }

@@ -156,6 +156,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/transactions', TransactionRecords::class)
             ->name('admin.transactions.index');
 
+        Route::get('/admin/transactions/online/{workspace}', \App\Livewire\Admin\OnlineTransactionRecordShow::class)
+            ->name('admin.transactions.online')
+            ->withTrashed();
+
         Route::get('/admin/transactions/{workspace}', TransactionRecordShow::class)
             ->name('admin.transactions.show')
             ->withTrashed();

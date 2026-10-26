@@ -1,5 +1,4 @@
 @php
-    $homeUrl = \Illuminate\Support\Facades\Route::has('admin.dashboard') ? route('admin.dashboard') : url('/');
     $field = 'rounded-lg border-slate-300 py-2.5 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] sm:py-2 sm:text-sm';
 
     $statusBadge = fn ($status) => match ($status) {
@@ -12,10 +11,7 @@
 
 <div class="mx-auto max-w-6xl">
 
-    <x-admin.page-header
-        title="Document Uploads"
-        description="Transactions with an attended appointment awaiting a verification photo."
-        :crumbs="['Admin' => $homeUrl, 'Document Uploads' => null]" />
+    <x-admin.area-header name="documents" active="uploads" />
 
     {{-- Tabs --}}
     <div class="mb-4 border-b border-slate-200">

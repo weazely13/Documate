@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use App\Services\Workflow\ExternalSignatureStore;
 use App\Services\Workflow\SignatureStore;
@@ -42,6 +43,10 @@ class Form extends Component
     public string $reportSession = '';
     public ?int $nomineeId = null;
     public string $nomineeSearch = '';
+
+    /** Where the back link goes: "new" when opened from the New transaction picker. */
+    #[Url(except: '')]
+    public string $from = '';
 
     private const TIMELINE = [
         'transaction.created' => 'Draft created',
@@ -229,7 +234,7 @@ class Form extends Component
         session()->flash('workflow_message', 'Draft saved.');
 
         if (! $this->workspaceId) {
-            return $this->redirectRoute('student.transactions.show', ['workspace' => $ws->workspace_id], navigate: true);
+            return $this->redirectRoute('student.transactions.show', $this->showParams($ws), navigate: true);
         }
 
         unset($this->workspace, $this->isEditable);
@@ -279,7 +284,7 @@ class Form extends Component
         if ($this->document->requiresStudentSignature()
             && ! $this->profileSignatureReady()
             && empty($this->workspace?->field_values['student_signature_path'])) {
-            $this->addError('form', 'Add your e-signature in your profile, and keep "Apply my e-signature" turned on, before submitting.');
+            $this->addError('form', 'Save your e-signature in your profile before submitting.');
 
             return;
         }
@@ -307,7 +312,13 @@ class Form extends Component
 
         session()->flash('workflow_message', 'Submitted to the VPSD office. You will see each step here.');
 
-        return $this->redirectRoute('student.transactions.show', ['workspace' => $ws->workspace_id], navigate: true);
+        return $this->redirectRoute('student.transactions.show', $this->showParams($ws), navigate: true);
+    }
+
+    /** Route parameters for the saved transaction, keeping where the student came from. */
+    private function showParams(StudentDocumentWorkspace $ws): array
+    {
+        return array_filter(['workspace' => $ws->workspace_id, 'from' => $this->from === 'new' ? 'new' : null]);
     }
 
     /** Student saves their copy: only after COMPLETED. Regenerates the PDF if it is missing. */
@@ -541,7 +552,13 @@ class Form extends Component
             }
         }
 
+        // Opened from the picker (or not saved yet): back to New transaction. Otherwise My documents.
+        $backToPicker = $this->from === 'new' || ! $ws;
+
         return view('livewire.student.transactions.form', [
+            'back' => $backToPicker
+                ? ['url' => route('student.new-transaction'), 'label' => 'New transaction']
+                : ['url' => route('student.documents.index'), 'label' => 'My documents'],
             'ws' => $ws,
             'status' => $status,
             'approvals' => $approvals,

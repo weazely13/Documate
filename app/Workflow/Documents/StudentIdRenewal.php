@@ -5,6 +5,8 @@ namespace App\Workflow\Documents;
 /** F-SDM-003 Rev. 1 (03-31-23): Request for Renewal/Reprinting of Student ID. */
 final class StudentIdRenewal extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Requests; }
+
     public function key(): string
     {
         return 'student_id_renewal';

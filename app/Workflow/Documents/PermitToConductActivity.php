@@ -7,6 +7,8 @@ use Carbon\Carbon;
 /** F-SDM-006 Rev. 1 (03-31-23): Permit to Conduct an In-Campus Student Activity Form. */
 final class PermitToConductActivity extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Permits; }
+
     use HasHostedBy, HasActivitySlots;
 
     public function key(): string

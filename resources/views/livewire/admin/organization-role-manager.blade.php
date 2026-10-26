@@ -6,66 +6,10 @@
     $thead = 'bg-gray-50 text-xs font-medium text-gray-500';
     $primaryBtn = 'rounded-lg bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700';
     $secondaryBtn = 'rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50';
-
-    $navGroups = [
-        'Structure' => [
-            'organizations' => 'Organizations',
-            'programs' => 'Programs',
-        ],
-        'People' => [
-            'positions' => 'Officer positions',
-            'officers' => 'Assign officers',
-            'signatories' => 'Signatories',
-        ],
-    ];
-
-    $panelInfo = [
-        'organizations' => ['Organizations', 'Create organizations and link them to programs or a year level.'],
-        'programs' => ['Programs', 'Degree programs and the college each one belongs to.'],
-        'positions' => ['Officer positions', 'Titles an officer can hold, such as President or Auditor.'],
-        'officers' => ['Assign officers', 'Make eligible students officers of their organization.'],
-        'signatories' => ['Signatories', 'Who can sign documents, and in which role.'],
-    ];
 @endphp
 
-<div class="flex flex-col gap-6 lg:flex-row">
-
-    {{-- ============ SIDEBAR ============ --}}
-    <aside class="lg:w-56 lg:shrink-0">
-        <nav aria-label="Organizations and roles" class="lg:sticky lg:top-6">
-            <div class="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2 lg:mx-0 lg:block lg:space-y-5 lg:overflow-visible lg:pb-0">
-                @foreach ($navGroups as $group => $items)
-                    <div class="shrink-0">
-                        <p class="mb-1.5 hidden px-3 text-xs font-medium text-gray-400 lg:block">{{ $group }}</p>
-                        <ul class="flex gap-1.5 lg:block lg:space-y-0.5">
-                            @foreach ($items as $key => $text)
-                                @php $active = $panel === $key; @endphp
-                                <li>
-                                    <button type="button" wire:click="$set('panel', '{{ $key }}')"
-                                        @if ($active) aria-current="page" @endif
-                                        class="flex w-full snap-start items-center justify-between gap-2 whitespace-nowrap rounded-lg border px-3.5 py-2.5 text-sm transition lg:gap-3 lg:border-transparent lg:py-2
-                                            {{ $active
-                                                ? 'border-[#2A57B4]/20 bg-[#2A57B4]/10 font-semibold text-[#2A57B4]'
-                                                : 'border-gray-200 bg-white font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 lg:bg-transparent' }}">
-                                        <span>{{ $text }}</span>
-                                        <span class="text-xs tabular-nums {{ $active ? 'text-[#2A57B4]/70' : 'text-gray-400' }}">{{ $counts[$key] }}</span>
-                                    </button>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endforeach
-            </div>
-        </nav>
-    </aside>
-
-    {{-- ============ CONTENT ============ --}}
-    <main class="min-w-0 flex-1 space-y-5">
-
-        <div>
-            <h2 class="text-lg font-semibold text-gray-900">{{ $panelInfo[$panel][0] }}</h2>
-            <p class="text-sm text-gray-500">{{ $panelInfo[$panel][1] }}</p>
-        </div>
+{{-- The Users and Accounts Manager sidebar (around this component) picks the panel and signatory section. --}}
+<div class="space-y-5">
 
         {{-- ============ ORGANIZATIONS ============ --}}
         @if ($panel === 'organizations')
@@ -603,14 +547,22 @@
             @php
                 $activeRoles = $signatoryRoles->where('is_active', true);
                 $rolesWithoutHolder = $activeRoles->filter(fn ($r) => ($sigHolderCounts[$r->id] ?? 0) === 0);
-                $pendingInvites = $invitations->filter(fn ($i) => ! $i->used_at && ! $i->declined_at && ! $i->cancelled_at)->count();
                 $scopeText = fn ($s) => ['organization' => 'Per organization', 'program' => 'Per program', 'college' => 'Per college'][$s] ?? 'Everyone';
                 $selRole = $signatoryRoles->firstWhere('id', (int) $sigRoleId);
                 $invRole = $signatoryRoles->firstWhere('id', (int) $invRoleId);
                 $today = \Illuminate\Support\Carbon::today();
             @endphp
 
-            <div x-data="{ tab: 'people', addMode: 'existing', coverage: false }" class="space-y-5">
+            {{-- The section comes from the sidebar (?sig=). Jumps inside the page (e.g. "Review roles")
+                 keep the URL and the sidebar highlight in step. --}}
+            <div x-data="{ tab: @js($sigTab), addMode: 'existing', coverage: false }"
+                 x-init="$watch('tab', v => {
+                     const url = new URL(window.location);
+                     v === 'people' ? url.searchParams.delete('sig') : url.searchParams.set('sig', v);
+                     history.replaceState(history.state, '', url);
+                     $dispatch('users-manager-nav', 'sig-' + v);
+                 })"
+                 class="space-y-5">
 
                 @foreach (['sig_role_message', 'sig_assign_message', 'sig_invite_message'] as $flashKey)
                     <x-admin.alert :message="session($flashKey)" class="!mb-0" />
@@ -626,30 +578,6 @@
                                 class="text-xs font-semibold text-amber-800 underline hover:text-amber-950">Review roles</button>
                     </div>
                 @endif
-
-                {{-- Underline tabs --}}
-                <div class="border-b border-gray-200">
-                    <nav class="-mb-px flex gap-6 overflow-x-auto" aria-label="Signatory sections">
-                        @foreach ([
-                            'people' => ['Who can sign', null],
-                            'add' => ['Add a person', null],
-                            'roles' => ['Roles', $signatoryRoles->count()],
-                            'invites' => ['Invitations', $pendingInvites ?: null],
-                        ] as $key => [$text, $badge])
-                            <button type="button" @click="tab = '{{ $key }}'"
-                                    :aria-current="tab === '{{ $key }}' ? 'page' : null"
-                                    class="inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-medium transition"
-                                    :class="tab === '{{ $key }}'
-                                        ? 'border-[#2A57B4] text-[#2A57B4]'
-                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'">
-                                {{ $text }}
-                                @if ($badge)
-                                    <span class="rounded-full bg-gray-100 px-1.5 text-[11px] font-medium text-gray-600">{{ $badge }}</span>
-                                @endif
-                            </button>
-                        @endforeach
-                    </nav>
-                </div>
 
                 {{-- ===== TAB 1: WHO CAN SIGN ===== --}}
                 <div x-show="tab === 'people'" x-cloak class="space-y-4">
@@ -1154,5 +1082,4 @@
             </div>
         @endif
 
-    </main>
 </div>

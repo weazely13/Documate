@@ -10,6 +10,8 @@ use Carbon\Carbon;
  */
 final class PermitToConductOffCampus extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Permits; }
+
     use HasHostedBy, HasActivitySlots;
 
     public function key(): string

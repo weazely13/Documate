@@ -112,6 +112,10 @@ class ProfilePage extends Component
             return;
         }
 
+        // Saving a signature is consent to use it (there is no separate on/off switch).
+        Auth::user()->forceFill(['signature_enabled' => true])->save();
+        $this->signature_enabled = true;
+
         $this->reset('signatureData', 'signature_password');
         $this->dispatch('signature-saved');
         session()->flash('profile_saved', 'Signature saved.');
@@ -221,17 +225,6 @@ class ProfilePage extends Component
         $this->reset('current_password', 'new_password', 'new_password_confirmation');
         $this->resetErrorBag(['current_password', 'new_password', 'new_password_confirmation']);
     }
-    public function toggleSignatureEnabled(): void
-    {
-        $user = Auth::user();
-        $user->forceFill(['signature_enabled' => ! $user->signature_enabled])->save();
-        $this->signature_enabled = $user->signature_enabled;
-
-        session()->flash('profile_saved', $this->signature_enabled
-            ? 'Your e-signature will be applied when you sign.'
-            : 'Your e-signature image is turned off. Documents you sign will show your name and security seal only.');
-    }
-
     public function updatePassword(): void
     {
         $validated = $this->validate([

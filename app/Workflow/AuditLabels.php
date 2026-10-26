@@ -2,6 +2,10 @@
 
 namespace App\Workflow;
 
+use App\Models\StudentDocumentWorkspace;
+use App\Services\Workflow\TransactionWorkflow;
+use Illuminate\Support\Collection;
+
 final class AuditLabels
 {
     public const ADMIN = [
@@ -35,5 +39,26 @@ final class AuditLabels
     public static function label(string $action): string
     {
         return self::ADMIN[$action] ?? $action;
+    }
+
+    /**
+     * The transaction's activity for staff pages, newest first.
+     *
+     * @return Collection<int, array{text: string, who: string, role: ?string, at: \Carbon\CarbonInterface, note: ?string}>
+     */
+    public static function history(StudentDocumentWorkspace $ws): Collection
+    {
+        return $ws->auditLogs()->with('actor')->get()->map(fn ($log) => [
+            'text' => self::label($log->action),
+            'who' => $log->actor ? trim($log->actor->first_name . ' ' . $log->actor->last_name) : 'System',
+            'role' => $log->actor_role,
+            'at' => $log->created_at,
+            'note' => $log->meta['message']
+                ?? $log->meta['reason']
+                ?? ($log->action === 'external.identity_checked'
+                    ? (TransactionWorkflow::IDENTITY_METHODS[$log->meta['method'] ?? ''] ?? '')
+                        . (! empty($log->meta['note']) ? ': ' . $log->meta['note'] : '')
+                    : null),
+        ])->reverse()->values();
     }
 }

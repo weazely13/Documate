@@ -42,11 +42,17 @@
                 </div>
 
                 <div class="flex shrink-0 items-center gap-2 sm:gap-3">
-                    <a href="{{ route('student.new-transaction') }}" wire:navigate title="Back to Documents" class="{{ $iconBtn }}">
+                    {{-- A new paper form goes back to the picker; one being edited goes back to My documents. --}}
+                    @php
+                        [$backUrl, $backLabel] = $editingWorkspaceId
+                            ? [route('student.documents.index'), 'My documents']
+                            : [route('student.new-transaction'), 'New transaction'];
+                    @endphp
+                    <a href="{{ $backUrl }}" wire:navigate title="Back to {{ $backLabel }}" class="{{ $iconBtn }}">
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6" />
                         </svg>
-                        <span class="hidden text-sm font-medium sm:inline">Back to Documents</span>
+                        <span class="hidden text-sm font-medium sm:inline">Back to {{ $backLabel }}</span>
                     </a>
 
                     <button type="button" @click="savePdf()" :disabled="pdfLoading" title="Save as PDF" class="{{ $iconBtn }} disabled:opacity-50">
@@ -402,171 +408,80 @@
     @else
 
         {{-- ============================================================
-            TEMPLATE PICKER — grid / list applies to BOTH sections
+            FORM PICKER: paperless forms and paper templates, grouped by category
         ============================================================= --}}
-        <div class="mx-auto max-w-6xl space-y-6">
+        <div class="mx-auto max-w-3xl space-y-6">
 
-            {{-- Search + view switcher --}}
-            <div class="flex items-center gap-2 sm:gap-3">
-
-                <div class="relative min-w-0 flex-1">
-                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                        <i class='bx bx-search text-lg'></i>
-                    </div>
-                    <input
-                        type="text"
-                        wire:model.live.debounce.250ms="search"
-                        placeholder="Search templates…"
-                        class="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-9 text-base placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:py-2 sm:text-sm"
-                    />
-                    @if($search)
-                        <button type="button" wire:click="$set('search', '')" aria-label="Clear search"
-                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
-                            <i class='bx bx-x text-xl'></i>
-                        </button>
-                    @endif
-                </div>
-
-                <div class="inline-flex shrink-0 rounded-xl border border-gray-200 bg-white p-1" role="group" aria-label="View mode">
-                    <button type="button" wire:click="$set('viewMode', 'grid')" title="Grid view" aria-pressed="{{ $viewMode === 'grid' ? 'true' : 'false' }}"
-                        class="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs transition-colors sm:h-auto sm:py-1.5 {{ $viewMode === 'grid' ? 'bg-blue-50 font-semibold text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
-                        <i class='bx bx-grid-alt text-lg sm:text-base'></i>
-                        <span class="hidden sm:inline">Grid</span>
-                    </button>
-                    <button type="button" wire:click="$set('viewMode', 'list')" title="List view" aria-pressed="{{ $viewMode === 'list' ? 'true' : 'false' }}"
-                        class="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs transition-colors sm:h-auto sm:py-1.5 {{ $viewMode === 'list' ? 'bg-blue-50 font-semibold text-blue-600' : 'text-gray-500 hover:text-gray-800' }}">
-                        <i class='bx bx-list-ul text-lg sm:text-base'></i>
-                        <span class="hidden sm:inline">List</span>
-                    </button>
-                </div>
+            <div>
+                <h2 class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">What do you need?</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    Pick a form. <span class="font-medium text-slate-700">Online</span> forms are signed and finished here.
+                    <span class="font-medium text-amber-800">Print</span> forms are filled in here, then printed and brought to the VPSD office.
+                </p>
             </div>
 
-            {{-- ============ PAPERLESS TRANSACTIONS ============ --}}
-            @if(count($filteredDocuments))
-                <section class="space-y-3" wire:key="paperless-section">
-                    <div>
-                        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-400">Paperless transactions</h2>
-                        <p class="mt-0.5 text-xs text-slate-500">Fill in, submit and track everything online. You only print the finished document if you need a paper copy.</p>
+            {{-- Search with the category dropdown beside it (stacked on narrow phones) --}}
+            <div class="flex flex-col gap-2 min-[480px]:flex-row">
+                <div class="relative min-w-0 flex-1">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                        <i class='bx bx-search text-lg' aria-hidden="true"></i>
                     </div>
-
-                    @if($viewMode === 'grid')
-
-                        <div class="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3" wire:key="paperless-grid" wire:loading.class="opacity-60">
-                            @foreach($filteredDocuments as $doc)
-                                <a href="{{ route('student.transactions.new', $doc->key()) }}" wire:navigate wire:key="doc-grid-{{ $doc->key() }}"
-                                    class="group flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-[#2A57B4]/40 hover:shadow-md">
-                                    <span class="self-start rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A57B4]">Paperless</span>
-                                    <p class="mt-2 text-sm font-semibold text-slate-900 group-hover:text-[#2A57B4]">{{ $doc->name() }}</p>
-                                    <p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ $doc->description() }}</p>
-                                    <p class="mt-auto pt-3 text-xs font-semibold text-[#2A57B4]">Start &rarr;</p>
-                                </a>
-                            @endforeach
-                        </div>
-
-                    @else
-
-                        <div class="flex flex-col gap-2.5" wire:key="paperless-list" wire:loading.class="opacity-60">
-                            @foreach($filteredDocuments as $doc)
-                                <a href="{{ route('student.transactions.new', $doc->key()) }}" wire:navigate wire:key="doc-list-{{ $doc->key() }}"
-                                    class="group flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-[#2A57B4]/40 hover:shadow-md">
-                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#2A57B4]">
-                                        <i class='bx bx-edit text-xl'></i>
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <p class="truncate text-sm font-semibold text-slate-900 group-hover:text-[#2A57B4]">{{ $doc->name() }}</p>
-                                            <span class="hidden shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A57B4] sm:inline">Paperless</span>
-                                        </div>
-                                        <p class="mt-0.5 truncate text-xs text-slate-500">{{ $doc->description() }}</p>
-                                    </div>
-                                    <i class='bx bx-chevron-right shrink-0 text-xl text-slate-300 group-hover:text-[#2A57B4]'></i>
-                                </a>
-                            @endforeach
-                        </div>
-
-                    @endif
-                </section>
-            @endif
-
-            {{-- ============ PAPER-BASED TEMPLATES ============ --}}
-            <section class="space-y-3" wire:key="paper-section">
-                <div>
-                    <h2 class="text-sm font-bold uppercase tracking-wide text-slate-400">Paper-based templates</h2>
-                    <p class="mt-0.5 text-xs text-slate-500">Forms you print and bring to the VPSD office.</p>
+                    <input
+                        type="search"
+                        wire:model.live.debounce.250ms="search"
+                        placeholder="Search, e.g. permit, consent, clearance"
+                        aria-label="Search forms"
+                        class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-base placeholder-slate-400 focus:border-[#2A57B4] focus:outline-none focus:ring-1 focus:ring-[#2A57B4] sm:text-sm"
+                    />
                 </div>
 
-                @if($viewMode === 'grid')
+                <select wire:model.live="category" aria-label="Form category"
+                        class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-3.5 pr-10 text-base text-slate-700 focus:border-[#2A57B4] focus:outline-none focus:ring-1 focus:ring-[#2A57B4] min-[480px]:w-56 sm:text-sm">
+                    <option value="all">All categories</option>
+                    @foreach (\App\Enums\DocumentCategory::cases() as $cat)
+                        @continue($cat === \App\Enums\DocumentCategory::Other && ! collect($templates)->contains('category', 'other'))
+                        <option value="{{ $cat->value }}">{{ $cat->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
 
-                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4" wire:key="template-grid" wire:loading.class="opacity-60">
-                        @forelse($filteredTemplates as $template)
-                            <a
-                                wire:key="grid-card-{{ $template['template_id'] }}"
-                                href="{{ route('student.new-transaction', ['template' => $template['template_id']]) }}"
-                                wire:navigate
-                                class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-150 hover:border-blue-400 hover:shadow-md"
-                            >
-                                {{-- Same aspect ratio whether or not a preview exists, so cards line up --}}
-                                <div class="relative w-full shrink-0 overflow-hidden border-b border-gray-200 bg-gray-100" style="padding-top: 129%;">
-                                    @if(!empty($template['preview_url']))
-                                        <img src="{{ $template['preview_url'] }}" alt="{{ $this->formatTitle($template['name']) }}" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top">
+            <div class="space-y-6" wire:loading.class="opacity-60" wire:target="search, category">
+                @forelse ($groups as $group)
+                    <section wire:key="group-{{ $group['key'] }}" class="space-y-2.5">
+                        <h3 class="flex items-baseline gap-2 text-sm font-semibold text-slate-600">
+                            {{ $group['label'] }}
+                            <span class="font-medium text-slate-400">{{ count($group['items']) }}</span>
+                        </h3>
+                        <div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
+                            @foreach ($group['items'] as $item)
+                                <a href="{{ $item['url'] }}" wire:navigate wire:key="item-{{ $group['key'] }}-{{ $loop->index }}"
+                                   class="group flex items-center gap-4 px-4 py-4 transition hover:bg-slate-50 sm:px-5">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="break-words text-[15px] font-semibold text-slate-900 group-hover:text-[#2A57B4]">{{ $item['name'] }}</p>
+                                        @if ($item['description'])
+                                            <p class="mt-0.5 line-clamp-2 text-sm text-slate-500 sm:line-clamp-1">{{ $item['description'] }}</p>
+                                        @endif
+                                    </div>
+                                    @if ($item['paper'])
+                                        <span class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800">Print</span>
                                     @else
-                                        <div class="absolute inset-0 flex items-center justify-center text-gray-300">
-                                            <i class='bx bx-file text-4xl'></i>
-                                        </div>
+                                        <span class="hidden shrink-0 text-xs font-medium text-slate-500 sm:inline">Online</span>
                                     @endif
-                                </div>
-
-                                <div class="min-w-0 p-3">
-                                    <p class="truncate text-xs font-semibold text-gray-800 group-hover:text-blue-600 sm:text-sm" title="{{ Str::title(str_replace('_', ' ', $template['name'])) }}">
-                                        {{ Str::title(str_replace('_', ' ', $template['name'])) }}
-                                    </p>
-                                    <p class="mt-0.5 truncate text-[11px] text-gray-400">
-                                        {{ $template['document_size'] ?? 'Standard Document' }}
-                                    </p>
-                                </div>
-                            </a>
-                        @empty
-                            <div class="col-span-full py-16 text-center text-gray-400">
-                                <p class="text-sm">No templates found{{ $search ? ' matching "' . $search . '"' : '' }}.</p>
-                            </div>
-                        @endforelse
+                                    <i class='bx bx-chevron-right shrink-0 text-xl text-slate-300 group-hover:text-[#2A57B4]' aria-hidden="true"></i>
+                                </a>
+                            @endforeach
+                        </div>
+                    </section>
+                @empty
+                    <div class="rounded-2xl border border-dashed border-slate-200 px-4 py-14 text-center">
+                        <p class="text-sm font-medium text-slate-700">No form matches{{ $search ? ' "' . $search . '"' : '' }}.</p>
+                        @if ($category !== 'all' || $search)
+                            <button type="button" wire:click="$set('category', 'all'); $set('search', '')"
+                                    class="mt-2 text-sm font-semibold text-[#2A57B4] hover:underline">Show all forms</button>
+                        @endif
                     </div>
-
-                @else
-
-                    <div class="flex flex-col gap-2.5" wire:key="template-list" wire:loading.class="opacity-60">
-                        @forelse($filteredTemplates as $template)
-                            <a
-                                wire:key="list-card-{{ $template['template_id'] }}"
-                                href="{{ route('student.new-transaction', ['template' => $template['template_id']]) }}"
-                                wire:navigate
-                                class="group flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3.5 transition-all duration-150 hover:border-blue-400 hover:shadow-md"
-                            >
-                                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                                    <i class='bx bx-file text-xl'></i>
-                                </div>
-
-                                <div class="min-w-0 flex-1">
-                                    <p class="truncate text-sm font-semibold text-gray-800 group-hover:text-blue-600">
-                                        {{ Str::title(str_replace('_', ' ', $template['name'])) }}
-                                    </p>
-                                    <p class="mt-0.5 truncate text-[11px] text-gray-400">
-                                        {{ $template['document_size'] ?? 'Standard Document' }}
-                                    </p>
-                                </div>
-
-                                <i class='bx bx-chevron-right shrink-0 text-xl text-gray-300 group-hover:text-blue-600'></i>
-                            </a>
-                        @empty
-                            <div class="py-16 text-center text-gray-400">
-                                <p class="text-sm">No templates found{{ $search ? ' matching "' . $search . '"' : '' }}.</p>
-                            </div>
-                        @endforelse
-                    </div>
-
-                @endif
-            </section>
-
+                @endforelse
+            </div>
         </div>
     @endif
 </div>

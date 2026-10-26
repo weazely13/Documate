@@ -1378,14 +1378,16 @@ HYMN
         $pages = match ($role) {
             'admin' => [
                 ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'description' => 'Overview of system activity.', 'keywords' => 'home overview'],
-                ['label' => 'Transactions', 'route' => 'admin.transactions.index', 'description' => 'Review and manage student document transactions.', 'keywords' => 'documents requests records'],
+                ['label' => 'Workflow Review', 'route' => 'admin.workflow.index', 'description' => 'Review, send for signing and complete online transactions.', 'keywords' => 'review approve sign queue overdue'],
+                ['label' => 'Transaction Records', 'route' => 'admin.transactions.index', 'description' => 'Look up every transaction, grouped by student.', 'keywords' => 'documents requests records history'],
                 ['label' => 'Appointments', 'route' => 'admin.appointments.index', 'description' => 'Review and manage appointment requests.', 'keywords' => 'booking schedule queue'],
-                ['label' => 'Document Uploads', 'route' => 'admin.document-uploads.index', 'description' => 'Review final document uploads.', 'keywords' => 'scans photos verification'],
-                ['label' => 'Clearance Monitoring', 'route' => 'admin.clearance-monitoring', 'description' => 'View and manage student clearance.', 'keywords' => 'clearance student'],
-                ['label' => 'Verification', 'route' => 'admin.verification', 'description' => 'Review student verification submissions.', 'keywords' => 'verify account e-slip'],
+                ['label' => 'Templates & Uploads › Templates', 'route' => 'admin.templates', 'description' => 'Manage paper form templates and their categories.', 'keywords' => 'forms requirements editor templates'],
+                ['label' => 'Templates & Uploads › Uploads', 'route' => 'admin.document-uploads.index', 'description' => 'Review photos of signed paper forms.', 'keywords' => 'scans photos uploads'],
+                ['label' => 'Clearance', 'route' => 'admin.clearance-monitoring', 'description' => 'View and manage student clearance.', 'keywords' => 'clearance student semester'],
+                ['label' => 'Users and Accounts Manager › Manage Accounts', 'route' => 'admin.users', 'description' => 'Manage user accounts and roles.', 'keywords' => 'accounts users roles'],
+                ['label' => 'Users and Accounts Manager › Account Verifications', 'route' => 'admin.verification', 'description' => 'Verification periods and student verification status.', 'keywords' => 'verify account e-slip'],
+                ['label' => 'Users and Accounts Manager › Organizations and Signatories', 'route' => 'admin.users', 'description' => 'Organizations, programs, officer positions, officers and signatories (open them from the left sidebar).', 'keywords' => 'organizations officers signatories programs positions invitations roles'],
                 ['label' => 'Reports', 'route' => 'admin.reports', 'description' => 'View system reports.', 'keywords' => 'analytics export'],
-                ['label' => 'Manage Users', 'route' => 'admin.users', 'description' => 'Manage user accounts and roles.', 'keywords' => 'accounts roles officers'],
-                ['label' => 'Document Templates', 'route' => 'admin.templates', 'description' => 'Manage document templates.', 'keywords' => 'forms requirements editor'],
                 ['label' => 'Profile', 'route' => 'profile', 'description' => 'View and update your account profile.', 'keywords' => 'account settings'],
             ],
             'officer' => [

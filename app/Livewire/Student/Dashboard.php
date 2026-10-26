@@ -3,214 +3,176 @@
 namespace App\Livewire\Student;
 
 use App\Livewire\Student\Concerns\BuildsClearanceStatusViewData;
+use App\Models\Appointment;
+use App\Models\OfficeAvailability;
 use App\Models\StudentDocumentWorkspace;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Livewire\Component;
+use App\Models\User;
+use App\Support\DocumentProgress;
 use App\Workflow\Documents\DocumentRegistry;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
+/**
+ * The student's home: what needs them now, where their documents stand,
+ * their next appointment, clearance and account status.
+ */
 class Dashboard extends Component
 {
     use BuildsClearanceStatusViewData;
 
-    /**
-     * Get all dashboard statistics and recent activity
-     */
-    protected function studentStats(int $userId): array
+    private const FINISHED = ['completed', 'rejected', 'voided'];
+
+    /** Profile details most forms print, checked so the student is not blocked at submit time. */
+    private const PROFILE_FIELDS = [
+        'contact_number' => 'contact number',
+        'address' => 'address',
+        'program_id' => 'program',
+        'year_level' => 'year level',
+        'section' => 'section',
+    ];
+
+    private function documents(int $userId): Builder
     {
-        /*
-        |--------------------------------------------------------------------------
-        | DOCUMENT TRANSACTIONS
-        |--------------------------------------------------------------------------
-        */
-
-        $transactions = DB::table('student_document_workspaces')
+        return StudentDocumentWorkspace::query()
             ->where('user_id', $userId)
-            ->selectRaw('count(*) as total')
-            ->selectRaw("sum(case when workflow_status = 'completed'
-                    or (workflow_status is null and status = 'completed') then 1 else 0 end) as completed")
-            ->selectRaw("sum(case when workflow_status in ('draft','submitted','under_review','action_required','approved')
-                    or (workflow_status is null and status = 'pending') then 1 else 0 end) as pending")
-            ->first();
+            ->with(['template', 'approvals.role'])
+            ->withCount([
+                'approvals',
+                'approvals as approved_count' => fn ($q) => $q->where('status', 'approved'),
+            ]);
+    }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | APPOINTMENTS
-        |--------------------------------------------------------------------------
-        */
-
-        $appointments = DB::table('appointments')
-            ->where('user_id', $userId)
-            ->selectRaw('count(*) as total')
-            ->selectRaw("
-                sum(
-                    case
-                        when status = 'pending'
-                        then 1
-                        else 0
-                    end
-                ) as pending
-            ")
-            ->selectRaw("
-                sum(
-                    case
-                        when status = 'approved'
-                        and appointment_date >= ?
-                        then 1
-                        else 0
-                    end
-                ) as upcoming
-            ", [now()->toDateString()])
-            ->selectRaw("
-                sum(
-                    case
-                        when status = 'attended'
-                        then 1
-                        else 0
-                    end
-                ) as attended
-            ")
-            ->selectRaw("
-                sum(
-                    case
-                        when status = 'missed'
-                        then 1
-                        else 0
-                    end
-                ) as missed
-            ")
-            ->first();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | NEXT APPOINTMENT
-        |--------------------------------------------------------------------------
-        */
-
-        $nextAppointment = DB::table('appointments')
-            ->where('user_id', $userId)
-            ->where('status', 'approved')
-            ->where('appointment_date', '>=', now()->toDateString())
-            ->orderBy('appointment_date')
-            ->orderBy('session')
-            ->first();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | UPCOMING APPOINTMENTS
-        |--------------------------------------------------------------------------
-        */
-
-        $upcomingAppointments = DB::table('appointments')
-            ->where('user_id', $userId)
-            ->where('status', 'approved')
-            ->where('appointment_date', '>=', now()->toDateString())
-            ->orderBy('appointment_date')
-            ->orderBy('session')
-            ->limit(4)
+    /** Documents still moving, the ones needing the student first. */
+    private function activeDocuments(int $userId): Collection
+    {
+        return $this->documents($userId)
+            ->where(fn (Builder $w) => $w
+                ->where(fn (Builder $x) => $x->whereNotNull('workflow_status')->whereNotIn('workflow_status', self::FINISHED))
+                ->orWhere(fn (Builder $l) => $l->whereNull('workflow_status')->where('status', '!=', 'completed')))
+            ->orderByRaw("CASE workflow_status WHEN 'action_required' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END")
+            ->latest('updated_at')
             ->get();
+    }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | LAST UPDATED / CREATED DOCUMENT
-        |--------------------------------------------------------------------------
-        |
-        | This is the document that will appear inside the dashboard's
-        | "Recent Document" card.
-        |
-        | We use the same StudentDocumentWorkspace model and template
-        | relationship used by the Documents page.
-        |
-        */
-
-        $latestDocument = StudentDocumentWorkspace::query()
-            ->with('template')
+    private function nextAppointment(int $userId): ?array
+    {
+        $appointment = Appointment::query()
             ->where('user_id', $userId)
-            ->orderByDesc('updated_at')
+            ->whereIn('status', ['approved', 'pending'])
+            ->whereDate('appointment_date', '>=', today())
+            ->orderBy('appointment_date')
+            ->orderBy('session')
             ->first();
 
-        $paperless = $latestDocument?->usesWorkflow();
+        if (! $appointment) {
+            return null;
+        }
 
-        $latestName = $paperless
-            ? (DocumentRegistry::find($latestDocument->document_type)?->name() ?? 'Document Transaction')
-            : ($latestDocument?->template?->name ?? 'Document Transaction');
-
-        $latestStatus = $paperless
-            ? $latestDocument->workflow_status->value
-            : ($latestDocument?->status ?? 'pending');
-        /*
-        |--------------------------------------------------------------------------
-        | RETURN DASHBOARD DATA
-        |--------------------------------------------------------------------------
-        */
+        $date = Carbon::parse($appointment->appointment_date);
 
         return [
-
-            'transactions' => [
-                'total' => (int) ($transactions->total ?? 0),
-                'completed' => (int) ($transactions->completed ?? 0),
-                'pending' => (int) ($transactions->pending ?? 0),
-            ],
-
-            'appointments' => [
-                'total' => (int) ($appointments->total ?? 0),
-                'pending' => (int) ($appointments->pending ?? 0),
-                'upcoming' => (int) ($appointments->upcoming ?? 0),
-                'attended' => (int) ($appointments->attended ?? 0),
-                'missed' => (int) ($appointments->missed ?? 0),
-            ],
-
-            'next_appointment' => $nextAppointment,
-
-            'upcoming_appointments' => $upcomingAppointments,
-
-            /*
-             * Latest document transaction.
-             */
-            'latest_document' => $latestDocument,
-            'latest_document_name' => $latestName,
-            'latest_document_status' => $latestStatus,
-            'office_notices' => StudentDocumentWorkspace::officeNoticesFor($userId),
+            'date' => $date,
+            'is_today' => $date->isToday(),
+            'session' => ucfirst((string) $appointment->session),
+            'status' => $appointment->status,
+            'queue_number' => $appointment->queue_number,
+            'now_serving' => $date->isToday() && $appointment->session
+                ? OfficeAvailability::nowServingFor($date->toDateString(), $appointment->session)
+                : null,
+            'purpose' => $appointment->purpose,
         ];
     }
 
-
     /**
-     * Render the student dashboard.
+     * Things only the student can move forward, most urgent first.
+     *
+     * @return array<int, array{tone: string, title: string, text: string, url: string, action: string}>
      */
+    private function attention(User $user, Collection $active, ?array $appointment, array $clearance, Collection $missingProfile): array
+    {
+        $items = [];
+
+        foreach ($active as $ws) {
+            $p = DocumentProgress::describe($ws);
+            $status = $ws->workflow_status?->value;
+
+            if ($status === 'action_required') {
+                $items[] = ['tone' => 'amber', 'title' => 'Changes needed: ' . $p['title'], 'text' => $p['next'], 'url' => $p['href'], 'action' => 'Update'];
+            } elseif ($status === 'draft') {
+                $items[] = ['tone' => 'amber', 'title' => 'Not sent yet: ' . $p['title'], 'text' => 'Finish the form and submit it to the VPSD office.', 'url' => $p['href'], 'action' => 'Continue'];
+            }
+        }
+
+        foreach (StudentDocumentWorkspace::officeNoticesFor($user->id) as $notice) {
+            $doc = DocumentRegistry::get($notice->document_type);
+            $values = $notice->field_values ?? [];
+            $items[] = [
+                'tone' => $doc->noticeTone() === 'rose' ? 'rose' : 'blue',
+                'title' => $doc->noticeTitle($values),
+                'text' => $doc->noticeLine($values),
+                'url' => route('student.transactions.show', $notice->workspace_id),
+                'action' => 'Open',
+            ];
+        }
+
+        if ($appointment && $appointment['is_today'] && $appointment['status'] === 'approved') {
+            $text = $appointment['session'] . ' session'
+                . ($appointment['queue_number'] ? ' · your number is ' . $appointment['queue_number'] : '')
+                . ($appointment['now_serving'] ? ' · now serving ' . $appointment['now_serving'] : '');
+            $items[] = ['tone' => 'blue', 'title' => 'Your appointment is today', 'text' => $text, 'url' => route('student.appointments.index'), 'action' => 'View'];
+        }
+
+        if (($clearance['status'] ?? '') === 'Uncleared') {
+            $items[] = [
+                'tone' => 'rose',
+                'title' => 'You are not yet cleared for ' . ($clearance['period_label'] ?? 'this semester'),
+                'text' => $clearance['remarks'] ?: 'See which office has a hold on your clearance.',
+                'url' => route('student.clearance-status'),
+                'action' => 'Details',
+            ];
+        }
+
+        if ($missingProfile->isNotEmpty()) {
+            $items[] = ['tone' => 'slate', 'title' => 'Complete your profile', 'text' => 'Missing ' . $missingProfile->implode(', ') . '. Forms print these details.', 'url' => route('profile'), 'action' => 'Update'];
+        }
+
+        if (! $user->signature_path) {
+            $items[] = ['tone' => 'slate', 'title' => 'Add your e-signature', 'text' => 'Several forms are signed with it. Save it once in your profile.', 'url' => route('profile'), 'action' => 'Add'];
+        }
+
+        return $items;
+    }
+
     public function render()
     {
-        $user = $this->loadStudentWithClearance(
-            (int) Auth::id()
-        );
+        $userId = (int) Auth::id();
+        $user = $this->loadStudentWithClearance($userId);
+        $user->loadMissing(['program', 'role']);
 
-        $fullName = $this->fullName($user);
+        $clearance = $this->buildCurrentClearanceStatus($user);
+        $active = $this->activeDocuments($userId);
+        $appointment = $this->nextAppointment($userId);
+
+        $missing = collect(self::PROFILE_FIELDS)
+            ->filter(fn ($label, $field) => blank($user->{$field}))
+            ->values();
 
         return view('livewire.student.dashboard', [
-
             'user' => $user,
-
-            'fullName' => $fullName,
-
-            'formattedYearLevel' => $this->formatYearLevel(
-                (string) $user->year_level
-            ),
-
-            'currentClearanceStatus' => $this->buildCurrentClearanceStatus(
-                $user
-            ),
-
-            'stats' => $this->studentStats(
-                (int) Auth::id()
-            ),
-
-        ])->layout(
-            'layouts.app',
-            ['title' => 'Student Dashboard']
-        );
+            'firstName' => $user->first_name ?: $this->fullName($user),
+            'facts' => collect([
+                $user->student_number,
+                $user->program?->name,
+                $user->year_level ? $this->formatYearLevel((string) $user->year_level) . ($user->section ? ', Section ' . $user->section : '') : null,
+            ])->filter()->values()->all(),
+            'attention' => $this->attention($user, $active, $appointment, $clearance, $missing),
+            'active' => $active->take(3)->map(fn ($ws) => DocumentProgress::describe($ws) + ['id' => $ws->workspace_id]),
+            'activeCount' => $active->count(),
+            'appointment' => $appointment,
+            'clearance' => $clearance,
+        ])->layout('layouts.app', ['title' => 'Dashboard']);
     }
 }

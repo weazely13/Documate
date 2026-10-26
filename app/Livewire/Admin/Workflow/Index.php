@@ -4,38 +4,36 @@ namespace App\Livewire\Admin\Workflow;
 
 use App\Models\StudentDocumentWorkspace;
 use App\Models\User;
-use App\Workflow\Documents\DocumentRegistry;
+use App\Support\Issuers;
+use App\Support\ReviewQueue;
+use App\Support\WaitingTime;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-/** VPSD review queue for digital (workflow) transactions. Drafts are never shown. */
+/**
+ * VPSD action queue for digital (workflow) transactions: only what is still open.
+ * Finished ones (completed, rejected, voided) are looked up in Transaction Records.
+ */
 class Index extends Component
 {
     use WithPagination;
 
     public const TABS = [
-        'attention' => 'Needs action',
-        'submitted' => 'New',
+        'attention' => 'To review',
         'signing' => 'In signing',
         'action_required' => 'Waiting on student',
-        'approved' => 'Ready to complete',
-        'completed' => 'Completed',
-        'rejected' => 'Rejected',
-        'voided' => 'Voided',
-        'issued' => 'Issued by office',
-        'all' => 'All',
     ];
 
-    /** Sortable columns: key => [label, column or special handler]. */
+    /** Tabs whose waiting time is the office's (or a signatory's) to act on, so it is flagged. */
+    public const FLAGGED_TABS = ReviewQueue::FLAGGED;
+
+    /** Sortable columns: key => label. */
     public const SORTS = [
-        'code' => 'Code',
         'student' => 'Student',
-        'document' => 'Document',
-        'submitted' => 'Submitted',
-        'signatures' => 'Signatures',
         'status' => 'Status',
+        'waiting' => 'Waiting',
     ];
 
     #[Url(except: 'attention')]
@@ -111,13 +109,11 @@ class Index extends Component
 
         foreach (self::SORTS as $key => $label) {
             $options["{$key}:asc"] = match ($key) {
-                'submitted' => 'Submitted: oldest first',
-                'signatures' => 'Signatures: fewest first',
+                'waiting' => 'Waiting: longest first',
                 default => "{$label}: A to Z",
             };
             $options["{$key}:desc"] = match ($key) {
-                'submitted' => 'Submitted: newest first',
-                'signatures' => 'Signatures: most first',
+                'waiting' => 'Waiting: shortest first',
                 default => "{$label}: Z to A",
             };
         }
@@ -125,52 +121,16 @@ class Index extends Component
         return $options;
     }
 
-    /** Document keys that the VPSD office or a role holder issues to students. */
-    private function officeKeys(): array
-    {
-        return collect(DocumentRegistry::all())
-            ->filter(fn ($d) => $d->issuedByOffice())
-            ->keys()
-            ->all();
-    }
-
-    private function staffKeys(): array
-    {
-        return collect(DocumentRegistry::all())
-            ->filter(fn ($d) => $d->issuerIsStaff())
-            ->keys()
-            ->all();
-    }
-
-    private function base(): Builder
-    {
-        return StudentDocumentWorkspace::query()
-            ->usingWorkflow()
-            ->whereNotNull('document_type')
-            ->where('workflow_status', '!=', 'draft');
-    }
-
-    private function applyTab(Builder $q, string $tab): Builder
-    {
-        return match ($tab) {
-            'attention' => $q->where(fn ($w) => $w
-                ->whereIn('workflow_status', ['submitted', 'approved'])
-                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereDoesntHave('approvals'))
-                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereIn('document_type', $this->staffKeys()))),
-            'signing' => $q->where('workflow_status', 'under_review')->whereHas('approvals'),
-            'submitted', 'action_required', 'approved', 'completed', 'rejected', 'voided' => $q->where('workflow_status', $tab),
-            'issued' => $q->whereIn('document_type', $this->officeKeys()),
-            default => $q,
-        };
-    }
-
     private function applySort(Builder $q): void
     {
         [$key, $dir] = $this->parsedSort();
 
+        // Default and "waiting": the transaction that has waited longest comes first.
+        $changed = 'COALESCE(status_changed_at, submitted_at)';
+        $waitingSince = "CASE WHEN last_signed_at IS NOT NULL AND last_signed_at > {$changed} THEN last_signed_at ELSE {$changed} END";
+
         if (! $key) {
-            // Default: oldest first for the action queue, most recently touched first elsewhere.
-            $this->tab === 'attention' ? $q->orderBy('submitted_at') : $q->latest('updated_at');
+            $q->orderByRaw("{$waitingSince} asc");
 
             return;
         }
@@ -178,10 +138,7 @@ class Index extends Component
         $table = $q->getModel()->getTable();
 
         match ($key) {
-            'code' => $q->orderBy('transaction_code', $dir),
-            'document' => $q->orderBy('document_type', $dir),
-            'submitted' => $q->orderBy('submitted_at', $dir),
-            'signatures' => $q->orderBy('approvals_count', $dir),
+            'waiting' => $q->orderByRaw("{$waitingSince} {$dir}"),
             'status' => $q->orderBy('workflow_status', $dir),
             'student' => $q->orderBy(
                 User::select('last_name')->whereColumn('users.id', "{$table}.user_id")->limit(1),
@@ -198,10 +155,22 @@ class Index extends Component
 
     public function render()
     {
-        $counts = collect(self::TABS)->map(fn ($label, $key) => $this->applyTab($this->base(), $key)->count());
+        // Old bookmarks may still carry a removed tab (completed, voided, ...).
+        if (! array_key_exists($this->tab, self::TABS)) {
+            $this->tab = 'attention';
+        }
 
-        $q = $this->applyTab($this->base(), $this->tab)
-            ->with('user')
+        $counts = collect(self::TABS)->map(fn ($label, $key) => ReviewQueue::query($key)->count());
+
+        $overdue = ReviewQueue::withWaitingSince(ReviewQueue::overdue())->with('user')->get()
+            ->each(fn ($w) => $w->waiting_since = ReviewQueue::waitingSince($w))
+            ->sortBy('waiting_since')
+            ->values();
+        $lateCounts = collect(self::FLAGGED_TABS)
+            ->mapWithKeys(fn ($key) => [$key => ReviewQueue::apply(ReviewQueue::overdue(), $key)->count()]);
+
+        $q = ReviewQueue::withWaitingSince(ReviewQueue::query($this->tab))
+            ->with('user.role')
             ->withCount([
                 'approvals',
                 'approvals as approved_count' => fn ($a) => $a->where('status', 'approved'),
@@ -210,6 +179,7 @@ class Index extends Component
         if (trim($this->search) !== '') {
             $s = '%' . trim($this->search) . '%';
             $q->where(fn ($w) => $w->where('transaction_code', 'like', $s)
+                ->orWhere('field_values->reporter_name', 'like', $s)
                 ->orWhereHas('user', fn ($u) => $u->where('first_name', 'like', $s)
                     ->orWhere('last_name', 'like', $s)
                     ->orWhere('student_number', 'like', $s)));
@@ -219,9 +189,21 @@ class Index extends Component
 
         [$sortKey, $sortDir] = $this->parsedSort();
 
+        $rows = $q->paginate(20);
+        $flagged = in_array($this->tab, self::FLAGGED_TABS, true);
+        // Waiting on student: the student has the next move, so show the plain age only.
+        $issuers = Issuers::for($rows->getCollection());
+        $rows->getCollection()->each(function (StudentDocumentWorkspace $row) use ($flagged, $issuers) {
+            $row->waiting = WaitingTime::describe(ReviewQueue::waitingSince($row), flag: $flagged);
+            $row->issuer = Issuers::label($issuers[$row->workspace_id] ?? null);
+        });
+
         return view('livewire.admin.workflow.index', [
-            'rows' => $q->paginate(20),
+            'rows' => $rows,
             'counts' => $counts,
+            'lateCounts' => $lateCounts,
+            'overdue' => $overdue,
+            'readyCount' => ReviewQueue::base()->where('workflow_status', 'approved')->count(),
             'tabs' => self::TABS,
             'sortKey' => $sortKey,
             'sortDir' => $sortDir,

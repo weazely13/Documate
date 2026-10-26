@@ -7,6 +7,8 @@ use Illuminate\Validation\Rule;
 /** F-SDM-024 Rev. 1 (03-31-23), issued by a signatory who rates the student directly. */
 class ModelStudentRatingBySignatory extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Awards; }
+
     public function key(): string { return 'model_student_rating_signatory'; }
     public function name(): string { return 'Model Student Faculty/Peer Rating (by signatory)'; }
     public function description(): string { return 'A faculty member or other signatory rates a student for the Model Student award.'; }

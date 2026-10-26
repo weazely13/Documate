@@ -13,8 +13,16 @@ class TransactionRecordShow extends Component
 {
     public StudentDocumentWorkspace $workspace;
 
-    public function mount(StudentDocumentWorkspace $workspace): void
+    public function mount(StudentDocumentWorkspace $workspace)
     {
+        // Online transactions have their own records page.
+        if ($workspace->usesWorkflow()) {
+            $this->workspace = $workspace;
+            $this->skipRender();
+
+            return $this->redirectRoute('admin.transactions.online', $workspace->workspace_id, navigate: true);
+        }
+
         $this->workspace = $workspace->load([
             'user.latestVerification',
             'user.program',

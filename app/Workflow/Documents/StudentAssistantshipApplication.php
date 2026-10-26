@@ -9,6 +9,8 @@ use App\Services\Workflow\FormSupport;
 /** F-SDM-015 Rev. 1 (03-31-23): Application for Student Assistantship Form. */
 final class StudentAssistantshipApplication extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Requests; }
+
     public const WEEKLY_HOURS = 12;
     public const MAX_DAILY_HOURS = 4;
     

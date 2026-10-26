@@ -13,7 +13,8 @@ class ManageUsers extends Component
 {
     use WithPagination;
 
-    // Tabs: 'users' (existing table) | 'org-roles' (new organization/role manager)
+    // Tabs: 'users' (accounts table) | 'org-roles' (organization/role manager). In the URL so the People tabs can link here.
+    #[\Livewire\Attributes\Url(as: 'tab', except: 'users')]
     public string $activeTab = 'users';
 
     public $search = '';
@@ -35,6 +36,21 @@ class ManageUsers extends Component
     public bool $showRemoved = false;
 
     public function updatingShowRemoved() { $this->resetPage(); }
+
+    /** Which Users and Accounts Manager sidebar item is open, read from the page URL once. */
+    public string $navKey = 'accounts';
+
+    public function mount(): void
+    {
+        if ($this->activeTab !== 'org-roles') {
+            return;
+        }
+
+        $panel = (string) request()->query('panel', 'organizations');
+        $this->navKey = $panel === 'signatories'
+            ? 'sig-' . (string) request()->query('sig', 'people')
+            : $panel;
+    }
 
     public function setActiveTab(string $tab): void
     {

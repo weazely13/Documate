@@ -3,22 +3,16 @@
     <!-- MAIN CONTENT -->
     <div class="flex h-full">
 
-        <div class="flex-1 p-2">
+        <div class="mx-auto w-full max-w-6xl flex-1">
 
-            <!-- HEADER -->
-            <div class="flex justify-between items-center mb-4">
-                <div>
-                    <h1 class="text-xl font-bold">DocuMate Templates</h1>
-                    <p class="text-xs text-gray-500">
-                        Manage VPSD document templates
-                    </p>
-                </div>
-
-                <button wire:click="openPanel"
-                    class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-blue-700 transition">
-                    + Add Template
-                </button>
-            </div>
+            <x-admin.area-header name="documents" active="templates">
+                <x-slot:actions>
+                    <button type="button" wire:click="openPanel"
+                        class="w-full rounded-lg bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24499A] sm:w-auto sm:py-2">
+                        Add template
+                    </button>
+                </x-slot:actions>
+            </x-admin.area-header>
 
             <!-- TEMPLATE GRID -->
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -89,6 +83,19 @@
                             <p class="text-[10px] text-gray-300 mt-0.5">
                                 Edited {{ $template->updated_at->diffForHumans() }}
                             </p>
+
+                            <label class="mt-2 block" onclick="event.stopPropagation()">
+                                <span class="sr-only">Category for {{ $template->name }}</span>
+                                <select wire:change="setCategory({{ $template->template_id }}, $event.target.value)"
+                                        wire:click.stop
+                                        class="w-full rounded border px-1.5 py-1 text-[11px] {{ $template->category ? 'border-gray-200 text-gray-600' : 'border-amber-300 bg-amber-50 text-amber-800' }}">
+                                    <option value="" @selected(! $template->category)>No category yet</option>
+                                    @foreach (\App\Enums\DocumentCategory::cases() as $cat)
+                                        @continue($cat === \App\Enums\DocumentCategory::Other)
+                                        <option value="{{ $cat->value }}" @selected($template->category === $cat)>{{ $cat->label() }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
                         </div>
                     </div>
 
@@ -172,6 +179,25 @@
                         @error('name') border-red-500 @enderror">
 
                     @error('name')
+                        <span class="text-red-500 text-[11px]">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <!-- CATEGORY -->
+                <div>
+                    <label for="template-category" class="text-xs font-semibold">
+                        Category <span class="text-red-500">*</span>
+                    </label>
+                    <select id="template-category" wire:model="category"
+                        class="w-full border rounded-md px-2 py-1.5 mt-1 text-sm @error('category') border-red-500 @enderror">
+                        <option value="">Choose a category…</option>
+                        @foreach (\App\Enums\DocumentCategory::cases() as $cat)
+                            @continue($cat === \App\Enums\DocumentCategory::Other)
+                            <option value="{{ $cat->value }}">{{ $cat->label() }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] text-gray-400 mt-1">Students find the form under this group on New transaction.</p>
+                    @error('category')
                         <span class="text-red-500 text-[11px]">{{ $message }}</span>
                     @enderror
                 </div>

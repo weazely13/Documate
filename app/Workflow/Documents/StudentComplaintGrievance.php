@@ -9,6 +9,8 @@ namespace App\Workflow\Documents;
  */
 final class StudentComplaintGrievance extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Reports; }
+
     private const WITNESSES = 2;
 
     public function key(): string { return 'student_complaint_grievance'; }

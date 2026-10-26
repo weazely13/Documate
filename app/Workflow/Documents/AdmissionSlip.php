@@ -7,6 +7,8 @@ use Carbon\Carbon;
 /** F-SDM-001 Rev. 1 (03-31-23): Admission Slip Form, Office of the VP for Student Development. */
 final class AdmissionSlip extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Permits; }
+
     public function key(): string
     {
         return 'admission_slip';

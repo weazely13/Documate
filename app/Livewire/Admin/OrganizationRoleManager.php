@@ -27,7 +27,12 @@ class OrganizationRoleManager extends Component
 
     protected $paginationTheme = 'tailwind';
 
+    // Opened from the Users and Accounts Manager sidebar, so both live in the URL.
+    #[\Livewire\Attributes\Url(as: 'panel', except: 'organizations')]
     public string $panel = 'organizations'; // organizations | programs | positions | officers | signatories
+
+    #[\Livewire\Attributes\Url(as: 'sig', except: 'people')]
+    public string $sigTab = 'people'; // people | add | roles | invites (inside signatories)
 
     // ---- Filters (prefix decides which paginator gets reset) ----
     public string $filterOrgSearch = '';
@@ -942,15 +947,15 @@ class OrganizationRoleManager extends Component
     // =========================================================
     public function render()
     {
+        if (! in_array($this->panel, ['organizations', 'programs', 'positions', 'officers', 'signatories'], true)) {
+            $this->panel = 'organizations';
+        }
+        if (! in_array($this->sigTab, ['people', 'add', 'roles', 'invites'], true)) {
+            $this->sigTab = 'people';
+        }
+
         $data = [
             'colleges' => College::with(['programs' => fn ($q) => $q->active()->orderBy('name')])->orderBy('code')->get(),
-            'counts' => [
-                'organizations' => Organization::count(),
-                'programs' => Program::count(),
-                'positions' => OfficerPosition::count(),
-                'officers' => OrganizationOfficer::count(),
-                'signatories' => SignatoryAssignment::where('is_active', true)->count(),
-            ],
         ];
 
         if ($this->panel === 'organizations') {

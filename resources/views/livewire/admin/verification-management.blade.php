@@ -1,12 +1,5 @@
-<div class="mx-auto max-w-7xl space-y-6">
-
-    <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
-        <div>
-            <h2 class="text-2xl font-semibold text-slate-900">Student Verification</h2>
-            <p class="mt-0.5 text-xs text-slate-500">Manage verification periods and student verification status.</p>
-        </div>
-    </div>
+<x-admin.users-manager active="verifications">
+<div class="space-y-6">
 
     {{-- CURRENT PERIOD + RAISE VERIFICATION --}}
     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -209,3 +202,4 @@
         </div>
     @endif
 </div>
+</x-admin.users-manager>

@@ -9,6 +9,8 @@ namespace App\Workflow\Documents;
  */
 class ModelStudentRating extends WorkflowDocument
 {
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Awards; }
+
     public const RATINGS = [
         5 => 'Outstanding',
         4 => 'Very Satisfactory',
