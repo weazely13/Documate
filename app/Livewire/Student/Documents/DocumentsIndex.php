@@ -3,6 +3,7 @@
 namespace App\Livewire\Student\Documents;
 
 use App\Models\StudentDocumentWorkspace;
+use App\Support\Issuers;
 use App\Workflow\Documents\DocumentRegistry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -14,15 +15,15 @@ use App\Enums\TransactionStatus;
 use Carbon\Carbon;
 
 /**
- * The student's documents in two lists: Active (still moving) and History (finished).
- * Documents the office issued to the student sit in the same lists, tagged "From VPSD".
+ * The student's documents: Active (theirs, still moving), Issued to you (documents the VPSD office
+ * or a signatory issued to them) and History (theirs, finished).
  */
 class DocumentsIndex extends Component
 {
     /** Paperless statuses that are finished. Paper-based rows use `status = completed`. */
     private const FINISHED = ['completed', 'rejected', 'voided'];
 
-    public const TABS = ['active' => 'Active', 'history' => 'History'];
+    public const TABS = ['active' => 'Active', 'issued' => 'Issued to you', 'history' => 'History'];
 
     public string $tab = 'active';
     public string $search = '';
@@ -44,7 +45,15 @@ class DocumentsIndex extends Component
 
     private function tabQuery(string $tab): Builder
     {
+        $issued = $this->issuedKeys;
         $q = StudentDocumentWorkspace::query()->where('user_id', Auth::id());
+
+        if ($tab === 'issued') {
+            return $q->whereNotNull('workflow_status')->whereIn('document_type', $issued);
+        }
+
+        // Active and History hold the student's own documents only.
+        $q->where(fn (Builder $w) => $w->whereNull('document_type')->orWhereNotIn('document_type', $issued));
 
         return $tab === 'history'
             ? $q->where(fn (Builder $w) => $w
@@ -55,16 +64,11 @@ class DocumentsIndex extends Component
                 ->orWhere(fn (Builder $l) => $l->whereNull('workflow_status')->where('status', '!=', 'completed')));
     }
 
+    /** @return array<string, int> */
     #[Computed]
-    public function activeCount(): int
+    public function counts(): array
     {
-        return $this->tabQuery('active')->count();
-    }
-
-    #[Computed]
-    public function historyCount(): int
-    {
-        return $this->tabQuery('history')->count();
+        return collect(self::TABS)->map(fn ($label, $tab) => $this->tabQuery($tab)->count())->all();
     }
 
     private function baseQuery(): Builder
@@ -129,13 +133,18 @@ class DocumentsIndex extends Component
                 'approvals as approved_count' => fn ($q) => $q->where('status', 'approved'),
             ]);
 
-        // Active: what needs the student goes first (changes asked, drafts), then newest.
+        // Active: what needs the student first (changes asked, drafts). Issued: open ones first. Then newest.
         if ($this->tab === 'active') {
             $q->orderByRaw("CASE workflow_status WHEN 'action_required' THEN 0 WHEN 'draft' THEN 1 ELSE 2 END");
+        } elseif ($this->tab === 'issued') {
+            $q->orderByRaw("CASE WHEN workflow_status IN ('completed', 'rejected', 'voided') THEN 1 ELSE 0 END");
         }
 
+        $workspaces = $q->latest('updated_at')->get();
+
         return view('livewire.student.documents.documents-index', [
-            'workspaces' => $q->latest('updated_at')->get(),
+            'workspaces' => $workspaces,
+            'issuers' => $this->tab === 'issued' ? Issuers::for($workspaces) : [],
             'tabs' => self::TABS,
         ])->layout('layouts.app', ['title' => 'My Documents']);
     }

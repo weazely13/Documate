@@ -1,8 +1,8 @@
 @php
-    $input = 'rounded-lg border-gray-300 text-base shadow-sm sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
+    $input = 'rounded-lg border-gray-300 text-base shadow-sm cq-sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
     $formInput = 'mt-1 w-full ' . $input;
     $label = 'block text-xs font-medium text-gray-600';
-    $card = 'rounded-xl border border-gray-200 bg-white shadow-sm';
+    $card = 'rounded-2xl border border-gray-200/70 bg-white shadow-sm';
     $thead = 'bg-gray-50 text-xs font-medium text-gray-500';
     $primaryBtn = 'rounded-lg bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700';
     $secondaryBtn = 'rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50';
@@ -15,8 +15,8 @@
         @if ($panel === 'organizations')
             <x-admin.alert :message="session('org_message')" />
 
-            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div class="{{ $card }} h-fit p-5 xl:col-span-1">
+            <div class="grid grid-cols-1 gap-6 cq-lg:grid-cols-3">
+                <div class="{{ $card }} h-fit p-5 cq-lg:col-span-1">
                     <h3 class="mb-3 text-sm font-semibold text-gray-900">{{ $editingOrgId ? 'Edit organization' : 'Add organization' }}</h3>
 
                     <form wire:submit="saveOrganization" class="space-y-3">
@@ -112,7 +112,7 @@
                                             @foreach ($items as $p)
                                                 @php $takenBy = $takenPrograms[$p->id] ?? null; @endphp
                                                 <label wire:key="prog-opt-{{ $p->id }}"
-                                                    class="flex items-start gap-2 py-1.5 text-sm sm:py-0.5 {{ $takenBy ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-gray-700' }}">
+                                                    class="flex items-start gap-2 py-1.5 text-sm cq-sm:py-0.5 {{ $takenBy ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-gray-700' }}">
                                                     <input type="checkbox" wire:model.live="orgProgramIds" value="{{ $p->id }}"
                                                         @disabled($takenBy)
                                                         class="mt-0.5 rounded border-gray-300 text-[#2A57B4] focus:ring-[#2A57B4] disabled:bg-gray-100">
@@ -150,23 +150,23 @@
                     </form>
                 </div>
 
-                <div class="space-y-3 xl:col-span-2">
-                    <div class="{{ $card }} grid grid-cols-2 gap-2 p-3 sm:flex sm:flex-wrap">
-                        <input type="text" wire:model.live.debounce.300ms="filterOrgSearch" placeholder="Search organizations…" class="col-span-2 sm:col-span-1 sm:min-w-[160px] sm:flex-1 {{ $input }}">
-                        <select wire:model.live="filterOrgCollege" class="w-full sm:w-auto {{ $input }}">
+                <div class="space-y-3 cq-lg:col-span-2">
+                    <div class="{{ $card }} grid grid-cols-2 gap-2 p-3 cq-sm:flex cq-sm:flex-wrap">
+                        <input type="text" wire:model.live.debounce.300ms="filterOrgSearch" placeholder="Search organizations…" class="col-span-2 cq-sm:col-span-1 cq-sm:min-w-[160px] cq-sm:flex-1 {{ $input }}">
+                        <select wire:model.live="filterOrgCollege" class="w-full cq-sm:w-auto {{ $input }}">
                             <option value="">All colleges</option>
                             @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
                         </select>
-                        <select wire:model.live="filterOrgProgram" class="w-full sm:w-auto sm:max-w-[200px] {{ $input }}">
+                        <select wire:model.live="filterOrgProgram" class="w-full cq-sm:w-auto cq-sm:max-w-[200px] {{ $input }}">
                             <option value="">All programs</option>
                             @foreach ($filterPrograms as $p) <option value="{{ $p->id }}">{{ $p->name }}</option> @endforeach
                         </select>
-                        <select wire:model.live="filterOrgStatus" class="w-full sm:w-auto {{ $input }}">
+                        <select wire:model.live="filterOrgStatus" class="w-full cq-sm:w-auto {{ $input }}">
                             <option value="">Any status</option>
                             <option value="1">Active</option>
                             <option value="0">Inactive</option>
                         </select>
-                        <button type="button" wire:click="clearFilters('org')" class="col-span-2 py-2 text-center text-xs text-gray-500 hover:text-gray-800 sm:col-span-1 sm:px-2 sm:py-0">Clear</button>
+                        <button type="button" wire:click="clearFilters('org')" class="col-span-2 py-2 text-center text-xs text-gray-500 hover:text-gray-800 cq-sm:col-span-1 cq-sm:px-2 cq-sm:py-0">Clear</button>
                     </div>
 
                     <div class="{{ $card }} overflow-hidden">
@@ -175,9 +175,9 @@
                                 <thead class="{{ $thead }}">
                                     <tr>
                                         <th class="px-4 py-3 text-left">Organization</th>
-                                        <th class="hidden px-4 py-3 text-left md:table-cell">Program</th>
-                                        <th class="hidden px-4 py-3 text-center sm:table-cell">Members</th>
-                                        <th class="hidden px-4 py-3 text-center sm:table-cell">Officers</th>
+                                        <th class="hidden px-4 py-3 text-left cq-md:table-cell">Program</th>
+                                        <th class="hidden px-4 py-3 text-center cq-sm:table-cell">Members</th>
+                                        <th class="hidden px-4 py-3 text-center cq-sm:table-cell">Officers</th>
                                         <th class="px-4 py-3 text-left">Status</th>
                                         <th class="px-4 py-3 text-right">Actions</th>
                                     </tr>
@@ -187,7 +187,7 @@
                                         <tr wire:key="org-{{ $org->id }}">
                                             <td class="max-w-[220px] px-4 py-3 font-medium text-gray-900">
                                                 <div class="truncate" title="{{ $org->name }}">{{ $org->name }}</div>
-                                                <div class="text-xs font-normal text-gray-400 sm:hidden">{{ $org->members_count }} members · {{ $org->officers_count }} officers</div>
+                                                <div class="text-xs font-normal text-gray-400 cq-sm:hidden">{{ $org->members_count }} members · {{ $org->officers_count }} officers</div>
                                                 @if ($org->year_level)
                                                     <span class="rounded-full bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-600">
                                                         {{ $org->year_level }}{{ ['', 'st', 'nd', 'rd', 'th'][$org->year_level] ?? 'th' }} year
@@ -196,7 +196,7 @@
                                                     <span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">Non-academic</span>
                                                 @endif
                                             </td>
-                                            <td class="hidden max-w-[240px] px-4 py-3 text-gray-600 md:table-cell">
+                                            <td class="hidden max-w-[240px] px-4 py-3 text-gray-600 cq-md:table-cell">
                                                 @forelse ($org->programs->take(2) as $prog)
                                                     <div class="truncate text-xs" title="{{ $prog->name }}">
                                                         <span class="rounded bg-blue-50 px-1 py-0.5 text-[10px] text-[#2A57B4]">{{ $prog->college->code ?? '—' }}</span>
@@ -217,8 +217,8 @@
                                                     </span>
                                                 @endif
                                             </td>
-                                            <td class="hidden px-4 py-3 text-center text-gray-600 sm:table-cell">{{ $org->members_count }}</td>
-                                            <td class="hidden px-4 py-3 text-center text-gray-600 sm:table-cell">{{ $org->officers_count }}</td>
+                                            <td class="hidden px-4 py-3 text-center text-gray-600 cq-sm:table-cell">{{ $org->members_count }}</td>
+                                            <td class="hidden px-4 py-3 text-center text-gray-600 cq-sm:table-cell">{{ $org->officers_count }}</td>
                                             <td class="px-4 py-3">
                                                 <button wire:click="toggleOrganizationActive({{ $org->id }})"
                                                     class="rounded-full px-2 py-1 text-xs {{ $org->is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500' }}">
@@ -249,8 +249,8 @@
         @if ($panel === 'programs')
             <x-admin.alert :message="session('program_message')" />
 
-            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div class="{{ $card }} h-fit p-5 xl:col-span-1">
+            <div class="grid grid-cols-1 gap-6 cq-lg:grid-cols-3">
+                <div class="{{ $card }} h-fit p-5 cq-lg:col-span-1">
                     <h3 class="mb-3 text-sm font-semibold text-gray-900">{{ $editingProgramId ? 'Edit program' : 'Add program' }}</h3>
 
                     <form wire:submit="saveProgram" class="space-y-3">
@@ -278,19 +278,19 @@
                     </form>
                 </div>
 
-                <div class="space-y-3 xl:col-span-2">
-                    <div class="{{ $card }} grid grid-cols-2 gap-2 p-3 sm:flex sm:flex-wrap">
-                        <input type="text" wire:model.live.debounce.300ms="filterProgSearch" placeholder="Search programs…" class="col-span-2 sm:col-span-1 sm:min-w-[160px] sm:flex-1 {{ $input }}">
-                        <select wire:model.live="filterProgCollege" class="w-full sm:w-auto {{ $input }}">
+                <div class="space-y-3 cq-lg:col-span-2">
+                    <div class="{{ $card }} grid grid-cols-2 gap-2 p-3 cq-sm:flex cq-sm:flex-wrap">
+                        <input type="text" wire:model.live.debounce.300ms="filterProgSearch" placeholder="Search programs…" class="col-span-2 cq-sm:col-span-1 cq-sm:min-w-[160px] cq-sm:flex-1 {{ $input }}">
+                        <select wire:model.live="filterProgCollege" class="w-full cq-sm:w-auto {{ $input }}">
                             <option value="">All colleges</option>
                             @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
                         </select>
-                        <select wire:model.live="filterProgStatus" class="w-full sm:w-auto {{ $input }}">
+                        <select wire:model.live="filterProgStatus" class="w-full cq-sm:w-auto {{ $input }}">
                             <option value="">Any status</option>
                             <option value="1">Active</option>
                             <option value="0">Inactive</option>
                         </select>
-                        <button type="button" wire:click="clearFilters('prog')" class="col-span-2 py-2 text-center text-xs text-gray-500 hover:text-gray-800 sm:col-span-1 sm:px-2 sm:py-0">Clear</button>
+                        <button type="button" wire:click="clearFilters('prog')" class="col-span-2 py-2 text-center text-xs text-gray-500 hover:text-gray-800 cq-sm:col-span-1 cq-sm:px-2 cq-sm:py-0">Clear</button>
                     </div>
 
                     <div class="{{ $card }} overflow-hidden">
@@ -300,8 +300,8 @@
                                     <tr>
                                         <th class="px-4 py-3 text-left">Program</th>
                                         <th class="px-4 py-3 text-left">College</th>
-                                        <th class="hidden px-4 py-3 text-center sm:table-cell">Orgs</th>
-                                        <th class="hidden px-4 py-3 text-center sm:table-cell">Students</th>
+                                        <th class="hidden px-4 py-3 text-center cq-sm:table-cell">Orgs</th>
+                                        <th class="hidden px-4 py-3 text-center cq-sm:table-cell">Students</th>
                                         <th class="px-4 py-3 text-left">Status</th>
                                         <th class="px-4 py-3 text-right">Actions</th>
                                     </tr>
@@ -311,7 +311,7 @@
                                         <tr wire:key="prog-{{ $program->id }}">
                                             <td class="max-w-[260px] px-4 py-3 font-medium text-gray-900">
                                                 <div class="truncate" title="{{ $program->name }}">{{ $program->name }}</div>
-                                                <div class="text-xs font-normal text-gray-400 sm:hidden">{{ $program->organizations_count }} orgs · {{ $program->students_count }} students</div>
+                                                <div class="text-xs font-normal text-gray-400 cq-sm:hidden">{{ $program->organizations_count }} orgs · {{ $program->students_count }} students</div>
                                             </td>
                                             <td class="px-4 py-3">
                                                 @if ($program->college)
@@ -320,8 +320,8 @@
                                                     <span class="text-xs text-amber-600">Unassigned</span>
                                                 @endif
                                             </td>
-                                            <td class="hidden px-4 py-3 text-center text-gray-600 sm:table-cell">{{ $program->organizations_count }}</td>
-                                            <td class="hidden px-4 py-3 text-center text-gray-600 sm:table-cell">{{ $program->students_count }}</td>
+                                            <td class="hidden px-4 py-3 text-center text-gray-600 cq-sm:table-cell">{{ $program->organizations_count }}</td>
+                                            <td class="hidden px-4 py-3 text-center text-gray-600 cq-sm:table-cell">{{ $program->students_count }}</td>
                                             <td class="px-4 py-3">
                                                 <button wire:click="toggleProgramActive({{ $program->id }})"
                                                     class="rounded-full px-2 py-1 text-xs {{ $program->is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500' }}">
@@ -352,8 +352,8 @@
         @if ($panel === 'positions')
             <x-admin.alert :message="session('position_message')" />
 
-            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div class="{{ $card }} h-fit p-5 xl:col-span-1">
+            <div class="grid grid-cols-1 gap-6 cq-lg:grid-cols-3">
+                <div class="{{ $card }} h-fit p-5 cq-lg:col-span-1">
                     <h3 class="mb-3 text-sm font-semibold text-gray-900">{{ $editingPositionId ? 'Edit position' : 'Add officer position' }}</h3>
 
                     <form wire:submit="savePosition" class="space-y-3">
@@ -371,7 +371,7 @@
                     </form>
                 </div>
 
-                <div class="{{ $card }} overflow-hidden xl:col-span-2">
+                <div class="{{ $card }} overflow-hidden cq-lg:col-span-2">
                     <table class="w-full text-sm">
                         <thead class="{{ $thead }}">
                             <tr>
@@ -403,9 +403,9 @@
         @if ($panel === 'officers')
             <x-admin.alert :message="session('assign_message')" />
 
-            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div class="grid grid-cols-1 gap-6 cq-lg:grid-cols-3">
 
-                <div class="{{ $card }} h-fit p-5 xl:col-span-1">
+                <div class="{{ $card }} h-fit p-5 cq-lg:col-span-1">
                     <h3 class="mb-3 text-sm font-semibold text-gray-900">Make a student an officer</h3>
 
                     <div class="space-y-4">
@@ -478,22 +478,22 @@
                     </div>
                 </div>
 
-                <div class="space-y-3 xl:col-span-2">
-                    <div class="{{ $card }} grid grid-cols-2 gap-2 p-3 sm:flex sm:flex-wrap">
-                        <input type="text" wire:model.live.debounce.300ms="filterOffSearch" placeholder="Search name or student no…" class="col-span-2 sm:col-span-1 sm:min-w-[160px] sm:flex-1 {{ $input }}">
-                        <select wire:model.live="filterOffCollege" class="w-full sm:w-auto {{ $input }}">
+                <div class="space-y-3 cq-lg:col-span-2">
+                    <div class="{{ $card }} grid grid-cols-2 gap-2 p-3 cq-sm:flex cq-sm:flex-wrap">
+                        <input type="text" wire:model.live.debounce.300ms="filterOffSearch" placeholder="Search name or student no…" class="col-span-2 cq-sm:col-span-1 cq-sm:min-w-[160px] cq-sm:flex-1 {{ $input }}">
+                        <select wire:model.live="filterOffCollege" class="w-full cq-sm:w-auto {{ $input }}">
                             <option value="">All colleges</option>
                             @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
                         </select>
-                        <select wire:model.live="filterOffOrg" class="w-full sm:w-auto sm:max-w-[180px] {{ $input }}">
+                        <select wire:model.live="filterOffOrg" class="w-full cq-sm:w-auto cq-sm:max-w-[180px] {{ $input }}">
                             <option value="">All organizations</option>
                             @foreach ($filterOrgs as $o) <option value="{{ $o->id }}">{{ Str::limit($o->name, 30) }}</option> @endforeach
                         </select>
-                        <select wire:model.live="filterOffPosition" class="w-full sm:w-auto {{ $input }}">
+                        <select wire:model.live="filterOffPosition" class="w-full cq-sm:w-auto {{ $input }}">
                             <option value="">All positions</option>
                             @foreach ($positions as $p) <option value="{{ $p->id }}">{{ $p->title }}</option> @endforeach
                         </select>
-                        <button type="button" wire:click="clearFilters('off')" class="col-span-2 py-2 text-center text-xs text-gray-500 hover:text-gray-800 sm:col-span-1 sm:px-2 sm:py-0">Clear</button>
+                        <button type="button" wire:click="clearFilters('off')" class="col-span-2 py-2 text-center text-xs text-gray-500 hover:text-gray-800 cq-sm:col-span-1 cq-sm:px-2 cq-sm:py-0">Clear</button>
                     </div>
 
                     <div class="{{ $card }} overflow-hidden">
@@ -502,8 +502,8 @@
                                 <thead class="{{ $thead }}">
                                     <tr>
                                         <th class="px-4 py-3 text-left">Student</th>
-                                        <th class="hidden px-4 py-3 text-left md:table-cell">Organization</th>
-                                        <th class="hidden px-4 py-3 text-left sm:table-cell">Position</th>
+                                        <th class="hidden px-4 py-3 text-left cq-md:table-cell">Organization</th>
+                                        <th class="hidden px-4 py-3 text-left cq-sm:table-cell">Position</th>
                                         <th class="px-4 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
@@ -514,13 +514,13 @@
                                             <td class="max-w-[200px] px-4 py-3">
                                                 <div class="truncate font-medium text-gray-900" title="{{ $studentName }}">{{ $studentName }}</div>
                                                 <div class="text-xs text-gray-400">{{ $officer->user->student_number ?? '' }}</div>
-                                                <div class="truncate text-xs text-gray-500 md:hidden">{{ $officer->organization->name ?? '—' }} · {{ $officer->position->title ?? '—' }}</div>
+                                                <div class="truncate text-xs text-gray-500 cq-md:hidden">{{ $officer->organization->name ?? '—' }} · {{ $officer->position->title ?? '—' }}</div>
                                             </td>
-                                            <td class="hidden max-w-[220px] px-4 py-3 text-gray-600 md:table-cell">
+                                            <td class="hidden max-w-[220px] px-4 py-3 text-gray-600 cq-md:table-cell">
                                                 <div class="truncate" title="{{ $officer->organization->name ?? '—' }}">{{ $officer->organization->name ?? '—' }}</div>
                                                 <div class="truncate text-xs text-gray-400">{{ $officer->organization->programs->pluck('name')->implode(', ') }}</div>
                                             </td>
-                                            <td class="hidden px-4 py-3 sm:table-cell">
+                                            <td class="hidden px-4 py-3 cq-sm:table-cell">
                                                 <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-600">{{ $officer->position->title ?? '—' }}</span>
                                             </td>
                                             <td class="whitespace-nowrap px-4 py-3 text-right">
@@ -639,20 +639,20 @@
                         </div>
                     </div>
 
-                    <div class="{{ $card }} grid grid-cols-2 gap-2 p-3 sm:flex sm:flex-wrap">
-                        <input type="text" wire:model.live.debounce.300ms="filterSigSearch" placeholder="Search name or email…" class="col-span-2 sm:col-span-1 sm:min-w-[160px] sm:flex-1 {{ $input }}">
-                        <select wire:model.live="filterSigRole" class="w-full sm:w-auto sm:max-w-[200px] {{ $input }}">
+                    <div class="{{ $card }} grid grid-cols-2 gap-2 p-3 cq-sm:flex cq-sm:flex-wrap">
+                        <input type="text" wire:model.live.debounce.300ms="filterSigSearch" placeholder="Search name or email…" class="col-span-2 cq-sm:col-span-1 cq-sm:min-w-[160px] cq-sm:flex-1 {{ $input }}">
+                        <select wire:model.live="filterSigRole" class="w-full cq-sm:w-auto cq-sm:max-w-[200px] {{ $input }}">
                             <option value="">All roles</option>
                             @foreach ($signatoryRoles as $r) <option value="{{ $r->id }}">{{ $r->label }}</option> @endforeach
                         </select>
-                        <select wire:model.live="filterSigStatus" class="w-full sm:w-auto {{ $input }}">
+                        <select wire:model.live="filterSigStatus" class="w-full cq-sm:w-auto {{ $input }}">
                             <option value="">Any status</option>
                             <option value="current">Can sign now</option>
                             <option value="upcoming">Starts later</option>
                             <option value="expired">Expired</option>
                             <option value="inactive">Ended</option>
                         </select>
-                        <button type="button" wire:click="clearFilters('sig')" class="col-span-2 py-2 text-center text-xs text-gray-500 hover:text-gray-800 sm:col-span-1 sm:px-2 sm:py-0">Clear</button>
+                        <button type="button" wire:click="clearFilters('sig')" class="col-span-2 py-2 text-center text-xs text-gray-500 hover:text-gray-800 cq-sm:col-span-1 cq-sm:px-2 cq-sm:py-0">Clear</button>
                     </div>
 
                     <div class="{{ $card }} overflow-hidden">
@@ -662,7 +662,7 @@
                                     <tr>
                                         <th class="px-4 py-3 text-left">Person</th>
                                         <th class="px-4 py-3 text-left">Signs as</th>
-                                        <th class="hidden px-4 py-3 text-left md:table-cell">Period</th>
+                                        <th class="hidden px-4 py-3 text-left cq-md:table-cell">Period</th>
                                         <th class="px-4 py-3 text-left">Status</th>
                                         <th class="px-4 py-3 text-right">Actions</th>
                                     </tr>
@@ -698,9 +698,9 @@
                                                 @if ($assignment->scope_name)
                                                     <div class="text-[11px] text-gray-400">for {{ $assignment->scope_name }}</div>
                                                 @endif
-                                                <div class="text-[11px] text-gray-400 md:hidden">{{ $assignment->active_from?->format('M j, Y') ?? 'Now' }} &rarr; {{ $assignment->active_until?->format('M j, Y') ?? 'Ongoing' }}</div>
+                                                <div class="text-[11px] text-gray-400 cq-md:hidden">{{ $assignment->active_from?->format('M j, Y') ?? 'Now' }} &rarr; {{ $assignment->active_until?->format('M j, Y') ?? 'Ongoing' }}</div>
                                             </td>
-                                            <td class="hidden whitespace-nowrap px-4 py-3 text-xs text-gray-500 md:table-cell">
+                                            <td class="hidden whitespace-nowrap px-4 py-3 text-xs text-gray-500 cq-md:table-cell">
                                                 @if (! $assignment->active_from && ! $assignment->active_until)
                                                     No end date
                                                 @else
@@ -746,14 +746,14 @@
                 {{-- ===== TAB 2: ADD A PERSON ===== --}}
                 <div x-show="tab === 'add'" x-cloak class="max-w-2xl space-y-4">
 
-                    <div class="flex w-full rounded-lg border border-gray-200 bg-white p-1 shadow-sm sm:inline-flex sm:w-auto">
+                    <div class="flex w-full rounded-lg border border-gray-200 bg-white p-1 shadow-sm cq-sm:inline-flex cq-sm:w-auto">
                         <button type="button" @click="addMode = 'existing'"
-                                class="flex-1 rounded-md px-3 py-2.5 text-xs font-semibold transition sm:flex-none sm:px-4 sm:py-2 sm:text-sm"
+                                class="flex-1 rounded-md px-3 py-2.5 text-xs font-semibold transition cq-sm:flex-none cq-sm:px-4 cq-sm:py-2 cq-sm:text-sm"
                                 :class="addMode === 'existing' ? 'bg-[#2A57B4] text-white' : 'text-gray-500 hover:text-gray-800'">
                             They already have an account
                         </button>
                         <button type="button" @click="addMode = 'invite'"
-                                class="flex-1 rounded-md px-3 py-2.5 text-xs font-semibold transition sm:flex-none sm:px-4 sm:py-2 sm:text-sm"
+                                class="flex-1 rounded-md px-3 py-2.5 text-xs font-semibold transition cq-sm:flex-none cq-sm:px-4 cq-sm:py-2 cq-sm:text-sm"
                                 :class="addMode === 'invite' ? 'bg-[#2A57B4] text-white' : 'text-gray-500 hover:text-gray-800'">
                             New person (send invite)
                         </button>
@@ -831,7 +831,7 @@
 
                         <details class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
                             <summary class="cursor-pointer font-semibold text-gray-700">Limit to certain dates (optional)</summary>
-                            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div class="mt-3 grid grid-cols-1 gap-3 cq-sm:grid-cols-2">
                                 <div>
                                     <label class="text-xs font-medium text-gray-600">Starts</label>
                                     <input type="date" wire:model="sigActiveFrom" class="{{ $input }} mt-1 w-full">
@@ -859,7 +859,7 @@
                             They get an email to choose their own password.
                         </div>
 
-                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div class="grid grid-cols-1 gap-3 cq-sm:grid-cols-2">
                             <div>
                                 <label class="{{ $label }}">First name</label>
                                 <input type="text" wire:model="invFirst" class="{{ $formInput }}">
@@ -915,7 +915,7 @@
 
                         <details class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
                             <summary class="cursor-pointer font-semibold text-gray-700">Limit to certain dates (optional)</summary>
-                            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div class="mt-3 grid grid-cols-1 gap-3 cq-sm:grid-cols-2">
                                 <div>
                                     <label class="text-xs font-medium text-gray-600">Starts</label>
                                     <input type="date" wire:model="invFrom" class="{{ $input }} mt-1 w-full">
@@ -938,9 +938,9 @@
                 </div>
 
                 {{-- ===== TAB 3: ROLES ===== --}}
-                <div x-show="tab === 'roles'" x-cloak class="grid grid-cols-1 gap-5 xl:grid-cols-5">
+                <div x-show="tab === 'roles'" x-cloak class="grid grid-cols-1 gap-5 cq-lg:grid-cols-5">
 
-                    <div class="{{ $card }} h-fit p-5 xl:col-span-2">
+                    <div class="{{ $card }} h-fit p-5 cq-lg:col-span-2">
                         <h3 class="text-sm font-semibold text-gray-900">{{ $editingSigRoleId ? 'Edit role' : 'Create a role' }}</h3>
                         <p class="mb-4 text-xs text-gray-500">A role is a signing position, like "Guidance Counselor". Documents ask for roles, never for named people.</p>
 
@@ -986,7 +986,7 @@
                         </form>
                     </div>
 
-                    <div class="{{ $card }} overflow-hidden xl:col-span-3">
+                    <div class="{{ $card }} overflow-hidden cq-lg:col-span-3">
                         <div class="divide-y divide-gray-100">
                             @forelse ($signatoryRoles as $r)
                                 @php $n = $sigHolderCounts[$r->id] ?? 0; @endphp

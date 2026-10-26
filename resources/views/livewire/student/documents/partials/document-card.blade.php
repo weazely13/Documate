@@ -15,12 +15,13 @@
     <a href="{{ $href }}" wire:navigate class="min-w-0 flex-1 space-y-2.5">
         <div class="flex flex-wrap items-center gap-2">
             <p class="break-words text-[15px] font-semibold {{ $closed ? 'text-slate-500' : 'text-slate-900' }}">{{ $title }}</p>
-            @if ($issued)
-                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">From VPSD</span>
-            @elseif (! $wf)
+            @if (! $wf)
                 <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Print</span>
             @endif
         </div>
+        @if ($issued)
+            <p class="text-xs text-slate-500">Issued by <span class="font-medium text-slate-700">{{ $issuer ?? 'the VPSD office' }}</span></p>
+        @endif
 
         {{-- Phones: status under the title, so the title keeps the full width --}}
         <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold sm:hidden {{ $tones[$tone] }}">{{ $label }}</span>

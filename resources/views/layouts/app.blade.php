@@ -202,7 +202,7 @@
                     {{-- Accounts, verifications, organizations and signatories share one area with its own sidebar --}}
                     <a href="{{ route('admin.users') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.users', 'admin.verification') ? 'active' : '' }}" data-tooltip="Users and Accounts Manager">
                         <i class='bx bx-group link-icon'></i>
-                        <span class="link-text">User Manager</span>
+                        <span class="link-text">Users Manager</span>
                     </a>
                     <a href="{{ route('admin.reports') }}" wire:navigate class="sidebar-link {{ request()->routeIs('admin.reports') ? 'active' : ''}}" data-tooltip="Reports">
                         <i class='bx bx-bar-chart link-icon'></i>

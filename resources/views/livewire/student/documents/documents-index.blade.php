@@ -14,15 +14,15 @@
 
     {{-- Tabs + search --}}
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <nav class="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 sm:inline-grid sm:self-start" aria-label="Documents">
+        <nav class="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 sm:inline-grid sm:self-start" aria-label="Documents">
             @foreach ($tabs as $key => $label)
-                @php $count = $key === 'active' ? $this->activeCount : $this->historyCount; @endphp
+                @php $count = $this->counts[$key] ?? 0; @endphp
                 <button type="button" wire:click="$set('tab', '{{ $key }}')" wire:key="tab-{{ $key }}"
                         @if ($tab === $key) aria-current="page" @endif
-                        class="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm transition sm:py-2
+                        class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-2 text-[13px] leading-tight transition sm:flex-row sm:gap-2 sm:px-4 sm:text-sm
                             {{ $tab === $key ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'font-medium text-slate-600 hover:text-slate-900' }}">
-                    {{ $label }}
-                    <span class="text-xs tabular-nums {{ $tab === $key ? 'text-[#2A57B4]' : 'text-slate-500' }}">{{ $count }}</span>
+                    <span class="whitespace-nowrap">{{ $label }}</span>
+                    <span class="text-xs tabular-nums {{ $tab === $key ? 'text-[#2A57B4]' : ($key === 'issued' && $count ? 'font-semibold text-amber-700' : 'text-slate-500') }}">{{ $count }}</span>
                 </button>
             @endforeach
         </nav>
@@ -38,7 +38,10 @@
     <div class="space-y-3">
         @forelse ($workspaces as $workspace)
             <div wire:key="doc-{{ $workspace->workspace_id }}">
-                @include('livewire.student.documents.partials.document-card', ['workspace' => $workspace])
+                @include('livewire.student.documents.partials.document-card', [
+                    'workspace' => $workspace,
+                    'issuer' => \App\Support\Issuers::label($issuers[$workspace->workspace_id] ?? null),
+                ])
             </div>
         @empty
             <div class="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
@@ -50,6 +53,9 @@
                         <a href="{{ route('student.new-transaction') }}" wire:navigate class="font-semibold text-[#2A57B4] hover:underline">Start a new transaction</a>
                         and it will show up here.
                     </p>
+                @elseif ($tab === 'issued')
+                    <p class="text-sm font-medium text-slate-700">Nothing issued to you</p>
+                    <p class="mt-1 text-sm text-slate-500">Slips, advisements and other documents the VPSD office or a signatory issues to you show up here.</p>
                 @else
                     <p class="text-sm font-medium text-slate-700">No finished documents yet</p>
                     <p class="mt-1 text-sm text-slate-500">Completed, rejected and voided documents are kept here.</p>
