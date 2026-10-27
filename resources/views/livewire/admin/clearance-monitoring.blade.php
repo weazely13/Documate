@@ -19,7 +19,7 @@
 <div class="{{ count($selectedIds) > 0 ? 'pb-40 sm:pb-0' : '' }}">
     <x-admin.page-header
         :title="$heading"
-        :description="$pageDescription ?? 'Track and tag student clearance status by semester.'"
+        :description="$pageDescription ?? 'Tag student clearance status by semester'"
         :crumbs="['Admin' => $homeUrl, $heading => null]" />
 
     @include('livewire.admin._admin-nav')
