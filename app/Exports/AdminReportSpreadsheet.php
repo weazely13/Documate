@@ -2,421 +2,415 @@
 
 namespace App\Exports;
 
+use Carbon\CarbonInterface;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Chart\Chart;
 use PhpOffice\PhpSpreadsheet\Chart\DataSeries;
 use PhpOffice\PhpSpreadsheet\Chart\DataSeriesValues;
 use PhpOffice\PhpSpreadsheet\Chart\Legend;
 use PhpOffice\PhpSpreadsheet\Chart\PlotArea;
 use PhpOffice\PhpSpreadsheet\Chart\Title;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
- * Builds the Excel export for the Admin Reports page.
+ * Builds the Excel export for the Admin Reports page: the same sections as the page
+ * (summary, activity, documents, appointments, students, logbook) plus the records
+ * behind them (every document and appointment in the period) as filterable sheets.
  *
- * Uses PhpSpreadsheet directly (pure PHP, no native extensions like GD
- * required) so charts come out as real, editable Excel chart objects
- * rather than pasted-in images.
- *
- * Every sheet opens with a one- or two-sentence description so the
- * workbook is readable on its own, without the dashboard it came from.
+ * Uses PhpSpreadsheet directly (pure PHP, no native extensions like GD required), so
+ * charts come out as real, editable Excel chart objects rather than pasted-in images.
  */
 class AdminReportSpreadsheet
 {
     private const BRAND = '2A57B4';
-    private const DESC_COLOR = '64748B';
+    private const MUTED = '64748B';
+    private const LINE = 'E2E8F0';
 
     public function build(array $report): Spreadsheet
     {
         $spreadsheet = new Spreadsheet();
         $spreadsheet->removeSheetByIndex(0);
+        $spreadsheet->getProperties()->setCreator('DocuMate')->setTitle('DocuMate report ' . $report['period']['range']);
 
         $this->summarySheet($spreadsheet, $report);
-
-        $this->breakdownSheet(
-            $spreadsheet, 'Users',
-            'Everyone registered in DocuMate for the selected date range, split by role and by account status.',
-            $report['users']['by_status'] ?? [], $report['users']['by_role'] ?? [],
-            'Status', 'By Role'
-        );
-
-        $this->breakdownSheet(
-            $spreadsheet, 'Transactions',
-            'Document requests filed through DocuMate for the selected date range, by workflow status and by document type.',
-            $report['transactions']['by_status'] ?? [], $report['transactions']['by_template'] ?? [],
-            'Status', 'By Document Type'
-        );
-
-        $this->breakdownSheet(
-            $spreadsheet, 'Appointments',
-            'Appointments booked for the selected date range, by outcome and by session.',
-            $report['appointments']['by_status'] ?? [], $report['appointments']['by_session'] ?? [],
-            'Status', 'By Session'
-        );
-
-        $this->breakdownSheet(
-            $spreadsheet, 'Clearance',
-            'Students tagged for clearance in the selected academic year and semester, by current status. Follows the AY / Semester filter, not the date range.',
-            $report['clearance']['by_status'] ?? [], [],
-            'Status', null
-        );
-
-        $this->breakdownSheet(
-            $spreadsheet, 'Verification',
-            'e-Slip submissions for the selected academic year and semester, by review status. Follows the AY / Semester filter, not the date range.',
-            $report['verification']['by_status'] ?? [], [],
-            'Status', null
-        );
-
-        $this->logbookSheet($spreadsheet, $report['logbook'] ?? []);
+        $this->activitySheet($spreadsheet, $report);
+        $this->documentsSheet($spreadsheet, $report);
+        $this->registerSheet($spreadsheet, $report);
+        $this->appointmentsSheet($spreadsheet, $report);
+        $this->appointmentListSheet($spreadsheet, $report);
+        $this->studentsSheet($spreadsheet, $report);
+        $this->logbookSheet($spreadsheet, $report['logbook']);
 
         $spreadsheet->setActiveSheetIndex(0);
 
         return $spreadsheet;
     }
 
-    /** Writes a wrapped, italic description line under a sheet's title. Returns the next free row. */
-    protected function writeDescription($sheet, string $description, int $row, string $range = 'A:F'): int
-    {
-        [$startCol, $endCol] = explode(':', $range);
-        $sheet->setCellValue($startCol . $row, $description);
-        $sheet->mergeCells($startCol . $row . ':' . $endCol . $row);
-        $sheet->getStyle($startCol . $row)->getFont()->setItalic(true)->setSize(10)->getColor()->setRGB(self::DESC_COLOR);
-        $sheet->getStyle($startCol . $row)->getAlignment()->setWrapText(true);
-        $sheet->getRowDimension($row)->setRowHeight(28);
+    // =========================================================
+    // SHEETS
+    // =========================================================
 
-        return $row + 1;
+    protected function summarySheet(Spreadsheet $book, array $r): void
+    {
+        $sheet = $this->sheet($book, 'Summary', 'DocuMate report',
+            'Headline numbers for the period, compared with the same number of days just before it. '
+            . 'The period covers documents, appointments, accounts and logbook visits; the term covers clearance and verification.', $r);
+
+        $wf = $r['workflow'];
+        $ap = $r['appointments'];
+        $cards = $r['overview']['cards'];
+        $attended = $ap['by_status']['attended'] ?? 0;
+        $missed = $ap['by_status']['missed'] ?? 0;
+
+        $rows = [];
+        foreach ($r['insights']['trend'] as $m) {
+            $rows[] = [$m['label'], $m['total'], $m['previous'], $m['delta'] === null ? '—' : ($m['delta'] > 0 ? '+' : '') . $m['delta'] . '%', 'Period vs. the one before'];
+        }
+        $rows = array_merge($rows, [
+            ['Digital documents completed', $wf['completed'], null, null, $wf['completion_rate'] . '% of ' . $wf['total'] . ' submitted'],
+            ['Digital documents in progress', $wf['in_progress'], null, null, 'Still with the office, signers or the student'],
+            ['Rejected', $wf['rejected'], null, null, $wf['rejections']['review'] . ' by VPSD, ' . $wf['rejections']['signer'] . ' by signers'],
+            ['Voided', $wf['voided'], null, null, 'Completed documents later withdrawn'],
+            ['Average time to issue', $wf['avg_issue'], null, null, 'Submitted to completed'],
+            ['Attendance rate', $this->pct($attended, $attended + $missed) . '%', null, null, $attended . ' attended, ' . $missed . ' missed'],
+            ['Reschedules', $ap['reschedule_count'], null, null, 'Appointments moved to another day'],
+            ['Students and officers', $cards['total_students'], null, null, $cards['active_accounts'] . ' active accounts'],
+            ['Cleared', $r['clearance']['clearance_rate'] . '%', null, null, ($r['clearance']['by_status']['Cleared'] ?? 0) . ' of ' . $r['clearance']['total'] . ' tagged students'],
+            ['Verified', $r['verification']['verified_rate'] . '%', null, null, ($r['verification']['by_status']['verified'] ?? 0) . ' of ' . $r['verification']['total'] . ' e-slips'],
+            ['Verifications waiting', $cards['pending_verifications'], null, null, 'E-slips not reviewed yet'],
+            ['Logbook entries', $r['logbook']['total_entries'], null, null, $r['logbook']['total_uploads'] . ' logbooks uploaded'],
+        ]);
+
+        $this->table($sheet, 5, 'At a glance', ['Measure', 'This period', 'Previous period', 'Change', 'Notes'], $rows);
+        $this->widths($sheet, [34, 14, 16, 12, 46]);
     }
 
-    protected function summarySheet(Spreadsheet $spreadsheet, array $report): void
+    protected function activitySheet(Spreadsheet $book, array $r): void
     {
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('Overview');
+        $sheet = $this->sheet($book, 'Activity', 'Activity over time',
+            'Documents submitted and completed, appointments booked and new accounts, per day (per week or month for long periods).', $r);
 
-        $sheet->setCellValue('A1', 'DocuMate — Admin Report');
-        $sheet->mergeCells('A1:D1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-
-        $filters = $report['filters'];
-        $sheet->setCellValue('A2', sprintf(
-            'Range: %s to %s   |   AY: %s   |   Semester: %s   |   Generated: %s',
-            $filters['date_from'] ?? '—',
-            $filters['date_to'] ?? '—',
-            $filters['academic_year'] ?? 'All',
-            $filters['semester'] ?? 'All',
-            $report['generated_at']->format('M d, Y h:i A')
-        ));
-        $sheet->mergeCells('A2:D2');
-        $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(10)->getColor()->setRGB('64748B');
-
-        $descRow = $this->writeDescription(
-            $sheet,
-            'This workbook summarizes VPSD student services activity for the range above. "Range" scopes the Users, '
-            . 'Transactions, Appointments and Logbook sheets; "AY / Semester" scopes Clearance and Verification, which '
-            . 'are tracked by academic term instead. Each sheet after this one covers one system area with its own '
-            . 'short description, data table and chart.',
-            4,
-            'A:D'
-        );
-
-        if (!empty($report['workflow']) && $report['workflow']['total'] > 0) {
-            $this->breakdownSheet(
-                $spreadsheet, 'Workflow',
-                'Digital (paperless) transactions filed in the selected date range, by status and by document type.',
-                $report['workflow']['by_status'], $report['workflow']['by_type'],
-                'Status', 'By Document Type'
-            );
-
-            $sheet = $spreadsheet->createSheet();
-            $sheet->setTitle('Workflow Signers');
-            $sheet->fromArray(['Role', 'Signed', 'Rejected', 'Pending', 'Avg response', 'Oldest pending'], null, 'A1');
-            $sheet->fromArray(array_map(fn ($s) => array_values($s), $report['workflow']['signers']), null, 'A2');
-            $sheet->getStyle('A1:F1')->getFont()->setBold(true);
-            foreach (range('A', 'F') as $col) {
-                $sheet->getColumnDimension($col)->setAutoSize(true);
-            }
+        $metrics = $r['insights']['trend'];
+        $rows = [];
+        foreach ($metrics[0]['series'] as $i => $point) {
+            $rows[] = array_merge([$point['d']], array_map(fn ($m) => $m['series'][$i]['v'] ?? 0, $metrics));
         }
+        $rows[] = array_merge(['Total'], array_map(fn ($m) => $m['total'], $metrics));
 
-        $cards = $report['overview']['cards'];
-        $rows = [
-            ['Metric', 'Value'],
-            ['Total Students / Officers', $cards['total_students']],
-            ['Active Accounts', $cards['active_accounts']],
-            ['Pending Verifications', $cards['pending_verifications']],
-            ['Total Transactions', $cards['total_transactions']],
-            ['Completed Transactions', $cards['completed_transactions']],
-            ['Total Appointments', $cards['total_appointments']],
-            ["Today's Appointments", $cards['todays_appointments']],
-            ['Clearance Rate', $cards['clearance_rate'] . '%'],
-        ];
+        [$first, $last] = $this->table($sheet, 5, 'Per period', array_merge(['Period'], array_column($metrics, 'label')), $rows, boldLast: true);
 
-        $startRow = $descRow + 1;
-        foreach ($rows as $i => $row) {
-            $sheet->setCellValue('A' . ($startRow + $i), $row[0]);
-            $sheet->setCellValue('B' . ($startRow + $i), $row[1]);
+        if ($last - 1 > $first) {
+            $this->chart($sheet, 'ActivityTrend', 'Submitted and completed', DataSeries::TYPE_LINECHART,
+                $first, $last - 1, [2, 3], 'G5', 'P24');
         }
-        $sheet->getStyle('A' . $startRow . ':B' . $startRow)->getFont()->setBold(true);
-        $sheet->getStyle('A' . $startRow . ':B' . $startRow)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::BRAND);
-        $sheet->getStyle('A' . $startRow . ':B' . $startRow)->getFont()->getColor()->setRGB('FFFFFF');
-        $sheet->getColumnDimension('A')->setWidth(30);
-        $sheet->getColumnDimension('B')->setWidth(16);
-
-        // Registration trend as a data table for a chart
-        $trend = $report['overview']['charts']['registration_trend'];
-        $trendStart = $startRow + count($rows) + 2;
-        $sheet->setCellValue('A' . $trendStart, 'New Registrations by Month');
-        $sheet->getStyle('A' . $trendStart)->getFont()->setBold(true);
-        $sheet->setCellValue('A' . ($trendStart + 1), 'Month');
-        $sheet->setCellValue('B' . ($trendStart + 1), 'Registrations');
-
-        foreach ($trend['labels'] as $i => $label) {
-            $sheet->setCellValue('A' . ($trendStart + 2 + $i), $label);
-            $sheet->setCellValue('B' . ($trendStart + 2 + $i), $trend['values'][$i] ?? 0);
-        }
-
-        if (count($trend['labels']) > 1) {
-            $lastRow = $trendStart + 1 + count($trend['labels']);
-            $this->addLineChart(
-                $sheet,
-                'RegTrend',
-                'New Registrations Trend',
-                "'Overview'!\$A\$" . ($trendStart + 2) . ":\$A\$" . $lastRow,
-                "'Overview'!\$B\$" . ($trendStart + 2) . ":\$B\$" . $lastRow,
-                'D' . $trendStart,
-                count($trend['labels'])
-            );
-        }
+        $this->widths($sheet, [18, 12, 12, 20, 14]);
     }
 
-    protected function breakdownSheet(
-        Spreadsheet $spreadsheet,
-        string $title,
-        string $description,
-        array $primary,
-        array $secondary = [],
-        string $primaryLabel = 'Status',
-        ?string $secondaryLabel = 'Breakdown'
-    ): void {
-        if (empty($primary) && empty($secondary)) {
-            return;
+    protected function documentsSheet(Spreadsheet $book, array $r): void
+    {
+        $wf = $r['workflow'];
+        $sheet = $this->sheet($book, 'Documents', 'Documents',
+            'Where the documents submitted in this period stand, which forms are requested most, how quickly signers respond, '
+            . 'and when documents arrive. Status and signer figures cover digital documents; requests by form include paper forms.', $r);
+
+        $row = 5;
+        [$first, $last, $row] = $this->table($sheet, $row, 'Where documents stand', ['Status', 'Documents'],
+            collect($wf['by_status'])->map(fn ($n, $s) => [$s, $n])->values()->all());
+        if ($last > $first) {
+            $this->chart($sheet, 'DocStatus', 'Where documents stand', DataSeries::TYPE_BARCHART, $first, $last, [2], 'H5', 'O20');
         }
 
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle(substr($title, 0, 31));
-
-        $sheet->setCellValue('A1', $title);
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-
-        $descRow = $this->writeDescription($sheet, $description, 2, 'A:D');
-
-        $tableTitleRow = $descRow + 1;
-        $sheet->setCellValue('A' . $tableTitleRow, $primaryLabel);
-        $sheet->getStyle('A' . $tableTitleRow)->getFont()->setBold(true)->setSize(13);
-        $sheet->setCellValue('A' . ($tableTitleRow + 1), $primaryLabel);
-        $sheet->setCellValue('B' . ($tableTitleRow + 1), 'Count');
-        $sheet->getStyle('A' . ($tableTitleRow + 1) . ':B' . ($tableTitleRow + 1))->getFont()->setBold(true);
-
-        $row = $tableTitleRow + 2;
-        foreach ($primary as $label => $value) {
-            $sheet->setCellValue('A' . $row, ucwords(str_replace('_', ' ', (string) $label)));
-            $sheet->setCellValue('B' . $row, (int) $value);
-            $row++;
-        }
-        $sheet->getColumnDimension('A')->setWidth(28);
-        $sheet->getColumnDimension('B')->setWidth(12);
-
-        if (count($primary) > 1) {
-            $dataStartRow = $tableTitleRow + 2;
-            $lastRow = $row - 1;
-            $this->addPieChart(
-                $sheet,
-                'Chart' . preg_replace('/[^A-Za-z0-9]/', '', $title),
-                $title . ' — ' . $primaryLabel,
-                "'{$sheet->getTitle()}'!\$A\${$dataStartRow}:\$A\${$lastRow}",
-                "'{$sheet->getTitle()}'!\$B\${$dataStartRow}:\$B\${$lastRow}",
-                'D' . $tableTitleRow,
-                count($primary)
-            );
+        $byType = array_map(fn ($t) => [$t['label'], $t['completed'], $t['open'], $t['total']], $r['insights']['byType']);
+        [$first, $last, $row] = $this->table($sheet, $row, 'Most requested documents', ['Form', 'Completed', 'In progress', 'Total'], $byType);
+        if ($last > $first) {
+            $this->chart($sheet, 'DocTypes', 'Most requested documents', DataSeries::TYPE_BARCHART, $first, $last, [2, 3], 'H22', 'O42', stacked: true);
         }
 
-        if (!empty($secondary) && $secondaryLabel) {
-            $secStart = $row + 2;
-            $sheet->setCellValue('A' . $secStart, $secondaryLabel);
-            $sheet->getStyle('A' . $secStart)->getFont()->setBold(true)->setSize(13);
-            $sheet->setCellValue('A' . ($secStart + 1), 'Label');
-            $sheet->setCellValue('B' . ($secStart + 1), 'Count');
-            $sheet->getStyle('A' . ($secStart + 1) . ':B' . ($secStart + 1))->getFont()->setBold(true);
+        [, , $row] = $this->table($sheet, $row, 'Signer performance', ['Role', 'Signed', 'Rejected', 'Waiting', 'Avg. response', 'Oldest waiting'],
+            array_map(fn ($s) => [$s['label'], $s['signed'], $s['rejected'], $s['pending'], $s['avg_response'], $s['oldest_pending']], $wf['signers']));
 
-            $r = $secStart + 2;
-            foreach ($secondary as $label => $value) {
-                $sheet->setCellValue('A' . $r, ucwords(str_replace('_', ' ', (string) $label)));
-                $sheet->setCellValue('B' . $r, (int) $value);
-                $r++;
-            }
-        }
+        [, , $row] = $this->table($sheet, $row, 'Oldest unfinished documents', ['Reference', 'Form', 'Status', 'Submitted'],
+            array_map(fn ($s) => [$s['code'], $s['name'], $s['status'], $s['since']], $wf['stuck']));
+
+        $times = $r['insights']['times'];
+        $hours = ['12–3 AM', '3–6 AM', '6–9 AM', '9 AM–12 PM', '12–3 PM', '3–6 PM', '6–9 PM', '9 PM–12 AM'];
+        $grid = array_map(fn ($d) => array_merge([$d['name']], $d['bars'], [array_sum($d['bars'])]), $times['days']);
+        $this->table($sheet, $row, 'When documents arrive (' . $times['timezone'] . ')', array_merge(['Day'], $hours, ['Total']), $grid);
+
+        $this->widths($sheet, [40, 12, 12, 12, 14, 16, 12, 12, 12, 12]);
     }
 
-    protected function logbookSheet(Spreadsheet $spreadsheet, array $logbook): void
+    protected function registerSheet(Spreadsheet $book, array $r): void
     {
-        if (empty($logbook['by_purpose']) && empty($logbook['by_program']) && empty($logbook['monthly'])) {
-            return;
+        $sheet = $this->sheet($book, 'Document register', 'Document register',
+            'Every document submitted in this period, newest first. Use the filter arrows in the header row to narrow it down.', $r);
+
+        $rows = array_map(fn ($d) => [
+            $d['code'], $d['document'], $d['student'], $d['student_number'], $d['program'], $d['status'],
+            $this->excelDate($d['submitted']), $this->excelDate($d['completed']), $d['days'],
+        ], $r['register']);
+
+        [$first, $last] = $this->table($sheet, 5, null,
+            ['Reference', 'Form', 'Student', 'Student no.', 'Program', 'Status', 'Submitted', 'Completed', 'Days to complete'], $rows);
+
+        $this->finishList($sheet, 'A5:I' . max(5, $last), $first, $last, ['G', 'H']);
+        $this->widths($sheet, [18, 40, 28, 14, 40, 16, 18, 18, 16]);
+    }
+
+    protected function appointmentsSheet(Spreadsheet $book, array $r): void
+    {
+        $ap = $r['appointments'];
+        $sheet = $this->sheet($book, 'Appointments', 'Appointments',
+            'Appointments booked in this period: how they turned out, which session students pick, and how many visits fall on each day. '
+            . 'The missed rate counts finished visits only (attended or missed).', $r);
+
+        $attended = $ap['by_status']['attended'] ?? 0;
+        $missed = $ap['by_status']['missed'] ?? 0;
+        [, , $row] = $this->table($sheet, 5, 'At a glance', ['Measure', 'Value'], [
+            ['Booked', $ap['total']],
+            ['Attended', $attended],
+            ['Missed', $missed],
+            ['Attendance rate', $this->pct($attended, $attended + $missed) . '%'],
+            ['Missed rate', $ap['missed_rate'] . '%'],
+            ['Reschedules', $ap['reschedule_count']],
+        ]);
+
+        [$first, $last, $row] = $this->table($sheet, $row, 'Outcome', ['Status', 'Appointments'], $this->labelled($ap['by_status']));
+        if ($last > $first) {
+            $this->chart($sheet, 'ApptStatus', 'Outcome', DataSeries::TYPE_BARCHART, $first, $last, [2], 'E5', 'L20');
+        }
+        [, , $row] = $this->table($sheet, $row, 'Session', ['Session', 'Appointments'], $this->labelled($ap['by_session']));
+
+        $visits = $r['insights']['visits'][0];
+        [$first, $last] = $this->table($sheet, $row, 'Visits scheduled per period', ['Period', 'Visits'],
+            array_map(fn ($p) => [$p['d'], $p['v']], $visits['series']));
+        if ($last > $first) {
+            $this->chart($sheet, 'ApptVisits', 'Visits scheduled', DataSeries::TYPE_LINECHART, $first, $last, [2], 'E22', 'P40');
+        }
+        $this->widths($sheet, [26, 14]);
+    }
+
+    protected function appointmentListSheet(Spreadsheet $book, array $r): void
+    {
+        $sheet = $this->sheet($book, 'Appointment list', 'Appointment list',
+            'Every appointment booked in this period, by visit date.', $r);
+
+        $rows = array_map(fn ($a) => [
+            $this->excelDate($a['date']), $a['session'], $a['queue'], $a['student'], $a['student_number'], $a['purpose'], $a['status'], $a['reschedules'],
+        ], $r['appointment_list']);
+
+        [$first, $last] = $this->table($sheet, 5, null,
+            ['Visit date', 'Session', 'Queue no.', 'Student', 'Student no.', 'Purpose', 'Status', 'Reschedules'], $rows);
+
+        $this->finishList($sheet, 'A5:H' . max(5, $last), $first, $last, ['A'], 'yyyy-mm-dd');
+        $this->widths($sheet, [14, 12, 10, 28, 14, 44, 12, 12]);
+    }
+
+    protected function studentsSheet(Spreadsheet $book, array $r): void
+    {
+        $cl = $r['clearance'];
+        $us = $r['users'];
+        $cards = $r['overview']['cards'];
+        $sheet = $this->sheet($book, 'Students', 'Students',
+            'Accounts, clearance and account verification. Clearance and verification follow the term filter; '
+            . 'new-account breakdowns cover accounts created in the period.', $r);
+
+        [, , $row] = $this->table($sheet, 5, 'At a glance', ['Measure', 'Value'], [
+            ['Students and officers', $cards['total_students']],
+            ['Active accounts', $cards['active_accounts']],
+            ['New accounts in the period', $us['total']],
+            ['Tagged for clearance', $cl['total']],
+            ['Clearance rate', $cl['clearance_rate'] . '%'],
+            ['E-slips submitted', $r['verification']['total']],
+            ['Verified rate', $r['verification']['verified_rate'] . '%'],
+            ['Verifications waiting', $cards['pending_verifications']],
+        ]);
+
+        [, , $row] = $this->table($sheet, $row, 'Clearance status', ['Status', 'Students'], $this->labelled($cl['by_status'], false));
+
+        $orgs = collect($cl['by_organization'])->map(function ($s, $org) {
+            $c = (int) ($s['Cleared'] ?? 0);
+            $p = (int) ($s['Pending'] ?? 0);
+            $u = (int) ($s['Uncleared'] ?? 0);
+
+            return [$org, $c, $p, $u, $c + $p + $u, $this->pct($c, $c + $p + $u) . '%'];
+        })->sortByDesc(4)->values()->all();
+        [$first, $last, $row] = $this->table($sheet, $row, 'Clearance by organization', ['Organization', 'Cleared', 'Pending', 'Uncleared', 'Total', 'Cleared %'], $orgs);
+        if ($last > $first) {
+            $this->chart($sheet, 'ClearanceOrgs', 'Clearance by organization', DataSeries::TYPE_BARCHART,
+                $first, min($last, $first + 11), [2, 3, 4], 'H5', 'P28', stacked: true);
         }
 
-        $sheet = $spreadsheet->createSheet();
+        [, , $row] = $this->table($sheet, $row, 'Account verification', ['Status', 'E-slips'], $this->labelled($r['verification']['by_status']));
+        [, , $row] = $this->table($sheet, $row, 'New accounts by program', ['Program', 'Accounts'], $this->labelled($us['by_program'], false));
+        [, , $row] = $this->table($sheet, $row, 'New accounts by year level', ['Year level', 'Accounts'],
+            collect($us['by_year_level'])->map(fn ($n, $y) => ['Year ' . $y, (int) $n])->values()->all());
+        $this->table($sheet, $row, 'Accounts by role', ['Role', 'Accounts'], $this->labelled($us['by_role'], false));
+
+        $this->widths($sheet, [40, 12, 12, 12, 12, 12]);
+    }
+
+    protected function logbookSheet(Spreadsheet $book, array $lb): void
+    {
+        $sheet = $book->createSheet();
         $sheet->setTitle('Logbook');
+        $this->heading($sheet, 'Front desk logbook',
+            'Walk-in visits from the uploaded paper logbooks, dated in the period. The term does not apply: logbook rows only carry a date.');
 
-        $sheet->setCellValue('A1', 'Front Desk Logbook');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        if (! $lb['total_entries']) {
+            $sheet->setCellValue('A5', 'No logbook entries are dated in this period.');
 
-        $descRow = $this->writeDescription(
-            $sheet,
-            'Walk-in visits pasted in from the paper front-desk logbook. This sheet always covers the full lifetime '
-            . 'history — logbook entries carry their own free-text dates and are not affected by the Range or '
-            . 'AY / Semester filters.',
-            2,
-            'A:D'
-        );
+            return;
+        }
 
-        $purposeTitleRow = $descRow + 1;
-        $sheet->setCellValue('A' . $purposeTitleRow, 'Requests by Purpose');
-        $sheet->getStyle('A' . $purposeTitleRow)->getFont()->setBold(true)->setSize(13);
-        $sheet->setCellValue('A' . ($purposeTitleRow + 1), 'Purpose');
-        $sheet->setCellValue('B' . ($purposeTitleRow + 1), 'Count');
-        $sheet->getStyle('A' . ($purposeTitleRow + 1) . ':B' . ($purposeTitleRow + 1))->getFont()->setBold(true);
+        [, , $row] = $this->table($sheet, 5, 'At a glance', ['Measure', 'Value'], [
+            ['Logbooks uploaded', $lb['total_uploads']],
+            ['Entries', $lb['total_entries']],
+        ]);
+        [$first, $last, $row] = $this->table($sheet, $row, 'Why students visit', ['Purpose', 'Visits'], $this->labelled($lb['by_purpose'], false));
+        if ($last > $first) {
+            $this->chart($sheet, 'LogPurpose', 'Why students visit', DataSeries::TYPE_BARCHART, $first, $last, [2], 'E5', 'L22');
+        }
+        [, , $row] = $this->table($sheet, $row, 'Visits by program', ['Program', 'Visits'], $this->labelled($lb['by_program'], false));
+        [$first, $last] = $this->table($sheet, $row, 'Entries per month', ['Month', 'Entries'],
+            collect($lb['monthly'])->map(fn ($n, $m) => [$m, (int) $n])->values()->all());
+        if ($last > $first) {
+            $this->chart($sheet, 'LogMonthly', 'Entries per month', DataSeries::TYPE_LINECHART, $first, $last, [2], 'E24', 'P40');
+        }
+        $this->widths($sheet, [40, 12]);
+    }
 
-        $row = $purposeTitleRow + 2;
-        foreach ($logbook['by_purpose'] ?? [] as $label => $value) {
-            $sheet->setCellValue('A' . $row, $label);
-            $sheet->setCellValue('B' . $row, (int) $value);
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    /** A new sheet with its title, description and the filters it was built with. */
+    protected function sheet(Spreadsheet $book, string $name, string $title, string $description, array $r): Worksheet
+    {
+        $sheet = $book->createSheet();
+        $sheet->setTitle(substr($name, 0, 31));
+        $this->heading($sheet, $title, $description);
+        $sheet->setCellValue('A3', 'Period: ' . $r['period']['range'] . '   ·   Term: ' . $r['period']['term']
+            . '   ·   Generated ' . $r['generated_at']->format('M j, Y g:i A'));
+        $sheet->getStyle('A3')->getFont()->setSize(9)->getColor()->setRGB(self::MUTED);
+
+        return $sheet;
+    }
+
+    protected function heading(Worksheet $sheet, string $title, string $description): void
+    {
+        $sheet->setCellValue('A1', $title);
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16)->getColor()->setRGB(self::BRAND);
+        $sheet->setCellValue('A2', $description);
+        $sheet->mergeCells('A2:F2');
+        $sheet->getStyle('A2')->getAlignment()->setWrapText(true)->setVertical('top');
+        $sheet->getStyle('A2')->getFont()->setSize(10)->getColor()->setRGB(self::MUTED);
+        $sheet->getRowDimension(2)->setRowHeight(42);
+    }
+
+    /**
+     * Writes an optional heading, a styled header row and the data rows starting at $row.
+     *
+     * @return array{0: int, 1: int, 2: int} first data row, last data row, next free row
+     */
+    protected function table(Worksheet $sheet, int $row, ?string $heading, array $headers, array $rows, bool $boldLast = false): array
+    {
+        if ($heading) {
+            $sheet->setCellValue('A' . $row, $heading);
+            $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(12);
             $row++;
         }
-        $purposeLastRow = $row - 1;
-        $sheet->getColumnDimension('A')->setWidth(28);
-        $sheet->getColumnDimension('B')->setWidth(12);
 
-        if (count($logbook['by_purpose'] ?? []) > 1) {
-            $purposeDataStartRow = $purposeTitleRow + 2;
-            $this->addPieChart(
-                $sheet, 'LogbookPurpose', 'Requests by Purpose',
-                "'Logbook'!\$A\${$purposeDataStartRow}:\$A\${$purposeLastRow}",
-                "'Logbook'!\$B\${$purposeDataStartRow}:\$B\${$purposeLastRow}",
-                'D' . $purposeTitleRow, count($logbook['by_purpose'])
-            );
+        $lastCol = Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->fromArray($headers, null, 'A' . $row);
+        $header = $sheet->getStyle("A{$row}:{$lastCol}{$row}");
+        $header->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $header->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::BRAND);
+
+        $first = $row + 1;
+        if ($rows === []) {
+            $sheet->setCellValue('A' . $first, 'No data for this period.');
+            $sheet->getStyle('A' . $first)->getFont()->setItalic(true)->getColor()->setRGB(self::MUTED);
+
+            return [$first, $first - 1, $first + 2];
         }
 
-        // Program breakdown, offset below the purpose table
-        $progStart = $purposeLastRow + 3;
-        $sheet->setCellValue('A' . $progStart, 'Requests by Course / Program');
-        $sheet->getStyle('A' . $progStart)->getFont()->setBold(true)->setSize(13);
-        $sheet->setCellValue('A' . ($progStart + 1), 'Program');
-        $sheet->setCellValue('B' . ($progStart + 1), 'Count');
-        $sheet->getStyle('A' . ($progStart + 1) . ':B' . ($progStart + 1))->getFont()->setBold(true);
-
-        $r = $progStart + 2;
-        foreach ($logbook['by_program'] ?? [] as $label => $value) {
-            $sheet->setCellValue('A' . $r, $label);
-            $sheet->setCellValue('B' . $r, (int) $value);
-            $r++;
-        }
-        $progLastRow = $r - 1;
-
-        if (count($logbook['by_program'] ?? []) > 1) {
-            $this->addPieChart(
-                $sheet, 'LogbookProgram', 'Requests by Program',
-                "'Logbook'!\$A\${$progStart}:\$A\${$progLastRow}",
-                "'Logbook'!\$B\${$progStart}:\$B\${$progLastRow}",
-                'D' . $progStart, count($logbook['by_program'])
-            );
+        $sheet->fromArray(array_values(array_map('array_values', $rows)), null, 'A' . $first, true);
+        $last = $first + count($rows) - 1;
+        $sheet->getStyle("A{$first}:{$lastCol}{$last}")->getBorders()->getBottom()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB(self::LINE);
+        $sheet->getStyle("A{$first}:{$lastCol}{$last}")->getBorders()->getInside()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB(self::LINE);
+        if ($boldLast) {
+            $sheet->getStyle("A{$last}:{$lastCol}{$last}")->getFont()->setBold(true);
         }
 
-        // Monthly trend, offset below the program table
-        $monthStart = $progLastRow + 3;
-        $sheet->setCellValue('A' . $monthStart, 'Monthly Trend');
-        $sheet->getStyle('A' . $monthStart)->getFont()->setBold(true)->setSize(13);
-        $sheet->setCellValue('A' . ($monthStart + 1), 'Month');
-        $sheet->setCellValue('B' . ($monthStart + 1), 'Count');
-        $sheet->getStyle('A' . ($monthStart + 1) . ':B' . ($monthStart + 1))->getFont()->setBold(true);
+        return [$first, $last, $last + 3];
+    }
 
-        $months = array_keys($logbook['monthly'] ?? []);
-        $values = array_values($logbook['monthly'] ?? []);
-        foreach ($months as $i => $label) {
-            $sheet->setCellValue('A' . ($monthStart + 2 + $i), $label);
-            $sheet->setCellValue('B' . ($monthStart + 2 + $i), $values[$i]);
-        }
-
-        if (count($months) > 1) {
-            $monthLastRow = $monthStart + 1 + count($months);
-            $this->addLineChart(
-                $sheet, 'LogbookMonthly', 'Monthly Trend',
-                "'Logbook'!\$A\$" . ($monthStart + 2) . ":\$A\${$monthLastRow}",
-                "'Logbook'!\$B\$" . ($monthStart + 2) . ":\$B\${$monthLastRow}",
-                'D' . $monthStart, count($months)
-            );
+    /** Freeze the header, add filter arrows and format the date columns of a record list. */
+    protected function finishList(Worksheet $sheet, string $range, int $first, int $last, array $dateCols, string $format = 'yyyy-mm-dd hh:mm'): void
+    {
+        $sheet->freezePane('A' . $first);
+        if ($last >= $first) {
+            $sheet->setAutoFilter($range);
+            foreach ($dateCols as $col) {
+                $sheet->getStyle("{$col}{$first}:{$col}{$last}")->getNumberFormat()->setFormatCode($format);
+            }
         }
     }
 
-    protected function addPieChart(
-        $sheet,
-        string $name,
-        string $title,
-        string $categoriesRange,
-        string $valuesRange,
-        string $anchorCell,
-        int $pointCount
-    ): void {
-        $categories = new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $categoriesRange, null, $pointCount);
-        $values = new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_NUMBER, $valuesRange, null, $pointCount);
+    /**
+     * An Excel chart over a table: categories in column A, one series per column in $valueCols
+     * (1-based), each named after its header cell. Horizontal bars for bar charts.
+     */
+    protected function chart(Worksheet $sheet, string $name, string $title, string $type, int $first, int $last, array $valueCols, string $from, string $to, bool $stacked = false): void
+    {
+        $ref = "'" . $sheet->getTitle() . "'!";
+        $count = $last - $first + 1;
+        $col = fn (int $i) => Coordinate::stringFromColumnIndex($i);
 
-        $series = new DataSeries(
-            DataSeries::TYPE_PIECHART,
-            null,
-            range(0, 0),
-            [],
-            [$categories],
-            [$values]
-        );
+        $labels = array_map(fn ($c) => new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $ref . '$' . $col($c) . '$' . ($first - 1), null, 1), $valueCols);
+        $values = array_map(fn ($c) => new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_NUMBER, "{$ref}\${$col($c)}\${$first}:\${$col($c)}\${$last}", null, $count), $valueCols);
+        $categories = [new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, "{$ref}\$A\${$first}:\$A\${$last}", null, $count)];
 
-        $plotArea = new PlotArea(null, [$series]);
-        $legend = new Legend(Legend::POSITION_RIGHT, null, false);
-        $chart = new Chart($name, new Title($title), $legend, $plotArea);
-        $chart->setTopLeftPosition($anchorCell);
-        $chart->setBottomRightPosition(
-            chr(ord($anchorCell[0]) + 5) . ((int) substr($anchorCell, 1) + 14)
-        );
+        $grouping = $type === DataSeries::TYPE_LINECHART
+            ? DataSeries::GROUPING_STANDARD
+            : ($stacked ? DataSeries::GROUPING_STACKED : DataSeries::GROUPING_CLUSTERED);
 
+        $series = new DataSeries($type, $grouping, range(0, count($values) - 1), $labels, $categories, $values);
+        $series->setPlotDirection($type === DataSeries::TYPE_BARCHART ? DataSeries::DIRECTION_BAR : DataSeries::DIRECTION_COL);
+
+        $chart = new Chart($name, new Title($title), count($values) > 1 ? new Legend(Legend::POSITION_BOTTOM, null, false) : null, new PlotArea(null, [$series]));
+        $chart->setTopLeftPosition($from);
+        $chart->setBottomRightPosition($to);
         $sheet->addChart($chart);
     }
 
-    protected function addLineChart(
-        $sheet,
-        string $name,
-        string $title,
-        string $categoriesRange,
-        string $valuesRange,
-        string $anchorCell,
-        int $pointCount
-    ): void {
-        $categories = new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_STRING, $categoriesRange, null, $pointCount);
-        $values = new DataSeriesValues(DataSeriesValues::DATASERIES_TYPE_NUMBER, $valuesRange, null, $pointCount);
+    /** label => count map as rows, biggest first. */
+    protected function labelled(array $map, bool $humanize = true): array
+    {
+        arsort($map);
 
-        $series = new DataSeries(
-            DataSeries::TYPE_LINECHART,
-            DataSeries::GROUPING_STANDARD,
-            range(0, 0),
-            [],
-            [$categories],
-            [$values]
-        );
-        $series->setPlotDirection(DataSeries::DIRECTION_COL);
+        return collect($map)->map(fn ($n, $k) => [$humanize ? ucwords(str_replace('_', ' ', (string) $k)) : (string) $k, (int) $n])->values()->all();
+    }
 
-        $plotArea = new PlotArea(null, [$series]);
-        $legend = new Legend(Legend::POSITION_BOTTOM, null, false);
-        $chart = new Chart($name, new Title($title), $legend, $plotArea);
-        $chart->setTopLeftPosition($anchorCell);
-        $chart->setBottomRightPosition(
-            chr(ord($anchorCell[0]) + 6) . ((int) substr($anchorCell, 1) + 14)
-        );
+    protected function excelDate($value): ?float
+    {
+        return $value instanceof CarbonInterface ? Date::PHPToExcel($value) : null;
+    }
 
-        $sheet->addChart($chart);
+    protected function pct(int $n, int $total): int
+    {
+        return $total > 0 ? (int) round($n / $total * 100) : 0;
+    }
+
+    protected function widths(Worksheet $sheet, array $widths): void
+    {
+        foreach ($widths as $i => $w) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i + 1))->setWidth($w);
+        }
     }
 }

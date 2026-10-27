@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\OfficeAvailability;
 use App\Models\StudentDocumentWorkspace;
 use App\Models\User;
+use App\Support\DashboardInsights;
 use App\Support\DocumentProgress;
 use App\Workflow\Documents\DocumentRegistry;
 use Carbon\Carbon;
@@ -24,6 +25,9 @@ class Dashboard extends Component
     use BuildsClearanceStatusViewData;
 
     private const FINISHED = ['completed', 'rejected', 'voided'];
+
+    /** Days the insight charts cover: 7, 30 or 90. */
+    public int $range = 30;
 
     /** Profile details most forms print, checked so the student is not blocked at submit time. */
     private const PROFILE_FIELDS = [
@@ -146,6 +150,32 @@ class Dashboard extends Component
         return $items;
     }
 
+    /** Documents that reached the office (drafts never did). */
+    private function submitted(Builder $query): Builder
+    {
+        return $query->where(fn ($q) => $q
+            ->whereNull('student_document_workspaces.workflow_status')
+            ->orWhere('student_document_workspaces.workflow_status', '!=', 'draft'));
+    }
+
+    private function insights(int $userId): array
+    {
+        $days = $this->range = DashboardInsights::range($this->range);
+        $mine = fn () => StudentDocumentWorkspace::query()->where('student_document_workspaces.user_id', $userId);
+
+        return [
+            'trend' => [
+                DashboardInsights::metric('started', 'Started', $mine(), 'student_document_workspaces.created_at', $days),
+                DashboardInsights::metric('submitted', 'Submitted', $this->submitted($mine()), DashboardInsights::SUBMITTED_AT, $days),
+                DashboardInsights::metric('completed', 'Completed', $mine(), 'student_document_workspaces.completed_at', $days),
+                DashboardInsights::metric('appointments', 'Appointments', Appointment::where('appointments.user_id', $userId), 'appointments.created_at', $days),
+            ],
+            'byType' => DashboardInsights::byType($mine()),
+            // Everyone's submissions, so students can see when the office is busiest.
+            'times' => DashboardInsights::activeTimes($this->submitted(StudentDocumentWorkspace::query()), $days),
+        ];
+    }
+
     public function render()
     {
         $userId = (int) Auth::id();
@@ -173,6 +203,7 @@ class Dashboard extends Component
             'activeCount' => $active->count(),
             'appointment' => $appointment,
             'clearance' => $clearance,
+            'insights' => $this->insights($userId),
         ])->layout('layouts.app', ['title' => 'Dashboard']);
     }
 }

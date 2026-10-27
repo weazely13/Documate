@@ -1,6 +1,7 @@
 @php
     $field = 'w-full rounded-xl border-gray-200 bg-white py-2.5 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] sm:text-sm';
     $label = 'mb-1.5 block text-sm font-medium text-gray-700';
+    $pill = 'shrink-0 rounded-full border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-xs font-medium text-gray-700 focus:border-[#2A57B4] focus:ring-[#2A57B4]';
 
     $verificationBadge = fn (string $s) => match ($s) {
         'verified' => 'bg-emerald-50 text-emerald-700',
@@ -20,20 +21,27 @@
 <div class="space-y-5">
 
     {{-- Verification period --}}
-    <section class="rounded-2xl border border-gray-200/70 bg-white shadow-sm" aria-labelledby="period-title">
-        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 p-5">
-            <div class="min-w-0">
+    <section class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm cq-sm:p-5" aria-labelledby="period-title">
+        <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
                 <h3 id="period-title" class="text-base font-semibold text-gray-900">Verification period</h3>
-                <p class="mt-0.5 text-sm text-gray-500">
-                    {{ $currentPeriod ? $currentPeriod->label() : 'No verification period has been raised yet.' }}
-                </p>
+                <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold {{ $periodClass }}">{{ $periodState }}</span>
             </div>
-            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $periodClass }}">{{ $periodState }}</span>
+            <p class="mt-0.5 text-sm text-gray-500">
+                {{ $currentPeriod ? $currentPeriod->label() : 'No verification period has been raised yet.' }}
+            </p>
         </div>
+        <button type="button" wire:click="openRaise"
+            class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#24499A]">
+            <i class='bx bx-plus text-lg' aria-hidden="true"></i>Raise verification
+        </button>
+    </section>
 
-        <form wire:submit.prevent="raiseVerification" class="p-5">
-            <p class="mb-4 text-sm text-gray-600">Raise a new period to ask every student and officer to verify their account by the end date. Everyone is notified.</p>
-            <div class="grid gap-4 cq-md:grid-cols-[1fr_1fr_auto] cq-md:items-end">
+    @if ($showRaiseModal)
+        <x-admin.form-modal title="Raise verification"
+            subtitle="Every student and officer is asked to verify their account by the end date, and everyone is notified."
+            submit="raiseVerification" close="closeRaise" width="sm:max-w-md">
+            <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label for="v-start" class="{{ $label }}">Start date</label>
                     <input id="v-start" type="date" wire:model="verification_start_date" class="{{ $field }}">
@@ -44,32 +52,37 @@
                     <input id="v-end" type="date" wire:model="verification_end_date" class="{{ $field }}">
                     @error('verification_end_date') <p class="mt-1 text-sm text-rose-600">{{ $message }}</p> @enderror
                 </div>
-                <button type="submit"
+            </div>
+
+            <x-slot:footer>
+                <button type="button" wire:click="closeRaise"
+                    class="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
+                <button type="submit" wire:loading.attr="disabled" wire:target="raiseVerification"
                     onclick="return confirm('Raise a new verification period? All students and officers will be notified.')"
-                    class="w-full rounded-xl bg-[#2A57B4] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#24499A] cq-md:w-auto">
+                    class="rounded-lg bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#24499A] disabled:opacity-60">
                     Raise verification
                 </button>
-            </div>
-        </form>
-    </section>
+            </x-slot:footer>
+        </x-admin.form-modal>
+    @endif
 
     {{-- Students --}}
     <section class="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm" aria-label="Students">
-        <div class="grid gap-2 border-b border-gray-100 p-4 cq-md:grid-cols-[1fr_auto_auto]">
-            <div class="relative">
-                <i class='bx bx-search pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400' aria-hidden="true"></i>
+        <div class="flex flex-col gap-2 border-b border-gray-100 p-2.5 cq-md:flex-row cq-md:items-center">
+            <div class="relative min-w-0 cq-md:flex-1">
+                <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' aria-hidden="true"></i>
                 <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, student number or email" aria-label="Search students"
-                    class="{{ $field }} bg-gray-50 pl-10">
+                    class="w-full rounded-full border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-base focus:border-[#2A57B4] focus:ring-[#2A57B4] cq-sm:text-sm">
             </div>
-            <div class="grid grid-cols-2 gap-2 cq-md:contents">
-                <select wire:model.live="verificationStatusFilter" aria-label="Verification status" class="{{ $field }} cq-md:w-44">
+            <div class="flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <select wire:model.live="verificationStatusFilter" aria-label="Verification status" class="{{ $pill }}">
                     <option value="">Any verification</option>
                     @foreach($statuses as $status)
                         <option value="{{ $status }}">{{ ucfirst($status) }}</option>
                     @endforeach
                     <option value="not_submitted">Not submitted</option>
                 </select>
-                <select wire:model.live="accountStatusFilter" aria-label="Account status" class="{{ $field }} cq-md:w-40">
+                <select wire:model.live="accountStatusFilter" aria-label="Account status" class="{{ $pill }}">
                     <option value="">Any account</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>

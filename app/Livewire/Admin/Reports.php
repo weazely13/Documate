@@ -3,6 +3,13 @@
 namespace App\Livewire\Admin;
 
 use App\Exports\AdminReportSpreadsheet;
+use App\Models\Appointment;
+use App\Models\StudentDocumentWorkspace;
+use App\Models\User;
+use App\Support\DashboardInsights;
+use App\Workflow\Documents\DocumentRegistry;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use App\Services\Admin\AdminReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Component;
@@ -46,7 +53,6 @@ class Reports extends Component
     public function setDatePreset(string $preset): void
     {
         $this->applyPreset($preset);
-        $this->dispatch('reports-charts-refresh');
     }
 
     protected function applyPreset(string $preset): void
@@ -78,14 +84,13 @@ class Reports extends Component
         $this->applyPreset('180d');
         $this->academicYear = null;
         $this->semester = null;
-        $this->dispatch('reports-charts-refresh');
     }
 
-    /** Fires whenever a wire:model.live-bound filter changes, so Chart.js can pull fresh data. */
+    /** Typing a date switches the range to "Custom". */
     public function updated(string $propertyName): void
     {
-        if (in_array($propertyName, ['dateFrom', 'dateTo', 'academicYear', 'semester'], true)) {
-            $this->dispatch('reports-charts-refresh');
+        if (in_array($propertyName, ['dateFrom', 'dateTo'], true)) {
+            $this->datePreset = 'custom';
         }
     }
 
@@ -99,9 +104,66 @@ class Reports extends Component
         ];
     }
 
-    public function exportPdf()
-    {   
+    /** Everything both downloads contain: the page's numbers plus the records behind them. */
+    protected function exportData(): array
+    {
         $data = $this->withWorkflow($this->service->build($this->filters()));
+        $data['insights'] = $this->insights();
+        [$from, $to] = [$data['insights']['from'], $data['insights']['to']];
+
+        $data['period'] = [
+            'range' => $from->format('M j, Y') . ' – ' . $to->format('M j, Y'),
+            'term' => ($this->semester ?: 'All semesters') . ', ' . ($this->academicYear ? 'AY ' . $this->academicYear : 'all academic years'),
+        ];
+
+        $name = fn ($u) => $u ? trim($u->last_name . ', ' . $u->first_name, ', ') : '—';
+
+        $data['register'] = $this->submittedDocuments()
+            ->whereRaw(DashboardInsights::SUBMITTED_AT . ' >= ?', [$from->copy()->startOfDay()])
+            ->whereRaw(DashboardInsights::SUBMITTED_AT . ' <= ?', [$to->copy()->endOfDay()])
+            ->with(['user.program', 'template'])
+            ->orderByRaw(DashboardInsights::SUBMITTED_AT . ' desc')
+            ->get()
+            ->map(function (StudentDocumentWorkspace $w) use ($name) {
+                $submitted = $w->submitted_at ?? $w->created_at;
+
+                return [
+                    'code' => $w->transaction_code ?: '#' . $w->workspace_id,
+                    'document' => DocumentRegistry::find($w->document_type)?->name() ?? $w->template?->name ?? 'Document',
+                    'student' => $name($w->user),
+                    'student_number' => $w->user?->student_number ?: '—',
+                    'program' => $w->user?->program?->name ?: '—',
+                    'status' => $w->workflow_status?->label() ?? ucfirst((string) ($w->status ?: 'pending')),
+                    'submitted' => $submitted,
+                    'completed' => $w->completed_at,
+                    'days' => $w->completed_at && $submitted ? round($submitted->diffInHours($w->completed_at) / 24, 1) : null,
+                ];
+            })
+            ->all();
+
+        $data['appointment_list'] = Appointment::with('user')
+            ->when($this->dateFrom, fn ($q, $d) => $q->whereDate('created_at', '>=', $d))
+            ->whereDate('created_at', '<=', $to)
+            ->orderBy('appointment_date')->orderBy('session')->orderBy('queue_number')
+            ->get()
+            ->map(fn (Appointment $a) => [
+                'date' => $a->appointment_date,
+                'session' => ucfirst((string) $a->session),
+                'queue' => $a->queue_number,
+                'student' => $name($a->user),
+                'student_number' => $a->user?->student_number ?: '—',
+                'purpose' => $a->purpose ?: '—',
+                'status' => ucfirst((string) $a->status),
+                'reschedules' => (int) $a->reschedule_count,
+            ])
+            ->all();
+
+        return $data;
+    }
+
+    public function exportPdf()
+    {
+        $data = $this->exportData();
 
         $pdf = Pdf::loadView('exports.admin-report-pdf', [
             'report'  => $data,
@@ -119,8 +181,7 @@ class Reports extends Component
 
     public function exportExcel()
     {
-        $data = $this->withWorkflow($this->service->build($this->filters()));
-        $spreadsheet = (new AdminReportSpreadsheet())->build($data);
+        $spreadsheet = (new AdminReportSpreadsheet())->build($this->exportData());
 
         $filename = 'documate-report-' . now()->format('Ymd-His') . '.xlsx';
 
@@ -147,9 +208,47 @@ class Reports extends Component
         return $this->withWorkflow($this->service->build($this->filters()));
     }
 
-    public function getChartData(): array
+    /** The selected range as dates. "All" starts at the first document ever filed. */
+    protected function period(): array
     {
-        return $this->withWorkflow($this->service->build($this->filters()));
+        $to = $this->dateTo ? Carbon::parse($this->dateTo) : today();
+        $first = StudentDocumentWorkspace::min('created_at');
+        $from = $this->dateFrom ? Carbon::parse($this->dateFrom) : ($first ? Carbon::parse($first) : $to->copy()->subYear());
+
+        return $from->gt($to) ? [$to, $from] : [$from, $to];
+    }
+
+    /** Documents that reached the office (drafts never did). */
+    protected function submittedDocuments(): Builder
+    {
+        return StudentDocumentWorkspace::query()->where(fn ($q) => $q
+            ->whereNull('student_document_workspaces.workflow_status')
+            ->orWhere('student_document_workspaces.workflow_status', '!=', 'draft'));
+    }
+
+    protected function insights(): array
+    {
+        [$from, $to] = $this->period();
+        $inRange = $this->submittedDocuments()
+            ->whereRaw(DashboardInsights::SUBMITTED_AT . ' >= ?', [$from->copy()->startOfDay()])
+            ->whereRaw(DashboardInsights::SUBMITTED_AT . ' <= ?', [$to->copy()->endOfDay()]);
+        $students = User::whereHas('role', fn ($q) => $q->whereIn('role_name', ['Student', 'Officer']));
+
+        return [
+            'from' => $from,
+            'to' => $to,
+            'trend' => [
+                DashboardInsights::metricBetween('submitted', 'Submitted', $this->submittedDocuments(), DashboardInsights::SUBMITTED_AT, $from, $to),
+                DashboardInsights::metricBetween('completed', 'Completed', StudentDocumentWorkspace::query(), 'student_document_workspaces.completed_at', $from, $to),
+                DashboardInsights::metricBetween('appointments', 'Appointments booked', Appointment::query(), 'appointments.created_at', $from, $to),
+                DashboardInsights::metricBetween('accounts', 'New accounts', $students, 'users.created_at', $from, $to),
+            ],
+            'visits' => [
+                DashboardInsights::metricBetween('visits', 'Visits scheduled', Appointment::whereNotIn('status', ['retracted', 'rejected']), 'appointments.appointment_date', $from, $to),
+            ],
+            'byType' => DashboardInsights::byType($inRange, 10),
+            'times' => DashboardInsights::activeTimesBetween($this->submittedDocuments(), $from, $to),
+        ];
     }
 
 
@@ -157,6 +256,7 @@ class Reports extends Component
     {
         return view('livewire.admin.reports', [
             'report'        => $this->getReportData(),
+            'insights'      => $this->insights(),
             'academicYears' => $this->service->availableAcademicYears(),
             'semesters'     => self::SEMESTERS,
         ])->layout('layouts.app', ['title' => 'Reports']);

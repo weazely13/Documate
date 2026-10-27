@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Models\StudentDocumentWorkspace;
 use App\Models\StudentVerification;
 use App\Models\User;
+use App\Support\DashboardInsights;
 use App\Support\ReviewQueue;
 use App\Support\WaitingTime;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,6 +24,9 @@ use Livewire\Component;
 class Dashboard extends Component
 {
     private const STUDENT_ROLES = ['Student', 'Officer'];
+
+    /** Days the insight charts cover: 7, 30 or 90. */
+    public int $range = 30;
 
     private function students(): Builder
     {
@@ -136,6 +140,32 @@ class Dashboard extends Component
         ];
     }
 
+    /** Documents that reached the office (drafts never did). */
+    private function submittedDocuments(): Builder
+    {
+        return StudentDocumentWorkspace::query()->where(fn ($q) => $q
+            ->whereNull('student_document_workspaces.workflow_status')
+            ->orWhere('student_document_workspaces.workflow_status', '!=', 'draft'));
+    }
+
+    private function insights(): array
+    {
+        $days = $this->range = DashboardInsights::range($this->range);
+        $inRange = $this->submittedDocuments()->whereRaw(DashboardInsights::SUBMITTED_AT . ' >= ?', [today()->subDays($days - 1)]);
+
+        return [
+            'trend' => [
+                DashboardInsights::metric('submitted', 'Submitted', $this->submittedDocuments(), DashboardInsights::SUBMITTED_AT, $days),
+                DashboardInsights::metric('completed', 'Completed', StudentDocumentWorkspace::query(), 'student_document_workspaces.completed_at', $days),
+                DashboardInsights::metric('appointments', 'Appointments booked', Appointment::query(), 'appointments.created_at', $days),
+                DashboardInsights::metric('accounts', 'New accounts', User::whereHas('role', fn ($q) => $q->whereIn('role_name', self::STUDENT_ROLES)), 'users.created_at', $days),
+            ],
+            'byType' => DashboardInsights::byType($inRange),
+            'origins' => DashboardInsights::origins($inRange),
+            'times' => DashboardInsights::activeTimes($this->submittedDocuments(), $days),
+        ];
+    }
+
     public function render()
     {
         $semester = Semester::current();
@@ -151,6 +181,7 @@ class Dashboard extends Component
             'clearance' => $this->clearance($semester),
             'verification' => $verification,
             'unverified' => $verification ? max(0, $verification['total'] - $verification['verified']) : 0,
+            'insights' => $this->insights(),
         ])->layout('layouts.app', ['title' => 'Dashboard']);
     }
 }

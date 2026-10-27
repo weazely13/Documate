@@ -351,10 +351,11 @@ class AdminReportService
     // ------------------------------------------------------------------
 
     /**
-     * Logbook entries are pasted-in paper-logbook records with free-text
-     * dates that have nothing to do with the report's date range / academic
-     * year / semester filters, so this section always reflects every
-     * logbook ever uploaded — it deliberately ignores $filters entirely.
+     * Logbook entries are pasted-in paper-logbook records. Their dates are
+     * free text, parsed here and matched against the report's date range like
+     * every other date-based section. They carry no academic year or semester,
+     * so those two filters do not narrow them. With no start date ("All"),
+     * entries whose date could not be read are still counted.
      */
     protected function logbookReport(array $filters): array
     {
@@ -367,6 +368,7 @@ class AdminReportService
                 'date'      => $this->parseLogbookEntryDate($row->entry_date),
                 'upload_id' => $row->logbook_upload_id,
             ])
+            ->filter(fn ($row) => $this->withinRange($row['date'], $filters))
             ->values();
 
         $byPurpose = $entries->pluck('purpose')->filter(fn ($p) => filled($p))
@@ -385,13 +387,23 @@ class AdminReportService
         }
         ksort($monthly);
 
+        // Months with no entries still belong on the timeline.
+        if ($monthly) {
+            $month = Carbon::createFromFormat('!Y-m', array_key_first($monthly));
+            $last = array_key_last($monthly);
+            for (; $month->format('Y-m') <= $last; $month->addMonth()) {
+                $monthly[$month->format('Y-m')] ??= 0;
+            }
+            ksort($monthly);
+        }
+
         $monthlyLabeled = [];
         foreach ($monthly as $ym => $total) {
             $monthlyLabeled[Carbon::createFromFormat('Y-m', $ym)->format('M Y')] = $total;
         }
 
         return [
-            'total_uploads' => DB::table('logbook_uploads')->count(),
+            'total_uploads' => $entries->pluck('upload_id')->unique()->count(),
             'total_entries' => $entries->count(),
             'by_purpose'    => $byPurpose,
             'by_program'    => $byProgram,
@@ -405,6 +417,19 @@ class AdminReportService
                 ],
             ],
         ];
+    }
+
+    /** Whether a parsed logbook date falls in the report's date range. */
+    protected function withinRange(?Carbon $date, array $filters): bool
+    {
+        if (! $date) {
+            return ! $filters['date_from'];
+        }
+        if ($filters['date_from'] && $date->lt(Carbon::parse($filters['date_from'])->startOfDay())) {
+            return false;
+        }
+
+        return ! $filters['date_to'] || $date->lte(Carbon::parse($filters['date_to'])->endOfDay());
     }
 
     /** Same defensive parse as LogbookManager::parseEntryDate(). */

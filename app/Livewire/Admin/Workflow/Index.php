@@ -7,7 +7,9 @@ use App\Models\User;
 use App\Support\Issuers;
 use App\Support\ReviewQueue;
 use App\Support\WaitingTime;
+use App\Workflow\Documents\DocumentRegistry;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -177,8 +179,16 @@ class Index extends Component
             ]);
 
         if (trim($this->search) !== '') {
-            $s = '%' . trim($this->search) . '%';
+            $term = trim($this->search);
+            $s = '%' . $term . '%';
+            // Document types are stored as registry keys, so match the readable name here.
+            $docKeys = collect(DocumentRegistry::all())
+                ->filter(fn ($doc, $key) => Str::contains($doc->name(), $term, ignoreCase: true) || Str::contains($key, $term, ignoreCase: true))
+                ->keys()
+                ->all();
+
             $q->where(fn ($w) => $w->where('transaction_code', 'like', $s)
+                ->when($docKeys, fn ($x) => $x->orWhereIn('document_type', $docKeys))
                 ->orWhere('field_values->reporter_name', 'like', $s)
                 ->orWhereHas('user', fn ($u) => $u->where('first_name', 'like', $s)
                     ->orWhere('last_name', 'like', $s)

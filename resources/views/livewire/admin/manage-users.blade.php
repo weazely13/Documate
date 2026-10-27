@@ -1,5 +1,5 @@
 @php
-    $fieldClass = 'rounded-xl border-gray-200 bg-white py-2.5 text-base shadow-sm sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
+    $pill = 'shrink-0 rounded-full border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-xs font-medium text-gray-700 focus:border-[#2A57B4] focus:ring-[#2A57B4]';
 
     $avatarColors = ['admin' => 'bg-red-100 text-red-600', 'officer' => 'bg-blue-100 text-blue-600', 'student' => 'bg-emerald-100 text-emerald-600'];
     $roleColors = ['admin' => 'bg-red-50 text-red-700', 'officer' => 'bg-blue-50 text-blue-700', 'student' => 'bg-emerald-50 text-emerald-700'];
@@ -18,41 +18,42 @@
         <div class="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm">
 
             {{-- Search and filters --}}
-            <div class="space-y-3 border-b border-gray-100 p-4">
-                <div class="relative">
-                    <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <div class="flex flex-col gap-2 border-b border-gray-100 p-2.5 cq-lg:flex-row cq-lg:items-center">
+                <div class="relative min-w-0 cq-lg:flex-1">
+                    <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.2-5.2m0 0A7.5 7.5 0 1 0 5.2 5.2a7.5 7.5 0 0 0 10.6 10.6Z" />
                     </svg>
                     <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, email or student number" aria-label="Search accounts"
-                        class="w-full bg-gray-50 pl-10 pr-3 {{ $fieldClass }}">
+                        class="w-full rounded-full border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-base focus:border-[#2A57B4] focus:ring-[#2A57B4] cq-sm:text-sm">
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 cq-md:flex cq-md:flex-wrap cq-md:items-center">
-                    <select wire:model.live="roleFilter" aria-label="Filter by role" class="{{ $fieldClass }} cq-md:w-auto">
+                {{-- One row; scrolls sideways when it does not fit --}}
+                <div class="flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <select wire:model.live="roleFilter" aria-label="Filter by role" class="{{ $pill }}">
                         <option value="">All roles</option>
                         @foreach ($roles as $role)
                             <option value="{{ $role->id }}">{{ ucfirst($role->role_name) }}</option>
                         @endforeach
                     </select>
-                    <select wire:model.live="statusFilter" aria-label="Filter by status" class="{{ $fieldClass }} cq-md:w-auto">
+                    <select wire:model.live="statusFilter" aria-label="Filter by status" class="{{ $pill }}">
                         <option value="">Any status</option>
                         <option value="1">Active</option>
                         <option value="0">Inactive</option>
                     </select>
-                    <select wire:model.live="yearFilter" aria-label="Filter by year level" class="{{ $fieldClass }} cq-md:w-auto">
+                    <select wire:model.live="yearFilter" aria-label="Filter by year level" class="{{ $pill }}">
                         <option value="">Any year</option>
                         <option value="1">1st year</option>
                         <option value="2">2nd year</option>
                         <option value="3">3rd year</option>
                         <option value="4">4th year</option>
                     </select>
-                    <label class="inline-flex items-center gap-2 rounded-xl px-2 py-2.5 text-sm text-gray-600">
-                        <input type="checkbox" wire:model.live="showRemoved" class="rounded border-gray-300 text-[#2A57B4] focus:ring-[#2A57B4]">
-                        Show removed
+                    <label class="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700">
+                        <input type="checkbox" wire:model.live="showRemoved" class="h-3.5 w-3.5 rounded border-gray-300 text-[#2A57B4] focus:ring-[#2A57B4]">
+                        Removed
                     </label>
-                    <span class="col-span-2 text-sm text-gray-500 cq-md:ml-auto">{{ number_format($users->total()) }} {{ \Illuminate\Support\Str::plural('account', $users->total()) }}</span>
                 </div>
             </div>
+            <p class="border-b border-gray-100 px-4 py-2 text-xs text-gray-500">{{ number_format($users->total()) }} {{ \Illuminate\Support\Str::plural('account', $users->total()) }}</p>
 
             {{-- Wide: table --}}
             <div class="hidden overflow-x-auto cq-lg:block">

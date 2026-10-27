@@ -21,7 +21,7 @@ class VerificationManagement extends Component
     // --- Raise verification form ---
     public string $verification_start_date = '';
     public string $verification_end_date = '';
-
+    public bool $showRaiseModal = false;
 
     // --- Student list ---
     public string $search = '';
@@ -40,6 +40,19 @@ class VerificationManagement extends Component
             'verification_start_date' => 'required|date',
             'verification_end_date' => 'required|date|after_or_equal:verification_start_date',
         ];
+    }
+
+    public function openRaise(): void
+    {
+        $this->reset(['verification_start_date', 'verification_end_date']);
+        $this->resetErrorBag();
+        $this->showRaiseModal = true;
+    }
+
+    public function closeRaise(): void
+    {
+        $this->reset(['verification_start_date', 'verification_end_date', 'showRaiseModal']);
+        $this->resetErrorBag();
     }
 
     public function updated($property): void
@@ -78,7 +91,7 @@ class VerificationManagement extends Component
 
         NotificationFacade::send($recipients, new VerificationPeriodOpened($period));
 
-        $this->reset(['verification_start_date', 'verification_end_date']);
+        $this->closeRaise();
 
         session()->flash('message', 'Verification period opened and students notified.');
         $this->dispatch('alert', type: 'success', message: 'Verification period opened. Students have been notified.');

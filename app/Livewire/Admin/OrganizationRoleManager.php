@@ -34,6 +34,72 @@ class OrganizationRoleManager extends Component
     #[\Livewire\Attributes\Url(as: 'sig', except: 'people')]
     public string $sigTab = 'people'; // people | add | roles | invites (inside signatories)
 
+    /** The open create/edit/assign modal: org | program | position | officer | role | signatory, or null. */
+    public ?string $form = null;
+
+    private const FORMS = ['org', 'program', 'position', 'officer', 'role', 'signatory'];
+
+    /** Which half of the "Add a person" modal opens first: existing | invite. */
+    public string $sigAddMode = 'existing';
+
+    public function mount(): void
+    {
+        // "Add a person" in the sidebar opens the people list with the add modal on top.
+        if ($this->panel === 'signatories' && $this->sigTab === 'add') {
+            $this->sigTab = 'people';
+            $this->form = 'signatory';
+        }
+    }
+
+    /**
+     * Open a blank create/assign modal. For a signatory, $roleId preselects the role and
+     * $mode picks "existing" account or "invite".
+     */
+    public function openForm(string $which, ?int $roleId = null, string $mode = 'existing'): void
+    {
+        if (! in_array($which, self::FORMS, true)) {
+            return;
+        }
+
+        $this->clearForm($which);
+        $this->resetErrorBag();
+        $this->form = $which;
+
+        if ($which === 'signatory') {
+            $this->sigRoleId = $roleId;
+            $this->sigAddMode = $mode === 'invite' ? 'invite' : 'existing';
+        }
+    }
+
+    public function closeForm(): void
+    {
+        if ($this->form) {
+            $this->clearForm($this->form);
+        }
+        $this->resetErrorBag();
+
+        // Closing "Add a person" lands on "Who can sign?": keep the sidebar highlight in step.
+        if ($this->form === 'signatory') {
+            $this->sigTab = 'people';
+            $this->js("window.dispatchEvent(new CustomEvent('users-manager-nav', { detail: 'sig-people' }))");
+        }
+
+        $this->form = null;
+    }
+
+    private function clearForm(string $which): void
+    {
+        match ($which) {
+            'org' => $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds', 'orgIsAcademic', 'orgYearLevel', 'pickerSearch', 'pickerCollege', 'pickerView']),
+            'program' => $this->reset(['editingProgramId', 'programName', 'programCollegeId']),
+            'position' => $this->reset(['editingPositionId', 'positionTitle']),
+            'officer' => $this->reset(['assignOrganizationId', 'selectedStudentId', 'assignPositionId', 'studentSearch']),
+            'role' => $this->reset(['editingSigRoleId', 'sigRoleKey', 'sigRoleLabel', 'sigRoleDescription', 'sigRoleScope']),
+            'signatory' => $this->reset(['sigAddMode', 'sigSelectedUserId', 'sigRoleId', 'sigScopeId', 'sigActiveFrom', 'sigActiveUntil', 'sigUserSearch',
+                'invFirst', 'invLast', 'invEmail', 'invRoleId', 'invScopeId', 'invFrom', 'invUntil', 'invEmailMatch']),
+        };
+    }
+
     // ---- Filters (prefix decides which paginator gets reset) ----
     public string $filterOrgSearch = '';
     public string $filterOrgCollege = '';
@@ -224,7 +290,7 @@ class OrganizationRoleManager extends Component
                 ->all();
 
             if (array_diff($officerProgramIds, $programIds)) {
-                session()->flash('org_message', 'An officer belongs to a program you unticked. Remove that officer first, or keep the program.');
+                $this->addError('orgProgramIds', 'An officer belongs to a program you unticked. Remove that officer first, or keep the program.');
                 return;
             }
         }
@@ -241,7 +307,7 @@ class OrganizationRoleManager extends Component
         $org->programs()->sync($programIds);
 
         session()->flash('org_message', $this->editingOrgId ? 'Organization updated.' : 'Organization created.');
-        $this->resetOrganizationForm();
+        $this->closeForm();
     }
 
     public function cancelInvitation(int $invitationId): void
@@ -267,12 +333,8 @@ class OrganizationRoleManager extends Component
         $this->orgYearLevel = $org->year_level;
         $this->orgIsAcademic = $org->year_level !== null ? false : (bool) ($org->is_academic ?? true);
         $this->reset(['pickerSearch', 'pickerCollege', 'pickerView']);
-    }
-
-    public function resetOrganizationForm(): void
-    {
-        $this->reset(['editingOrgId', 'orgName', 'orgDescription', 'orgProgramIds', 'orgIsAcademic', 'orgYearLevel']);
         $this->resetErrorBag();
+        $this->form = 'org';
     }
 
     public function toggleOrganizationActive(int $id): void
@@ -378,7 +440,7 @@ class OrganizationRoleManager extends Component
         );
 
         session()->flash('position_message', $this->editingPositionId ? 'Position updated.' : 'Position added.');
-        $this->resetPositionForm();
+        $this->closeForm();
     }
 
     public function editPosition(int $id): void
@@ -387,6 +449,8 @@ class OrganizationRoleManager extends Component
         $this->editingPositionId = $position->id;
         $this->positionTitle = $position->title;
         $this->panel = 'positions';
+        $this->resetErrorBag();
+        $this->form = 'position';
     }
 
     public function deletePosition(int $id): void
@@ -400,12 +464,6 @@ class OrganizationRoleManager extends Component
 
         $position->delete();
         session()->flash('position_message', 'Position removed.');
-    }
-
-    public function resetPositionForm(): void
-    {
-        $this->reset(['editingPositionId', 'positionTitle']);
-        $this->resetErrorBag();
     }
 
     // =========================================================
@@ -424,7 +482,7 @@ class OrganizationRoleManager extends Component
         );
 
         session()->flash('program_message', $this->editingProgramId ? 'Program updated.' : 'Program added.');
-        $this->resetProgramForm();
+        $this->closeForm();
     }
 
     public function editProgram(int $id): void
@@ -434,6 +492,8 @@ class OrganizationRoleManager extends Component
         $this->programName = $program->name;
         $this->programCollegeId = $program->college_id;
         $this->panel = 'programs';
+        $this->resetErrorBag();
+        $this->form = 'program';
     }
 
     public function toggleProgramActive(int $id): void
@@ -454,12 +514,6 @@ class OrganizationRoleManager extends Component
 
         $program->delete();
         session()->flash('program_message', 'Program removed.');
-    }
-
-    public function resetProgramForm(): void
-    {
-        $this->reset(['editingProgramId', 'programName', 'programCollegeId']);
-        $this->resetErrorBag();
     }
 
     // =========================================================
@@ -542,22 +596,22 @@ class OrganizationRoleManager extends Component
         $user = User::with('role')->findOrFail($this->selectedStudentId);
 
         if ($org->programs->isEmpty()) {
-            session()->flash('assign_message', 'This organization has no programs yet. Assign at least one first.');
+            $this->addError('assignOrganizationId', 'This organization has no programs yet. Assign at least one first.');
             return;
         }
 
         if (Str::lower((string) ($user->role->role_name ?? '')) === 'admin') {
-            session()->flash('assign_message', 'The administrator account cannot be assigned as an officer.');
+            $this->addError('selectedStudentId', 'The administrator account cannot be assigned as an officer.');
             return;
         }
 
         if (! $org->programs->pluck('id')->contains($user->program_id)) {
-            session()->flash('assign_message', 'Only students from this organization\'s programs can be assigned as its officers.');
+            $this->addError('selectedStudentId', 'Only students from this organization\'s programs can be assigned as its officers.');
             return;
         }
 
         if ($user->isOfficer()) {
-            session()->flash('assign_message', 'This student is already an officer. Remove their current role first.');
+            $this->addError('selectedStudentId', 'This student is already an officer. Remove their current role first.');
             return;
         }
 
@@ -577,7 +631,7 @@ class OrganizationRoleManager extends Component
 
         session()->flash('assign_message', trim($user->first_name . ' ' . $user->last_name) . ' is now an officer of ' . $org->name . '.');
 
-        $this->reset(['selectedStudentId', 'assignPositionId', 'studentSearch']);
+        $this->closeForm();
         $this->resetPage('officerPage');
     }
 
@@ -635,7 +689,7 @@ class OrganizationRoleManager extends Component
         );
 
         session()->flash('sig_role_message', $this->editingSigRoleId ? 'Signatory role updated.' : 'Signatory role added.');
-        $this->resetSignatoryRoleForm();
+        $this->closeForm();
     }
 
     public function editSignatoryRole(int $id): void
@@ -647,12 +701,8 @@ class OrganizationRoleManager extends Component
         $this->sigRoleDescription = (string) $role->description;
         $this->panel = 'signatories';
         $this->sigRoleScope = $role->scope;
-    }
-
-    public function resetSignatoryRoleForm(): void
-    {
-        $this->reset(['editingSigRoleId', 'sigRoleKey', 'sigRoleLabel', 'sigRoleDescription', 'sigRoleScope']);
         $this->resetErrorBag();
+        $this->form = 'role';
     }
 
     public function toggleSignatoryRoleActive(int $id): void
@@ -770,7 +820,7 @@ class OrganizationRoleManager extends Component
             ->exists();
 
         if ($alreadyCurrent) {
-            session()->flash('sig_assign_message', 'This person already currently holds that role.');
+            $this->addError('sigRoleId', 'This person already currently holds that role.');
             return;
         }
 
@@ -789,7 +839,7 @@ class OrganizationRoleManager extends Component
 
         session()->flash('sig_assign_message', trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) . " is now assigned as {$role->label}.");
 
-        $this->reset(['sigSelectedUserId', 'sigRoleId', 'sigActiveFrom', 'sigActiveUntil', 'sigUserSearch']);
+        $this->closeForm();
         $this->resetPage('signatoryPage');
     }
 
@@ -852,7 +902,7 @@ class OrganizationRoleManager extends Component
             'invFrom' => ['nullable', 'date'],
             'invUntil' => ['nullable', 'date', 'after_or_equal:invFrom'],
         ], [
-            'invEmail.unique' => 'That email already has an account. Use "Assign a Signatory" above instead.',
+            'invEmail.unique' => 'That email already has an account. Use "They already have an account" instead.',
         ], [
             'invFirst' => 'first name', 'invLast' => 'last name', 'invEmail' => 'email',
             'invRoleId' => 'signatory role', 'invFrom' => 'start date', 'invUntil' => 'end date',
@@ -878,13 +928,13 @@ class OrganizationRoleManager extends Component
             ], Auth::user());
         } catch (\Throwable $e) {
             report($e);
-            session()->flash('sig_invite_message', 'The invitation could not be sent, so no account was created. Check the mail settings and try again.');
+            $this->addError('invite', 'The invitation could not be sent, so no account was created. Check the mail settings and try again.');
 
             return;
         }
 
         session()->flash('sig_invite_message', trim($data['invFirst'] . ' ' . $data['invLast']) . ' was invited. They will receive an email to set their password.');
-        $this->reset(['invFirst', 'invLast', 'invEmail', 'invRoleId', 'invFrom', 'invUntil', 'sigScopeId', 'invScopeId']);
+        $this->closeForm();
     }
 
     /** New setup link. Also serves as "reset password" for a signatory who already has one. */

@@ -50,10 +50,10 @@ class WaitingTime
     }
 
     /**
-     * Display data for a waiting time: the text to show and its colour classes.
+     * Display data for a waiting time: the text to show, its urgency level and the dot colour.
      * With $flag off the age is shown plainly, without an urgency level.
      *
-     * @return array{level: ?string, days: int, text: string, dot: string, tone: string, row: string}
+     * @return array{level: ?string, days: int, text: string, dot: string}
      */
     public static function describe(?CarbonInterface $since, bool $flag = true, ?CarbonInterface $now = null): array
     {
@@ -86,14 +86,6 @@ class WaitingTime
                 'due' => 'bg-amber-300',
                 default => 'bg-slate-300',
             },
-            'tone' => match ($level) {
-                'overdue' => 'font-bold text-red-900',
-                'urgent' => 'font-semibold text-red-800',
-                'follow_up' => 'font-semibold text-orange-800',
-                'due' => 'font-medium text-slate-700',
-                default => 'text-slate-500',
-            },
-            'row' => $level === 'overdue' ? 'bg-red-50/70' : '',
         ];
     }
 
