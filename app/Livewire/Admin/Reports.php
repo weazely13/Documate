@@ -1143,7 +1143,13 @@ class Reports extends Component
         return null;
     }
 
-    /** The PDF file: A4, rendered, with "Page X of Y" stamped in the footer of every page. */
+    /**
+     * The PDF file: A4, rendered, with "Page X of Y" stamped in the footer of every page.
+     *
+     * It is laid out twice. The first pass measures where the summary (page 1), the key areas
+     * (page 2) and Appendix 1 end; the second spreads each one's leftover space between its lines
+     * so every one of those pages is filled to the bottom margin.
+     */
     public function pdfBytes(): string
     {
         $fonts = self::pdfFonts();
@@ -1151,20 +1157,54 @@ class Reports extends Component
         if (! is_dir(storage_path('fonts'))) {
             @mkdir(storage_path('fonts'), 0775, true);
         }
-        $dompdf = Pdf::loadView('exports.admin-report-pdf', $this->pdfData() + ['fonts' => $fonts])
-            ->setPaper('a4', 'portrait')
-            ->setOption([
-                'defaultFont' => $fonts ? 'ReportSans' : 'DejaVu Sans',
-                'dpi' => 96,
-                'isFontSubsettingEnabled' => true,
-                'chroot' => array_values(array_unique(array_filter([realpath(base_path()), $fonts ? dirname($fonts['regular']) : null]))),
-            ])
-            ->getDomPDF();
-        $dompdf->render();
+        // the sidebar's brand typeface for the footer's "DocuMate" (SIL Open Font License, shipped with the app)
+        $brandFont = is_file(resource_path('fonts/GveretLevin-Regular.ttf')) ? resource_path('fonts/GveretLevin-Regular.ttf') : null;
+        $data = $this->pdfData() + ['fonts' => $fonts, 'brandFont' => $brandFont];
+        $mm = 72 / 25.4;
+
+        $build = function (array $fill, ?array &$marks = null) use ($data, $fonts, $mm) {
+            $dompdf = Pdf::loadView('exports.admin-report-pdf', $data + ['fill' => $fill])
+                ->setPaper('a4', 'portrait')
+                ->setOption([
+                    'defaultFont' => $fonts ? 'ReportSans' : 'DejaVu Sans',
+                    // line boxes are line-height × the font's own height; 1.0 keeps that height as designed
+                    'fontHeightRatio' => 1.0,
+                    'dpi' => 96,
+                    'isFontSubsettingEnabled' => true,
+                    'chroot' => array_values(array_unique(array_filter([realpath(base_path()), $fonts ? dirname($fonts['regular']) : null]))),
+                ])
+                ->getDomPDF();
+            if ($marks !== null) {
+                // the page and the bottom edge (points from the paper's top) of each "fit-…" marker
+                $dompdf->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$marks, $mm) {
+                    $node = $frame->get_node();
+                    $id = $node instanceof \DOMElement ? $node->getAttribute('id') : '';
+                    if (str_starts_with($id, 'fit-')) {
+                        $marks[$id] = ['page' => $canvas->get_page_number(), 'y' => $frame->get_position('y'), 'bottom' => $canvas->get_height() - 18 * $mm];
+                    }
+                }]]);
+            }
+            $dompdf->render();
+
+            return $dompdf;
+        };
+
+        $marks = [];
+        $build([], $marks);
+        $fill = [];
+        foreach (['summary', 'areas', 'appendix'] as $part) {
+            [$start, $end] = [$marks["fit-{$part}-start"] ?? null, $marks["fit-{$part}-end"] ?? null];
+            if ($start && $end) {
+                // leftover points under the part on its page (below zero: it ran onto the next page)
+                $fill[$part] = $end['page'] === $start['page']
+                    ? ['gap' => max(0, $end['bottom'] - $end['y'] - 4), 'height' => $end['y'] - $start['y']]
+                    : ['gap' => -1, 'height' => 0];
+            }
+        }
+        $dompdf = $build($fill);
 
         // The total is only known after rendering, so the page count is drawn on the canvas.
         // Units are points; the number sits about 10 mm above the paper's edge.
-        $mm = 72 / 25.4;
         $dompdf->getCanvas()->page_script(function (int $page, int $pages, $canvas, $fonts) use ($mm) {
             // centred under the footer title in grey italics, as the sample report numbers its pages
             $font = $fonts->getFont('ReportSans', 'italic') ?? $fonts->getFont('DejaVu Sans', 'italic');

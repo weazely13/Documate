@@ -11,7 +11,7 @@ namespace App\Support\Charts;
 final class ReportPdfChart
 {
     private const W = 700;
-    private const H = 250;
+    private const H = 190;
     private const PAD_L = 46;
     private const PAD_R = 16;
     private const PAD_T = 12;

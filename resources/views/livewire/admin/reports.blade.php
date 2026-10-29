@@ -1056,13 +1056,51 @@
                 <button type="button" wire:click="regeneratePdfDraft" wire:loading.attr="disabled" class="{{ $outlineBtn }} h-11">
                     <i class="bx bx-refresh text-lg" wire:loading.class="animate-spin" wire:target="regeneratePdfDraft" aria-hidden="true"></i>Regenerate
                 </button>
-                <button type="button" wire:click="downloadPdf" wire:loading.attr="disabled" class="ml-auto inline-flex h-11 items-center gap-2 rounded-full bg-[#2A57B4] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E4090] disabled:opacity-60">
+                <button type="button" wire:click="downloadPdf" x-on:click="$dispatch('pdf-download-start')" wire:loading.attr="disabled" class="ml-auto inline-flex h-11 items-center gap-2 rounded-full bg-[#2A57B4] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E4090] disabled:opacity-60">
                     <i class="bx bx-download text-lg" wire:loading.remove wire:target="downloadPdf" aria-hidden="true"></i>
                     <i class="bx bx-loader-alt animate-spin text-lg" wire:loading wire:target="downloadPdf" aria-hidden="true"></i>
                     Download PDF
                 </button>
             </footer>
         </aside>
+
+        {{-- while the PDF is built: what is happening, and roughly how long is left --}}
+        <div wire:loading.flex wire:target="downloadPdf" class="fixed inset-0 z-[60] items-center justify-center bg-slate-900/50 p-4"
+            x-data="{ t: 0, timer: null }"
+            x-on:pdf-download-start.window="t = 0; clearInterval(timer); timer = setInterval(() => t++, 1000)"
+            role="alertdialog" aria-modal="true" aria-labelledby="pdf-building-title" aria-describedby="pdf-building-step">
+            @php
+                $steps = [
+                    [0, 'Gathering this report’s figures'],
+                    [3, 'Measuring each page so the summary, key areas and Appendix 1 fill their pages'],
+                    [12, 'Laying out the final PDF: chart, tables and fonts'],
+                    [26, 'Almost done. Longer reports, and the records appendix, take a little more time'],
+                ];
+            @endphp
+            <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2A57B4]/10 text-[#2A57B4]"><i class="bx bx-loader-alt animate-spin text-2xl" aria-hidden="true"></i></span>
+                    <div>
+                        <h2 id="pdf-building-title" class="text-base font-semibold text-slate-900">Building your PDF</h2>
+                        <p class="text-xs text-slate-500">Usually 15–30 seconds. It downloads by itself when ready.</p>
+                    </div>
+                </div>
+                <ol class="mt-5 space-y-2.5 text-sm" aria-live="polite">
+                    @foreach ($steps as $i => [$from, $label])
+                        @php $until = $steps[$i + 1][0] ?? null; @endphp
+                        <li class="flex items-start gap-2.5"
+                            x-bind:class="t >= {{ $from }} ? 'text-slate-900' : 'text-slate-400'">
+                            <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs"
+                                x-bind:class="{{ $until !== null ? "t >= $until" : 'false' }} ? 'bg-emerald-100 text-emerald-700' : (t >= {{ $from }} ? 'bg-[#2A57B4] text-white' : 'bg-slate-100 text-slate-400')">
+                                <i class="bx" x-bind:class="{{ $until !== null ? "t >= $until" : 'false' }} ? 'bx-check' : 'bx-radio-circle'" aria-hidden="true"></i>
+                            </span>
+                            <span @if ($i === 0) id="pdf-building-step" @endif>{{ $label }}</span>
+                        </li>
+                    @endforeach
+                </ol>
+                <p class="mt-5 text-xs tabular-nums text-slate-500">Elapsed <span x-text="Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0')">0:00</span>. Keep this tab open.</p>
+            </div>
+        </div>
     @endif
 
     {{-- ===================== AI INSIGHTS SIDE PANEL ===================== --}}
