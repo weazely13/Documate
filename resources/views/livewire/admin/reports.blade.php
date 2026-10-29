@@ -1,9 +1,9 @@
 @use('Illuminate\Support\Str')
 @php
     /*
-     * Reports, laid out like a source report: a summary strip (headline, four figures, details),
-     * a list to pick a form or organization beside its trend over time, then the records, which
-     * can be ticked, trimmed to the columns needed and downloaded.
+     * Reports: the report, form / organization and period dropdowns on top, then the trend over
+     * time beside a status chart, then the records, which can be trimmed to the columns needed,
+     * ticked and downloaded.
      */
     $homeUrl = \Illuminate\Support\Facades\Route::has('admin.dashboard') ? route('admin.dashboard') : url('/');
     $pct = fn ($n, $d) => $d > 0 ? (int) round($n / $d * 100) : 0;
@@ -81,29 +81,9 @@
     $first = $rowTotal ? ($page - 1) * \App\Livewire\Admin\Reports::PER_PAGE + 1 : 0;
     $last = min($rowTotal, $page * \App\Livewire\Admin\Reports::PER_PAGE);
 
-    // What the report says (headline, figures, help, details, pick list, records title) comes from
-    // the component's summary(), which the PDF download uses too; here it only gets its styling.
+    // What the report says (pick list, records title) comes from the component's summary(),
+    // which the PDF download uses too; here it only gets its styling.
     $selectedForm = $summary['selectedForm'];
-    $insight = $summary['insight'];
-    $headline = [$summary['headline'][0], $summary['headline'][1], ['emerald' => 'text-emerald-600', 'blue' => 'text-[#2A57B4]', 'teal' => 'text-teal-600'][$summary['headline'][2]]];
-    // figure key => [icon, gradient]
-    $tileLook = [
-        'requests' => ['bx-file', 'from-[#2A57B4] to-[#3b6fd8]'],
-        'students' => ['bx-group', 'from-sky-500 to-cyan-400'],
-        'completed' => ['bx-check-double', 'from-emerald-500 to-teal-400'],
-        'returned' => ['bx-undo', 'from-rose-500 to-pink-500'],
-        'orgs' => ['bx-buildings', 'from-[#2A57B4] to-[#3b6fd8]'],
-        'members' => ['bx-group', 'from-sky-500 to-cyan-400'],
-        'filed' => ['bx-file', 'from-amber-400 to-orange-400'],
-        'cleared' => ['bx-check-shield', 'from-emerald-500 to-teal-400'],
-    ] + collect($clear)->map(fn ($c) => [$c[2], $c[1]])->all();
-    $tiles = array_map(fn ($t) => [
-        $t['label'], $t['value'], $tileLook[$t['key']][0],
-        $t['key'] === 'returned' && ! $t['value'] ? 'from-slate-400 to-slate-500' : $tileLook[$t['key']][1],
-        $t['before'], $t['lower'], $t['click'],
-    ], $summary['tiles']);
-    $tileHelp = collect($summary['help'])->map(fn ($h) => $tab === 'clearance' ? [$h[0], $h[1] . ' Click to list only them.'] : $h)->all();
-    $details = $summary['details'];
     $listAll = $summary['listAll'];
     $listItems = collect($summary['listItems']);
     $listAction = fn ($value) => match ($tab) {
@@ -111,14 +91,22 @@
         'organizations' => 'pickOrg(' . \Illuminate\Support\Js::from($value) . ')',
         'clearance' => '$set(\'clearanceOrg\', ' . \Illuminate\Support\Js::from($value) . ')',
     };
-    [$listTitle, $listHead] = $summary['list'];
-    $listPeak = max(1, (int) $listItems->max(2));
+    [, $listHead] = $summary['list'];
+    $pickNoun = $tab === 'forms' ? 'Form' : 'Organization';
+    $pickCurrent = $listItems->first(fn ($item) => $item[4])[1] ?? $listAll[1];
 
-    [$recordsTitle, $recordsNote, $unit] = $summary['records'];
-    $filtered = $summary['filtered'];
-    // The table's columns, picked in the Metrics panel: [key, header]
+    [$recordsTitle, , $unit] = $summary['records'];
+    // The table's columns, picked in the Metrics panel, with the student's where it goes: [key, header]
     $numeric = \App\Livewire\Admin\Reports::NUMERIC_METRICS;
-    $columns = array_map(fn ($k) => [$k, $metricLabels[$k]], $columnOrder);
+    $columns = array_map(fn ($k) => [$k, $k === 'student' ? ($tab === 'forms' ? 'Name' : 'Student') : $metricLabels[$k]], $columnKeys);
+    // A row as plain text, tab-separated in the table's column order, for "Copy row"
+    $rowText = fn ($r) => collect($columnKeys)->map(fn ($k) => (string) ($k === 'student' ? $r['student'] : ($this->columnValue($r, $k) ?? '')))->implode("\t");
+    // "Show all" under a picked form or organization: back to every one
+    $showAll = match ($tab) {
+        'forms' => $form !== null ? 'pickForm(null)' : null,
+        'organizations' => $org !== null ? 'pickOrg(null)' : null,
+        'clearance' => $clearanceOrg !== '' ? "\$set('clearanceOrg', '')" : null,
+    };
     $dash = '<span class="text-slate-300">—</span>';
     $reportName = $currentSaved?->name ?? $reports[$tab][0];
     $chartTitle = match ($tab) { 'forms' => 'Requests over time', 'organizations' => 'Member requests over time', 'clearance' => 'Clearance set over time' };
@@ -130,7 +118,8 @@
     $downloadTips = [
         'sheet' => 'Opens this table in a new browser tab, laid out like a spreadsheet: the ' . $colCount . ' columns you picked in Metrics, a Total row, and every row (all pages). From there you can save it as Excel or CSV. Nothing downloads until you choose.',
         'csv' => 'Downloads all ' . number_format($rowTotal) . ' ' . Str::plural('row', $rowTotal) . ' of this table (every page, not just this one) as a .csv file that Excel or Google Sheets opens. It keeps your search, filters and the columns picked in Metrics, with the Total row first.',
-        'ticked' => 'Downloads only the rows you ticked in the table, as a .csv with the same columns. Tick rows with the boxes on the left.',
+        'tickedSheet' => 'Opens only the rows you ticked in a new browser tab, laid out like a spreadsheet, with the columns picked in Metrics. From there you can save them as Excel or CSV.',
+        'ticked' => 'Downloads only the rows you ticked as a .csv file, with the columns picked in Metrics.',
         'clear' => 'Unticks every row in the table. Nothing is downloaded.',
         'pdf' => 'An A4 report on the LNU letterhead, written like an official report: a conclusion, each key area marked on track or needing attention with its priority, context, recommended actions and a sign-off, with the figures and chart as support. The AI drafts the wording first; you review and edit it before it downloads.',
         'excel' => 'The same full summary as the PDF, as an Excel workbook: one sheet per section with charts, and the request register and logbook as their own sheets, ready for your own analysis.',
@@ -144,11 +133,11 @@
 
 
 
-    <div class="grid items-start gap-4 xl:grid-cols-[20rem_minmax(0,1fr)] xl:grid-rows-[auto_1fr] xl:gap-0 2xl:grid-cols-[22rem_minmax(0,1fr)]" wire:loading.class="opacity-60" wire:target="tab,setTab,compare,applyComparison,removeComparison,datePreset,dateFrom,dateTo,applyCustomRange,semesterId,clearanceOrg,search,pickForm,pickOrg,pickStatus,resetFilters,goToPage,clearClearanceFilters,loadSavedReport,setMetrics,resetMetrics,chartType,interval">
+    <div class="grid items-start gap-4" wire:loading.class="opacity-60" wire:target="tab,setTab,compare,applyComparison,removeComparison,datePreset,dateFrom,dateTo,applyCustomRange,semesterId,clearanceOrg,search,pickForm,pickOrg,pickStatus,resetFilters,goToPage,clearClearanceFilters,loadSavedReport,setMetrics,resetMetrics,chartType,interval">
 
 
         {{-- ===================== CONTROLS AND AI QUESTIONS ===================== --}}
-        <div class="min-w-0 space-y-3 px-4 md:px-6 xl:col-start-2 xl:row-start-1 xl:pt-6">
+        <div class="min-w-0 space-y-3 px-4 pt-0 md:px-6 xl:pt-6">
         {{-- ===================== CONTROLS ===================== --}}
     <div class="flex flex-wrap items-center gap-2 sm:justify-end">
             {{-- Report: the three built-in reports and the ones this admin saved --}}
@@ -191,21 +180,85 @@
                 </div>
             </div>
 
-            {{-- Period: grouped list like YouTube Studio's, with a custom range panel --}}
-            <div wire:key="period-{{ $datePreset }}-{{ $dateFrom }}-{{ $dateTo }}" x-data="{ open: false, custom: false, from: @js($dateFrom), to: @js($dateTo),
-                    get days() { if (! this.from || ! this.to) return 0; return Math.abs(Math.round((new Date(this.to) - new Date(this.from)) / 864e5)) + 1 } }"
-                class="relative min-w-0 grow basis-[calc(50%-0.25rem)] sm:grow-0 sm:basis-auto" @keydown.escape.window="open = false; custom = false">
-                <button type="button" x-ref="trigger" @click="open = ! open; custom = false" :aria-expanded="open" aria-haspopup="listbox"
+            {{-- Form (or organization): which one the chart and table are about --}}
+            <div x-data="{ open: false, q: '' }" class="relative min-w-0 grow basis-[calc(50%-0.25rem)] sm:grow-0 sm:basis-auto" @keydown.escape.window="open = false">
+                <button type="button" x-ref="trigger" @click="open = ! open; q = ''" :aria-expanded="open" aria-haspopup="listbox"
                     class="flex w-full min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-left shadow-sm sm:w-auto sm:min-w-[11rem] sm:gap-3 sm:px-3.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
                     <span class="min-w-0 flex-1">
-                        <span class="block truncate text-[11px] leading-4 text-slate-500" title="{{ $rangeLabel }}">{{ $rangeShort }}</span>
-                        <span class="block truncate text-sm font-semibold text-slate-900">{{ $periodName }}</span>
+                        <span class="block text-[11px] leading-4 text-slate-500">{{ $pickNoun }}</span>
+                        <span class="block truncate text-sm font-semibold text-slate-900 sm:max-w-[15rem]" title="{{ $pickCurrent }}">{{ $pickCurrent }}</span>
                     </span>
                     <i class="bx bx-chevron-down text-xl text-slate-500 transition" :class="open && 'rotate-180'" aria-hidden="true"></i>
                 </button>
-                <div x-show="open" x-anchor.fixed.bottom-end.offset.6="$refs.trigger" x-cloak @click.outside="open = false; custom = false" x-transition.origin.top.right
-                    class="z-40 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl bg-white text-sm shadow-lg ring-1 ring-slate-200">
-                    <div x-show="! custom" role="listbox" aria-label="Period" class="thin-scroll max-h-[min(26rem,calc(100dvh-6rem))] overflow-y-auto py-1">
+                <div x-show="open" x-anchor.fixed.bottom-start.offset.6="$refs.trigger" x-cloak @click.outside="open = false" x-transition.origin.top.left
+                    class="z-40 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl bg-white text-sm shadow-lg ring-1 ring-slate-200">
+                    @if ($listItems->count() > 8)
+                        <div class="border-b border-slate-100 p-2">
+                            <label class="relative block">
+                                <span class="sr-only">Find {{ strtolower($pickNoun) }}</span>
+                                <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
+                                <input type="search" x-model="q" placeholder="Find {{ strtolower($pickNoun) === 'form' ? 'a form' : 'an organization' }}" class="w-full rounded-full border-slate-200 py-1.5 pl-9 pr-3 text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]">
+                            </label>
+                        </div>
+                    @endif
+                    <div class="flex items-center justify-between px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        <span>{{ $pickNoun }}</span><span>{{ $listHead }}</span>
+                    </div>
+                    <div role="listbox" aria-label="{{ $pickNoun }}" class="thin-scroll max-h-[min(24rem,calc(100dvh-10rem))] overflow-y-auto pb-1">
+                        @foreach (collect([$listAll])->concat($listItems) as $i => [$value, $label, $big, $small, $on])
+                            @php $pairColour = $compare === 'item' && $i > 0 ? ($value === $compareA ? $compareColours[0] : ($value === $compareB ? $compareColours[1] : null)) : null; @endphp
+                            <button type="button" role="option" aria-selected="{{ $on ? 'true' : 'false' }}" wire:key="pick-{{ $tab }}-{{ md5((string) $value) }}"
+                                x-show="{{ $i === 0 ? 'true' : '! q || ' . e(\Illuminate\Support\Js::from(Str::lower($label))) . '.includes(q.trim().toLowerCase())' }}"
+                                wire:click="{{ $listAction($on && $i > 0 ? $listAll[0] : $value) }}" @click="open = false" @if ($pairColour) style="box-shadow: inset 4px 0 0 {{ $pairColour }}" @endif
+                                class="flex w-full items-center justify-between gap-3 px-4 py-2 text-left transition {{ $on ? 'bg-blue-50 font-semibold text-[#2A57B4]' : 'text-slate-700 hover:bg-slate-50' }} {{ $i === 0 ? 'border-b border-slate-100' : '' }}">
+                                <span class="flex min-w-0 items-center gap-2">
+                                    <i class="bx bx-check shrink-0 text-lg {{ $on ? 'text-[#2A57B4]' : 'invisible' }}" aria-hidden="true"></i>
+                                    <span class="min-w-0 truncate {{ $label === 'No organization' ? 'text-slate-500' : '' }}" title="{{ $label }}">{{ $label }}</span>
+                                </span>
+                                <span class="shrink-0 tabular-nums"><b class="{{ $on ? 'text-[#2A57B4]' : 'text-slate-900' }}">{{ $fmt($big) }}</b> <span class="text-xs text-slate-400">/ {{ $fmt($small) }}</span></span>
+                            </button>
+                        @endforeach
+                        @if ($listItems->isEmpty())
+                            <p class="px-4 py-6 text-center text-sm text-slate-500">{{ $tab === 'forms' ? 'No forms were filed in this period.' : 'There are no active students yet.' }}</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Period: the date range first, then the ready-made periods --}}
+            <div wire:key="period-{{ $datePreset }}-{{ $dateFrom }}-{{ $dateTo }}" x-data="{ open: false, from: @js($from->toDateString()), to: @js($to->toDateString()),
+                    get days() { if (! this.from || ! this.to) return 0; return Math.abs(Math.round((new Date(this.to) - new Date(this.from)) / 864e5)) + 1 } }"
+                class="relative min-w-0 grow basis-full sm:grow-0 sm:basis-auto" @keydown.escape.window="open = false">
+                <button type="button" x-ref="trigger" @click="open = ! open" :aria-expanded="open" aria-haspopup="dialog"
+                    class="flex w-full min-w-0 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/60 px-3 py-1.5 text-left shadow-sm sm:w-auto sm:min-w-[13rem] sm:gap-3 sm:px-3.5 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
+                    <i class="bx bx-calendar text-xl text-[#2A57B4]" aria-hidden="true"></i>
+                    <span class="min-w-0 flex-1">
+                        <span class="block truncate text-[11px] leading-4 text-slate-500">{{ $periodName }}</span>
+                        <span class="block truncate text-sm font-semibold tabular-nums text-slate-900" title="{{ $rangeLabel }}">{{ $rangeShort }}</span>
+                    </span>
+                    <i class="bx bx-chevron-down text-xl text-slate-500 transition" :class="open && 'rotate-180'" aria-hidden="true"></i>
+                </button>
+                <div x-show="open" x-anchor.fixed.bottom-end.offset.6="$refs.trigger" x-cloak @click.outside="open = false" x-transition.origin.top.right role="dialog" aria-label="Period"
+                    class="z-40 flex max-h-[calc(100dvh-5rem)] w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl bg-white text-sm shadow-lg ring-1 ring-slate-200">
+                    {{-- the date range: what the report covers, set directly --}}
+                    <form class="shrink-0 border-b border-blue-100 bg-blue-50 p-4" @submit.prevent="$wire.applyCustomRange(from, to); open = false">
+                        <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#2A57B4]"><i class="bx bx-calendar-edit text-base" aria-hidden="true"></i>Date range</p>
+                        <div class="mt-2 flex items-end gap-2">
+                            <label class="min-w-0 flex-1 text-[11px] font-medium text-slate-600">From
+                                <input type="date" x-model="from" :max="to" class="mt-1 w-full rounded-lg border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 focus:border-[#2A57B4] focus:ring-[#2A57B4]">
+                            </label>
+                            <span class="pb-2 text-slate-400">–</span>
+                            <label class="min-w-0 flex-1 text-[11px] font-medium text-slate-600">To
+                                <input type="date" x-model="to" :min="from" max="{{ today()->toDateString() }}" class="mt-1 w-full rounded-lg border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 focus:border-[#2A57B4] focus:ring-[#2A57B4]">
+                            </label>
+                        </div>
+                        <div class="mt-3 flex items-center justify-between gap-2">
+                            <p class="text-xs text-slate-600"><b class="tabular-nums" x-text="days"></b> <span x-text="days === 1 ? 'day' : 'days'"></span></p>
+                            <button type="submit" :disabled="! from || ! to" class="rounded-full bg-[#2A57B4] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[#234a99] disabled:opacity-40">Apply range</button>
+                        </div>
+                    </form>
+                    <p class="px-4 pb-1 pt-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Or pick a period</p>
+                    <div role="listbox" aria-label="Ready-made periods" class="thin-scroll min-h-0 flex-1 overflow-y-auto pb-1">
                         @foreach ($periodGroups as $group)
                             @continue(! $group)
                             <div class="{{ $loop->first ? '' : 'mt-1 border-t border-slate-100 pt-1' }}">
@@ -218,27 +271,6 @@
                                 @endforeach
                             </div>
                         @endforeach
-                        <div class="mt-1 border-t border-slate-100 pt-1">
-                            <button type="button" @click="custom = true" class="flex w-full items-center justify-between px-4 py-2 text-left transition {{ $datePreset === 'custom' ? 'bg-slate-100 font-semibold text-slate-900' : 'text-slate-700 hover:bg-slate-50' }}">
-                                Custom <i class="bx bx-chevron-right text-lg text-slate-400" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div x-show="custom" x-cloak class="p-4">
-                        <div class="flex items-end gap-2">
-                            <label class="min-w-0 flex-1 text-[11px] text-slate-500">From
-                                <input type="date" x-model="from" :max="to" class="mt-0.5 w-full rounded-none border-0 border-b-2 border-slate-300 px-0 py-1 text-sm text-slate-900 focus:border-[#2A57B4] focus:ring-0">
-                            </label>
-                            <span class="pb-1.5 text-slate-400">–</span>
-                            <label class="min-w-0 flex-1 text-[11px] text-slate-500">To
-                                <input type="date" x-model="to" :min="from" max="{{ today()->toDateString() }}" class="mt-0.5 w-full rounded-none border-0 border-b-2 border-slate-300 px-0 py-1 text-sm text-slate-900 focus:border-[#2A57B4] focus:ring-0">
-                            </label>
-                        </div>
-                        <p class="mt-3 text-xs text-slate-600"><b class="tabular-nums" x-text="days"></b> <span x-text="days === 1 ? 'day selected' : 'days selected'"></span></p>
-                        <div class="mt-4 flex justify-end gap-2">
-                            <button type="button" @click="custom = false" class="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">Cancel</button>
-                            <button type="button" :disabled="! from || ! to" @click="$wire.applyCustomRange(from, to); open = false; custom = false" class="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40">Apply</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -400,16 +432,19 @@
                     </div>
                     <div class="space-y-2 text-xs leading-relaxed text-slate-700">
                     @if ($tab === 'forms')
-                        <p>Pick a form on the left to follow it in the chart and the list. <b>Students</b>: different students who filed it. <b>Requests</b>: times it was filed. <b>Completed</b>: finished and issued. <b>Returned</b>: rejected or voided, counted on the day it was filed.</p>
-                        <p>The coloured figures compare with {{ $bySemester ? 'the semester before' : 'the same number of days just before the period' }}; “better” or “worse” says whether the change is good news.</p>
+                        <p><b>Form</b> dropdown: pick one form. <b>Show all</b> goes back to every form.</p>
+                        <p><b>Pie</b>: where each request stands now. <b>Trend</b>: requests filed, completed and returned over time.</p>
+                        <p><b>Table</b>: one row per request. Issued date stays blank until it is completed.</p>
                     @elseif ($tab === 'organizations')
-                        <p>Groups active students by the organization on their profile. Pick one on the left to follow it. The period counts the forms students filed; the semester picker sets the clearance figures.</p>
+                        <p><b>Organization</b> dropdown: pick one. <b>Show all</b> goes back to every organization.</p>
+                        <p><b>Pie</b>: cleared students per organization, or one organization’s clearance statuses. Click a slice to pick it.</p>
+                        <p><b>Trend</b>: forms filed by members over time.</p>
                     @else
-                        <p>Every active student’s clearance for the chosen semester. Click a coloured figure or an organization to filter the list. <b>Not tagged</b> means no officer has checked the student yet; it is not the same as Uncleared.</p>
-                        <p>The chart shows when the current statuses were set during the semester.</p>
+                        <p><b>Columns</b>: share of each year level that is cleared. <b>Trend</b>: when statuses were set this semester.</p>
+                        <p><b>Not tagged</b>: not checked by an officer yet (not the same as Uncleared).</p>
                     @endif
-                    <p>Use <b>Metrics</b> (or <i class="bx bx-plus-circle align-middle" aria-hidden="true"></i> in the table header) to add or remove columns. Tick rows to download only those, press <i class="bx bx-bookmark align-middle" aria-hidden="true"></i> to save this setup, and ask the AI chips above for a quick read.</p>
-                        <p><b>Add comparison</b> lays the same figures for an earlier period (or semester) beside this one: dashed lines or paler bars in the chart, and the change beside each item on the left.</p>
+                    <p><b>Dates</b>: set a range at the top of the period menu. <b>Compare</b>: adds an earlier period to the trend.</p>
+                    <p><b>Metrics</b>: choose columns. Tick rows, then <i class="bx bx-download align-middle" aria-hidden="true"></i> to download them. <i class="bx bx-dots-vertical-rounded align-middle" aria-hidden="true"></i> on a row copies it.</p>
                     </div>
                 </div>
             </div>
@@ -483,114 +518,15 @@
     </div>
         </div>
 
-        {{-- ===================== SIDEBAR: SUMMARY AND PICK LIST ===================== --}}
-        <aside x-data="{ more: false }" class="thin-scroll mx-4 flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white md:mx-6 xl:col-start-1 xl:row-span-2 xl:row-start-1 xl:mx-0 xl:sticky xl:-top-6 xl:h-[calc(100dvh-64px)] xl:overflow-y-auto xl:overscroll-contain xl:rounded-none xl:border-0 xl:border-r" aria-label="Report summary">
-        <section class="cq shrink-0 border-slate-200 p-3 sm:p-4 xl:border-b" aria-label="Summary">
-            <div class="grid gap-3 sm:gap-4">
-                <div class="flex items-baseline gap-3">
-                    <p class="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl {{ $headline[2] }}">{{ $headline[0] }}</p>
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $headline[1] }}</p>
-                </div>
+        <div class="min-w-0 space-y-4 px-4 pb-24 md:px-6 md:pb-8">
 
-                <div x-data="{ tile: null }" class="relative grid grid-cols-2 gap-2 sm:gap-3 cq-sm:grid-cols-4" @mouseleave="tile = null">
-                    @foreach ($tiles as $ti => [$label, $value, $icon, $gradient, $before, $lowerIsBetter, $click])
-                        @php $hover = '@mouseenter="tile = ' . $ti . '" @focus="tile = ' . $ti . '" @blur="tile = null" aria-describedby="tile-help-' . $ti . '"'; @endphp
-                        @php $d = $delta($value, $before, $lowerIsBetter); $on = $click && $status === $click; @endphp
-                        @if ($click)
-                            <button type="button" wire:click="pickStatus('{{ $click }}')" aria-pressed="{{ $on ? 'true' : 'false' }}" {!! $hover !!}
-                                class="relative overflow-hidden rounded-xl bg-gradient-to-br {{ $gradient }} p-3 text-left text-white shadow-sm transition sm:p-4 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] focus-visible:ring-offset-2 {{ $on ? 'ring-2 ring-slate-900 ring-offset-2' : '' }}">
-                        @else
-                            <div tabindex="0" {!! $hover !!} @click="tile = tile === {{ $ti }} ? null : {{ $ti }}" class="relative cursor-help overflow-hidden rounded-xl bg-gradient-to-br {{ $gradient }} p-3 text-white shadow-sm sm:p-4 outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] focus-visible:ring-offset-2">
-                        @endif
-                            <i class="bx {{ $icon }} pointer-events-none absolute -bottom-3 -right-2 text-5xl text-white/20 sm:text-6xl" aria-hidden="true"></i>
-                            <p class="flex items-start justify-between gap-1 text-xs font-medium text-white/85">{{ $label }}<i class="bx bx-info-circle text-sm text-white/70" aria-hidden="true"></i></p>
-                            <p class="mt-0.5 text-xl font-semibold tabular-nums sm:mt-1 sm:text-2xl">{{ $fmt($value) }}</p>
-                            <p class="mt-1 flex min-h-[1.25rem] flex-wrap items-center gap-1.5 text-[11px] text-white/85">
-                                @if ($d)
-                                    <span class="inline-flex items-center gap-0.5 rounded-md bg-white/20 px-1.5 py-0.5 font-semibold text-white"><i class="bx {{ $d['icon'] }}" aria-hidden="true"></i>{{ $d['text'] }}</span>
-                                    <span>{{ $fmt($before) }} before{{ isset($d['good']) ? ($d['good'] ? ' · better' : ' · worse') : '' }}</span>
-                                @elseif ($tab === 'clearance')
-                                    <span>{{ $pct($value, $studentTotal) }}% of students</span>
-                                @endif
-                            </p>
-                        @if ($click)</button>@else</div>@endif
-                    @endforeach
-
-                    {{-- The help, laid over what follows and as wide as the figures, so it never runs off screen --}}
-                    @foreach ($tiles as $ti => [$label])
-                        @php [$what, $shows] = $tileHelp[$label] ?? ['', '']; @endphp
-                        <div id="tile-help-{{ $ti }}" role="tooltip" x-show="tile === {{ $ti }}" x-cloak x-transition.opacity.duration.150ms
-                            class="pointer-events-none absolute inset-x-0 top-full z-20 mt-2 rounded-xl bg-slate-900 p-3 text-xs leading-relaxed text-white shadow-xl">
-                            <p class="font-semibold">{{ $label }}</p>
-                            <p class="mt-1 text-white/85"><span class="font-semibold text-white">Counts:</span> {{ $what }}</p>
-                            <p class="mt-1 text-white/85"><span class="font-semibold text-white">Shows:</span> {{ $shows }}</p>
-                        </div>
-                    @endforeach
-                </div>
-
-                <dl x-show="more" x-cloak id="report-details" class="grid gap-1.5 rounded-xl bg-slate-50 p-3 text-xs ring-1 ring-inset ring-slate-100 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-3 xl:!grid">
-                    @foreach ($details as [$label, $value])
-                        <dt class="font-medium text-slate-500">{{ $label }}</dt>
-                        <dd class="truncate font-semibold text-slate-800" title="{{ $value }}">{{ $value }}</dd>
-                    @endforeach
-                </dl>
-            </div>
-
-            <div x-show="more" x-cloak class="mt-4 flex items-start gap-2.5 border-t border-slate-100 pt-3 xl:!flex">
-                <i class="bx bx-bulb mt-0.5 text-lg text-emerald-600" aria-hidden="true"></i>
-                <p class="min-w-0 flex-1 text-sm text-slate-700">{{ $insight }}</p>
-            </div>
-            <button type="button" @click="more = ! more" :aria-expanded="more" aria-controls="report-details report-breakdown"
-                class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg text-sm font-semibold text-[#2A57B4] transition hover:bg-blue-50 xl:hidden">
-                <span x-text="more ? 'Hide details' : @js('Details & breakdown by ' . ($tab === 'forms' ? 'form' : 'organization'))">Details</span>
-                <i class="bx bx-chevron-down text-lg transition" :class="more && 'rotate-180'" aria-hidden="true"></i>
-            </button>
-        </section>
-
-            <section x-show="more" x-cloak id="report-breakdown" class="flex flex-col border-t border-slate-200 xl:!flex xl:border-t-0" aria-labelledby="list-title">
-                <h2 id="list-title" class="px-4 pb-2 pt-4 {{ $cardTitle }}">{{ $listTitle }}</h2>
-                <div class="sticky top-0 z-10 flex items-center justify-between border-y border-blue-100 bg-blue-50 px-4 py-2 text-xs font-semibold text-[#2A57B4]">
-                    <span>{{ $tab === 'forms' ? 'Form' : 'Organization' }}</span><span>{{ $listHead }}</span>
-                </div>
-                <ul class="thin-scroll max-h-[22rem] divide-y divide-slate-100 overflow-y-auto xl:max-h-none xl:overflow-visible">
-                    @foreach (collect([$listAll])->concat($listItems) as $i => [$value, $label, $big, $small, $on])
-                        <li wire:key="pick-{{ $tab }}-{{ md5((string) $value) }}">
-                            @php $pairColour = $compare === 'item' && $i > 0 ? ($value === $compareA ? $compareColours[0] : ($value === $compareB ? $compareColours[1] : null)) : null; @endphp
-                            <button type="button" wire:click="{{ $listAction($on && $i > 0 ? $listAll[0] : $value) }}" aria-pressed="{{ $on ? 'true' : 'false' }}" @if ($pairColour) style="box-shadow: inset 4px 0 0 {{ $pairColour }}" @endif
-                                class="block w-full px-4 py-2.5 text-left transition {{ $on ? 'bg-[#2A57B4] text-white' : 'hover:bg-slate-50' }}">
-                                <span class="flex items-center justify-between gap-3">
-                                    <span class="min-w-0 truncate text-sm {{ $i === 0 ? 'font-semibold uppercase tracking-wide text-xs' : 'font-medium' }} {{ $on ? 'text-white' : ($label === 'No organization' ? 'text-slate-500' : 'text-slate-800') }}" title="{{ $label }}">{{ $label }}</span>
-                                    <span class="shrink-0 tabular-nums"><b class="text-sm {{ $on ? 'text-white' : 'text-slate-900' }}">{{ $fmt($big) }}</b> <span class="text-xs {{ $on ? 'text-white/75' : 'text-slate-400' }}">/ {{ $fmt($small) }}</span></span>
-                                </span>
-                                @if ($comparison)
-                                    @php $then = $comparison['list'][$i === 0 ? '__all' : $value] ?? 0; $d = $delta($big, $then); @endphp
-                                    <span class="mt-0.5 flex items-center justify-end gap-1 text-[11px] tabular-nums {{ $on ? 'text-white/80' : 'text-slate-500' }}">
-                                        vs {{ $fmt($then) }}
-                                        <span class="inline-flex items-center rounded px-1 font-semibold {{ $on ? 'bg-white/20 text-white' : (isset($d['good']) ? ($d['good'] ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700') : 'bg-slate-100 text-slate-600') }}"><i class="bx {{ $d['icon'] }}" aria-hidden="true"></i>{{ $d['text'] }}</span>
-                                    </span>
-                                @endif
-                                @if ($i > 0)
-                                    <span class="mt-1.5 block h-1 overflow-hidden rounded-full {{ $on ? 'bg-white/25' : 'bg-slate-100' }}" aria-hidden="true">
-                                        <span class="block h-full rounded-full {{ $on ? 'bg-white' : ($tab === 'clearance' ? 'bg-teal-500' : ($tab === 'organizations' ? 'bg-cyan-500' : 'bg-indigo-500')) }}" style="width: {{ $big / $listPeak * 100 }}%"></span>
-                                    </span>
-                                @endif
-                            </button>
-                        </li>
-                    @endforeach
-                    @if ($listItems->isEmpty())
-                        <li class="px-4 py-8 text-center text-sm text-slate-500">{{ $tab === 'forms' ? 'No forms were filed in this period.' : 'There are no active students yet.' }}</li>
-                    @endif
-                </ul>
-            </section>
-        </aside>
-
-        <div class="min-w-0 space-y-4 px-4 pb-24 md:px-6 md:pb-8 xl:col-start-2 xl:row-start-2 xl:pt-5">
-
-        {{-- ===================== CHART ===================== --}}
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-slate-900">{{ in_array($compare, ['metric', 'item'], true) && $compareTitle ? 'Compare ' . $compareTitle : $chartTitle }}@if (! in_array($compare, ['metric', 'item'], true)){{ $tab === 'forms' && $selectedForm ? ': ' . $selectedForm['label'] : ($tab === 'organizations' && $org ? ': ' . $org : ($tab === 'clearance' && $clearanceOrg !== '' ? ': ' . $clearanceOrg : '')) }}@endif</h2>
-            <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                @if ($showChart)
+        {{-- ===================== CHART: the status chart on the left, the trend (with its title) on the right ===================== --}}
+        @if ($showChart)
+        <div class="grid gap-4 lg:grid-cols-[19rem_minmax(0,1fr)] 2xl:grid-cols-[22rem_minmax(0,1fr)]">
+            <div class="min-w-0 space-y-4 lg:col-start-2 lg:row-start-1">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-lg font-semibold text-slate-900">{{ in_array($compare, ['metric', 'item'], true) && $compareTitle ? 'Compare ' . $compareTitle : $chartTitle }}@if (! in_array($compare, ['metric', 'item'], true)){{ $tab === 'forms' && $selectedForm ? ': ' . $selectedForm['label'] : ($tab === 'organizations' && $org ? ': ' . $org : ($tab === 'clearance' && $clearanceOrg !== '' ? ': ' . $clearanceOrg : '')) }}@endif</h2>
+                <div class="flex flex-wrap items-center gap-2">
                     <label class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
                         <i class="bx {{ $chartType === 'bar' ? 'bx-bar-chart-alt-2' : 'bx-line-chart' }} text-lg text-slate-600" aria-hidden="true"></i>
                         <span class="sr-only">Chart type</span>
@@ -599,52 +535,169 @@
                             <option value="bar">Bar chart</option>
                         </select>
                     </label>
-                        <label class="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
-                            <span class="sr-only">Group by</span>
-                            <select wire:model.live="interval" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
-                                <option value="auto">Auto ({{ ['day' => 'daily', 'week' => 'weekly', 'month' => 'monthly', 'year' => 'yearly'][$trend['unit']] }})</option>
-                                <option value="day">Daily</option>
-                                <option value="week">Weekly</option>
-                                <option value="month">Monthly</option>
-                                <option value="year">Yearly</option>
-                            </select>
-                        </label>
-                @endif
-                <label class="ml-auto inline-flex h-10 cursor-pointer select-none items-center gap-2.5 pl-1 text-sm text-slate-600 sm:ml-0">
-                    Show chart
+                    <label class="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
+                        <span class="sr-only">Group by</span>
+                        <select wire:model.live="interval" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
+                            <option value="auto">Auto ({{ ['day' => 'daily', 'week' => 'weekly', 'month' => 'monthly', 'year' => 'yearly'][$trend['unit']] }})</option>
+                            <option value="day">Daily</option>
+                            <option value="week">Weekly</option>
+                            <option value="month">Monthly</option>
+                            <option value="year">Yearly</option>
+                        </select>
+                    </label>
+                    <label class="inline-flex h-10 cursor-pointer select-none items-center gap-2.5 pl-1 text-sm text-slate-600">
+                        Show charts
+                        <input type="checkbox" wire:model.live="showChart" class="peer sr-only">
+                        <span class="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition peer-checked:bg-slate-900 peer-focus-visible:ring-2 peer-focus-visible:ring-[#2A57B4] peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" aria-hidden="true"></span>
+                    </label>
+                </div>
+            </div>
+                <section wire:key="chart-{{ $tab }}-{{ $chartType }}-{{ $trend['unit'] }}-{{ $compare }}" class="{{ $card }} p-4 sm:p-5" aria-labelledby="trend-title">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <h3 id="trend-title" class="{{ $cardTitle }}">Trend</h3>
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium tabular-nums text-slate-600">
+                            <i class="bx bx-calendar" aria-hidden="true"></i>{{ $tab === 'clearance' ? ($semesterDates ?? ($semesterLabel ?? 'No semester')) : $rangeLabel }}
+                        </span>
+                    </div>
+                    @if ($chartType === 'bar')
+                        @include('livewire.admin.partials.reports-bars', [
+                            'empty' => $tab === 'clearance' ? 'No clearance status has been set this semester yet.' : 'No requests were filed in this period.',
+                        ])
+                    @else
+                        @include('livewire.admin.partials.reports-trend', [
+                            'empty' => $tab === 'clearance' ? 'No clearance status has been set this semester yet.' : 'No requests were filed in this period.',
+                        ])
+                    @endif
+                </section>
+            </div>
+
+            {{-- ===================== STATUS CHART (left of the trend, as tall as its title and card) =====================
+                 On wide screens its content is laid over the cell, so the trend alone sets the height
+                 and a long list scrolls inside. --}}
+            <section wire:key="side-{{ $tab }}" class="{{ $card }} relative flex flex-col lg:col-start-1 lg:row-start-1 lg:min-h-[20rem]" aria-labelledby="side-title">
+                <div class="flex min-h-0 flex-1 flex-col p-4 sm:p-5 lg:absolute lg:inset-0">
+                    @if ($tab !== 'clearance')
+                        @php
+                            // The pie (ReportPie, which the PDF uses too): a 2px white gap between slices;
+                            // organizations take the categorical hues in a fixed order, statuses their badge colours.
+                            $pieMode = $sideChart['mode'];
+                            $pieTotal = (int) $sideChart['total'];
+                            $slices = \App\Support\Charts\ReportPie::slices($sideChart);
+                            $readouts = array_map(fn ($sl) => $sl['label'] . ': ' . $fmt($sl['value']) . match ($pieMode) {
+                                'orgs' => ' cleared of ' . $fmt($sl['of']) . ' members',
+                                'statuses' => ' of ' . $fmt($sl['of']) . ' members',
+                                default => ' of ' . $fmt($sl['of']) . ' requests',
+                            } . ' (' . $sl['share'] . '%)', $slices);
+                        @endphp
+                        <h3 id="side-title" class="{{ $cardTitle }}">{{ match ($pieMode) { 'orgs' => 'Cleared students by organization', 'statuses' => 'Clearance of ' . $org, default => 'Requests by status' } }}</h3>
+                        <p class="{{ $cardNote }}">
+                            @if ($pieMode === 'orgs')
+                                {{ $fmt($pieTotal) }} of {{ $fmt($sideChart['members']) }} students cleared{{ $semesterLabel ? ', ' . $semesterLabel : '' }}. Point at a slice for its numbers; click to follow it.
+                            @elseif ($pieMode === 'statuses')
+                                {{ $fmt($pieTotal) }} {{ Str::plural('member', $pieTotal) }}{{ $semesterLabel ? ', ' . $semesterLabel : '' }}. Point at a slice for its numbers.
+                            @else
+                                {{ $fmt($pieTotal) }} {{ Str::plural('request', $pieTotal) }}{{ $selectedForm ? ' for ' . $selectedForm['label'] : '' }}, by where each stands now. Point at a slice for its numbers.
+                            @endif
+                        </p>
+                        {{-- The pie fills the card; pointing at a slice shows its numbers in a pop-up by the pointer. --}}
+                        @php
+                            $tips = array_map(fn ($sl) => ['label' => $sl['label'], 'colour' => $sl['colour'], 'value' => $fmt($sl['value']) . ' · ' . $sl['share'] . '%', 'detail' => match ($pieMode) {
+                                'orgs' => 'cleared, of ' . $fmt($sl['of']) . ' members',
+                                'statuses' => 'of ' . $fmt($sl['of']) . ' members',
+                                default => 'of ' . $fmt($sl['of']) . ' requests',
+                            }], $slices);
+                        @endphp
+                        <div data-pie x-data="{ hi: null, x: 0, y: 0, tips: @js($tips),
+                                at(e, i) { const r = this.$el.getBoundingClientRect(); this.hi = i; this.x = e.clientX - r.left; this.y = e.clientY - r.top } }"
+                            class="relative mt-3 flex min-h-0 flex-1 items-center justify-center" @mouseleave="hi = null">
+                            @if ($pieTotal)
+                                <svg viewBox="0 0 200 200" class="aspect-square h-auto max-h-full w-full max-w-[16rem] overflow-visible" role="img" aria-label="{{ implode('; ', $readouts) }}">
+                                    @foreach ($slices as $i => $sl)
+                                        @continue(! $sl['path'])
+                                        @php $events = '@mousemove="at($event, ' . $i . ')" @click="at($event, ' . $i . ')"' . ($sl['pick'] ? ' wire:click="pickOrg(' . e(\Illuminate\Support\Js::from($sl['pick'])) . ')" class="cursor-pointer transition-opacity"' : ' class="transition-opacity"'); @endphp
+                                        @if ($sl['path'] === 'circle')
+                                            <circle cx="100" cy="100" r="96" fill="{{ $sl['colour'] }}" stroke="#fff" stroke-width="2" :opacity="hi === null || hi === {{ $i }} ? 1 : .35" {!! $events !!}></circle>
+                                        @else
+                                            <path d="{{ $sl['path'] }}" fill="{{ $sl['colour'] }}" stroke="#fff" stroke-width="2" stroke-linejoin="round" :opacity="hi === null || hi === {{ $i }} ? 1 : .35" {!! $events !!}></path>
+                                        @endif
+                                    @endforeach
+                                </svg>
+                                <div x-show="hi !== null" x-cloak role="tooltip" aria-live="polite"
+                                    class="pointer-events-none absolute z-20 w-max max-w-[14rem] -translate-x-1/2 -translate-y-full rounded-lg bg-slate-900 px-3 py-2 text-xs text-white shadow-xl"
+                                    :style="`left: ${Math.min(Math.max(x, 80), $el.parentElement.clientWidth - 80)}px; top: ${y - 12}px`">
+                                    <template x-if="hi !== null">
+                                        <div>
+                                            <p class="flex items-center gap-1.5 font-semibold"><span class="h-2.5 w-2.5 shrink-0 rounded-sm" :style="`background: ${tips[hi].colour}`"></span><span x-text="tips[hi].label"></span></p>
+                                            <p class="mt-0.5 tabular-nums"><b class="text-sm" x-text="tips[hi].value"></b> <span class="text-white/75" x-text="tips[hi].detail"></span></p>
+                                        </div>
+                                    </template>
+                                </div>
+                            @else
+                                <p class="py-10 text-center text-sm text-slate-500">{{ match ($pieMode) { 'orgs' => 'No student is cleared yet this semester.', 'statuses' => 'This organization has no active students.', default => 'No requests were filed in this period.' } }}</p>
+                            @endif
+                        </div>
+                    @else
+                        @php $yearRows = $sideChart['rows']; @endphp
+                        <h3 id="side-title" class="{{ $cardTitle }}">Cleared by year level</h3>
+                        <p class="{{ $cardNote }}">Share of each year level’s students who are cleared{{ $clearanceOrg !== '' ? ', in ' . $clearanceOrg : '' }}, {{ $semesterLabel ?? 'no semester' }}. Overall: {{ $fmt($sideChart['cleared']) }} of {{ $fmt($sideChart['total']) }} ({{ $pct($sideChart['cleared'], $sideChart['total']) }}%).</p>
+                        @if ($yearRows)
+                            <div class="mt-4 flex h-56 min-h-0 flex-1 items-stretch gap-2 border-b border-slate-200 sm:gap-3 lg:h-auto" role="list" aria-label="Cleared by year level">
+                                @foreach ($yearRows as $y)
+                                    @php $share = $pct($y['cleared'], $y['total']); @endphp
+                                    <div role="listitem" class="flex min-w-0 flex-1 flex-col items-center justify-end"
+                                        title="{{ $y['label'] }}: {{ collect($y['counts'])->map(fn ($n, $st) => $st . ' ' . $n)->implode(', ') }}">
+                                        <span class="text-sm font-semibold tabular-nums text-slate-900">{{ $share }}%</span>
+                                        <span class="relative mt-1 block w-full max-w-[2.75rem] flex-1 overflow-hidden rounded-t-md bg-slate-100" aria-hidden="true">
+                                            <span class="absolute inset-x-0 bottom-0 rounded-t-md bg-emerald-500" style="height: {{ $share }}%"></span>
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="mt-2 flex gap-2 sm:gap-3">
+                                @foreach ($yearRows as $y)
+                                    <p class="min-w-0 flex-1 text-center leading-tight">
+                                        <span class="block truncate text-xs font-medium text-slate-700">{{ $y['label'] }}</span>
+                                        <span class="block text-[11px] tabular-nums text-slate-500">{{ $fmt($y['cleared']) }} / {{ $fmt($y['total']) }}</span>
+                                    </p>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="py-10 text-center text-sm text-slate-500">There are no active students yet.</p>
+                        @endif
+                    @endif
+                </div>
+            </section>
+        </div>
+        @else
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-slate-900">{{ in_array($compare, ['metric', 'item'], true) && $compareTitle ? 'Compare ' . $compareTitle : $chartTitle }}@if (! in_array($compare, ['metric', 'item'], true)){{ $tab === 'forms' && $selectedForm ? ': ' . $selectedForm['label'] : ($tab === 'organizations' && $org ? ': ' . $org : ($tab === 'clearance' && $clearanceOrg !== '' ? ': ' . $clearanceOrg : '')) }}@endif</h2>
+            <div class="flex flex-wrap items-center gap-2">
+                <label class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
+                    <i class="bx {{ $chartType === 'bar' ? 'bx-bar-chart-alt-2' : 'bx-line-chart' }} text-lg text-slate-600" aria-hidden="true"></i>
+                    <span class="sr-only">Chart type</span>
+                    <select wire:model.live="chartType" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
+                        <option value="line">Line chart</option>
+                        <option value="bar">Bar chart</option>
+                    </select>
+                </label>
+                <label class="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
+                    <span class="sr-only">Group by</span>
+                    <select wire:model.live="interval" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
+                        <option value="auto">Auto ({{ ['day' => 'daily', 'week' => 'weekly', 'month' => 'monthly', 'year' => 'yearly'][$trend['unit']] }})</option>
+                        <option value="day">Daily</option>
+                        <option value="week">Weekly</option>
+                        <option value="month">Monthly</option>
+                        <option value="year">Yearly</option>
+                    </select>
+                </label>
+                <label class="inline-flex h-10 cursor-pointer select-none items-center gap-2.5 pl-1 text-sm text-slate-600">
+                    Show charts
                     <input type="checkbox" wire:model.live="showChart" class="peer sr-only">
-                    <span class="relative h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-slate-900 peer-focus-visible:ring-2 peer-focus-visible:ring-[#2A57B4] peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" aria-hidden="true"></span>
+                    <span class="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition peer-checked:bg-slate-900 peer-focus-visible:ring-2 peer-focus-visible:ring-[#2A57B4] peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" aria-hidden="true"></span>
                 </label>
             </div>
         </div>
-        <div>
-
-            @if ($showChart)
-            <section wire:key="chart-{{ $tab }}-{{ $chartType }}-{{ $trend['unit'] }}-{{ $compare }}" class="{{ $card }} p-4 sm:p-5" aria-labelledby="trend-title">
-                <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
-                    <div class="min-w-0">
-                        <h3 id="trend-title" class="{{ $cardTitle }}">Trend</h3>
-                        <p class="{{ $cardNote }}">
-                            {{ $tab === 'clearance' ? 'When this semester’s statuses were set' : ($tab === 'organizations' ? 'Requests from members, and how many members filed' : 'Requests filed, completed and returned') }},
-                            by {{ $trend['unit'] }}{{ $comparison ? ', against ' . $comparison['label'] : '' }}
-                        </p>
-                    </div>
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                        <i class="bx bx-calendar" aria-hidden="true"></i>{{ $tab === 'clearance' ? ($semesterDates ?? ($semesterLabel ?? 'No semester')) : $periodName }}
-                    </span>
-                </div>
-                @if ($chartType === 'bar')
-                    @include('livewire.admin.partials.reports-bars', [
-                        'empty' => $tab === 'clearance' ? 'No clearance status has been set this semester yet.' : 'No requests were filed in this period.',
-                    ])
-                @else
-                    @include('livewire.admin.partials.reports-trend', [
-                        'empty' => $tab === 'clearance' ? 'No clearance status has been set this semester yet.' : 'No requests were filed in this period.',
-                    ])
-                @endif
-            </section>
-            @endif
-        </div>
+        @endif
 
         {{-- ===================== COMPARISON TABLE ===================== --}}
         @if ($breakdown)
@@ -723,15 +776,9 @@
                 openMetrics() { this.draft = [...$wire.metrics]; this.metricQuery = ''; this.metricsOpen = true },
                 matches(label) { return label.toLowerCase().includes(this.metricQuery.trim().toLowerCase()) },
             }">
-            <div class="{{ $gutter }} flex flex-wrap items-start justify-between gap-3 pb-3">
+            <div class="{{ $gutter }} flex flex-wrap items-center justify-between gap-3 pb-3">
                 <div class="min-w-0">
                     <h2 id="records-title" class="text-lg font-semibold text-slate-900">{{ $recordsTitle }}</h2>
-                    <p class="{{ $cardNote }}">
-                        <b class="text-slate-700">{{ $fmt($rowTotal) }}</b> {{ Str::plural($unit, $rowTotal) }} · {{ $recordsNote }}
-                        @if ($filtered)
-                            <button type="button" wire:click="{{ $tab === 'forms' ? 'pickForm(null)' : ($tab === 'organizations' ? 'pickOrg(null)' : 'clearClearanceFilters') }}" class="ml-1 font-semibold text-[#2A57B4] hover:underline">Show all</button>
-                        @endif
-                    </p>
                 </div>
                 <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                     <label class="relative w-full sm:w-60">
@@ -785,27 +832,31 @@
                     </div>
 
                     <div x-data="{ open: false, tip: '' }" class="relative" @keydown.escape.window="open = false">
-                        <button type="button" x-ref="trigger" @click="open = ! open" :aria-expanded="open" aria-haspopup="menu" class="{{ $outlineBtn }} h-10" aria-label="Download this table">
+                        <button type="button" x-ref="trigger" @click="open = ! open" :aria-expanded="open" aria-haspopup="menu" class="{{ $outlineBtn }} h-10" aria-label="Download the ticked rows" title="Download the ticked rows">
                             <i class="bx bx-download text-lg" aria-hidden="true"></i>
                             <span x-show="selected.length" x-cloak class="rounded-full bg-[#2A57B4] px-1.5 text-[11px] font-semibold tabular-nums text-white" x-text="selected.length"></span>
                             <i class="bx bx-chevron-down" aria-hidden="true"></i>
                         </button>
                         <div x-show="open" x-anchor.fixed.bottom-end.offset.6="$refs.trigger" x-cloak @click.outside="open = false" role="menu" class="{{ $menu }} w-72">
-                            <a href="{{ $sheetUrl }}" target="_blank" rel="noopener" role="menuitem" @click="open = false" {!! $tip($downloadTips['sheet']) !!} class="{{ $menuItem }}">
+                            <p class="px-3.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400" x-text="selected.length ? selected.length + (selected.length === 1 ? ' ticked row' : ' ticked rows') : 'Tick rows to download them'">Ticked rows</p>
+                            <button type="button" role="menuitem" :disabled="! selected.length" @click="window.open(@js($sheetUrl) + '&' + selected.map(k => 'keys[]=' + encodeURIComponent(k)).join('&'), '_blank', 'noopener'); open = false" {!! $tip($downloadTips['tickedSheet']) !!} class="{{ $menuItem }}">
                                 <i class="bx bx-spreadsheet text-lg text-emerald-600" aria-hidden="true"></i><span class="flex-1">Spreadsheet</span><i class="bx bx-link-external text-slate-400" aria-hidden="true"></i>
-                            </a>
-                            <button type="button" role="menuitem" wire:click="downloadList" @click="open = false" @disabled(! $rowTotal) {!! $tip($downloadTips['csv']) !!} class="{{ $menuItem }}">
-                                <i class="bx bx-file text-lg text-[#2A57B4]" aria-hidden="true"></i>Whole table (.csv)
                             </button>
                             <button type="button" role="menuitem" :disabled="! selected.length" @click="$wire.downloadList(selected); open = false" {!! $tip($downloadTips['ticked']) !!} class="{{ $menuItem }}">
-                                <i class="bx bx-check-square text-lg text-[#2A57B4]" aria-hidden="true"></i><span x-text="selected.length ? 'Ticked rows (' + selected.length + ') .csv' : 'Ticked rows (.csv)'">Ticked rows (.csv)</span>
+                                <i class="bx bx-file text-lg text-[#2A57B4]" aria-hidden="true"></i>Comma-separated values (.csv)
                             </button>
                             <button type="button" role="menuitem" :disabled="! selected.length" @click="selected = []; open = false" {!! $tip($downloadTips['clear']) !!} class="{{ $menuItem }}">
-                                <i class="bx bx-x-circle text-lg text-slate-400" aria-hidden="true"></i>Clear ticks
+                                <i class="bx bx-x-circle text-lg text-slate-400" aria-hidden="true"></i>Clear selected
                             </button>
                             {!! $tipFooter !!}
                         </div>
                     </div>
+
+                    @if ($showAll)
+                        <button type="button" wire:click="{{ $showAll }}" class="{{ $outlineBtn }} h-10" title="Back to every {{ $tab === 'forms' ? 'form' : 'organization' }}">
+                            <i class="bx bx-list-ul text-lg" aria-hidden="true"></i>Show all
+                        </button>
+                    @endif
                 </div>
             </div>
 
@@ -817,26 +868,28 @@
                 <table class="w-full text-sm {{ $ruled }}">
                     <thead class="bg-blue-50/60"><tr>
                         <th scope="col" class="w-10 !border-r-0 py-2"><span class="sr-only">Tick</span></th>
-                        <th scope="col" class="{{ $th }} !border-l-0 py-2 pl-2">
-                            <span class="flex items-center justify-between gap-2">Student
-                                <button type="button" @click.stop="openMetrics(); $el.closest('section').scrollIntoView({ block: 'start', behavior: 'smooth' })" class="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-700 hover:bg-white" aria-label="Add metrics to the table" title="Add metrics">
-                                    <i class="bx bx-plus-circle text-xl" aria-hidden="true"></i>
-                                </button>
-                            </span>
-                        </th>
-                        @foreach ($columns as [$key, $label])
-                            <th scope="col" class="{{ $th }} whitespace-nowrap {{ in_array($key, $numeric, true) ? 'text-right' : '' }}">{{ $label }}</th>
+                        @foreach ($columns as $ci => [$key, $label])
+                            @if ($key === 'student')
+                                <th scope="col" class="{{ $th }} py-2 {{ $ci ? '' : '!border-l-0 pl-2' }}">
+                                    {{ $label }}
+                                </th>
+                            @else
+                                <th scope="col" class="{{ $th }} whitespace-nowrap {{ $ci ? '' : '!border-l-0 pl-2' }} {{ in_array($key, $numeric, true) ? 'text-right' : '' }}">{{ $label }}</th>
+                            @endif
                         @endforeach
                         <th scope="col" class="w-14 pr-4"><span class="sr-only">Actions</span></th>
                     </tr></thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr class="bg-slate-50/80 font-semibold text-slate-900">
                             <td class="!border-r-0 py-2"><input type="checkbox" :checked="allOnPage" @change="togglePage()" aria-label="Tick every row on this page" title="Tick every row on this page" class="h-4 w-4 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]"></td>
-                            <td class="!border-l-0 py-2 pl-2 pr-4">Total <span class="font-normal text-slate-500">· {{ $fmt($rowTotal) }} {{ Str::plural($unit, $rowTotal) }}</span></td>
-                            @foreach ($columns as [$key])
-                                <td class="px-4 py-2 text-right tabular-nums">
-                                    @if ($key === 'requests'){{ $fmt($columnTotals['requests']) }}@elseif ($key === 'days'){!! $columnTotals['days'] !== null ? $columnTotals['days'] . ' <span class="text-xs font-normal text-slate-500">avg</span>' : $dash !!}@endif
-                                </td>
+                            @foreach ($columns as $ci => [$key])
+                                @if ($ci === 0)
+                                    <td class="!border-l-0 whitespace-nowrap py-2 pl-2 pr-4">Total <span class="font-normal text-slate-500">· {{ $fmt($rowTotal) }} {{ Str::plural($unit, $rowTotal) }}</span></td>
+                                @else
+                                    <td class="px-4 py-2 text-right tabular-nums">
+                                        @if ($key === 'requests'){{ $fmt($columnTotals['requests']) }}@elseif ($key === 'days'){!! $columnTotals['days'] !== null ? $columnTotals['days'] . ' <span class="text-xs font-normal text-slate-500">avg</span>' : $dash !!}@endif
+                                    </td>
+                                @endif
                             @endforeach
                             <td></td>
                         </tr>
@@ -844,17 +897,23 @@
                             @php $k = $rowKey($r); @endphp
                             <tr wire:key="row-{{ $tab }}-{{ $k }}" class="transition hover:bg-slate-50/70" :class="selected.includes(@js($k)) && '!bg-blue-50/60'">
                                 <td class="!border-r-0 py-1"><input type="checkbox" value="{{ $k }}" x-model="selected" aria-label="Tick {{ $r['student'] }}" class="h-4 w-4 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]"></td>
-                                <td class="!border-l-0 py-1 pl-2 pr-4">
-                                    <div class="flex items-center gap-3">
-                                        <x-user-avatar :src="$r['avatar']" :name="$r['student']" class="{{ $studentAvatar }}" />
-                                        <div class="min-w-0">
-                                            <p class="max-w-[14rem] truncate font-medium text-slate-900">{{ $r['student'] }}</p>
-                                            @unless (in_array('number', $metrics, true))<p class="truncate text-xs tabular-nums text-slate-500">{{ $r['number'] }}</p>@endunless
-                                        </div>
-                                    </div>
-                                </td>
-                                @foreach ($columns as [$key])
+                                @foreach ($columns as $ci => [$key])
+                                    @php $edge = $ci ? '' : '!border-l-0 pl-2'; @endphp
                                     @switch($key)
+                                        @case('student')
+                                            <td class="py-1 pr-4 {{ $ci ? 'pl-4' : '!border-l-0 pl-2' }}">
+                                                <div class="flex items-center gap-3">
+                                                    <x-user-avatar :src="$r['avatar']" :name="$r['student']" class="{{ $studentAvatar }}" />
+                                                    <div class="min-w-0">
+                                                        <p class="max-w-[14rem] truncate font-medium text-slate-900">{{ $r['student'] }}</p>
+                                                        @unless (in_array('number', $metrics, true))<p class="truncate text-xs tabular-nums text-slate-500">{{ $r['number'] }}</p>@endunless
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            @break
+                                        @case('completed_time')
+                                            <td class="whitespace-nowrap px-4 py-1 tabular-nums text-slate-600 {{ $edge }}">{!! $r['completed'] ? e($r['completed']->format('g:i A')) : $dash !!}</td>
+                                            @break
                                         @case('status')
                                             <td class="px-4 py-1"><span class="{{ $badge }} {{ $txTone($r['state']) }}">{{ $r['status'] }}</span></td>
                                             @break
@@ -880,11 +939,11 @@
                                         @case('completed')
                                         @case('tagged')
                                         @case('last_filed')
-                                            <td class="whitespace-nowrap px-4 py-1 text-slate-600">{!! $r[$key] ? e($r[$key]->format('M j, Y')) : $dash !!}</td>
+                                            <td class="whitespace-nowrap px-4 py-1 tabular-nums text-slate-600 {{ $edge }}">{!! $r[$key] ? e($r[$key]->format($tab === 'forms' && in_array($key, ['submitted', 'completed'], true) ? 'M j, Y · g:i A' : 'M j, Y')) : $dash !!}</td>
                                             @break
                                         @default
                                             @php $v = $r[$key] ?? null; @endphp
-                                            <td class="max-w-[15rem] truncate px-4 py-1 text-slate-700 {{ $key === 'number' ? 'tabular-nums' : '' }}" title="{{ $v }}">{!! filled($v) && $v !== '—' ? e($v) : $dash !!}</td>
+                                            <td class="max-w-[15rem] truncate px-4 py-1 text-slate-700 {{ $edge }} {{ $key === 'number' ? 'tabular-nums' : '' }}" title="{{ $v }}">{!! filled($v) && $v !== '—' ? e($v) : $dash !!}</td>
                                     @endswitch
                                 @endforeach
                                 <td class="py-0.5 pr-4 text-right">
@@ -897,13 +956,12 @@
                                                 <a href="{{ $r['url'] }}" wire:navigate role="menuitem" class="{{ $menuItem }}"><i class="bx bx-file text-lg text-indigo-600" aria-hidden="true"></i>Open {{ $r['code'] }}</a>
                                                 <a href="{{ route('admin.clearance-monitoring.show', $r['user_id']) }}" wire:navigate role="menuitem" class="{{ $menuItem }}"><i class="bx bx-clipboard text-lg text-teal-600" aria-hidden="true"></i>Student’s clearance</a>
                                                 <button type="button" role="menuitem" @click="navigator.clipboard?.writeText(@js($r['code'])); open = false" class="{{ $menuItem }}"><i class="bx bx-copy text-lg text-slate-400" aria-hidden="true"></i>Copy transaction code</button>
+                                                <button type="button" role="menuitem" @click="navigator.clipboard?.writeText(@js($rowText($r))); open = false" class="{{ $menuItem }}" title="Copies this row's columns, ready to paste into a spreadsheet"><i class="bx bx-table text-lg text-slate-400" aria-hidden="true"></i>Copy row</button>
                                             @else
                                                 <a href="{{ $r['url'] }}" wire:navigate role="menuitem" class="{{ $menuItem }}"><i class="bx bx-clipboard text-lg text-teal-600" aria-hidden="true"></i>Open clearance</a>
                                                 <button type="button" role="menuitem" @click="navigator.clipboard?.writeText(@js($r['number'])); open = false" class="{{ $menuItem }}"><i class="bx bx-copy text-lg text-slate-400" aria-hidden="true"></i>Copy student number</button>
+                                                <button type="button" role="menuitem" @click="navigator.clipboard?.writeText(@js($rowText($r))); open = false" class="{{ $menuItem }}" title="Copies this row's columns, ready to paste into a spreadsheet"><i class="bx bx-table text-lg text-slate-400" aria-hidden="true"></i>Copy row</button>
                                             @endif
-                                            <button type="button" role="menuitem" @click="selected.includes(@js($k)) ? selected = selected.filter(x => x !== @js($k)) : selected.push(@js($k)); open = false" class="{{ $menuItem }}">
-                                                <i class="bx bx-check-square text-lg text-[#2A57B4]" aria-hidden="true"></i><span x-text="selected.includes(@js($k)) ? 'Untick row' : 'Tick row'">Tick row</span>
-                                            </button>
                                         </div>
                                     </div>
                                 </td>
@@ -932,7 +990,8 @@
                                 <span class="block truncate text-xs text-slate-500">{{ $r['number'] }} · {{ $r['organization'] }}</span>
                                 @if ($tab === 'forms')
                                     @unless ($form)<span class="block truncate text-xs text-slate-700">{{ $r['form'] }}</span>@endunless
-                                    <span class="block text-xs text-slate-500"><span class="font-semibold text-[#2A57B4]">{{ $r['code'] }}</span> · {{ $r['submitted']?->format('M j, Y') }}</span>
+                                    @if ($r['purpose'])<span class="block truncate text-xs text-slate-600">{{ $r['purpose'] }}</span>@endif
+                                    <span class="block text-xs text-slate-500"><span class="font-semibold text-[#2A57B4]">{{ $r['code'] }}</span> · {{ $r['submitted']?->format('M j, Y') }}@if ($r['completed']) · issued {{ $r['completed']->format('M j, Y g:i A') }}@endif</span>
                                 @elseif ($tab === 'organizations')
                                     <span class="block truncate text-xs text-slate-700">{{ $r['requests'] ? $r['requests'] . ' ' . Str::plural('request', $r['requests']) . ': ' . implode(', ', $r['forms']) : 'No forms in this period' }}</span>
                                 @elseif ($r['by'])

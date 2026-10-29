@@ -50,7 +50,7 @@ class Reports extends Component
      */
     public const METRICS = [
         'forms' => [
-            'Request' => ['form' => 'Form', 'code' => 'Transaction code', 'status' => 'Status', 'submitted' => 'Filed on', 'completed' => 'Completed on', 'days' => 'Days to complete'],
+            'Request' => ['submitted' => 'Date and time requested', 'completed' => 'Date and time issued', 'completed_time' => 'Time issued', 'purpose' => 'Purpose', 'form' => 'Form', 'status' => 'Status', 'code' => 'Transaction code', 'days' => 'Days to complete'],
             'Student' => ['number' => 'Student number', 'program' => 'Program', 'organization' => 'Organization', 'year' => 'Year level'],
         ],
         'organizations' => [
@@ -66,10 +66,15 @@ class Reports extends Component
     ];
 
     public const DEFAULT_METRICS = [
-        'forms' => ['program', 'organization', 'form', 'status', 'code', 'submitted'],
+        'forms' => ['submitted', 'completed', 'number', 'purpose', 'form', 'status', 'year', 'program'],
         'organizations' => ['number', 'organization', 'requests', 'forms', 'clearance'],
         'clearance' => ['number', 'organization', 'by', 'tagged', 'clearance'],
     ];
+
+    /** The forms table's column order: the dates and student number come before the name, like a logbook. */
+    public const FORM_ORDER = ['submitted', 'completed', 'completed_time', 'number', 'purpose', 'form', 'status', 'year', 'program'];
+
+    protected const FORM_BEFORE_STUDENT = ['submitted', 'completed', 'completed_time', 'number'];
 
     /** Columns that hold numbers: right-aligned and totalled. */
     public const NUMERIC_METRICS = ['requests', 'days'];
@@ -180,7 +185,7 @@ class Reports extends Component
     public function setTab(string $tab): void
     {
         $this->tab = in_array($tab, self::REPORTS, true) ? $tab : 'forms';
-        $this->metrics = self::DEFAULT_METRICS[$this->tab];
+        $this->resetMetrics();
         if (in_array($this->compare, ['metric', 'item', 'custom'], true)) {
             $this->compare = 'none';
         }
@@ -678,9 +683,11 @@ class Reports extends Component
                     'student' => ($w->user?->full_name ?? '') ?: 'Unknown student',
                     'avatar' => $w->user?->avatarUrl(),
                     'number' => $w->user?->student_number ?: '—',
-                    'program' => $w->user?->program?->name ?: '—',
+                    'program' => $this->programShort($w->user?->program?->name),
+                    'program_name' => $w->user?->program?->name,
                     'organization' => $w->user?->organization?->name ?: '—',
                     'year' => $w->user?->year_level,
+                    'purpose' => $this->purposeOf($w),
                     'days' => $w->completed_at && ($w->submitted_at ?? $w->created_at)
                         ? round(($w->submitted_at ?? $w->created_at)->diffInHours($w->completed_at) / 24, 1)
                         : null,
@@ -695,6 +702,92 @@ class Reports extends Component
                 ];
             });
     }
+
+    /** A program as the university abbreviates it (BSIT, BSED-Science …), the way the forms print it. */
+    protected function programShort(?string $name): string
+    {
+        static $known = [];
+        if (blank($name)) {
+            return '—';
+        }
+
+        return $known[$name] ??= app(\App\Services\SystemValueResolver::class)->programAbbreviation($name) ?: $name;
+    }
+
+    /** What the student wrote as the form's purpose or reason, for forms that ask for one. */
+    protected function purposeOf(StudentDocumentWorkspace $w): ?string
+    {
+        $values = (array) $w->field_values;
+        foreach (['purpose', 'purposes', 'reason', 'reasons', 'doctor_reason'] as $field) {
+            if (is_string($values[$field] ?? null) && trim($values[$field]) !== '') {
+                return Str::limit(Str::squish($values[$field]), 200);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The chart beside the trend, following the form or organization picked in the dropdown
+     * (ReportPie draws it on the page and in the PDF):
+     * - forms: a pie of requests by status;
+     * - organizations: a pie of cleared students by organization, or of one organization's
+     *   students by clearance status once it is picked;
+     * - clearance: the share of each year level that is cleared.
+     */
+    protected function sideChart(Collection $forms, Collection $students, Collection $orgSummary): array
+    {
+        if ($this->tab === 'organizations') {
+            if ($this->org !== null) {
+                $o = $orgSummary->firstWhere('label', $this->org);
+
+                return ['mode' => 'statuses', 'total' => $o['members'] ?? 0, 'slices' => array_map(fn ($status) => [
+                    'label' => $status, 'value' => $o[$status] ?? 0, 'of' => $o['members'] ?? 0, 'pick' => null, 'key' => $status,
+                ], self::CLEARANCE_STATUSES)];
+            }
+
+            // Largest first; past seven organizations the rest share one "Other" slice.
+            $orgs = $orgSummary->sortByDesc('Cleared')->values();
+            $slices = $orgs->take(7)->map(fn ($o) => ['label' => $o['label'], 'value' => $o['Cleared'], 'of' => $o['members'], 'pick' => $o['label'], 'key' => null])->all();
+            if ($orgs->count() > 7) {
+                $rest = $orgs->slice(7);
+                $slices[] = ['label' => 'Other (' . $rest->count() . ')', 'value' => $rest->sum('Cleared'), 'of' => $rest->sum('members'), 'pick' => null, 'key' => null];
+            }
+
+            return ['mode' => 'orgs', 'total' => $orgSummary->sum('Cleared'), 'members' => $orgSummary->sum('members'), 'slices' => $slices];
+        }
+
+        if ($this->tab === 'clearance') {
+            $scope = $this->clearanceOrg !== '' ? $students->where('organization', $this->clearanceOrg) : $students;
+            $years = $scope->groupBy(fn ($s) => is_numeric($s['year']) ? (int) $s['year'] : 0)
+                ->sortKeys()
+                ->sortBy(fn ($rows, $year) => $year === 0 ? PHP_INT_MAX : $year);
+
+            return ['total' => $scope->count(), 'cleared' => $scope->where('status', 'Cleared')->count(), 'rows' => $years->map(fn ($rows, $year) => [
+                'label' => $year ? 'Year ' . $year : 'Not set',
+                'cleared' => $rows->where('status', 'Cleared')->count(),
+                'total' => $rows->count(),
+                'counts' => array_map(fn ($status) => $rows->where('status', $status)->count(), array_combine(self::CLEARANCE_STATUSES, self::CLEARANCE_STATUSES)),
+            ])->values()->all()];
+        }
+
+        $scope = $this->form !== null ? $forms->where('key', $this->form) : $forms;
+        $states = $scope->pluck('state')->unique();
+        $order = [...array_intersect(self::REQUEST_STATES, $states->all()), ...$states->diff(self::REQUEST_STATES)->all()];
+
+        return ['mode' => 'states', 'total' => $scope->count(), 'slices' => array_map(fn ($state) => [
+            'label' => $scope->firstWhere('state', $state)['status'] ?? Str::headline($state),
+            'value' => $scope->where('state', $state)->count(),
+            'of' => $scope->count(),
+            'pick' => null,
+            'key' => $state,
+        ], array_values($order))];
+    }
+
+    /** The order a request moves through, for the status chart. */
+    protected const REQUEST_STATES = ['pending', 'submitted', 'under_review', 'action_required', 'approved', 'completed', 'rejected', 'voided'];
+
+    protected const CLEARANCE_STATUSES = ['Cleared', 'Pending', 'Uncleared', 'Not tagged'];
 
     /** One line per form: how many requests, how many different students, how many finished. */
     protected function formSummary(Collection $records): Collection
@@ -745,7 +838,8 @@ class Reports extends Component
                     'student' => $u->full_name ?: $u->email,
                     'avatar' => $u->avatarUrl(),
                     'number' => $u->student_number ?: '—',
-                    'program' => $u->program?->name ?: '—',
+                    'program' => $this->programShort($u->program?->name),
+                    'program_name' => $u->program?->name,
                     'year' => $u->year_level,
                     // Named the way Clearance Monitoring names it: the student's organization, else the record's.
                     'organization' => $u->organization?->name ?: ($r?->organization ?: 'No organization'),
@@ -805,17 +899,17 @@ class Reports extends Component
             'organizations' => $students
                 ->when($this->org !== null, fn ($c) => $c->where('organization', $this->org))
                 ->map($withActivity)
-                ->filter(fn ($r) => $this->matchesSearch($r, ['student', 'number', 'program', 'organization']))
+                ->filter(fn ($r) => $this->matchesSearch($r, ['student', 'number', 'program', 'program_name', 'organization']))
                 ->values(),
             'clearance' => $students
                 ->when($this->status !== '', fn ($c) => $c->where('status', $this->status === 'none' ? 'Not tagged' : $this->status))
                 ->when($this->clearanceOrg !== '', fn ($c) => $c->where('organization', $this->clearanceOrg))
                 ->map($withActivity)
-                ->filter(fn ($r) => $this->matchesSearch($r, ['student', 'number', 'program', 'organization', 'by']))
+                ->filter(fn ($r) => $this->matchesSearch($r, ['student', 'number', 'program', 'program_name', 'organization', 'by']))
                 ->values(),
             default => $forms
                 ->when($this->form !== null, fn ($c) => $c->where('key', $this->form))
-                ->filter(fn ($r) => $this->matchesSearch($r, ['student', 'number', 'program', 'organization', 'code', 'form']))
+                ->filter(fn ($r) => $this->matchesSearch($r, ['student', 'number', 'program', 'program_name', 'organization', 'code', 'form', 'purpose']))
                 ->values(),
         };
     }
@@ -827,12 +921,21 @@ class Reports extends Component
         'clearance' => ['clearance'],
     ];
 
-    /** The chosen columns as the table shows them: the report's leading ones first. */
+    /** The chosen columns as the table shows them: the report's leading ones first (the one-form table's own order). */
     public function orderedMetrics(): array
     {
-        $lead = array_values(array_intersect(self::LEADING_METRICS[$this->tab], $this->metrics));
+        $lead = array_values(array_intersect($this->tab === 'forms' ? self::FORM_ORDER : self::LEADING_METRICS[$this->tab], $this->metrics));
 
         return [...$lead, ...array_values(array_diff($this->metrics, $lead))];
+    }
+
+    /** Every column of the table in order, with 'student' where the name goes (first, except in the forms table). */
+    public function columnKeys(): array
+    {
+        $columns = $this->orderedMetrics();
+        $before = $this->tab === 'forms' ? array_values(array_intersect($columns, self::FORM_BEFORE_STUDENT)) : [];
+
+        return [...$before, 'student', ...array_values(array_diff($columns, $before))];
     }
 
     /** Every metric of the tab as [key => label]. */
@@ -847,7 +950,9 @@ class Reports extends Component
         return match ($key) {
             'status' => $r['status'],
             'clearance' => $r['status'],
-            'submitted', 'completed' => $r[$key]?->format('Y-m-d'),
+            'submitted', 'completed' => $this->tab === 'forms' ? $r[$key]?->format('Y-m-d g:i A') : $r[$key]?->format('Y-m-d'),
+            'completed_time' => $r['completed']?->format('g:i A'),
+            'purpose' => $r['purpose'] ?: null,
             'tagged', 'last_filed' => $r[$key]?->format('Y-m-d'),
             'forms' => implode('; ', $r['forms'] ?? []),
             'year' => $r['year'] ?: null,
@@ -876,17 +981,18 @@ class Reports extends Component
             'clearance' => 'Clearance, ' . $term,
             default => ($this->form ? $rows->first()['form'] ?? 'Form' : 'All forms') . ', ' . $range,
         };
-        $labels = $this->metricLabels();
-        $columns = $this->orderedMetrics();
-        $head = ['Student', ...array_map(fn ($k) => $labels[$k], $columns)];
-        $body = $rows->map(fn ($r) => [$r['student'], ...array_map(fn ($k) => $this->columnValue($r, $k), $columns)])->all();
-        $totals = ['Total (' . $rows->count() . ' ' . Str::plural('row', $rows->count()) . ')', ...array_map(fn ($k) => match ($k) {
+        $labels = $this->metricLabels() + ['student' => $this->tab === 'forms' ? 'Name' : 'Student'];
+        $keys = $this->columnKeys();
+        $head = array_map(fn ($k) => $labels[$k], $keys);
+        $body = $rows->map(fn ($r) => array_map(fn ($k) => $k === 'student' ? $r['student'] : $this->columnValue($r, $k), $keys))->all();
+        $totals = array_map(fn ($k) => match ($k) {
             'requests' => $rows->sum('requests'),
             'days' => ($d = $rows->whereNotNull('days')->avg('days')) !== null ? round($d, 1) . ' avg' : null,
             default => null,
-        }, $columns)];
+        }, $keys);
+        $totals[0] = 'Total (' . $rows->count() . ' ' . Str::plural('row', $rows->count()) . ')';
 
-        return ['title' => $title, 'head' => $head, 'rows' => $body, 'totals' => $totals, 'count' => $rows->count()];
+        return ['title' => $title, 'head' => $head, 'keys' => $keys, 'rows' => $body, 'totals' => $totals, 'count' => $rows->count()];
     }
 
     /** Downloads the table on screen (every page of it, with its chosen columns) as a CSV that Excel opens. */
@@ -1772,6 +1878,7 @@ class Reports extends Component
                 'returned' => $forms->whereIn('state', ['rejected', 'voided'])->count(),
             ],
             'orgSummary' => $orgSummary,
+            'sideChart' => $this->sideChart($forms, $students, $orgSummary),
             'clearanceCounts' => $students->countBy('status'),
             'clearanceOrgs' => $students->pluck('organization')->unique()->sort()->values(),
             'studentTotal' => $students->count(),
@@ -1787,6 +1894,7 @@ class Reports extends Component
             'metricGroups' => self::METRICS[$this->tab],
             'metricLabels' => $this->metricLabels(),
             'columnOrder' => $this->orderedMetrics(),
+            'columnKeys' => $this->columnKeys(),
             'columnTotals' => [
                 'requests' => $rows->sum('requests'),
                 'days' => ($d = $rows->whereNotNull('days')->avg('days')) !== null ? round($d, 1) : null,

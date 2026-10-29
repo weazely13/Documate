@@ -72,7 +72,7 @@ class SystemValueResolver
         return $map;
     }
 
-    private function programAbbreviation(string $program): string
+    public function programAbbreviation(string $program): string
     {
         $raw  = trim($program);
         $norm = Str::lower(preg_replace('/[^a-z0-9]+/i', ' ', $raw));

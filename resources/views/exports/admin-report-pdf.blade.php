@@ -1,5 +1,6 @@
 @use('Illuminate\Support\Str')
 @use('App\Support\Charts\ReportPdfChart')
+@use('App\Support\Charts\ReportPie')
 @php
     /*
      * The Reports page as a printable A4 document on the university letterhead, in Arial 12 pt.
@@ -74,7 +75,7 @@
     };
     $statusCol = collect($m['metrics'])->search(fn ($k) => in_array($k, ['status', 'clearance'], true));
     $statusCol = $statusCol === false ? null : $statusCol + 1;
-    $numericCols = collect($m['metrics'])->keys()->filter(fn ($i) => in_array($m['metrics'][$i], $m['numeric'], true))->map(fn ($i) => $i + 1)->values()->all();
+    $numericCols = collect($table['keys'])->filter(fn ($k) => in_array($k, $m['numeric'], true))->keys()->all();
 
     $cell = function ($val) {
         if ($val === null || $val === '') {
@@ -82,6 +83,9 @@
         }
         if (is_string($val) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $val)) {
             return \Illuminate\Support\Carbon::parse($val)->format('M j, Y');
+        }
+        if (is_string($val) && preg_match('/^\d{4}-\d{2}-\d{2} \d{1,2}:\d{2} [AP]M$/', $val)) {
+            return \Illuminate\Support\Carbon::parse($val)->format('n/j/Y g:i A');
         }
         if (is_numeric($val)) {
             return $val;
@@ -231,6 +235,10 @@
         .legend .mark { font-size: 8.5pt; display: inline-block; width: 5mm; }
         .up { color: #00703C; font-weight: bold; } .down { color: #C00000; font-weight: bold; }
         .swatch { display: inline-block; width: 2.6mm; height: 2.6mm; margin-right: 1.2mm; }
+        /* the pie beside its table */
+        table.pie { width: 100%; border-collapse: collapse; margin: 1mm 0 2mm; }
+        table.pie > tr > td, table.pie td.pie-img { vertical-align: middle; }
+        table.pie td.pie-img { width: 52mm; padding-right: 4mm; }
         table.legend-t { border-collapse: collapse; margin: 0.6mm 0 1.6mm; }
         table.legend-t td { padding: 0 5mm 0 0; font-size: 9pt; }
 
@@ -403,28 +411,43 @@
 
     <div class="keep">
     <h2 class="new-page">Supporting Figures</h2>
-    <p class="note">The headline and the four figures shown on the Reports page{{ $versus ? ', each compared with ' . $versus : '' }}.</p>
-    <table class="figs">
-        <thead><tr>
-            <th>Headline</th>
-            @foreach ($sum['tiles'] as $t)<th>{{ $t['label'] }}</th>@endforeach
-        </tr></thead>
-        <tr class="nums">
-            <td><span class="big">{{ $sum['headline'][0] }}</span><br>{{ $sum['headline'][1] }}</td>
-            @foreach ($sum['tiles'] as $t)
-                @php $d = $delta($t['value'], $t['before'], $t['lower']); @endphp
+    @php $side = $p['sideChart']; @endphp
+    @if ($tab === 'clearance')
+        <h3>Cleared by Year Level</h3>
+        <p class="note">Share of each year level’s students who are cleared, {{ $p['semesterLabel'] ?? 'no semester' }}{{ ($p['state']['clearanceOrg'] ?? '') !== '' ? ', in ' . $p['state']['clearanceOrg'] : '' }}. Overall: {{ $fmt($side['cleared']) }} of {{ $fmt($side['total']) }} ({{ $pct($side['cleared'], $side['total']) }}%).</p>
+        @if ($side['rows'])
+            {!! $svgImg(ReportPie::columns($side['rows'])) !!}
+        @else
+            <p class="muted">There are no active students yet.</p>
+        @endif
+    @else
+        @php $slices = ReportPie::slices($side); @endphp
+        <h3>{{ match ($side['mode']) { 'orgs' => 'Cleared Students by Organization', 'statuses' => 'Clearance of ' . ($p['state']['org'] ?? ''), default => 'Requests by Status' } }}</h3>
+        <p class="note">
+            @if ($side['mode'] === 'orgs')
+                {{ $fmt($side['total']) }} of {{ $fmt($side['members']) }} students cleared{{ $p['semesterLabel'] ? ', ' . $p['semesterLabel'] : '' }}; each slice is one organization’s share.
+            @elseif ($side['mode'] === 'statuses')
+                {{ $fmt($side['total']) }} {{ Str::plural('member', $side['total']) }} by clearance status{{ $p['semesterLabel'] ? ', ' . $p['semesterLabel'] : '' }}.
+            @else
+                {{ $fmt($side['total']) }} {{ Str::plural('request', $side['total']) }} filed in the period, by where each stands now.
+            @endif
+        </p>
+        @if ($side['total'])
+            <table class="pie"><tr>
+                <td class="pie-img"><img src="data:image/svg+xml;base64,{{ base64_encode(ReportPie::svg($slices)) }}" style="width:46mm;height:46mm;" alt=""></td>
                 <td>
-                    <span class="big">{{ $fmt($t['value']) }}</span>
-                    @if ($d)<br><span class="{{ $d['tone'] === 'good' ? 'up' : ($d['tone'] === 'bad' ? 'down' : 'muted') }}">{{ $d['arrow'] }} {{ $d['text'] }}</span> <span class="muted">({{ $fmt($t['before']) }} before)</span>
-                    @elseif ($tab === 'clearance')<br><span class="muted">{{ $pct($t['value'], $p['studentTotal']) }}% of students</span>@endif
+                    <table class="t">
+                        <thead><tr><th style="text-align:left;">{{ match ($side['mode']) { 'orgs' => 'Organization', 'statuses' => 'Clearance', default => 'Status' } }}</th><th>{{ $side['mode'] === 'orgs' ? 'Cleared' : ($side['mode'] === 'statuses' ? 'Students' : 'Requests') }}</th><th>Share</th>@if ($side['mode'] === 'orgs')<th>Members</th>@endif</tr></thead>
+                        @foreach ($slices as $sl)
+                            <tr><td><span class="swatch" style="background:{{ $sl['colour'] }};"></span>{{ $sl['label'] }}</td><td class="n">{{ $fmt($sl['value']) }}</td><td class="n">{{ $sl['share'] }}%</td>@if ($side['mode'] === 'orgs')<td class="n">{{ $fmt($sl['of']) }}</td>@endif</tr>
+                        @endforeach
+                    </table>
                 </td>
-            @endforeach
-        </tr>
-        <tr class="help">
-            <td>{{ $sum['insight'] }}</td>
-            @foreach ($sum['tiles'] as $t)<td>{{ $sum['help'][$t['label']][0] ?? '' }}</td>@endforeach
-        </tr>
-    </table>
+            </tr></table>
+        @else
+            <p class="muted">{{ $side['mode'] === 'orgs' ? 'No student is cleared yet this semester.' : 'Nothing to show for this period.' }}</p>
+        @endif
+    @endif
     </div>
 
     @if ($m['showChart'])
@@ -544,7 +567,7 @@
     {{-- ================= APPENDIX 2 (optional) ================= --}}
     @if ($includeRecords)
         <h1 class="part appendix">Appendix 2: {{ $sum['records'][0] }}</h1>
-        <p class="note">One row per {{ $sum['records'][2] }} ({{ $fmt($table['count']) }} in all), with the columns chosen on the Reports page{{ $m['search'] ? ', matching “' . $m['search'] . '”' : '' }}.@if ($abbreviated) BS is Bachelor of Science and AB is Bachelor of Arts.@endif @if ($table['count'] > $m['rowCap']) The first {{ $fmt($m['rowCap']) }} rows are shown; the CSV download has every row.@endif</p>
+        <p class="note">One row per {{ $sum['records'][2] }} ({{ $fmt($table['count']) }} in all), with the columns chosen on the Reports page{{ $m['search'] ? ', matching “' . $m['search'] . '”' : '' }}.@if (in_array('program', $table['keys'], true)) Programs are shown by their abbreviation (for example, BSIT is Bachelor of Science in Information Technology).@endif @if (in_array('completed', $table['keys'], true)) “Date and time issued” is when the request was completed; it is blank while a request is still in progress.@endif @if ($table['count'] > $m['rowCap']) The first {{ $fmt($m['rowCap']) }} rows are shown; the CSV download has every row.@endif</p>
         @if ($table['count'])
             <table class="t dense">
                 <thead><tr>@foreach ($table['head'] as $i => $h)<th>{{ $h }}</th>@endforeach</tr></thead>

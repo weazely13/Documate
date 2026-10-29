@@ -22,7 +22,7 @@ class ReportSheetController extends Controller
         $report->boot(app(AdminReportService::class));
         $report->mount();
         $report->applyState($request->query());
-        $table = $report->table();
+        $table = $report->table(array_filter((array) $request->query('keys', []), 'is_scalar'));
         $format = $request->query('format');
 
         if (in_array($format, ['csv', 'xlsx'], true)) {

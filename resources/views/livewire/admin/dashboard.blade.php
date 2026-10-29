@@ -87,7 +87,6 @@
     $card = 'min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm cq-sm:p-5';
     $cardTitle = 'flex min-w-0 items-center gap-1.5 text-[13px] font-semibold leading-tight text-[#2A57B4] cq-sm:gap-2 cq-sm:text-[15px]';
     $cardHead = 'flex flex-wrap items-center justify-between gap-x-2 gap-y-1';
-    $footnote = 'hidden text-xs leading-relaxed text-slate-500 cq-sm:block';
     $link = 'inline-flex items-center gap-0.5 rounded text-xs font-semibold text-[#2A57B4] hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] cq-sm:text-sm';
     $solidBtn = 'inline-flex items-center justify-center rounded-full bg-[#2A57B4] px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1E4090] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] focus-visible:ring-offset-2';
     $adminAvatar = 'bg-gradient-to-br from-[#2A57B4] to-indigo-500';
@@ -206,10 +205,6 @@
                         <thead><tr><th scope="col">Document</th><th scope="col">Requested</th><th scope="col">Completed</th></tr></thead>
                         <tbody>@foreach ($docs as $doc)<tr><td>{{ $doc['label'] }}</td><td>{{ $doc['total'] }}</td><td>{{ $doc['completed'] }}</td></tr>@endforeach</tbody>
                     </table></div>
-                    <p class="mt-2 text-[10px] leading-snug text-white/85 cq-sm:mt-3 cq-sm:text-xs cq-sm:leading-relaxed">
-                        <span class="cq-sm:hidden">Amber = completed. Tap a column.</span>
-                        <span class="hidden cq-sm:inline">Last {{ $range }} days. Each column is everything requested; the amber part is what has been completed. Hover a column for its numbers.</span>
-                    </p>
                 @else
                     <div class="flex-1 py-8 text-center cq-sm:py-12">
                         <i class="bx bx-file text-3xl text-white/40 cq-sm:text-4xl" aria-hidden="true"></i>
@@ -236,10 +231,6 @@
                             <span class="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-slate-100 cq-sm:mt-2.5 cq-sm:h-2" aria-hidden="true">
                                 <span class="block h-full rounded-full" style="width: {{ $pct($count, $tx['open']) }}%; background: {{ $color }}"></span>
                             </span>
-                            <div class="mt-2 hidden items-baseline justify-between gap-2 text-xs cq-sm:flex">
-                                <span class="shrink-0 whitespace-nowrap text-slate-600">{{ $pct($count, $tx['open']) }}% of open</span>
-                                <span class="truncate text-right text-slate-500">{{ $meaning }}</span>
-                            </div>
                         </li>
                     @endforeach
                     <li class="rounded-lg bg-blue-50/60 p-2 ring-1 ring-inset ring-blue-100 cq-sm:p-3.5">
@@ -332,7 +323,6 @@
                         @endforeach
                     </ul>
                 </div>
-                <p class="mt-auto pt-3 {{ $footnote }}">“Not tagged” means no officer has checked the student yet. It is not the same as Uncleared.</p>
             </div>
 
             <div class="{{ $card }} flex flex-col">
@@ -437,7 +427,6 @@
                             </li>
                         @endforeach
                     </ul>
-                    <p class="mt-auto pt-3 {{ $footnote }}">Most waiting first. Blue is signed in the last {{ $range }} days; pale amber is still waiting.</p>
                 @else
                     <p class="mt-3 flex-1 text-xs text-slate-500">No signing activity yet.</p>
                 @endif
@@ -447,7 +436,10 @@
             <div class="{{ $card }} flex flex-col">
                 <div class="{{ $cardHead }}">
                     <h3 class="{{ $cardTitle }}"><i class="bx bx-hourglass hidden cq-sm:inline" aria-hidden="true"></i>Waiting the longest</h3>
-                    <span class="{{ $badge }} shrink-0 whitespace-nowrap !px-2 !text-[10px] cq-sm:!px-2.5 cq-sm:!text-xs {{ $tone['amber'] }}">{{ $sig['pending'] }} pending</span>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <span class="{{ $badge }} shrink-0 whitespace-nowrap !px-2 !text-[10px] cq-sm:!px-2.5 cq-sm:!text-xs {{ $tone['amber'] }}">{{ $sig['pending'] }} pending</span>
+                        <a href="{{ route('admin.workflow.index', ['tab' => 'signing']) }}" wire:navigate class="inline-flex items-center gap-0.5 whitespace-nowrap text-xs font-semibold text-[#2A57B4] hover:underline" title="See every waiting signature in Workflow Review">Workflow Review<i class="bx bx-chevron-right text-base" aria-hidden="true"></i></a>
+                    </div>
                 </div>
                 <p class="mt-1 hidden text-xs text-slate-500 cq-sm:block">Who to remind first, counted in school days.</p>
                 @if ($sig['longest'])
@@ -497,7 +489,6 @@
                             </li>
                         @endforeach
                     </ul>
-                    <p class="mt-auto pt-3 {{ $footnote }}">7 or more school days is overdue. The rest are in <a href="{{ route('admin.workflow.index', ['tab' => 'signing']) }}" wire:navigate class="font-semibold text-[#2A57B4] hover:underline">Workflow Review</a>.</p>
                 @else
                     <p class="mt-3 flex-1 text-xs text-emerald-800">No signatures are pending.</p>
                 @endif
@@ -615,7 +606,6 @@
                         </div>
                     </div>
                 </div>
-                <p class="mt-2 {{ $footnote }}">Busier days are shaded darker; an amber dot means some bookings still need approval. Click a day to list its bookings above.</p>
         </div>
     </section>
 </div>
