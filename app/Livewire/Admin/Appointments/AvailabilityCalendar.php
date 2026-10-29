@@ -38,6 +38,11 @@ class AvailabilityCalendar extends Component
 
     public function toggleDate(string $date): void
     {
+        // Weekends are always closed, so there is nothing to set on them.
+        if (OfficeAvailability::isWeekend($date)) {
+            return;
+        }
+
         if (in_array($date, $this->selectedDates, true)) {
             $this->selectedDates = array_values(array_diff($this->selectedDates, [$date]));
         } else {
@@ -65,7 +70,7 @@ class AvailabilityCalendar extends Component
             'afternoonSlots' => 'required|integer|min:0',
         ]);
 
-        foreach ($this->selectedDates as $date) {
+        foreach (array_filter($this->selectedDates, fn ($d) => ! OfficeAvailability::isWeekend($d)) as $date) {
             OfficeAvailability::updateOrCreate(
                 ['date' => $date],
                 [
@@ -99,10 +104,10 @@ class AvailabilityCalendar extends Component
                 'day' => $d->day,
                 'inMonth' => $d->month === $start->month,
                 'isToday' => $d->isToday(),
-                // Saturday is treated as a normal working day; only Sunday is marked as weekend off
-                'isWeekend' => $d->isSunday(), 
-                'closed' => $availability && !$availability->morning_open && !$availability->afternoon_open,
-                'partial' => $availability && ($availability->morning_open xor $availability->afternoon_open),
+                // The office is closed every Saturday and Sunday
+                'isWeekend' => $weekend = OfficeAvailability::isWeekend($d),
+                'closed' => $weekend || ($availability && !$availability->morning_open && !$availability->afternoon_open),
+                'partial' => ! $weekend && $availability && ($availability->morning_open xor $availability->afternoon_open),
                 'hasOverride' => (bool) $availability,
             ];
         }

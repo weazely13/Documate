@@ -81,7 +81,7 @@
                                     class="w-full rounded-lg border-gray-300 py-2 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] sm:py-1.5 sm:text-sm">
                                 <option value="">Select semester…</option>
                                 @foreach ($semesters as $semester)
-                                    <option value="{{ $semester->id }}">{{ \Illuminate\Support\Str::limit($semester->label(), 40) }}{{ $semester->is_current ? ' (Current)' : '' }}</option>
+                                    <option value="{{ $semester->id }}" @disabled(! $semester->hasStarted())>{{ \Illuminate\Support\Str::limit($semester->label(), 40) }}{{ $semester->pickerSuffix() }}</option>
                                 @endforeach
                             </select>
                         </div>

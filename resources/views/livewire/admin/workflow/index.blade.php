@@ -36,7 +36,7 @@
     };
 
     $nameFor = fn ($row) => $row->field_values['student_name']
-        ?? (trim(($row->user?->first_name ?? '') . ' ' . ($row->user?->last_name ?? '')) ?: '-');
+        ?? (($row->user?->full_name ?? '') ?: '-');
 
     $initialsFor = function ($row) use ($nameFor) {
         $parts = preg_split('/\s+/', trim($nameFor($row))) ?: [];
@@ -66,12 +66,14 @@
         default => 'text-slate-500',
     };
 
-    // Tab tiles, in brand colours: [tab, solid background, icon].
+    // Tab tiles, styled like the Feedback & Issues and Audit Trail summary cards: [tab, gradient, icon, hint].
     $tabTiles = [
-        ['attention', 'bg-[#2A57B4]', 'bx-time-five'],
-        ['signing', 'bg-[#1E4090]', 'bx-pen'],
-        ['action_required', 'bg-[#b4471a]', 'bx-hourglass'],
+        ['attention', 'from-[#2A57B4] to-[#3b6fd8]', 'bx-time-five', 'waiting for your review'],
+        ['signing', 'from-[#1E4090] to-indigo-500', 'bx-pen', 'out with signatories'],
+        ['action_required', 'from-amber-400 to-orange-400', 'bx-hourglass', 'sent back for changes'],
     ];
+    $tile = 'group relative flex min-h-[104px] flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br p-4 text-left text-white shadow-sm transition';
+    $tileIcon = 'pointer-events-none absolute -bottom-3 -right-2 text-6xl text-white/20';
 
     // Phones: queue names that fit a third of a 320px screen; "With student" matches the card tracker.
     $shortTabs = ['action_required' => 'With student'];
@@ -166,52 +168,47 @@
 
     {{-- Count tiles (md+): the three queues are tabs; ready and overdue are at-a-glance --}}
     <div class="hidden gap-3 md:grid md:grid-cols-3 xl:grid-cols-5">
-        @foreach ($tabTiles as [$key, $bg, $icon])
+        @foreach ($tabTiles as [$key, $gradient, $icon, $hint])
             @php $late = $lateCounts[$key] ?? 0; $current = $tab === $key; @endphp
             <button type="button" wire:click="setTab('{{ $key }}')" wire:key="tile-{{ $key }}"
                     @if ($current) aria-current="page" @endif
-                    class="group relative flex min-h-[96px] flex-col justify-between rounded-2xl p-4 text-left text-white transition {{ $bg }} {{ $focus }}
-                        {{ $current ? 'ring-2 ring-offset-2 ring-[#2A57B4]/60 shadow-[0_10px_24px_-14px_rgba(30,64,144,0.9)]' : 'opacity-[0.88] hover:opacity-100' }}">
-                <span class="flex items-center gap-1.5 text-[13px] font-medium text-white/90">
-                    <i class='bx {{ $icon }} text-base' aria-hidden="true"></i>
-                    {{ $tabs[$key] }}
-                </span>
-                <span class="flex items-end justify-between gap-2">
-                    <span class="text-3xl font-bold tabular-nums leading-none">{{ $counts[$key] }}</span>
+                    class="{{ $tile }} {{ $gradient }} {{ $focus }}
+                        {{ $current ? 'ring-2 ring-[#2A57B4]/60 ring-offset-2 shadow-md' : 'hover:-translate-y-0.5 hover:shadow-md' }}">
+                <i class="bx {{ $icon }} {{ $tileIcon }}" aria-hidden="true"></i>
+                <span class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-medium text-white/85">{{ $tabs[$key] }}</span>
                     @if ($late)
-                        <span class="rounded-md bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold">{{ $late }} late</span>
+                        <span class="rounded-full bg-white/25 px-2 py-0.5 text-[11px] font-semibold">{{ $late }} late</span>
                     @elseif ($current)
-                        <span class="text-[11px] font-semibold text-white/80">Showing</span>
+                        <span class="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-semibold">Showing</span>
                     @endif
+                </span>
+                <span>
+                    <span class="block text-2xl font-semibold tabular-nums">{{ $counts[$key] }}</span>
+                    <span class="mt-0.5 block text-[11px] text-white/75">{{ $hint }}</span>
                 </span>
             </button>
         @endforeach
 
         <button type="button" wire:click="setTab('attention')" title="Ready rows are in To review"
-                class="relative flex min-h-[96px] flex-col justify-between rounded-2xl bg-emerald-700 p-4 text-left text-white opacity-[0.92] transition hover:opacity-100 {{ $focus }}">
-            <span class="flex items-center gap-1.5 text-[13px] font-medium text-white/90">
-                <i class='bx bx-check-circle text-base' aria-hidden="true"></i>
-                Ready to finish
-            </span>
-            <span class="flex items-end justify-between gap-2">
-                <span class="text-3xl font-bold tabular-nums leading-none">{{ $readyCount }}</span>
-                <span class="text-[11px] font-semibold text-white/90">Everyone signed</span>
+                class="{{ $tile }} from-emerald-500 to-teal-400 hover:-translate-y-0.5 hover:shadow-md {{ $focus }}">
+            <i class="bx bx-check-circle {{ $tileIcon }}" aria-hidden="true"></i>
+            <span class="text-xs font-medium text-white/85">Ready to finish</span>
+            <span>
+                <span class="block text-2xl font-semibold tabular-nums">{{ $readyCount }}</span>
+                <span class="mt-0.5 block text-[11px] text-white/75">everyone has signed</span>
             </span>
         </button>
 
         <div role="{{ $overdue->isNotEmpty() ? 'alert' : 'status' }}"
-             class="flex min-h-[96px] flex-col justify-between rounded-2xl p-4 {{ $overdue->isNotEmpty() ? 'bg-red-700 text-white' : 'border border-slate-200 bg-white text-slate-700' }}">
-            <span class="flex items-center gap-1.5 text-[13px] font-medium {{ $overdue->isNotEmpty() ? 'text-white/90' : 'text-slate-500' }}">
-                <i class='bx bx-error text-base' aria-hidden="true"></i>
-                Overdue (7+ days)
-            </span>
+             class="{{ $tile }} {{ $overdue->isNotEmpty() ? 'from-rose-500 to-pink-500' : 'from-slate-400 to-slate-500' }}">
+            <i class="bx bx-error {{ $tileIcon }}" aria-hidden="true"></i>
+            <span class="text-xs font-medium text-white/85">Overdue (7+ days)</span>
             <span>
-                <span class="text-3xl font-bold tabular-nums leading-none">{{ $overdue->count() }}</span>
-                @if ($oldest)
-                    <span class="mt-1 block truncate text-[11px] font-medium text-white/90" title="Oldest: {{ $oldestLabel }}">
-                        Oldest: {{ $oldest->field_values['student_name'] ?? $oldest->user?->first_name }}
-                    </span>
-                @endif
+                <span class="block text-2xl font-semibold tabular-nums">{{ $overdue->count() }}</span>
+                <span class="mt-0.5 block truncate text-[11px] text-white/75" @if ($oldest) title="Oldest: {{ $oldestLabel }}" @endif>
+                    {{ $oldest ? 'Oldest: ' . ($oldest->field_values['student_name'] ?? $oldest->user?->first_name) : 'nothing waiting too long' }}
+                </span>
             </span>
         </div>
     </div>

@@ -128,7 +128,7 @@
                             class="w-full rounded-xl border border-slate-300 px-3 py-3 text-base font-semibold outline-none focus:border-[#2A57B4] focus:ring-4 focus:ring-[#2A57B4]/10 sm:py-2.5 sm:text-sm">
                             <option value="">Select semester...</option>
                             @foreach($semesters as $semester)
-                                <option value="{{ $semester->id }}">{{ $semester->label() }}{{ $semester->is_current ? ' (Current)' : '' }}</option>
+                                <option value="{{ $semester->id }}" @disabled(! $semester->isOpen())>{{ $semester->label() }}{{ $semester->pickerSuffix() }}</option>
                             @endforeach
                         </select>
                     </div>

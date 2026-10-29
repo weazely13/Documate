@@ -50,7 +50,7 @@ final class AuditLabels
     {
         return $ws->auditLogs()->with('actor')->get()->map(fn ($log) => [
             'text' => self::label($log->action),
-            'who' => $log->actor ? trim($log->actor->first_name . ' ' . $log->actor->last_name) : 'System',
+            'who' => $log->actor ? $log->actor->full_name : 'System',
             'role' => $log->actor_role,
             'at' => $log->created_at,
             'note' => $log->meta['message']

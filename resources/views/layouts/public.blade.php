@@ -127,21 +127,28 @@
 
     <!-- ================= HEADER ================= -->
     <header id="site-header" class="bg-white/90 fixed w-full z-50 transition-shadow duration-300">
-        <div class="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-8 py-4 flex justify-between items-center gap-3 sm:gap-6">
 
-            <!-- Logo + Title -->
-            <a href="{{ url('/') }}" class="flex items-center space-x-3">
-                <img src="{{ asset('images/DocumateLogo.png') }}" alt="DocuMate Logo" class="size-16 object-contain">
-                <span class="text-4xl font-bold tracking-wide text-[#2A57B4]" style="font-family: 'Gveret Levin', cursive;">
+            <!-- Institution logos + Logo + Title -->
+            <a href="{{ url('/') }}" class="flex shrink-0 items-center gap-2 sm:gap-3">
+                <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" class="size-8 sm:size-12 object-contain">
+                <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services" class="size-8 sm:size-12 object-contain">
+                <span class="hidden 2xl:flex flex-col max-w-[11rem] text-xs leading-tight text-gray-500">
+                    <strong class="text-sm text-[#2A57B4]">OVPSD</strong>
+                    Office of the Vice President for Student Development
+                </span>
+                <span class="h-8 sm:h-10 w-px bg-gray-300 sm:mx-1" aria-hidden="true"></span>
+                <img src="{{ asset('images/DocumateLogo.png') }}" alt="DocuMate Logo" class="size-10 sm:size-16 object-contain">
+                <span class="text-2xl sm:text-4xl font-bold tracking-wide text-[#2A57B4]" style="font-family: 'Gveret Levin', cursive;">
                     DocuMate
                 </span>
             </a>
 
-            <nav class="hidden md:flex items-center space-x-8 text-sm font-semibold">
+            <nav class="hidden xl:flex items-center space-x-6 text-sm font-semibold whitespace-nowrap">
                 @foreach ($navLinks as [$label, $href, $key])
                     <a href="{{ $href }}" data-spy="{{ $key }}"
                         @if (request()->routeIs('faqs') && $key === 'faqs') aria-current="true" @endif
-                        class="nav-link text-gray-700 text-lg hover:text-[#2A57B4] transition {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
+                        class="nav-link text-gray-700 text-base hover:text-[#2A57B4] transition {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
                         {{ $label }}
                     </a>
                 @endforeach
@@ -157,7 +164,7 @@
             </nav>
 
             <!-- Mobile menu button -->
-            <button id="mobile-menu-btn" class="md:hidden text-[#2A57B4]" aria-label="Open menu">
+            <button id="mobile-menu-btn" class="xl:hidden shrink-0 text-[#2A57B4]" aria-label="Open menu">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
@@ -165,7 +172,7 @@
         </div>
 
         <!-- Mobile menu panel -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 px-8 py-4 flex flex-col gap-4 text-base font-semibold">
+        <div id="mobile-menu" class="hidden xl:hidden bg-white border-t border-gray-100 px-4 sm:px-8 py-4 flex flex-col gap-4 text-base font-semibold">
             @foreach ($navLinks as [$label, $href, $key])
                 <a href="{{ $href }}" data-spy="{{ $key }}"
                     class="nav-link w-fit text-gray-700 hover:text-[#2A57B4] transition {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">

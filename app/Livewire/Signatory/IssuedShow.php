@@ -39,7 +39,7 @@ class IssuedShow extends Component
             'at' => $log->created_at,
             'text' => AuditLabels::label($log->action),
             'who' => $log->actor
-                ? trim($log->actor->first_name . ' ' . $log->actor->last_name)
+                ? $log->actor->full_name
                 : ($log->meta['signer'] ?? 'System'),
             'note' => $log->meta['message'] ?? $log->meta['reason'] ?? null,
         ])->reverse()->values();

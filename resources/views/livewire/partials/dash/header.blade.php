@@ -2,7 +2,7 @@
      a line of facts, and the period picker.
      @include('livewire.partials.dash.header', ['name' => 'Maria', 'facts' => ['2026-2027 | First Semester']])
      'action' => ['label' => 'New transaction', 'url' => route(...), 'icon' => 'bx-plus'] adds a primary button beside the picker.
-     The host component needs a public int $range (bound to the picker).
+     The host component needs a public int $range (bound to the picker); 'picker' => false leaves the picker out.
 
      The scene follows the viewer's own clock (re-checked every 30s):
        sky   night (19-5) · dawn (5-7) · morning (7-12) · afternoon (12-17) · dusk (17-19)
@@ -144,6 +144,7 @@
                     <i class='bx {{ $action['icon'] ?? 'bx-plus' }} text-base' aria-hidden="true"></i>{{ $action['label'] }}
                 </a>
             @endisset
+            @if ($picker ?? true)
             <label class="relative">
                 <span class="sr-only">Period for the charts</span>
                 <i class='bx bx-calendar pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-gray-500' aria-hidden="true"></i>
@@ -154,6 +155,7 @@
                     @endforeach
                 </select>
             </label>
+            @endif
         </div>
     </div>
 </header>

@@ -89,6 +89,22 @@
 
         </div>
 
+        <!-- Institution logos -->
+        <div class="max-w-5xl mx-auto px-4 md:px-6 mt-16 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 text-center sm:text-left reveal">
+            <div class="flex items-center gap-5">
+                <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University"
+                    class="size-20 md:size-24 object-contain rounded-full bg-white p-1 shadow-lg">
+                <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services"
+                    class="size-20 md:size-24 object-contain rounded-full bg-white p-1 shadow-lg">
+            </div>
+            <div class="text-white/90 leading-snug">
+                <p class="text-sm uppercase tracking-widest text-white/70">Developed for</p>
+                <p class="text-lg font-semibold">Office of the Vice President for Student Development (OVPSD)</p>
+                <p class="text-lg font-semibold">Office of Student Development and Auxiliary Services</p>
+                <p class="text-base">Leyte Normal University, Tacloban City</p>
+            </div>
+        </div>
+
     </section>
 
     <!-- ================= ABOUT THE SYSTEM ================= -->

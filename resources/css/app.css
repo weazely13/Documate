@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Alpine: keep x-cloak elements hidden until Alpine takes over, so collapsed panels never flash open. */
+[x-cloak] {
+    display: none !important;
+}
+
+
 /* ==========================================================================
    1. LOGIN & REGISTER
    ========================================================================== */
@@ -29,11 +35,18 @@ body {
     background: #f5f6fa;
 }
 
-/* LAYOUT CONTAINER */
+/* LAYOUT CONTAINER
+   Only the sidebar and .content scroll. The page itself never does, or it drags the sidebar out of view. */
+html:has(> body > .layout),
+body:has(> .layout) {
+    height: 100%;
+    overflow: hidden;
+}
+
 .layout {
     display: flex;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -43,7 +56,7 @@ body {
     --brand-deep: #24499A;
     --accent: #eb6834;
     width: 264px;
-    height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -101,6 +114,69 @@ body {
     font-weight: 600;
     color: var(--brand);
     line-height: 1;
+}
+
+/* Institution logos in the topbar */
+.topbar-institutions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 14px;
+    border-right: 1px solid #e5e7eb;
+}
+
+.topbar-institutions img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.topbar-institutions-text strong {
+    color: #2A57B4;
+}
+
+.topbar-institutions-text {
+    display: flex;
+    flex-direction: column;
+    max-width: 190px;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    color: #6b7280;
+}
+
+.topbar-institutions-text strong {
+    font-size: 0.8rem;
+}
+
+/* Below 1024px the topbar keeps the logos and a thin acronym, and drops the long name */
+@media (max-width: 1023px) {
+    .topbar-institutions-name {
+        display: none;
+    }
+
+    .topbar-institutions-text strong {
+        font-weight: 400;
+        letter-spacing: 0.06em;
+    }
+}
+
+@media (max-width: 767px) {
+    .topbar-institutions {
+        gap: 6px;
+        padding-right: 10px;
+    }
+
+    .topbar-institutions img {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+/* Under 400px the logos stay but the acronym goes, so the page title isn't cut to a letter */
+@media (max-width: 399px) {
+    .topbar-institutions-text {
+        display: none;
+    }
 }
 
 .nav-account {
@@ -257,6 +333,20 @@ body {
     padding: 4px 12px 12px;
     display: flex;
     flex-direction: column;
+}
+
+/* Thin scrollbar when open; none on the icon rail, where its width would push the icons off-centre */
+.nav-body {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+}
+
+.sidebar.collapsed .nav-body {
+    scrollbar-width: none;
+}
+
+.sidebar.collapsed .nav-body::-webkit-scrollbar {
+    display: none;
 }
 
 .nav-section {
@@ -495,13 +585,18 @@ body {
 
 /* MAIN CONTENT AREA */
 .main-content {
+    position: relative;
     flex: 1;
+    min-width: 0;
     transition: 0.3s;
-    overflow-y: auto;
-    height: 100vh;
+    overflow: hidden;
+    height: 100dvh;
 }
 
+/* position: relative keeps absolutely positioned bits (sr-only inputs, menus) inside the scroll area
+   instead of stretching the page below the viewport */
 .content {
+    position: relative;
     background: white;
     border-radius: 0px;
 }
@@ -607,7 +702,8 @@ body {
 .verify-indicator.verified   { background: #ecfdf5; color: #059669; }
 .verify-indicator.unverified { background: #fef2f2; color: #dc2626; }
 
-@media (max-width: 480px) {
+/* Phones and tablets: icon only; the tooltip still says Verified / Not Verified */
+@media (max-width: 767px) {
     .verify-label { display: none; }
     .verify-indicator { padding: 0.4rem; }
 }
@@ -1557,3 +1653,47 @@ body {
     transition: opacity 0.15s ease !important;
   }
 }
+
+/* ---------------- REPORTS: AI INSIGHTS PANEL OPEN ----------------
+   The Reports page's insights panel takes the right edge (27rem + 0.75rem gap).
+   On wide screens the AI Assistant moves to its left; where there is no room it steps away. */
+
+body.report-ai-open .chatbot-btn,
+body.report-ai-open .chatbot-panel {
+  transition-property: right, transform, opacity, visibility, box-shadow;
+}
+
+@media (min-width: 1024px) {
+  body.report-ai-open .chatbot-btn { right: calc(27rem + 2.25rem); }
+  body.report-ai-open .chatbot-panel {
+    right: calc(27rem + 2.25rem);
+    max-width: calc(100vw - 27rem - 3.75rem);
+  }
+}
+
+@media (max-width: 1023.98px) {
+  body.report-ai-open .chatbot-btn,
+  body.report-ai-open .chatbot-panel {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* While the Reports PDF review panel is open, the AI Assistant steps away so it can't cover the panel's buttons. */
+body.report-pdf-open .chatbot-btn,
+body.report-pdf-open .chatbot-panel {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Slim scrollbars for side panels (Reports sidebar). */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.thin-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.thin-scroll::-webkit-scrollbar-track { background: transparent; }
+.thin-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+.thin-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

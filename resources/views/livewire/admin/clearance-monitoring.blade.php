@@ -34,7 +34,7 @@
             <select wire:model.live="selectedSemesterId" aria-label="Semester" class="{{ $sm }}">
                 <option value="">Select a semester…</option>
                 @foreach ($semesters as $semester)
-                    <option value="{{ $semester->id }}">{{ \Illuminate\Support\Str::limit($semester->label(), 40) }}{{ $semester->is_current ? ' (Current)' : '' }}</option>
+                    <option value="{{ $semester->id }}">{{ \Illuminate\Support\Str::limit($semester->label(), 40) }}{{ $semester->pickerSuffix() }}</option>
                 @endforeach
             </select>
         </div>

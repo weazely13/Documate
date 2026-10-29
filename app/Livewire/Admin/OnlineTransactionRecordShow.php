@@ -83,7 +83,7 @@ class OnlineTransactionRecordShow extends Component
             'document' => $document,
             'result' => $result,
             'tone' => $tone,
-            'studentName' => $values['student_name'] ?? trim(($user?->first_name ?? '') . ' ' . ($user?->last_name ?? '')) ?: 'Unknown student',
+            'studentName' => $values['student_name'] ?? ($user?->full_name ?? '') ?: 'Unknown student',
             'studentNumber' => $user?->student_number ?: ($values['student_number'] ?? '') ?: ($user?->role?->role_name ?? ''),
             'program' => $user?->program?->name ?: ($values['student_program'] ?? ''),
             'answers' => $answers,

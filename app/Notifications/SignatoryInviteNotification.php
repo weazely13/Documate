@@ -19,7 +19,7 @@ class SignatoryInviteNotification extends Notification
     {
         $mail = (new MailMessage)
             ->subject('Set up your DocuMate signing account')
-            ->greeting('Hello ' . trim($notifiable->first_name . ' ' . $notifiable->last_name) . ',')
+            ->greeting('Hello ' . $notifiable->full_name . ',')
             ->line('The Office of the Vice President for Student Development, Leyte Normal University, set up a DocuMate account for you so you can review and sign student documents online.')
             ->action('Set your password', $this->url)
             ->line('For your security, this link will expire on ' . $this->expires->format('l, F j, Y \a\t g:i A') . ' and can be used only once.')

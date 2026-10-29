@@ -251,7 +251,7 @@
                                 <button type="button" wire:click="selectNominee({{ $s->id }})" wire:key="nom-{{ $s->id }}"
                                         class="flex w-full items-center justify-between gap-2 px-3.5 py-2 text-left text-sm hover:bg-slate-50">
                                     <span class="min-w-0 truncate">
-                                        {{ trim($s->first_name . ' ' . $s->last_name) }}
+                                        {{ $s->full_name }}
                                         <span class="block truncate text-[11px] text-slate-400">{{ $s->program?->name }}</span>
                                     </span>
                                     <span class="shrink-0 text-xs text-slate-400">{{ $s->student_number }}</span>

@@ -45,7 +45,7 @@
                 @if ($student)
                     <div class="mt-1.5 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                         <span class="min-w-0 truncate">
-                            <span class="font-semibold text-slate-900">{{ trim($student->first_name . ' ' . $student->last_name) }}</span>
+                            <span class="font-semibold text-slate-900">{{ $student->full_name }}</span>
                             <span class="text-xs text-slate-400">({{ $student->student_number }}) {{ $student->program?->name }}</span>
                         </span>
                         <button type="button" wire:click="$set('studentId', null)" class="shrink-0 text-slate-400 hover:text-slate-700" aria-label="Change student">&#10005;</button>
@@ -58,7 +58,7 @@
                             @forelse ($this->studentResults as $s)
                                 <button type="button" wire:click="selectStudent({{ $s->id }})" wire:key="stu-{{ $s->id }}"
                                         class="flex w-full items-center justify-between gap-2 px-3.5 py-2 text-left text-sm hover:bg-slate-50">
-                                    <span class="truncate">{{ trim($s->first_name . ' ' . $s->last_name) }}</span>
+                                    <span class="truncate">{{ $s->full_name }}</span>
                                     <span class="shrink-0 text-xs text-slate-400">{{ $s->student_number }}</span>
                                 </button>
                             @empty

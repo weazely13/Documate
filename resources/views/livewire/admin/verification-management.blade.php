@@ -41,6 +41,13 @@
         <x-admin.form-modal title="Raise verification"
             subtitle="Every student and officer is asked to verify their account by the end date, and everyone is notified."
             submit="raiseVerification" close="closeRaise" width="sm:max-w-md">
+            @php $raiseSemester = \App\Models\Semester::current(); @endphp
+            @if ($raiseSemester)
+                <p class="mb-4 flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs leading-relaxed text-slate-700 ring-1 ring-inset ring-blue-100">
+                    <i class="bx bx-calendar mt-px text-sm text-[#2A57B4]" aria-hidden="true"></i>
+                    <span>For <b>{{ $raiseSemester->label() }}</b>{{ $raiseSemester->isDated() ? ', which runs ' . $raiseSemester->dateLabel() . '. Both dates must fall inside it.' : '. Add this semester’s dates on the Semesters page to keep periods inside it.' }}</span>
+                </p>
+            @endif
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label for="v-start" class="{{ $label }}">Start date</label>
@@ -193,7 +200,7 @@
                     <div>
                         <h3 id="history-title" class="text-lg font-bold text-gray-900">Verification history</h3>
                         @if ($historyUser)
-                            <p class="text-sm text-gray-500">{{ $historyUser->first_name }} {{ $historyUser->last_name }}</p>
+                            <p class="text-sm text-gray-500">{{ $historyUser->full_name }}</p>
                         @endif
                     </div>
                     <button wire:click="closeHistory" aria-label="Close" class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100">

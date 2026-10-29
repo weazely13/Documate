@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SignatoryAssignment extends Model
 {
+    use Auditable;
+
+    protected string $auditModule = 'Signatories';
+
     protected $fillable = ['user_id', 'signatory_role_id', 'active_from', 'active_until', 'is_active', 'scope_type', 'scope_id'];
 
     protected function casts(): array

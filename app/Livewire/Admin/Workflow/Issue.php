@@ -242,7 +242,7 @@ class Issue extends Component
             ->get()
             ->map(fn ($u) => [
                 'id' => $u->id,
-                'name' => trim($u->first_name . ' ' . $u->last_name),
+                'name' => $u->full_name,
                 'number' => $u->student_number,
                 'program' => $u->program?->name,
             ])

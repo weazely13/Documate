@@ -173,6 +173,12 @@ class AppointmentShow extends Component
             'rescheduleReason' => 'required|string|min:5',
         ]);
 
+        if (! \App\Models\OfficeAvailability::sessionOpen($this->rescheduleDate, $this->rescheduleSession)) {
+            $this->addError('rescheduleDate', \App\Models\OfficeAvailability::isWeekend($this->rescheduleDate)
+                ? 'The office is closed on Saturdays and Sundays. Please pick a weekday.'
+                : 'The office is closed for that session. Please pick another.');
+            return;
+        }
         \App\Models\AppointmentReschedule::create([
             'appointment_id' => $this->appointment->appointment_id,
             'old_date' => $this->appointment->appointment_date,

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
+
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Database\Factories\UserFactory;
@@ -43,6 +45,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
+    use Auditable;
+
+    protected string $auditModule = 'Users';
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
     use HasSignatoryRoles;
@@ -147,6 +153,38 @@ class User extends Authenticatable
         return $this->relationLoaded('officerRecord')
             ? $this->officerRecord !== null
             : $this->officerRecord()->exists();
+    }
+
+    /**
+     * "First M. Last Suffix", the way the forms and PDFs print a name. Use $user->full_name
+     * anywhere a person's name is shown so the middle initial is never dropped.
+     */
+    public function getFullNameAttribute(): string
+    {
+        return self::formatName($this->first_name, $this->middle_name, $this->last_name, $this->suffix);
+    }
+
+    public static function formatName(?string $first, ?string $middle, ?string $last, ?string $suffix = null): string
+    {
+        $middle = trim((string) $middle);
+        $initial = $middle !== '' ? Str::upper(Str::substr($middle, 0, 1)) . '.' : null;
+
+        return trim(preg_replace('/\s+/', ' ', implode(' ', array_filter([$first, $initial, $last, $suffix]))));
+    }
+
+    /** Public URL of the profile photo, or null when there is none. */
+    public function avatarUrl(): ?string
+    {
+        return self::avatarUrlFor($this->profile_picture);
+    }
+
+    public static function avatarUrlFor(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        return Str::startsWith($path, ['http://', 'https://']) ? $path : asset('storage/' . ltrim($path, '/'));
     }
 
     public function isAdmin(): bool

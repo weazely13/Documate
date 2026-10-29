@@ -629,7 +629,7 @@ class OrganizationRoleManager extends Component
             'officer_position_id' => $this->assignPositionId,
         ]);
 
-        session()->flash('assign_message', trim($user->first_name . ' ' . $user->last_name) . ' is now an officer of ' . $org->name . '.');
+        session()->flash('assign_message', $user->full_name . ' is now an officer of ' . $org->name . '.');
 
         $this->closeForm();
         $this->resetPage('officerPage');
@@ -837,7 +837,7 @@ class OrganizationRoleManager extends Component
         $user = User::find($data['sigSelectedUserId']);
         $role = SignatoryRole::find($data['sigRoleId']);
 
-        session()->flash('sig_assign_message', trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) . " is now assigned as {$role->label}.");
+        session()->flash('sig_assign_message', ($user->full_name ?? '') . " is now assigned as {$role->label}.");
 
         $this->closeForm();
         $this->resetPage('signatoryPage');
@@ -973,7 +973,7 @@ class OrganizationRoleManager extends Component
         if ($u) {
             $this->invEmailMatch = [
                 'id' => $u->id,
-                'name' => trim($u->first_name . ' ' . $u->last_name),
+                'name' => $u->full_name,
                 'role' => $u->role->role_name ?? 'User',
                 'trashed' => $u->trashed(),
             ];

@@ -22,3 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# dompdf font cache (Reports PDF): rebuilt on each machine; it can hold copies of licensed fonts
+/storage/fonts/

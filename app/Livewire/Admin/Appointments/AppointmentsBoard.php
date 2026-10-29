@@ -142,7 +142,7 @@ class AppointmentsBoard extends Component
 
             return [
                 'key' => $row->user_id,
-                'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: 'Unknown student',
+                'name' => ($user->full_name ?? '') ?: 'Unknown student',
                 'student_number' => $user->student_number ?? 'N/A',
                 'forms' => $forms,
                 'total' => $forms->count(),
@@ -189,8 +189,9 @@ class AppointmentsBoard extends Component
             $iso = $d->toDateString();
             $availability = $availabilities->get($iso);
 
-            $morningOpen = $availability?->morning_open ?? true;
-            $afternoonOpen = $availability?->afternoon_open ?? true;
+            $isWeekend = OfficeAvailability::isWeekend($d);
+            $morningOpen = ! $isWeekend && ($availability?->morning_open ?? true);
+            $afternoonOpen = ! $isWeekend && ($availability?->afternoon_open ?? true);
             $morningSlots = $availability?->morning_slots ?? 25;
             $afternoonSlots = $availability?->afternoon_slots ?? 25;
 
@@ -208,7 +209,7 @@ class AppointmentsBoard extends Component
                 'isToday' => $d->isToday(),
                 'isPast' => $d->lt(now()->startOfDay()),
                 'isSelected' => $iso === $this->selectedDate,
-                'isWeekend' => $d->isSunday(),
+                'isWeekend' => $isWeekend,
                 'closed' => !$morningOpen && !$afternoonOpen,
                 'remaining' => $remainingMorning + $remainingAfternoon,
                 'totalSlots' => ($morningOpen ? $morningSlots : 0) + ($afternoonOpen ? $afternoonSlots : 0),
@@ -561,6 +562,12 @@ class AppointmentsBoard extends Component
             'bulkRescheduleReason' => 'required|string|min:5',
         ]);
 
+        if (! OfficeAvailability::sessionOpen($this->bulkRescheduleDate, $this->bulkRescheduleSession)) {
+            $this->addError('bulkRescheduleDate', OfficeAvailability::isWeekend($this->bulkRescheduleDate)
+                ? 'The office is closed on Saturdays and Sundays. Please pick a weekday.'
+                : 'The office is closed for that session. Please pick another.');
+            return;
+        }
         $targets = Appointment::whereIn('status', ['pending', 'approved'])
             ->whereIn('appointment_id', $this->selectedIds)
             ->get();

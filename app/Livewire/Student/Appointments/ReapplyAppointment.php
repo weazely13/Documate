@@ -58,11 +58,11 @@ class ReapplyAppointment extends Component
             $iso = $d->toDateString();
             $availability = $availabilities->get($iso);
 
-            // Sundays are completely closed by default
-            $isSunday = $d->isSunday();
+            // The office is closed every Saturday and Sunday
+            $isWeekend = OfficeAvailability::isWeekend($d);
 
-            $morningOpen = $availability?->morning_open ?? !$isSunday;
-            $afternoonOpen = $availability?->afternoon_open ?? !$isSunday;
+            $morningOpen = ! $isWeekend && ($availability?->morning_open ?? true);
+            $afternoonOpen = ! $isWeekend && ($availability?->afternoon_open ?? true);
             $morningCap = $availability?->morning_slots ?? 25;
             $afternoonCap = $availability?->afternoon_slots ?? 25;
 
@@ -85,7 +85,7 @@ class ReapplyAppointment extends Component
                 'day' => $d->day,
                 'inMonth' => $d->month === $start->month,
                 'isPast' => $d->isPast() && !$d->isToday(),
-                'isSunday' => $isSunday,
+                'isWeekend' => $isWeekend,
                 'morning_open' => $mAvail,
                 'afternoon_open' => $aAvail,
                 'morning_remaining' => max($morningCap - $morningTaken, 0),
@@ -115,6 +115,12 @@ class ReapplyAppointment extends Component
             'selectedSession' => 'required|in:morning,afternoon',
         ]);
 
+        if (! OfficeAvailability::sessionOpen($this->selectedDate, $this->selectedSession)) {
+            $this->addError('selectedSession', OfficeAvailability::isWeekend($this->selectedDate)
+                ? 'The office is closed on Saturdays and Sundays. Please pick a weekday.'
+                : 'The office is closed for that session. Please pick another.');
+            return;
+        }
         $result = DB::transaction(function () {
             // Lock this appointment row so a second click has to wait here.
             $appointment = Appointment::whereKey($this->appointment->appointment_id)

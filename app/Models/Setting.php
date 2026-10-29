@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Setting extends Model
 {
+    use Auditable;
+
+    protected string $auditModule = 'Semesters & Verification';
+
     use HasFactory;
 
     protected $fillable = [
@@ -53,5 +58,10 @@ class Setting extends Model
     public function label(): string
     {
         return $this->verification_start_date->format('M j, Y') . ' – ' . $this->verification_end_date->format('M j, Y');
+    }
+
+    public function auditName(): string
+    {
+        return 'Verification period #' . $this->getKey();
     }
 }

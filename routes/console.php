@@ -13,3 +13,6 @@ Artisan::command('inspire', function () {
 Schedule::command('appointments:mark-missed')->everyFifteenMinutes();
 
 Schedule::command(EnforceVerificationDeadline::class)->daily();
+
+// Keeps the current semester in step with each semester's start and end dates.
+Schedule::command('semesters:sync-current')->dailyAt('00:05');

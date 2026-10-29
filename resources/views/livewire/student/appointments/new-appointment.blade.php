@@ -101,7 +101,7 @@
                     @foreach($this->calendarDays as $day)
                         @php
                             $isSelected = $selectedDate === $day['date'];
-                            $isDisabled = !$day['inMonth'] || $day['isPast'] || $day['isSunday'] || !$day['has_available'];
+                            $isDisabled = !$day['inMonth'] || $day['isPast'] || $day['isWeekend'] || !$day['has_available'];
                         @endphp
                         <button 
                             @if(!$isDisabled) wire:click="selectDate('{{ $day['date'] }}')" @endif
@@ -109,7 +109,7 @@
                             @class([
                                 'relative flex h-11 flex-col items-center justify-center rounded-lg text-sm font-medium transition',
                                 'opacity-30 cursor-not-allowed' => !$day['inMonth'],
-                                'bg-slate-100 text-slate-300 cursor-not-allowed' => ($day['isPast'] || $day['isSunday'] || !$day['has_available']) && $day['inMonth'],
+                                'bg-slate-100 text-slate-300 cursor-not-allowed' => ($day['isPast'] || $day['isWeekend'] || !$day['has_available']) && $day['inMonth'],
                                 'bg-blue-50 border border-[#2A57B4] text-[#2A57B4] font-bold' => $isSelected && !$isDisabled,
                                 'bg-white text-slate-700 hover:border-[#2A57B4] hover:bg-blue-50/50 border border-slate-200' => !$isSelected && !$isDisabled,
                             ])>

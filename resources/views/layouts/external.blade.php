@@ -17,7 +17,11 @@
             <img src="{{ asset('images/favicon.png') }}" class="h-9 w-9 object-contain" alt="DocuMate">
             <div>
                 <p class="text-xs font-bold uppercase tracking-wider text-[#2A57B4]">DocuMate</p>
-                <p class="text-[11px] text-slate-500">Leyte Normal University · Office of the VP for Student Development</p>
+                <p class="text-[11px] text-slate-500">Leyte Normal University · Office of the Vice President for Student Development (OVPSD)</p>
+            </div>
+            <div class="ml-auto flex shrink-0 items-center gap-2">
+                <img src="{{ asset('images/lnulogo.png') }}" class="h-9 w-9 object-contain" alt="Leyte Normal University">
+                <img src="{{ asset('images/osdas-logo-256.png') }}" class="h-9 w-9 object-contain" alt="Office of Student Development and Auxiliary Services">
             </div>
         </div>
 

@@ -110,8 +110,8 @@ final class StudentAdvisementForm extends WorkflowDocument
             if (empty($values['haircut_report_session'])) {
                 return 'Choose the session the student must report to the VPSD.';
             }
-            if (Carbon::parse($values['haircut_report_date'])->isSunday()) {
-                return 'The VPSD office is closed on Sundays. Choose another date.';
+            if (\App\Models\OfficeAvailability::isWeekend($values['haircut_report_date'])) {
+                return 'The VPSD office is closed on Saturdays and Sundays. Choose a weekday.';
             }
         }
         if ($others && trim((string) ($values['others_specify'] ?? '')) === '') {

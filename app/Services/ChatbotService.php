@@ -356,7 +356,7 @@ class ChatbotService
         $identityBlock = $user
             ? sprintf(
                 "The current logged-in user is %s (role: %s). You already know who they are — never ask for a student ID, email, or any identifying information. When they ask about their own requests, appointments, or clearance status, call the relevant tool immediately; it is automatically scoped to this user by the system.",
-                trim("{$user->first_name} {$user->last_name}"),
+                $user->full_name,
                 $user->role->role_name ?? 'Student'
             )
             : "No user is currently authenticated. If asked about personal records, tell them to log in first — do not attempt to call any personal-data tools.";
@@ -1320,7 +1320,7 @@ HYMN
             ->select(
                 DB::raw("'appointment' as type"),
                 'a.appointment_id as id',
-                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
+                DB::raw("CONCAT_WS(' ', u.first_name, CONCAT(UPPER(LEFT(NULLIF(TRIM(u.middle_name), ''), 1)), '.'), u.last_name, NULLIF(u.suffix, '')) as user_name"),
                 'a.status',
                 'a.created_at'
             )
@@ -1331,7 +1331,7 @@ HYMN
             ->select(
                 DB::raw("'transaction' as type"),
                 'w.workspace_id as id',
-                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"),
+                DB::raw("CONCAT_WS(' ', u.first_name, CONCAT(UPPER(LEFT(NULLIF(TRIM(u.middle_name), ''), 1)), '.'), u.last_name, NULLIF(u.suffix, '')) as user_name"),
                 'w.status',
                 'w.created_at'
             )
@@ -1356,7 +1356,7 @@ HYMN
             ],
             'todays_appointments_preview' => DB::table('appointments as a')
                 ->join('users as u', 'u.id', '=', 'a.user_id')
-                ->select('a.appointment_id', 'a.appointment_date', 'a.status', DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user_name"))
+                ->select('a.appointment_id', 'a.appointment_date', 'a.status', DB::raw("CONCAT_WS(' ', u.first_name, CONCAT(UPPER(LEFT(NULLIF(TRIM(u.middle_name), ''), 1)), '.'), u.last_name, NULLIF(u.suffix, '')) as user_name"))
                 ->whereDate('a.appointment_date', today())
                 ->orderBy('a.appointment_date')
                 ->limit(5)
@@ -1513,7 +1513,7 @@ HYMN
     You can book from the Appointments tab (Book Appointment button) or from inside a document (Set Appointment).
     1. Purpose: pick a purpose from the list. If none fits, choose "Others" and type your purpose (at least 5 characters).
     2. Document: choose one of your pending documents, or continue without one. Only documents with no active appointment are listed. This step is SKIPPED when you book from inside a document.
-    3. Date and session: use the calendar. Green-dot dates have open slots. Choose Morning (8:00 AM - 12:00 PM) or Afternoon (1:00 PM - 5:00 PM). Sundays are closed, past dates are unavailable, and each session has limited slots (25 by default unless the office changed it). Same-day booking closes at 11:30 AM for morning and 4:30 PM for afternoon.
+    3. Date and session: use the calendar. Green-dot dates have open slots. Choose Morning (8:00 AM - 12:00 PM) or Afternoon (1:00 PM - 5:00 PM). The office is closed on Saturdays and Sundays, past dates are unavailable, and each session has limited slots (25 by default unless the office changed it). Same-day booking closes at 11:30 AM for morning and 4:30 PM for afternoon.
     4. Confirm: review the details and press Confirm Appointment.
     AFTER BOOKING:
     - The status starts as Pending. An AI reviews the appointment and document, and the office sorts requests into "For Rejection" or "Ready for Approval". A staff member makes the final decision.
@@ -1592,7 +1592,7 @@ HYMN
         return collect($dates)->map(function ($d) {
             $dateString = $d->toDateString();
             $row = \App\Models\OfficeAvailability::where('date', $dateString)->first();
-            $isSunday = $d->isSunday();
+            $isWeekend = \App\Models\OfficeAvailability::isWeekend($d);
             $isCurrentOrFuture = ! $d->isPast() || $d->isToday();
             $morningCapacity = $row?->morning_slots ?? 25;
             $afternoonCapacity = $row?->afternoon_slots ?? 25;
@@ -1609,8 +1609,8 @@ HYMN
             $now = now();
             $morningCutoffPassed = $d->isToday() && $now->greaterThanOrEqualTo(now()->startOfDay()->setTime(11, 30));
             $afternoonCutoffPassed = $d->isToday() && $now->greaterThanOrEqualTo(now()->startOfDay()->setTime(16, 30));
-            $morningConfiguredOpen = $row?->morning_open ?? ! $isSunday;
-            $afternoonConfiguredOpen = $row?->afternoon_open ?? ! $isSunday;
+            $morningConfiguredOpen = ! $isWeekend && ($row?->morning_open ?? true);
+            $afternoonConfiguredOpen = ! $isWeekend && ($row?->afternoon_open ?? true);
 
             return [
                 'date' => $dateString,

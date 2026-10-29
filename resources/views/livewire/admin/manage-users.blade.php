@@ -70,7 +70,7 @@
                     <tbody class="divide-y divide-gray-100">
                         @forelse($users as $user)
                             @php
-                                $fullName = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: '-';
+                                $fullName = ($user->full_name ?? '') ?: '-';
                                 $roleName = \Illuminate\Support\Str::lower($user->role->role_name ?? 'unknown');
                                 $isAdminRow = $roleName === 'admin';
                                 $initials = strtoupper(substr($user->first_name ?? 'U', 0, 1) . substr($user->last_name ?? '', 0, 1));
@@ -147,7 +147,7 @@
             <ul class="divide-y divide-gray-100 cq-lg:hidden">
                 @forelse ($users as $user)
                     @php
-                        $fullName = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: '-';
+                        $fullName = ($user->full_name ?? '') ?: '-';
                         $roleName = \Illuminate\Support\Str::lower($user->role->role_name ?? 'unknown');
                         $isAdminRow = $roleName === 'admin';
                         $initials = strtoupper(substr($user->first_name ?? 'U', 0, 1) . substr($user->last_name ?? '', 0, 1));
@@ -363,7 +363,7 @@
                             <h3 class="text-xl font-semibold text-gray-900">Remove user</h3>
                             <p class="mt-2 text-sm leading-6 text-gray-500">Are you sure you want to remove this user?</p>
                             <p class="mt-3 rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                                <span class="font-semibold text-gray-900">{{ trim(($userPendingDeletion->first_name ?? '') . ' ' . ($userPendingDeletion->last_name ?? '')) ?: ('User #' . $userPendingDeletion->id) }}</span>
+                                <span class="font-semibold text-gray-900">{{ ($userPendingDeletion->full_name ?? '') ?: ('User #' . $userPendingDeletion->id) }}</span>
                                 will be removed and can no longer log in. Their documents, transactions and audit records are kept.
                             </p>
                         </div>

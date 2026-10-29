@@ -29,7 +29,7 @@
                         <option value="">Select a semester...</option>
                         @foreach($semesters as $semester)
                             <option value="{{ $semester->id }}">
-                                {{ $semester->label() }}{{ $semester->is_current ? ' (Current)' : '' }}
+                                {{ $semester->label() }}{{ $semester->pickerSuffix() }}
                             </option>
                         @endforeach
                     </select>

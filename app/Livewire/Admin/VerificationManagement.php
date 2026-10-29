@@ -36,9 +36,32 @@ class VerificationManagement extends Component
 
     protected function rules(): array
     {
+        $rules = [
+            'verification_start_date' => ['required', 'date'],
+            'verification_end_date' => ['required', 'date', 'after_or_equal:verification_start_date'],
+        ];
+
+        // A verification period belongs to the current semester, so it has to fit inside its dates.
+        $semester = Semester::current();
+        if ($semester?->isDated()) {
+            $rules['verification_start_date'][] = 'after_or_equal:' . $semester->starts_on->toDateString();
+            $rules['verification_end_date'][] = 'before_or_equal:' . $semester->ends_on->toDateString();
+        }
+
+        return $rules;
+    }
+
+    protected function messages(): array
+    {
+        $semester = Semester::current();
+        $inside = $semester?->isDated()
+            ? 'The verification period must fall inside ' . $semester->label() . ' (' . $semester->dateLabel() . ').'
+            : '';
+
         return [
-            'verification_start_date' => 'required|date',
-            'verification_end_date' => 'required|date|after_or_equal:verification_start_date',
+            'verification_start_date.after_or_equal' => $inside,
+            'verification_end_date.before_or_equal' => $inside,
+            'verification_end_date.after_or_equal' => 'The end date must be on or after the start date.',
         ];
     }
 
@@ -46,6 +69,17 @@ class VerificationManagement extends Component
     {
         $this->reset(['verification_start_date', 'verification_end_date']);
         $this->resetErrorBag();
+
+        // Start today (or the semester's first day) and give students two weeks, within the semester.
+        $semester = Semester::current();
+        $start = today()->max($semester?->starts_on ?? today());
+        $end = $start->copy()->addDays(13);
+        if ($semester?->isDated()) {
+            $end = $end->min($semester->ends_on);
+        }
+        $this->verification_start_date = $start->toDateString();
+        $this->verification_end_date = $end->toDateString();
+
         $this->showRaiseModal = true;
     }
 

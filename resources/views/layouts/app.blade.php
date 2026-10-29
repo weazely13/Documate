@@ -22,24 +22,6 @@
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
     
-    <style>
-        .scan-status-bar-container {
-            max-width: 24rem;
-            width: calc(100% - 2rem);
-            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        @media (min-width: 768px) {
-            .scan-status-bar-container {
-                left: 17.5rem !important; /* sidebar open (264px + 1rem gap) */
-            }
-            .scan-status-bar-container.sidebar-collapsed {
-                left: 5.25rem !important; /* rail only (68px + 1rem gap) */
-            }
-        }
-        @media (max-width: 767px) {
-            .scan-status-bar-container { left: 0.5rem !important; }
-        }
-    </style>
 </head>
 <body class="bg-gray-50 antialiased overflow-x-hidden">
 
@@ -98,6 +80,10 @@
                 ['Clearance', 'bx-clipboard', 'admin.clearance-monitoring', ['admin.clearance-monitoring*', 'admin.semesters'], 0],
                 ['Users Manager', 'bx-group', 'admin.users', ['admin.users', 'admin.verification'], 0],
                 ['Reports', 'bx-bar-chart', 'admin.reports', ['admin.reports'], 0],
+            ]];
+            $navSections[] = ['key' => 'system', 'label' => 'System', 'items' => [
+                ['Feedback & Issues', 'bx-message-square-dots', 'admin.feedback', ['admin.feedback'], \App\Models\FeedbackReport::where('status', 'new')->count()],
+                ['Audit Trail', 'bx-history', 'admin.audit-trail', ['admin.audit-trail'], 0],
             ]];
         }
 
@@ -228,6 +214,13 @@
             <p class="nav-empty" data-nav-empty>No pages match your search.</p>
 
             <div class="nav-section is-foot">
+                @if($role !== 'Admin')
+                    <a href="{{ route('support.feedback') }}" wire:navigate data-nav-item
+                       class="nav-link {{ request()->routeIs('support.feedback') ? 'active' : '' }}" data-tooltip="Feedback & Issues">
+                        <i class='bx bx-message-square-dots'></i>
+                        <span class="nav-label">Feedback & Issues</span>
+                    </a>
+                @endif
                 @if(in_array($role, ['Student', 'Officer'], true))
                     <a href="{{ route('handbook') }}" wire:navigate data-nav-item
                        class="nav-link {{ request()->routeIs('handbook') ? 'active' : '' }}" data-tooltip="Handbook">
@@ -293,8 +286,21 @@
             {{-- RIGHT --}}
             <div class="topbar-right shrink-0">
                 {{-- topbar-right in layouts.app --}}
+                <div class="topbar-institutions">
+                    <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" title="Leyte Normal University">
+                    <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services" title="Office of Student Development and Auxiliary Services">
+                    <span class="topbar-institutions-text">
+                        <strong>OVPSD</strong>
+                        <span class="topbar-institutions-name">Office of the Vice President for Student Development</span>
+                    </span>
+                </div>
+
                 @if(in_array($role, ['Student', 'Officer']))
                     @livewire('account-verify-badge', key('account-verify-badge-' . auth()->id()))
+                @endif
+
+                @if($role === 'Admin')
+                    @livewire('admin.scan-status-bar')
                 @endif
 
                 @if(!$inactive)
@@ -316,11 +322,7 @@
             {{ $slot }}
         </div>
         
-        @if($role === 'Admin')
-            <div class="scan-status-bar-container fixed bottom-0 left-0 z-40 flex flex-col items-start">
-                @livewire('admin.scan-status-bar')
-            </div>
-        @endif  
+
 
         @if(!$inactive && $role !== 'Signatory')
             <div class="chatbot-btn" id="chatbotBtn" data-tooltip="AI Assistant">
@@ -373,12 +375,6 @@
 
             const isMobile = () => window.innerWidth < 768;
 
-            // NEW: keeps the scan status overlay's left offset in sync with the sidebar
-            const syncScanBarOffset = (collapsed) => {
-                document.querySelectorAll('.scan-status-bar-container').forEach(bar => {
-                    bar.classList.toggle('sidebar-collapsed', collapsed);
-                });
-            };
 
             if (!isMobile()) {
                 const savedState = localStorage.getItem('documate-sidebar-collapsed');
@@ -387,7 +383,6 @@
                     sidebar.classList.add('collapsed');
                     toggleBtn.classList.add('collapsed');
                 }
-                syncScanBarOffset(isCollapsed); // NEW: sync on initial load
             } else {
                 // The drawer starts closed; show the same icon the resize handler uses for that state
                 toggleBtn.classList.toggle('collapsed', !sidebar.classList.contains('mobile-open'));
@@ -402,7 +397,6 @@
                     const isCollapsed = sidebar.classList.toggle('collapsed');
                     toggleBtn.classList.toggle('collapsed', isCollapsed);
                     localStorage.setItem('documate-sidebar-collapsed', isCollapsed ? 'true' : 'false');
-                    syncScanBarOffset(isCollapsed); // NEW: sync on manual toggle
                 }
             };
 
@@ -435,11 +429,9 @@
                     const isCollapsed = savedState === 'true';
                     sidebar.classList.toggle('collapsed', isCollapsed);
                     toggleBtn.classList.toggle('collapsed', isCollapsed);
-                    syncScanBarOffset(isCollapsed); // NEW: sync on resize back to desktop
                 } else {
                     sidebar.classList.remove('collapsed');
                     toggleBtn.classList.add('collapsed');
-                    syncScanBarOffset(false); // NEW: mobile always uses the mobile offset, ignore collapsed state
                 }
             });
 

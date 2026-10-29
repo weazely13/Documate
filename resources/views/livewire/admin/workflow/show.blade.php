@@ -19,7 +19,7 @@
 <div class="mx-auto max-w-6xl space-y-5">
 
     @php
-        $who = $ws->field_values['student_name'] ?? trim(($ws->user?->first_name ?? '') . ' ' . ($ws->user?->last_name ?? ''));
+        $who = $ws->field_values['student_name'] ?? ($ws->user?->full_name ?? '');
         $headerLine = collect([
             $who ?: null,
             $ws->user?->student_number,

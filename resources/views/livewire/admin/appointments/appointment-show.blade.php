@@ -4,7 +4,7 @@
             <!-- Header Nav -->
             <div class="flex items-center justify-between border-b border-slate-200/80 pb-4">
                 <div>
-                    <h2 class="text-2xl font-bold tracking-tight text-slate-900">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</h2>
+                    <h2 class="text-2xl font-bold tracking-tight text-slate-900">{{ $appointment->user->full_name }}</h2>
                     <p class="text-xs font-medium text-slate-400 mt-0.5">Appointment Details & Overview</p>
                 </div>
                 <a href="{{ route('admin.appointments.index') }}" wire:navigate class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900">
@@ -21,7 +21,7 @@
                         <img src="{{ $appointment->user->profile_picture ? asset('storage/' . $appointment->user->profile_picture) : asset('images/backdrop.jpg') }}"
                             class="h-16 w-16 rounded-xl object-cover ring-2 ring-slate-100 shadow-sm">
                         <div class="min-w-0 flex-1">
-                            <p class="truncate font-bold text-slate-900">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</p>
+                            <p class="truncate font-bold text-slate-900">{{ $appointment->user->full_name }}</p>
                             <p class="text-xs font-medium text-slate-500 mt-0.5">{{ $appointment->user->student_number }}</p>
                             <span class="mt-2 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                                 {{ $appointment->user->program?->name ?: '-' }} · {{ $appointment->user->year_level }}
@@ -219,7 +219,7 @@
                     <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl transition-all">
                         <h3 class="text-lg font-bold text-slate-900">Approve Appointment</h3>
                         <p class="mt-2 text-xs font-medium text-slate-600 leading-relaxed">
-                            Approve this appointment for <span class="font-bold text-slate-900">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</span>? A queue number will be assigned.
+                            Approve this appointment for <span class="font-bold text-slate-900">{{ $appointment->user->full_name }}</span>? A queue number will be assigned.
                         </p>
                         <div class="mt-5 flex justify-end gap-2">
                             <button @click="$wire.showApproveConfirm = false" class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>

@@ -546,7 +546,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($officers as $officer)
-                                @php $studentName = trim(($officer->user->first_name ?? '') . ' ' . ($officer->user->last_name ?? '')); @endphp
+                                @php $studentName = ($officer->user->full_name ?? ''); @endphp
                                 <tr wire:key="off-{{ $officer->id }}">
                                     <td class="max-w-[200px] px-4 py-3">
                                         <div class="truncate font-medium text-gray-900" title="{{ $studentName }}">{{ $studentName }}</div>
@@ -574,7 +574,7 @@
                         <li wire:key="off-m-{{ $officer->id }}" class="px-4 py-3.5">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="truncate font-semibold text-gray-900">{{ trim(($officer->user->first_name ?? '') . ' ' . ($officer->user->last_name ?? '')) }}</p>
+                                    <p class="truncate font-semibold text-gray-900">{{ ($officer->user->full_name ?? '') }}</p>
                                     <p class="text-xs text-gray-400">{{ $officer->user->student_number ?? '' }}</p>
                                     <p class="mt-0.5 truncate text-xs text-gray-600">{{ $officer->organization->name ?? '—' }}</p>
                                 </div>
@@ -623,7 +623,7 @@
                             @if ($selectedStudent)
                                 <div class="mt-1 flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
                                     <span class="truncate">
-                                        {{ $selectedStudent->first_name }} {{ $selectedStudent->last_name }}
+                                        {{ $selectedStudent->full_name }}
                                         <span class="text-xs text-gray-500">({{ $selectedStudent->student_number }})</span>
                                     </span>
                                     <button type="button" wire:click="$set('selectedStudentId', null)" class="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-800">Change</button>
@@ -639,7 +639,7 @@
                                         @forelse ($this->studentResults as $student)
                                             <button type="button" wire:click="selectStudent({{ $student->id }})" wire:key="stu-{{ $student->id }}"
                                                 class="flex w-full items-center gap-1 px-3 py-2.5 text-left text-sm hover:bg-gray-50">
-                                                <span class="truncate">{{ $student->first_name }} {{ $student->last_name }}</span>
+                                                <span class="truncate">{{ $student->full_name }}</span>
                                                 <span class="shrink-0 text-xs text-gray-400">({{ $student->student_number }})</span>
                                             </button>
                                         @empty
@@ -818,7 +818,7 @@
                                                 default => ['Can sign now', 'bg-emerald-50 text-emerald-700'],
                                             };
 
-                                            $personName = trim(($assignment->user->first_name ?? '') . ' ' . ($assignment->user->last_name ?? '')) ?: ('User #' . $assignment->user_id);
+                                            $personName = ($assignment->user->full_name ?? '') ?: ('User #' . $assignment->user_id);
                                             $initials = strtoupper(substr($assignment->user->first_name ?? '?', 0, 1) . substr($assignment->user->last_name ?? '', 0, 1));
                                         @endphp
                                         <tr wire:key="sigassign-{{ $assignment->id }}" class="{{ $assignment->is_active && ! $isExpired ? '' : 'bg-gray-50/60 text-gray-500' }}">
@@ -885,7 +885,7 @@
                                         $isExpired => ['Expired', 'bg-amber-50 text-amber-700'],
                                         default => ['Can sign now', 'bg-emerald-50 text-emerald-700'],
                                     };
-                                    $personName = trim(($assignment->user->first_name ?? '') . ' ' . ($assignment->user->last_name ?? '')) ?: ('User #' . $assignment->user_id);
+                                    $personName = ($assignment->user->full_name ?? '') ?: ('User #' . $assignment->user_id);
                                     $initials = strtoupper(substr($assignment->user->first_name ?? '?', 0, 1) . substr($assignment->user->last_name ?? '', 0, 1));
                                 @endphp
                                 <li wire:key="sigassign-m-{{ $assignment->id }}" class="px-4 py-3.5 {{ $assignment->is_active && ! $isExpired ? '' : 'bg-gray-50/60' }}">
@@ -1002,7 +1002,7 @@
                                         @endphp
                                         <tr wire:key="inv-{{ $inv->id }}">
                                             <td class="px-4 py-3">
-                                                <div class="font-semibold text-gray-900">{{ trim(($inv->user->first_name ?? '') . ' ' . ($inv->user->last_name ?? '')) }}</div>
+                                                <div class="font-semibold text-gray-900">{{ ($inv->user->full_name ?? '') }}</div>
                                                 <div class="text-xs text-gray-400">{{ $inv->user->email ?? '' }}</div>
                                             </td>
                                             <td class="px-4 py-3"><span class="whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $cls }}">{{ $text }}</span></td>
@@ -1045,7 +1045,7 @@
                                 <li wire:key="inv-m-{{ $inv->id }}" class="px-4 py-3.5">
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="min-w-0">
-                                            <p class="truncate font-semibold text-gray-900">{{ trim(($inv->user->first_name ?? '') . ' ' . ($inv->user->last_name ?? '')) }}</p>
+                                            <p class="truncate font-semibold text-gray-900">{{ ($inv->user->full_name ?? '') }}</p>
                                             <p class="truncate text-xs text-gray-400">{{ $inv->user->email ?? '' }}</p>
                                         </div>
                                         <span class="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $cls }}">{{ $text }}</span>
@@ -1145,7 +1145,7 @@
                                 @if ($sigSelectedUser)
                                     <div class="flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm">
                                         <span class="min-w-0 truncate">
-                                            <strong class="text-gray-900">{{ $sigSelectedUser->first_name }} {{ $sigSelectedUser->last_name }}</strong>
+                                            <strong class="text-gray-900">{{ $sigSelectedUser->full_name }}</strong>
                                             @if ($sigSelectedUser->student_number)
                                                 <span class="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{{ $sigSelectedUser->student_number }}</span>
                                             @endif
@@ -1163,7 +1163,7 @@
                                                 <button type="button" wire:click="selectSigUser({{ $u->id }})" wire:key="siguser-{{ $u->id }}"
                                                         class="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm hover:bg-gray-50">
                                                     <span class="min-w-0">
-                                                        <span class="block truncate font-medium text-gray-900">{{ $u->first_name }} {{ $u->last_name }}</span>
+                                                        <span class="block truncate font-medium text-gray-900">{{ $u->full_name }}</span>
                                                         <span class="block truncate text-xs text-gray-400">{{ $u->email }}</span>
                                                     </span>
                                                     @if ($u->student_number)

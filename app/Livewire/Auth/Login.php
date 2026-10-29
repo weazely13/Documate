@@ -4,6 +4,7 @@ namespace App\Livewire\Auth;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use App\Support\Audit;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
@@ -47,6 +48,7 @@ class Login extends Component
         $throttleKey = 'login:' . Str::lower($login) . '|' . request()->ip();
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
+            Audit::record('login_failed', 'Authentication', "Sign-in blocked for \"{$login}\": too many attempts", actor: null);
             throw ValidationException::withMessages([
                 'login' => "Too many attempts. Try again in {$seconds} seconds.",
             ]);
@@ -60,6 +62,7 @@ class Login extends Component
         // 1. No account
         if (! $user) {
             RateLimiter::hit($throttleKey, 300);
+            Audit::record('login_failed', 'Authentication', "Failed sign-in for \"{$login}\": no such account", actor: null);
             throw ValidationException::withMessages([
                 'login' => "No account found with that {$label}. Check for typos, or create an account.",
             ]);
@@ -68,6 +71,7 @@ class Login extends Component
         // 2. Removed account: offer recovery by email
         if ($user->trashed()) {
             RateLimiter::hit($throttleKey, 300);
+            Audit::record('login_failed', 'Authentication', "Failed sign-in for \"{$login}\": account was removed", $user, actor: null);
             $this->canRecover = true;
             $this->recoverUserId = $user->id;
 
@@ -79,6 +83,7 @@ class Login extends Component
         // 3. Wrong password
         if (! Hash::check($this->password, $user->password)) {
             RateLimiter::hit($throttleKey, 300);
+            Audit::record('login_failed', 'Authentication', "Failed sign-in for \"{$login}\": wrong password", $user, actor: null);
             throw ValidationException::withMessages([
                 'password' => 'Incorrect password. Try again, or use "Forgot password?".',
             ]);

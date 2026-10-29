@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libfreetype6-dev \
     libzip-dev \
+    fonts-crosextra-carlito \
     unzip \
     git \
     curl \
@@ -19,7 +20,8 @@ RUN apt-get update && apt-get install -y \
 # ---------------------------------------------------------------
 RUN echo "upload_max_filesize = 16M" > /usr/local/etc/php/conf.d/uploads.ini \
     && echo "post_max_size = 20M" >> /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/uploads.ini
+    && echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "max_execution_time = 120" >> /usr/local/etc/php/conf.d/uploads.ini
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -36,8 +38,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Build Vite frontend assets
 RUN npm install && npm run build
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Set permissions (storage/fonts is dompdf's font cache for the Reports PDF; it is filled at runtime)
+RUN mkdir -p /var/www/html/storage/fonts \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 RUN a2enmod rewrite
 

@@ -132,11 +132,11 @@ class NewAppointment extends Component
             $iso = $d->toDateString();
             $availability = $availabilities->get($iso);
 
-            // Sundays are completely closed by default
-            $isSunday = $d->isSunday();
+            // The office is closed every Saturday and Sunday
+            $isWeekend = OfficeAvailability::isWeekend($d);
 
-            $morningOpen = $availability?->morning_open ?? !$isSunday;
-            $afternoonOpen = $availability?->afternoon_open ?? !$isSunday;
+            $morningOpen = ! $isWeekend && ($availability?->morning_open ?? true);
+            $afternoonOpen = ! $isWeekend && ($availability?->afternoon_open ?? true);
             $morningCap = $availability?->morning_slots ?? 25;
             $afternoonCap = $availability?->afternoon_slots ?? 25;
 
@@ -159,7 +159,7 @@ class NewAppointment extends Component
                 'day' => $d->day,
                 'inMonth' => $d->month === $start->month,
                 'isPast' => $d->isPast() && !$d->isToday(),
-                'isSunday' => $isSunday,
+                'isWeekend' => $isWeekend,
                 'morning_open' => $mAvail,
                 'afternoon_open' => $aAvail,
                 'morning_remaining' => max($morningCap - $morningTaken, 0),
@@ -205,10 +205,16 @@ class NewAppointment extends Component
     {
         $this->validate([
             'purpose' => 'required|string|max:255',
-            'selectedDate' => 'required|date',
+            'selectedDate' => 'required|date|after_or_equal:today',
             'selectedSession' => 'required|in:morning,afternoon',
         ]);
 
+        if (! OfficeAvailability::sessionOpen($this->selectedDate, $this->selectedSession)) {
+            $this->addError('selectedSession', OfficeAvailability::isWeekend($this->selectedDate)
+                ? 'The office is closed on Saturdays and Sundays. Please pick a weekday.'
+                : 'The office is closed for that session. Please pick another.');
+            return;
+        }
         $result = DB::transaction(function () {
             // Serialize all submissions from this user: a second request
             // waits here until the first one commits.

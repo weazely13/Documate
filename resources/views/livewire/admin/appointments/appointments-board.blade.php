@@ -481,12 +481,12 @@
                                         @endphp
                                         @if($q->status === 'approved')
                                             <button wire:click="setNowServing('{{ $key }}', {{ $q->queue_number }})"
-                                                title="{{ $q->user->first_name }} {{ $q->user->last_name }}"
+                                                title="{{ $q->user->full_name }}"
                                                 class="flex h-6 w-6 items-center justify-center rounded-md border text-[10px] font-semibold transition {{ $style }}">
                                                 {{ $q->queue_number }}
                                             </button>
                                         @else
-                                            <div title="{{ $q->user->first_name }} {{ $q->user->last_name }}"
+                                            <div title="{{ $q->user->full_name }}"
                                                 class="flex h-6 w-6 items-center justify-center rounded-md border text-[10px] font-semibold {{ $style }}">
                                                 {{ $q->queue_number }}
                                             </div>

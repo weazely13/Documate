@@ -6,7 +6,7 @@ use Carbon\CarbonInterface;
 
 /**
  * How long a transaction has waited on the office, in school days, and how urgent that is.
- * Sundays are skipped because the VPSD office is closed on Sundays.
+ * Saturdays and Sundays are skipped because the VPSD office is closed on weekends.
  */
 class WaitingTime
 {
@@ -30,7 +30,7 @@ class WaitingTime
         $days = 0;
 
         while ($cursor->addDay()->lte($now)) {
-            if (! $cursor->isSunday()) {
+            if (! $cursor->isWeekend()) {
                 $days++;
             }
         }
@@ -96,7 +96,7 @@ class WaitingTime
         $days = 0;
 
         while ($days < self::LEVELS['overdue']) {
-            if (! $cursor->isSunday()) {
+            if (! $cursor->isWeekend()) {
                 $days++;
             }
             $cursor->subDay();

@@ -95,6 +95,20 @@ trait ManagesClearanceTagging
 
         $semester = Semester::find($semesterId);
 
+        // Tagging follows the semester's dates: nobody tags a semester that hasn't started, and
+        // once it ends only admins can still correct it (officers see it as closed).
+        if ($semester && ! $semester->hasStarted()) {
+            $this->dispatch('alert', type: 'error', message: $semester->label() . ' opens on ' . $semester->starts_on->format('M j, Y') . '. Clearance can be tagged from then.');
+
+            return false;
+        }
+
+        if ($semester && $semester->hasEnded() && ! auth()->user()?->isAdmin()) {
+            $this->dispatch('alert', type: 'error', message: $semester->label() . ' ended on ' . $semester->ends_on->format('M j, Y') . ' and is closed for tagging. Ask an admin if a record needs correcting.');
+
+            return false;
+        }
+
         if (! $semester) {
             $this->dispatch('alert', type: 'error', message: 'Select a valid semester.');
 

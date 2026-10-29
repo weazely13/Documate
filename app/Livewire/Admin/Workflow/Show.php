@@ -234,7 +234,7 @@ class Show extends Component
                     return [
                         'label' => $step['label'],
                         'role' => 'Signs from their DocuMate account',
-                        'holders' => [trim($account->first_name . ' ' . $account->last_name)],
+                        'holders' => [$account->full_name],
                     ];
                 }
 
@@ -253,7 +253,7 @@ class Show extends Component
             return [
                 'label' => $step['label'],
                 'role' => ($role?->label ?? $step['role']) . ($type ? ' (' . (SignatoryScope::name($type, $id) ?? "no {$type} on account") . ')' : ''),
-                'holders' => $holders->map(fn ($u) => trim($u->first_name . ' ' . $u->last_name))->all(),
+                'holders' => $holders->map(fn ($u) => $u->full_name)->all(),
             ];
         });
 

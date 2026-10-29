@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Enums\DocumentCategory;
 use Illuminate\Database\Eloquent\Model;
 
 class Template extends Model
 {
+    use Auditable;
+
+    protected string $auditModule = 'Templates';
+
     protected $table = 'templates';
     protected $primaryKey = 'template_id';
 

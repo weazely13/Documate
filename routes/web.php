@@ -87,6 +87,15 @@ Route::middleware(['auth'])->group(function () {
 
         return \Storage::disk('local')->response($path, null, ['Cache-Control' => 'private, no-store']);
     })->name('profile.signature');
+    // Feedback & issue reports: users send them here, admins handle them in the inbox
+    Route::get('/feedback', \App\Livewire\Support\FeedbackCenter::class)->name('support.feedback');
+    Route::get('/feedback/{report}/attachment', function (\App\Models\FeedbackReport $report) {
+        abort_unless(auth()->user()->isAdmin() || $report->user_id === auth()->id(), 403);
+        abort_unless($report->attachment_path && \Storage::disk('local')->exists($report->attachment_path), 404);
+
+        return \Storage::disk('local')->response($report->attachment_path, null, ['Cache-Control' => 'private, no-store']);
+    })->name('feedback.attachment');
+
     Route::get('/workflow/{workspace}/item-photo', [\App\Http\Controllers\ItemPhotoController::class, 'show'])
         ->name('workflow.item-photo');
     Route::get('/signing', \App\Livewire\Signatory\Inbox::class)->name('signatory.inbox');
@@ -205,11 +214,20 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/reports', Reports::class)
             ->name('admin.reports');
 
+        Route::get('/admin/reports/sheet', [\App\Http\Controllers\ReportSheetController::class, 'show'])
+            ->name('admin.reports.sheet');
+
         Route::get('/admin/clearance-monitoring/{studentId}', AdminClearanceProfile::class)
             ->name('admin.clearance-monitoring.show');
 
         Route::get('/admin/semesters', SemesterManagement::class)
             ->name('admin.semesters');
+
+        Route::get('/admin/feedback', \App\Livewire\Admin\FeedbackInbox::class)
+            ->name('admin.feedback');
+
+        Route::get('/admin/audit-trail', \App\Livewire\Admin\AuditTrail::class)
+            ->name('admin.audit-trail');
 
         Route::get('/admin/workflow', \App\Livewire\Admin\Workflow\Index::class)->name('admin.workflow.index');
         Route::get('/admin/workflow/issue', \App\Livewire\Admin\Workflow\Issue::class)->name('admin.workflow.issue');

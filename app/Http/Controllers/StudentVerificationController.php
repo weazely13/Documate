@@ -19,7 +19,7 @@ class StudentVerificationController extends Controller
         // 🔥 Replace with real OCR later
         $ocrData = [
             'student_number' => auth()->user()->student_number,
-            'name' => auth()->user()->first_name . ' ' . auth()->user()->last_name,
+            'name' => auth()->user()->full_name,
             'semester' => currentSemester(),
             'academic_year' => currentAcademicYear()
         ];

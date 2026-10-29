@@ -34,7 +34,7 @@ class WorkflowReportController extends Controller
             'at' => $log->created_at,
             'text' => \App\Workflow\AuditLabels::label($log->action),
             'who' => $log->actor
-                ? trim($log->actor->first_name . ' ' . $log->actor->last_name)
+                ? $log->actor->full_name
                 : ($log->meta['signer'] ?? 'System'),
             'role' => $log->actor_role ?? ($log->meta['role'] ?? null),
             'note' => $log->meta['message'] ?? $log->meta['reason'] ?? null,
@@ -52,7 +52,7 @@ class WorkflowReportController extends Controller
             'audit' => $audit,
             'seal' => $ws->sealed_at ? Seal::verify($ws) : null,
             'turnaround' => $turnaround,
-            'generatedBy' => trim(Auth::user()->first_name . ' ' . Auth::user()->last_name),
+            'generatedBy' => Auth::user()->full_name,
             'generatedAt' => now(),
         ])->setPaper('a4', 'portrait');
 

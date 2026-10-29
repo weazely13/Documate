@@ -361,7 +361,7 @@ class TransactionWorkflow
                 if ($step->account) {
                     $this->audit($ws, $reviewer, 'approval.routed_to_account', null, null, [
                         'label' => $step->label,
-                        'account' => trim($step->account->first_name . ' ' . $step->account->last_name),
+                        'account' => $step->account->full_name,
                     ], $approval->id);
                 }
                 $first ??= $approval;

@@ -117,7 +117,7 @@ class DocumentPdf
             $img = $this->dataUri($a->signature_path);
             return [
                 'label' => $a->label,                       // <-- new
-                'name' => $a->signer_name ?: ($a->actor ? trim(implode(' ', array_filter([$a->actor->first_name, $a->actor->last_name]))) : ''),
+                'name' => $a->signer_name ?: ($a->actor ? $a->actor->full_name : ''),
                 'detail' => FormSupport::nameDetail($a->actor),
                 'signature' => $img,
                 'no_image' => ! $img,

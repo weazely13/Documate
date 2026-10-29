@@ -55,6 +55,15 @@ final class StudentAppointmentSlip extends WorkflowDocument
         ];
     }
 
+    public function check(array $values): ?string
+    {
+        if (! empty($values['appointment_date']) && \App\Models\OfficeAvailability::isWeekend($values['appointment_date'])) {
+            return 'The VPSD office is closed on Saturdays and Sundays. Choose a weekday.';
+        }
+
+        return null;
+    }
+
     public function chain(array $values = []): array
     {
         return [

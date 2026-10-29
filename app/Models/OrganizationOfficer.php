@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class OrganizationOfficer extends Model
 {
+    use Auditable;
+
+    protected string $auditModule = 'Organizations';
+
     use HasFactory;
 
     protected $fillable = ['user_id', 'organization_id', 'officer_position_id', 'term_year'];

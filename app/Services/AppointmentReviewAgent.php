@@ -149,7 +149,7 @@ class AppointmentReviewAgent
             'document_template' => $workspace?->template?->name,
             'document_field_values' => $workspace?->field_values ?? null,
             'student' => [
-                'name' => trim($appointment->user->first_name . ' ' . $appointment->user->last_name),
+                'name' => $appointment->user->full_name,
                 'student_number' => $appointment->user->student_number,
                 'program' => $appointment->user->program?->name,
                 'year_level' => $appointment->user->year_level,

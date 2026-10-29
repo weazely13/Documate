@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 class Appointment extends Model
 {
+    use Auditable;
+
+    protected string $auditModule = 'Appointments';
+    protected array $auditIgnore = ['ai_findings', 'ai_reviewed_at'];
+
     protected $primaryKey = 'appointment_id';
 
     protected $fillable = [

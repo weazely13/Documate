@@ -54,12 +54,12 @@
                             @endphp
                             @if($q->status === 'approved')
                                 <button wire:click="setNowServing('{{ $key }}', {{ $q->queue_number }})"
-                                    title="{{ $q->user->first_name }} {{ $q->user->last_name }} — click to set as now serving"
+                                    title="{{ $q->user->full_name }} — click to set as now serving"
                                     class="flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-semibold transition {{ $style }}">
                                     {{ $q->queue_number }}
                                 </button>
                             @else
-                                <div title="{{ $q->user->first_name }} {{ $q->user->last_name }}"
+                                <div title="{{ $q->user->full_name }}"
                                     class="flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-semibold {{ $style }}">
                                     {{ $q->queue_number }}
                                 </div>
@@ -178,7 +178,7 @@
                     @endif
                     <div class="min-w-0">
                         <p class="truncate font-medium text-slate-900">
-                            {{ $appt->user->first_name }} {{ $appt->user->last_name }} —
+                            {{ $appt->user->full_name }} —
                             {{ $appt->workspace?->template?->name ?? 'General visit (no document)' }}
                         </p>
                         <p class="mt-0.5 truncate text-xs text-slate-400">

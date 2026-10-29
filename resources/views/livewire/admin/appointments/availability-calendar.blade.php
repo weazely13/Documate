@@ -36,9 +36,10 @@
                     @php
                         $isSelected = in_array($day['date'], $selectedDates, true);
                     @endphp
-                    <button wire:click="toggleDate('{{ $day['date'] }}')"
+                    <button wire:click="toggleDate('{{ $day['date'] }}')" @disabled($day['isWeekend']) title="{{ $day['isWeekend'] ? 'Closed on weekends' : '' }}"
                         @class([
                             'relative h-16 rounded-xl border p-2 text-left text-sm font-medium transition',
+                            'cursor-not-allowed' => $day['isWeekend'],
                             'opacity-30' => !$day['inMonth'],
                             'ring-2 ring-[#2A57B4] border-[#2A57B4] bg-blue-50' => $isSelected,
                             'border-rose-200 bg-rose-50 text-rose-600' => $day['closed'] && !$isSelected,
@@ -60,7 +61,7 @@
             </div>
 
             <div class="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
-                <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-full bg-rose-400"></span> Fully closed</span>
+                <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-full bg-rose-400"></span> Fully closed (Saturdays and Sundays always)</span>
                 <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span> Partially open</span>
                 <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span> Custom hours set</span>
                 <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-full border border-[#2A57B4] bg-blue-50"></span> Selected</span>

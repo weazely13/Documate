@@ -64,7 +64,7 @@ class Issuers
         $role = trim((string) ($values['reporter_role'] ?? ''));
 
         if ($name === '' && $log->actor) {
-            $name = trim($log->actor->first_name . ' ' . $log->actor->last_name);
+            $name = $log->actor->full_name;
         }
         if ($role === '') {
             // Their signatory positions (e.g. "Dean, Adviser"), the same way the issuer snapshot is built.

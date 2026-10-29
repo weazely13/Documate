@@ -21,7 +21,7 @@
     $prob = $appt->ai_incorrect_probability;
     $purpose = $appt->purpose ?? 'General Visit';
     $docName = $appt->workspace?->template?->name ?? 'General Visit';
-    $fullName = trim(($appt->user->first_name ?? '') . ' ' . ($appt->user->last_name ?? ''));
+    $fullName = ($appt->user->full_name ?? '');
 @endphp
 
 <div class="group relative flex items-center justify-between gap-3 rounded-xl border bg-white p-3 shadow-sm transition hover:shadow-md {{ $isNowServing ? 'border-[#2A57B4] ring-2 ring-[#2A57B4]/20' : 'border-slate-200 hover:border-slate-300' }}">

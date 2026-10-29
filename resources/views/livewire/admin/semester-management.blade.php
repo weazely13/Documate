@@ -1,21 +1,36 @@
 @php
     $homeUrl = \Illuminate\Support\Facades\Route::has('admin.dashboard') ? route('admin.dashboard') : url('/');
     $fieldClass = 'rounded-lg border-gray-300 py-2.5 text-base shadow-sm sm:py-2 sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
+    // Where each semester stands against today's date.
+    $phaseChip = [
+        'Open' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+        'Upcoming' => 'bg-blue-50 text-[#2A57B4] ring-blue-200',
+        'Ended' => 'bg-gray-100 text-gray-600 ring-gray-200',
+        'Dates needed' => 'bg-amber-50 text-amber-700 ring-amber-200',
+    ];
+    $undated = $semesters->reject(fn ($s) => $s->isDated());
 @endphp
 
 <div>
     <x-admin.page-header
         title="Semesters & School Years"
-        description="Create semesters, set which one is current, or remove ones you no longer need."
+        description="Each semester runs between a start and an end date. The one that contains today becomes current automatically, every night and whenever you save dates."
         :crumbs="['Admin' => $homeUrl, 'Semesters & School Years' => null]" />
 
     @include('livewire.admin._admin-nav')
 
     <div class="space-y-6">
 
+        @if ($undated->isNotEmpty())
+            <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+                <i class='bx bx-calendar-exclamation mt-0.5 text-lg' aria-hidden="true"></i>
+                <p><b>{{ $undated->count() }} {{ \Illuminate\Support\Str::plural('semester', $undated->count()) }} still need dates:</b> {{ $undated->map->label()->implode(', ') }}. Until they have dates they won't switch on by themselves and the date checks don't apply to them. Use <b>Add dates</b> on each one.</p>
+            </div>
+        @endif
+
         {{-- Create --}}
-        <x-admin.section title="Create a new semester" description="It's added as inactive. Set it as current when you're ready to start tagging against it.">
-            <form wire:submit.prevent="createSemester" class="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <x-admin.section title="Create a new semester" description="Give it the dates classes run. It becomes current on its start date; you don't have to switch it by hand.">
+            <form wire:submit.prevent="createSemester" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] lg:items-end">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">School year</label>
                     <input type="text" wire:model="school_year" placeholder="2025-2026" inputmode="numeric" class="w-full {{ $fieldClass }}">
@@ -31,6 +46,18 @@
                         <option value="Summer">Summer</option>
                     </select>
                     @error('semester_label') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Start date</label>
+                    <input type="date" wire:model="starts_on" class="w-full {{ $fieldClass }}">
+                    @error('starts_on') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">End date</label>
+                    <input type="date" wire:model="ends_on" class="w-full {{ $fieldClass }}">
+                    @error('ends_on') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <button type="submit" wire:loading.attr="disabled" wire:target="createSemester"
@@ -52,20 +79,27 @@
                             </span>
                             <div class="min-w-0">
                                 <p class="truncate text-sm font-medium text-gray-900">{{ $semester->label() }}</p>
-                                @if ($semester->is_current)
-                                    <span class="mt-0.5 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">
-                                        <span class="h-1.5 w-1.5 rounded-full bg-current"></span>Current
-                                    </span>
-                                @else
-                                    <span class="text-xs text-gray-400">Inactive</span>
-                                @endif
+                                <p class="text-xs text-gray-500">{{ $semester->dateLabel() ?? 'No dates yet' }}</p>
+                                <div class="mt-1 flex flex-wrap gap-1.5">
+                                    @if ($semester->is_current)
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-[#2A57B4] px-2 py-0.5 text-[11px] font-semibold text-white"><span class="h-1.5 w-1.5 rounded-full bg-white"></span>Current</span>
+                                    @endif
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 {{ $phaseChip[$semester->phase()] }}">{{ $semester->phase() }}</span>
+                                    @if ($semester->finalized_at)
+                                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-gray-200" title="Students never tagged were marked Uncleared on {{ $semester->finalized_at->format('M j, Y') }}">Closed out</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
                         <div class="flex gap-2 sm:shrink-0">
+                            <button type="button" wire:click="editDates({{ $semester->id }})"
+                                    class="flex-1 rounded-lg border border-gray-200 px-3 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 sm:flex-none sm:py-1.5">
+                                {{ $semester->isDated() ? 'Edit dates' : 'Add dates' }}
+                            </button>
                             @unless ($semester->is_current)
                                 <button type="button" wire:click="setCurrent({{ $semester->id }})"
-                                        wire:confirm="Set {{ $semester->label() }} as the current semester? This closes out the current semester: any student who was never tagged will automatically be marked Uncleared for it."
+                                        wire:confirm="Set {{ $semester->label() }} as the current semester by hand? Normally semesters switch by their dates; use this only to correct it. This closes out the current semester: any student who was never tagged will automatically be marked Uncleared for it."
                                         class="flex-1 rounded-lg border border-[#2A57B4]/30 bg-[#2A57B4]/5 px-3 py-2.5 text-xs font-semibold text-[#2A57B4] transition hover:bg-[#2A57B4]/10 sm:flex-none sm:py-1.5">
                                     Set as current
                                 </button>
@@ -76,6 +110,24 @@
                             </button>
                         </div>
                     </div>
+                    @if ($editingId === $semester->id)
+                        <form wire:key="semester-dates-{{ $semester->id }}" wire:submit.prevent="saveDates" class="grid grid-cols-1 gap-3 bg-blue-50/40 px-4 py-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end sm:px-5">
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-gray-600">Start date</label>
+                                <input type="date" wire:model="editStartsOn" class="w-full {{ $fieldClass }}">
+                                @error('editStartsOn') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-gray-600">End date</label>
+                                <input type="date" wire:model="editEndsOn" class="w-full {{ $fieldClass }}">
+                                @error('editEndsOn') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" wire:click="cancelEditDates" class="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 sm:flex-none">Cancel</button>
+                                <button type="submit" wire:loading.attr="disabled" wire:target="saveDates" class="flex-1 rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 sm:flex-none">Save dates</button>
+                            </div>
+                        </form>
+                    @endif
                 @empty
                     <p class="px-5 py-12 text-center text-sm text-gray-400">No semesters created yet.</p>
                 @endforelse
