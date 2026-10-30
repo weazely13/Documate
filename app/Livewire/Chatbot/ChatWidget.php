@@ -54,24 +54,54 @@ class ChatWidget extends Component
 
     protected function followUpReplies(string $question, string $answer = ''): array
     {
-        $question = mb_strtolower($question . ' ' . $answer);
+        $context = trim(preg_replace('/[^\pL\pN]+/u', ' ', mb_strtolower($question . ' ' . $answer)) ?? '');
+        $contextTerms = collect(preg_split('/\s+/u', $context) ?: [])
+            ->filter(fn ($term) => mb_strlen($term) > 2)
+            ->reject(fn ($term) => in_array($term, [
+                'about', 'after', 'also', 'can', 'does', 'form', 'from', 'have', 'help', 'how',
+                'into', 'just', 'more', 'need', 'only', 'please', 'question', 'should', 'that',
+                'their', 'them', 'then', 'this', 'what', 'when', 'where', 'which', 'with', 'your',
+            ], true))
+            ->unique()
+            ->values();
 
-        $categories = match (true) {
-            str_contains($question, 'office'), str_contains($question, 'registrar'), str_contains($question, 'cashier') => [
-                'General',
-            ],
-            str_contains($question, 'appointment'), str_contains($question, 'schedule'), str_contains($question, 'booking') => [
-                'Form Processing',
-                'Documents & Transactions',
-            ],
-            str_contains($question, 'document'), str_contains($question, 'transaction'), str_contains($question, 'request'), str_contains($question, 'form'), str_contains($question, 'process') => [
-                'Form Processing',
-                'Documents & Transactions',
-            ],
-            default => ['Form Processing'],
-        };
+        if ($contextTerms->isEmpty()) {
+            return [];
+        }
 
-        return $this->faqQuestions($categories);
+        return collect(config('faqs', []))
+            ->flatMap(fn ($items) => collect($items))
+            ->filter(fn ($faq) => is_string($faq['q'] ?? null) && str_ends_with(trim($faq['q']), '?'))
+            ->map(function ($faq) use ($context, $contextTerms) {
+                $question = trim(preg_replace('/[^\pL\pN]+/u', ' ', mb_strtolower($faq['q'])) ?? '');
+                $keywords = collect($faq['keywords'] ?? [])
+                    ->map(fn ($keyword) => trim(preg_replace('/[^\pL\pN]+/u', ' ', mb_strtolower((string) $keyword)) ?? ''))
+                    ->filter();
+                $score = 0;
+
+                foreach ($keywords as $keyword) {
+                    if (str_contains($keyword, ' ') && str_contains($context, $keyword)) {
+                        $score += 3;
+                    }
+                }
+
+                foreach ($contextTerms as $term) {
+                    if (preg_match('/\b' . preg_quote($term, '/') . '\b/', $question)) {
+                        $score++;
+                    } elseif ($keywords->contains(fn ($keyword) => preg_match('/\b' . preg_quote($term, '/') . '\b/', $keyword))) {
+                        $score++;
+                    }
+                }
+
+                return ['question' => trim($faq['q']), 'score' => $score];
+            })
+            ->filter(fn ($faq) => $faq['score'] >= 3)
+            ->sortByDesc('score')
+            ->pluck('question')
+            ->unique()
+            ->take(5)
+            ->values()
+            ->all();
     }
 
     protected function withFollowUpQuestion(string $answer, string $question): string
@@ -138,10 +168,15 @@ class ChatWidget extends Component
 
             $faqQuestions = $this->faqQuestions(array_keys(config('faqs', [])));
             $reply = trim((string) ($result['reply'] ?? ''));
+            $relatedFaqQuestions = $this->followUpReplies(
+                collect($this->messages)->last(fn ($message) => ($message['role'] ?? null) === 'user')['content'] ?? '',
+                $reply,
+            );
             $quickReplies = collect($result['quick_replies'] ?? [])
                 ->filter(fn ($suggestion) => is_string($suggestion)
                     && trim($suggestion) !== ''
                     && in_array(trim($suggestion), $faqQuestions, true)
+                    && in_array(trim($suggestion), $relatedFaqQuestions, true)
                     && str_ends_with(trim($suggestion), '?'))
                 ->map(fn ($suggestion) => trim($suggestion))
                 ->unique()
@@ -155,9 +190,9 @@ class ChatWidget extends Component
 
             $latestQuestion = collect($this->messages)
                 ->last(fn ($message) => ($message['role'] ?? null) === 'user')['content'] ?? '';
-            if (count($quickReplies) < 2) {
+            if (count($quickReplies) < 2 && $relatedFaqQuestions !== []) {
                 $quickReplies = collect($quickReplies)
-                    ->merge($this->followUpReplies($latestQuestion, $reply))
+                    ->merge($relatedFaqQuestions)
                     ->unique()
                     ->take(5)
                     ->values()
