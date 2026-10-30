@@ -24,7 +24,7 @@ return [
         ],
         [
             'q' => 'Which office does DocuMate support?',
-            'a' => 'DocuMate supports the Office of the Vice President for Student Development (VPSD) of Leyte Normal University.',
+            'a' => 'DocuMate is dedicated to the Office of the Vice President for Student Development (VPSD) at Leyte Normal University. Other LNU offices may provide supporting services or information, but VPSD is the office DocuMate is designed to serve.',
         ],
     ],
 
