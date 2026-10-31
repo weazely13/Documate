@@ -25,7 +25,7 @@ class VerifyDocumentController extends Controller
         }
 
         $document = DocumentRegistry::find($ws->document_type);
-        $values = $ws->field_values ?? [];
+        $values = $ws->printedValues();
 
         $details = [
             'Student' => $values['student_name'] ?? '—',

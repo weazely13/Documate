@@ -8,10 +8,14 @@
     $vpName  = trim((string) ($v['vpsd_name'] ?? ''));
     $name    = trim((string) ($v['student_name'] ?? ''));
     $program = trim((string) ($v['student_program'] ?? ''));
-    $role    = trim((string) ($v['reporter_role'] ?? '')) ?: 'Faculty';
+    $role    = trim((string) ($v['reporter_role'] ?? '')) ?: trim((string) ($v['recommender_position'] ?? '')) ?: 'Faculty';
 
-    $faculty = $reporterSigner;
-    $dateSigned = ($issuedAt ?? $submittedAt)?->format('F j, Y') ?? '';
+    // Older records were issued by the signer (snapshot in the answers); newer ones are signed in the chain.
+    $legacy = trim((string) ($reporterSigner['name'] ?? '')) !== '';
+    $faculty = $legacy ? $reporterSigner : (collect($signers)->first() ?? $reporterSigner);
+    $dateSigned = $legacy
+        ? (($issuedAt ?? $submittedAt)?->format('F j, Y') ?? '')
+        : ($faculty['signed_at'] ?? null)?->format('F j, Y') ?? '';
 
     $lookup = preg_replace('#^https?://#', '', route('document.lookup'));
 @endphp
@@ -49,7 +53,6 @@
     .sig-seal { font-size: 6.5pt; color: #777; margin-top: 3pt; text-align: center; }
     .sig-detail { font-size: 6.5pt; color: #666; text-align: center; }
 
-    .formno { border-top: .6pt solid #c8c8c8; margin-top: 30pt; padding-top: 4pt; font-size: 10pt; font-weight: bold; font-style: italic; }
 
     .foot { position: fixed; left: 0; right: 0; bottom: -78pt; height: 72pt; border-top: .6pt solid #c8c8c8; font-family: 'DejaVu Sans', sans-serif; }
     .foot > div { position: absolute; white-space: nowrap; }
@@ -71,7 +74,7 @@
 
 <table class="hdr">
     <tr>
-        <td style="width:82pt;">@if ($seal)<img src="{{ $seal }}" width="68" height="68">@endif</td>
+        <td style="width:82pt;">@if ($seal)<img alt="Leyte Normal University seal" src="{{ $seal }}" width="68" height="68">@endif</td>
         <td class="t serif" style="width:405pt;">
             <div>LEYTE NORMAL UNIVERSITY</div>
             <div>Tacloban City</div>
@@ -119,18 +122,15 @@
     </tr>
 </table>
 
-<div class="formno">{{ $formCode }}</div>
 
-@unless ($preview ?? false)
 <div class="foot">
-    <div class="foot-qr">@if ($qr)<img src="{{ $qr }}" width="58" height="58">@endif</div>
+    <div class="foot-qr">@if ($qr)<img alt="QR code for verifying this document" src="{{ $qr }}" width="58" height="58">@elseif ($preview ?? false)<span class="ph-qr" style="width:58px;height:58px;">QR code<br>on issue</span>@endif</div>
     <div class="foot-k">Verify this document</div>
     <div class="foot-t">Scan the QR code, or go to <strong>{{ $lookup }}</strong> and enter:</div>
-    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">{{ $code }}</span></div>
-    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">{{ $fingerprint ?: '-' }}</span></div>
+    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">@if ($code){{ $code }}@else<span class="ph-text">assigned on submit</span>@endif</span></div>
+    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">@if ($fingerprint){{ $fingerprint }}@elseif ($preview ?? false)<span class="ph-text">assigned when issued</span>@else-@endif</span></div>
     <div class="foot-form">{{ $formCode }}</div>
 </div>
-@endunless
 
 @if ($preview ?? false)
     <div class="watermark">PREVIEW{{ $issuedAt ? '' : ' · NOT YET ISSUED' }}</div>

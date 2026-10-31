@@ -6,7 +6,7 @@
             <h2 class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">My documents</h2>
             <p class="mt-0.5 text-sm text-slate-500">Everything you have started, and anything the office sent you.</p>
         </div>
-        <a href="{{ route('student.new-transaction') }}" wire:navigate
+        <a href="{{ route('student.home') }}" wire:navigate
            class="inline-flex items-center justify-center rounded-xl bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24499A]">
             New transaction
         </a>
@@ -50,7 +50,7 @@
                 @elseif ($tab === 'active')
                     <p class="text-sm font-medium text-slate-700">Nothing in progress</p>
                     <p class="mt-1 text-sm text-slate-500">
-                        <a href="{{ route('student.new-transaction') }}" wire:navigate class="font-semibold text-[#2A57B4] hover:underline">Start a new transaction</a>
+                        <a href="{{ route('student.home') }}" wire:navigate class="font-semibold text-[#2A57B4] hover:underline">Start a new transaction</a>
                         and it will show up here.
                     </p>
                 @elseif ($tab === 'issued')
@@ -68,7 +68,7 @@
     <template x-teleport="body">
         <div x-show="$wire.deletingId" x-cloak
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style="background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(2px);">
+            style="background: rgba(13,37,61, 0.45); backdrop-filter: blur(2px);">
             <div class="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-xl">
                 <h3 class="text-center text-base font-semibold text-slate-900">Delete this document?</h3>
                 <p class="mt-1 text-center text-sm text-slate-500">This can't be undone. Any booked appointment for it is cancelled.</p>

@@ -14,6 +14,9 @@ class CollegeModelNominationBySignatory extends CollegeModelNominationBase
     /** Any current signatory may issue it. Also triggers the issuer snapshot (name, role, signature). */
     public function issuedBySignatory(): bool { return true; }
 
+    /** Students now start the nomination themselves; this version stays only for older records. */
+    public function retired(): bool { return true; }
+
     /** The picked student is the nominee. College, program and year/section come from their account. */
     /** Nothing to type: the nominee's address and contact number come from their account. */
     public function fields(): array { return []; }

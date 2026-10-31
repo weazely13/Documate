@@ -69,7 +69,7 @@
                     transform: 'scale(' + scale + ')',
                 }"
             >
-                <img
+                <img alt="Form template preview"
                     src="{{ Storage::disk('public')->url($version->image_path) }}"
                     class="absolute inset-0 !w-full !h-full pointer-events-none select-none"
                 >

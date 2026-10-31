@@ -61,6 +61,42 @@ trait HasHostedBy
         return $id ? (int) $id : null;
     }
 
+    /** Only organization officers may request these permits. The form asks this first. */
+    public function requiresOfficer(): bool
+    {
+        return true;
+    }
+
+    /** Spread into fields() first:  ...$this->officerQuestionField() */
+    protected function officerQuestionField(): array
+    {
+        return [
+            'is_officer' => [
+                'label' => 'Are you an officer of a student organization?', 'type' => 'choice', 'required' => true,
+                'options' => ['Yes', 'No'],
+                'option_labels' => ['Yes' => 'Yes, I am an officer', 'No' => 'No, I am not an officer'],
+                'rules' => [Rule::in(['Yes', 'No'])],
+                'help' => 'Only officers of a recognized student organization can request this permit. Your position is taken from your officer record.',
+            ],
+        ];
+    }
+
+    /** The student said they are an officer, and their account has an officer record. */
+    protected function checkOfficer(array $values): ?string
+    {
+        if (($values['is_officer'] ?? null) !== 'Yes') {
+            return 'Only officers of a student organization can request this permit. Ask an officer of your organization to file it.';
+        }
+
+        $user = auth()->user();
+        $user?->loadMissing('officerRecord.position');
+        if (! $user?->officerRecord) {
+            return 'You answered that you are an officer, but your account has no officer record yet. Ask your organization adviser or the VPSD office to add you, then try again.';
+        }
+
+        return null;
+    }
+
     /** Spread into fields():  ...$this->hostedByFields() */
     protected function hostedByFields(): array
     {
@@ -108,9 +144,13 @@ trait HasHostedBy
                 'placeholder' => 'e.g. President',
                 'show_when' => $onNonAcademic,
             ],
+            'adviser_title' => $this->salutationField('adviser_name', false) + [
+                'show_when' => $onNonAcademic,
+                'hide_when' => $hideAdviserFor,
+            ],
             'adviser_name' => [
                 'label' => "Adviser's full name", 'type' => 'text', 'max' => 120,
-                'placeholder' => 'e.g. Maria Santos',
+                'placeholder' => 'e.g. Maria Santos', 'salutation' => 'adviser_title',
                 'show_when' => $onNonAcademic,
                 'hide_when' => $hideAdviserFor,
             ],

@@ -26,7 +26,7 @@
                             style="padding-top: 129%;">
 
                             @if($template->currentVersion && $template->currentVersion->image_path)
-                                <img
+                                <img alt="Form template preview"
                                     src="{{ asset('storage/' . $template->currentVersion->image_path) }}"
                                     class="absolute inset-0 w-full h-full object-cover object-top"
                                 >
@@ -160,7 +160,7 @@
                     @error('image') <span class="text-red-500 text-[11px]">{{ $message }}</span> @enderror
 
                     @if ($image)
-                        <img src="{{ $image->temporaryUrl() }}" class="mt-2 rounded border">
+                        <img alt="Preview of the uploaded image" src="{{ $image->temporaryUrl() }}" class="mt-2 rounded border">
                     @endif
                 </div>
 

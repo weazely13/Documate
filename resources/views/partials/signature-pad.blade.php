@@ -9,6 +9,7 @@
         clear(){ this.ctx.clearRect(0,0,600,200); this.has=false; $wire.$set('{{ $model }}','',false); }
      }">
     <canvas x-ref="c" width="600" height="200" class="w-full touch-none rounded-xl border border-dashed border-slate-300 bg-white"
+            role="img" aria-label="Signature drawing area. Draw with a mouse, finger or stylus."
             @pointerdown.prevent="start($event)" @pointermove.prevent="move($event)" @pointerup="end()" @pointerleave="end()"></canvas>
-    <button type="button" @click="clear()" class="mt-1.5 text-xs font-medium text-slate-500 hover:text-rose-600">Clear</button>
+    <button type="button" @click="clear()" class="mt-1.5 rounded text-xs font-medium text-slate-500 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">Clear signature</button>
 </div>

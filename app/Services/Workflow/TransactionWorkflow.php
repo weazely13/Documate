@@ -88,6 +88,7 @@ class TransactionWorkflow
                 'workflow_note' => null,
             ]);
             $this->audit($ws, $student, 'transaction.submitted', $from, TransactionStatus::Submitted);
+            \App\Jobs\ReviewTransactionSubmission::start($ws); // AI pre-check for the office
 
             return $ws;
         });
@@ -102,6 +103,7 @@ class TransactionWorkflow
 
             $from = $this->transition($ws, TransactionStatus::UnderReview, ['workflow_note' => null]);
             $this->audit($ws, $student, 'student.responded', $from, TransactionStatus::UnderReview);
+            \App\Jobs\ReviewTransactionSubmission::start($ws); // AI pre-check for the office
 
             return $ws;
         });
@@ -282,7 +284,7 @@ class TransactionWorkflow
                         'signatory_role_id' => null, 'role' => null,
                         'external' => ! $account,
                         'account' => $account,
-                        'name' => trim((string) ($values[$s['name_field']] ?? '')) ?: null,
+                        'name' => $doc->personName($values, $s['name_field']) ?: null,
                         'email' => $email,
                         'scope_type' => null, 'scope_id' => null,
                     ];
@@ -601,7 +603,9 @@ class TransactionWorkflow
             $response = null;
             if ($approval->signer_user_id) {
                 $kind = ExternalSigning::kindFor($approval);
-                if ($kind === 'rating') {
+                if ($kind === 'form') {
+                    $response = ['values' => $doc->signerResponse((array) ($extra['answers'] ?? []), $ws->field_values ?? []), 'attested' => true];
+                } elseif ($kind === 'rating') {
                     $n = (int) ($extra['rating'] ?? 0);
                     if ($n < 1 || $n > 5) {
                         throw new WorkflowException('Choose a rating.');
@@ -613,6 +617,7 @@ class TransactionWorkflow
                         'consent' => ['consented' => true, 'attested' => true],
                         'guardian' => ['guardian_signed' => true, 'attested' => true],
                         'witness' => ['witnessed' => true, 'attested' => true],
+                        'recommend' => ['recommended' => true, 'attested' => true],
                         default => ['endorsed' => true, 'attested' => true],
                     };
                 }
@@ -742,7 +747,7 @@ class TransactionWorkflow
         }
 
         $doc = DocumentRegistry::find($ws->document_type);
-        if ($doc && $doc->issuerIsStaff() && $doc->canBeIssuedBy($user)) {
+        if ($doc && $doc->issuerIsStaff() && $doc->isIssuerRole($user)) {
             return;
         }
 
@@ -1018,6 +1023,8 @@ class TransactionWorkflow
                     $ws->user?->notify(WorkflowNotification::forStudent($ws, $to, $actor));
                 }
 
+                $this->notifyParticipants($ws, $to, $actor);
+
                 $resubmitted = $to === TransactionStatus::UnderReview && $from === TransactionStatus::ActionRequired;
                 if ($to === TransactionStatus::Submitted || $resubmitted) {
                     $admins = User::whereHas('role', fn ($q) => $q->where('role_name', 'Admin'))->get();
@@ -1027,6 +1034,26 @@ class TransactionWorkflow
                 report($e);
             }
         });
+    }
+
+    /** Students named on the transaction: told once when it is submitted, and again when their copy is ready. */
+    protected function notifyParticipants(StudentDocumentWorkspace $ws, TransactionStatus $to, ?User $actor): void
+    {
+        $submitted = in_array($to, [TransactionStatus::Submitted, TransactionStatus::UnderReview], true);
+        if (! $submitted && $to !== TransactionStatus::Completed) {
+            return;
+        }
+
+        foreach ($ws->participants()->get() as $participant) {
+            if ($to === TransactionStatus::Completed) {
+                $participant->notify(WorkflowNotification::forParticipant($ws, 'completed', $actor));
+                continue;
+            }
+            if (! $participant->pivot->notified_at) {
+                $participant->notify(WorkflowNotification::forParticipant($ws, 'listed'));
+                $ws->participants()->updateExistingPivot($participant->id, ['notified_at' => now()]);
+            }
+        }
     }
 
     protected function skipOpenApprovals(StudentDocumentWorkspace $ws): void

@@ -34,6 +34,7 @@ final class PermitToConductActivity extends WorkflowDocument
     public function fields(): array
     {
         return [
+            ...$this->officerQuestionField(),
             'activity' => [
                 'label' => 'Activity/Event', 'type' => 'text', 'required' => true, 'max' => 200,
                 'placeholder' => 'e.g. Intramurals Opening Program',
@@ -56,7 +57,7 @@ final class PermitToConductActivity extends WorkflowDocument
 
     public function check(array $values): ?string
     {
-        return $this->checkSlots($values) ?? $this->checkHostedBy($values);
+        return $this->checkOfficer($values) ?? $this->checkSlots($values) ?? $this->checkHostedBy($values);
     }
 
     public function summary(array $values): string

@@ -9,6 +9,15 @@
     ] = \App\Support\DocumentProgress::describe($workspace);
 
     $deletable = ! $wf && ! $workspace->isCompleted();
+
+    // Another student's transaction that lists this student: a read-only copy.
+    $sharedBy = (int) $workspace->user_id !== (int) auth()->id()
+        ? ($workspace->field_values['student_name'] ?? 'another student')
+        : null;
+    if ($sharedBy) {
+        $next = null;
+        $deletable = false;
+    }
 @endphp
 
 <div class="flex items-start gap-3 rounded-2xl border border-slate-200/70 bg-white p-4 transition hover:border-[#2A57B4]/30 sm:p-5">
@@ -19,7 +28,9 @@
                 <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Print</span>
             @endif
         </div>
-        @if ($issued)
+        @if ($sharedBy)
+            <p class="text-xs text-slate-500">Lists you &middot; filed by <span class="font-medium text-slate-700">{{ $sharedBy }}</span></p>
+        @elseif ($issued)
             <p class="text-xs text-slate-500">Issued by <span class="font-medium text-slate-700">{{ $issuer ?? 'the VPSD office' }}</span></p>
         @endif
 

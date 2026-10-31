@@ -132,6 +132,18 @@ class WorkflowNotification extends Notification
             $actor,
         );
     }
+    /** To a student named on someone else's transaction (e.g. an interviewee): they were listed, or their copy is ready. */
+    public static function forParticipant(StudentDocumentWorkspace $ws, string $what, ?User $actor = null): self
+    {
+        $doc = self::docName($ws);
+        $owner = $ws->field_values['student_name'] ?? 'A student';
+        $url = route('student.transactions.show', $ws->workspace_id);
+
+        return $what === 'completed'
+            ? new self('Your copy is ready', "The {$doc} ({$ws->transaction_code}) that lists you is signed. Open it to view or download your copy.", $url, 'bx-check-circle', 'text-emerald-600 bg-emerald-100', $actor)
+            : new self('You were listed on a document', "{$owner} listed you on a {$doc} ({$ws->transaction_code}). You can follow it and get a copy once it is signed.", $url, 'bx-user-plus', 'text-blue-600 bg-blue-100', $ws->user);
+    }
+
     /** To the student: the signer set the counselling schedule. */
     public static function forSchedule(StudentDocumentWorkspace $ws, ?User $actor = null): self
     {

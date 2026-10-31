@@ -20,7 +20,7 @@
     .hdr .t { font-size: 10pt; line-height: 1.15; }
     .hdr .b { font-weight: bold; }
     .hdr .blue { color: #1a6fc4; }
-    .title { text-align: center; font-weight: bold; font-size: 11.5pt; margin: 16pt 0 16pt; }
+    .title { text-align: center; font-weight: bold; font-size: 11.5pt; margin: 10pt 0 10pt; }
 
     /* Full-width certification lines: label | stretchy underlined value | trailing text */
     table.cl { table-layout: auto; width: 100%; margin-top: 2pt; }
@@ -36,17 +36,16 @@
 
     .stmt { line-height: 20pt; text-align: justify; margin-top: 2pt; }
     .ul { border-bottom: .6pt solid #000; font-weight: bold; padding: 0 4pt; }
-    .rule { border-top: 2pt solid #000; margin: 14pt 0 10pt; }
+    .rule { border-top: 2pt solid #000; margin: 10pt 0 6pt; }
 
     /* Signature grid */
-    table.sgrid { margin-top: 8pt; page-break-inside: avoid; }
+    table.sgrid { margin-top: 4pt; page-break-inside: avoid; }
     table.sgrid td.col { width: 46%; text-align: center; }
     table.sgrid td.gap { width: 8%; }
     .sline { border-top: .6pt solid #000; padding-top: 2pt; font-size: 8.5pt; font-weight: bold; text-transform: uppercase; text-align: center; }
     .scap { font-size: 9pt; line-height: 1.25; text-align: center; }
     .sseal { font-size: 6pt; color: #777; text-align: center; margin-top: 2pt; }
 
-    .formno { border-top: .6pt solid #c8c8c8; margin-top: 14pt; padding-top: 4pt; font-size: 10pt; font-weight: bold; font-style: italic; }
 
     /* Verification footer (identical to the Admission Slip) */
     .foot { position: fixed; left: 0; right: 0; bottom: -78pt; height: 72pt; border-top: .6pt solid #c8c8c8; font-family: 'DejaVu Sans', sans-serif; }
@@ -69,7 +68,7 @@
 
 <table class="hdr">
     <tr>
-        <td style="width:70pt;">@if ($seal)<img src="{{ $seal }}" width="58" height="58">@endif</td>
+        <td style="width:70pt;">@if ($seal)<img alt="Leyte Normal University seal" src="{{ $seal }}" width="58" height="58">@endif</td>
         <td class="t serif">
             <div>LEYTE NORMAL UNIVERSITY</div>
             <div>Tacloban City</div>
@@ -82,18 +81,15 @@
 
 @yield('copy')
 
-<div class="formno">{{ $formCode }}</div>
 
-@unless ($preview ?? false)
 <div class="foot">
-    <div class="foot-qr">@if ($qr)<img src="{{ $qr }}" width="58" height="58">@endif</div>
+    <div class="foot-qr">@if ($qr)<img alt="QR code for verifying this document" src="{{ $qr }}" width="58" height="58">@elseif ($preview ?? false)<span class="ph-qr" style="width:58px;height:58px;">QR code<br>on issue</span>@endif</div>
     <div class="foot-k">Verify this document</div>
     <div class="foot-t">Scan the QR code, or go to <strong>{{ $lookup }}</strong> and enter:</div>
-    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">{{ $code }}</span></div>
-    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">{{ $fingerprint ?: '-' }}</span></div>
+    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">@if ($code){{ $code }}@else<span class="ph-text">assigned on submit</span>@endif</span></div>
+    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">@if ($fingerprint){{ $fingerprint }}@elseif ($preview ?? false)<span class="ph-text">assigned when issued</span>@else-@endif</span></div>
     <div class="foot-form">{{ $formCode }}</div>
 </div>
-@endunless
 
 @if ($preview ?? false)
     <div class="watermark">PREVIEW{{ $issuedAt ? '' : ' · NOT YET ISSUED' }}</div>

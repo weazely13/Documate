@@ -36,6 +36,16 @@
         </div>
     </div>
 
+    {{-- Does the purpose fit the attached document? --}}
+    @if(is_array($appointment->ai_findings['relevance'] ?? null) && in_array($appointment->ai_flag, ['clean', 'flagged'], true))
+        @php $fits = (bool) $appointment->ai_findings['relevance']['relevant']; @endphp
+        <p class="mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-sm {{ $fits ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900' }}">
+            <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full {{ $fits ? 'bg-emerald-600' : 'bg-red-600' }}" aria-hidden="true"></span>
+            <span><span class="font-medium">{{ $fits ? 'Purpose fits' : 'Purpose does not fit' }}{{ $appointment->workspace ? ' the document' : '' }}.</span>
+                {{ $appointment->ai_findings['relevance']['note'] ?? '' }}</span>
+        </p>
+    @endif
+
     {{-- Probability + Recommendation --}}
     @if($probability !== null)
         <div class="mt-3 rounded-xl border border-slate-100 bg-white/70 p-3">

@@ -448,7 +448,7 @@ class Register extends Component
         Auth::login($user);
 
 
-        return $this->redirect('/student/dashboard', navigate: true);
+        return $this->redirect('/student/home', navigate: true);
     }
 
     public function render()

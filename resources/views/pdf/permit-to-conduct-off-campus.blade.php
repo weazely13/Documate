@@ -39,7 +39,7 @@
         $isNonAcademic => (string) ($v['non_academic_org'] ?? ''),
         default => (string) ($v['officer_organization'] ?? ''),
     };
-    $posText = $one(collect([$position !== '' ? $position : 'Not an officer', $orgName])->filter()->implode(', '));
+    $posText = $one(collect([$position, $orgName])->filter()->implode(' - '));
 
     $adviser = $signers[0] ?? [];
     $dean = $signers[1] ?? [];
@@ -86,9 +86,9 @@
     .sig-cap { font-size: 9.5pt; line-height: 1.3; text-align: center; }
     .sig-seal { font-size: 6.5pt; color: #777; margin-top: 3pt; text-align: center; }
     .sig-detail { font-size: 6.5pt; color: #666; text-align: center; }
+    .req .sig-name { font-size: 8pt; white-space: nowrap; overflow: hidden; }
     .pos-name { border-top: .6pt solid #000; padding-top: 2pt; font-size: 9pt; font-weight: bold; text-transform: uppercase; text-align: center; white-space: nowrap; overflow: hidden; }
 
-    .formno { border-top: .6pt solid #c8c8c8; margin-top: 24pt; padding-top: 4pt; font-size: 10pt; font-weight: bold; font-style: italic; }
 
     .foot { position: fixed; left: 0; right: 0; bottom: -78pt; height: 72pt; border-top: .6pt solid #c8c8c8; font-family: 'DejaVu Sans', sans-serif; }
     .foot > div { position: absolute; white-space: nowrap; }
@@ -110,7 +110,7 @@
 
 <table class="hdr">
     <tr>
-        <td style="width:82pt;">@if ($seal)<img src="{{ $seal }}" width="68" height="68">@endif</td>
+        <td style="width:82pt;">@if ($seal)<img alt="Leyte Normal University seal" src="{{ $seal }}" width="68" height="68">@endif</td>
         <td class="t serif" style="width:405pt;">
             <div>LEYTE NORMAL UNIVERSITY</div>
             <div>Tacloban City</div>
@@ -175,19 +175,18 @@
     </table>
 </div>
 
-{{-- Requested by: student (name + signature) / position held --}}
+{{-- Requested by: the student's name on the line, the caption, then their position - organization under it --}}
 <div class="lab" style="margin-top:6pt;">Requested by:</div>
+@php
+    $requester = $studentSigner;
+    $requester['name'] = $one($studentSigner['name'] ?? '');
+@endphp
 <table style="margin-top:2pt;">
     <tr>
-        <td style="width:46%;">
-            @include('pdf._signer', ['heading' => '', 's' => $studentSigner, 'caption' => 'Name and Signature of the Student'])
+        <td style="width:66%;" class="req">
+            @include('pdf._signer', ['heading' => '', 's' => $requester, 'caption' => 'Name and Signature of the Student', 'signerNote' => $position !== '' ? $posText : ''])
         </td>
-        <td style="width:8%; text-align:center; vertical-align:bottom; font-weight:bold; padding-bottom:16pt;">/</td>
-        <td style="width:46%; vertical-align:bottom;">
-            <div style="height:44pt;"></div>
-            <div class="pos-name" style="font-size:{{ $fit($posText, 200, 9, 6) }}pt;">{{ $posText }}&nbsp;</div>
-            <div class="sig-cap">(Position Held in The Organization)</div>
-        </td>
+        <td style="width:34%;"></td>
     </tr>
 </table>
 
@@ -219,18 +218,15 @@
     </tr>
 </table>
 
-<div class="formno">{{ $formCode }}</div>
 
-@unless ($preview ?? false)
 <div class="foot">
-    <div class="foot-qr">@if ($qr)<img src="{{ $qr }}" width="58" height="58">@endif</div>
+    <div class="foot-qr">@if ($qr)<img alt="QR code for verifying this document" src="{{ $qr }}" width="58" height="58">@elseif ($preview ?? false)<span class="ph-qr" style="width:58px;height:58px;">QR code<br>on issue</span>@endif</div>
     <div class="foot-k">Verify this document</div>
     <div class="foot-t">Scan the QR code, or go to <strong>{{ $lookup }}</strong> and enter:</div>
-    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">{{ $code }}</span></div>
-    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">{{ $fingerprint ?: '-' }}</span></div>
+    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">@if ($code){{ $code }}@else<span class="ph-text">assigned on submit</span>@endif</span></div>
+    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">@if ($fingerprint){{ $fingerprint }}@elseif ($preview ?? false)<span class="ph-text">assigned when issued</span>@else-@endif</span></div>
     <div class="foot-form">{{ $formCode }}</div>
 </div>
-@endunless
 
 @if ($preview ?? false)
     <div class="watermark">PREVIEW{{ $issuedAt ? '' : ' · NOT YET ISSUED' }}</div>

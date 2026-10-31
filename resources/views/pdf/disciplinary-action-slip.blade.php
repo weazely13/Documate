@@ -65,7 +65,6 @@
     .sig-detail { font-size: 6.5pt; color: #666; text-align: center; }
     table.sg { page-break-inside: avoid; }
 
-    .formno { border-top: .6pt solid #c8c8c8; margin-top: 24pt; padding-top: 4pt; font-size: 10pt; font-weight: bold; font-style: italic; }
 
     .foot { position: fixed; left: 0; right: 0; bottom: -78pt; height: 72pt; border-top: .6pt solid #c8c8c8; font-family: 'DejaVu Sans', sans-serif; }
     .foot > div { position: absolute; white-space: nowrap; }
@@ -87,7 +86,7 @@
 
 <table class="hdr">
     <tr>
-        <td style="width:82pt;">@if ($seal)<img src="{{ $seal }}" width="68" height="68">@endif</td>
+        <td style="width:82pt;">@if ($seal)<img alt="Leyte Normal University seal" src="{{ $seal }}" width="68" height="68">@endif</td>
         <td class="t serif" style="width:405pt;">
             <div>LEYTE NORMAL UNIVERSITY</div>
             <div>Tacloban City</div>
@@ -160,18 +159,15 @@
     <div class="val" style="left:66pt; width:170pt; font-size:{{ $fit($dateIssued, 170) }}pt;">{{ $dateIssued }}</div>
 </div>
 
-<div class="formno">{{ $formCode }}</div>
 
-@unless ($preview ?? false)
 <div class="foot">
-    <div class="foot-qr">@if ($qr)<img src="{{ $qr }}" width="58" height="58">@endif</div>
+    <div class="foot-qr">@if ($qr)<img alt="QR code for verifying this document" src="{{ $qr }}" width="58" height="58">@elseif ($preview ?? false)<span class="ph-qr" style="width:58px;height:58px;">QR code<br>on issue</span>@endif</div>
     <div class="foot-k">Verify this document</div>
     <div class="foot-t">Scan the QR code, or go to <strong>{{ $lookup }}</strong> and enter:</div>
-    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">{{ $code }}</span></div>
-    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">{{ $fingerprint ?: '-' }}</span></div>
+    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">@if ($code){{ $code }}@else<span class="ph-text">assigned on submit</span>@endif</span></div>
+    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">@if ($fingerprint){{ $fingerprint }}@elseif ($preview ?? false)<span class="ph-text">assigned when issued</span>@else-@endif</span></div>
     <div class="foot-form">{{ $formCode }}</div>
 </div>
-@endunless
 
 @if ($preview ?? false)
     <div class="watermark">PREVIEW{{ $issuedAt ? '' : ' · NOT YET ISSUED' }}</div>

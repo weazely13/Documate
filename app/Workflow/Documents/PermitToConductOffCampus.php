@@ -37,6 +37,7 @@ final class PermitToConductOffCampus extends WorkflowDocument
     public function fields(): array
     {
         return [
+            ...$this->officerQuestionField(),
             'activity' => [
                 'label' => 'Activity/Event', 'type' => 'text', 'required' => true, 'max' => 200,
                 'placeholder' => 'e.g. Leadership Summit',
@@ -72,7 +73,7 @@ final class PermitToConductOffCampus extends WorkflowDocument
 
     public function check(array $values): ?string
     {
-        if ($m = $this->checkSlots($values)) { return $m; }
+        if ($m = $this->checkOfficer($values) ?? $this->checkSlots($values)) { return $m; }
 
         if (empty($values['parents_permit_ack'])) {
             return "Please confirm that you will submit the notarized Parents' Permit of Students.";

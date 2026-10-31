@@ -50,14 +50,14 @@
     // Folder colours: back panel and tab, front panel, text on the front, its secondary text,
     // icon box, pill, progress track and fill. Manila (amber) takes dark text so it stays readable.
     $folders = [
-        'blue' => ['back' => 'bg-[#1E4090]', 'front' => 'from-[#3b6fd8] to-[#2A57B4]', 'text' => 'text-white', 'soft' => 'text-white/90',
-            'icon' => 'bg-white/20 ring-white/30', 'pill' => 'bg-black/15', 'dot' => 'bg-white', 'track' => 'bg-black/15', 'fill' => 'bg-amber-300', 'line' => 'decoration-white/50'],
-        'indigo' => ['back' => 'bg-indigo-800', 'front' => 'from-indigo-500 to-indigo-600', 'text' => 'text-white', 'soft' => 'text-white/90',
-            'icon' => 'bg-white/20 ring-white/30', 'pill' => 'bg-black/15', 'dot' => 'bg-white', 'track' => 'bg-black/15', 'fill' => 'bg-amber-300', 'line' => 'decoration-white/50'],
-        'green' => ['back' => 'bg-emerald-800', 'front' => 'from-emerald-500 to-emerald-600', 'text' => 'text-white', 'soft' => 'text-white/90',
-            'icon' => 'bg-white/20 ring-white/30', 'pill' => 'bg-black/15', 'dot' => 'bg-white', 'track' => 'bg-black/15', 'fill' => 'bg-white', 'line' => 'decoration-white/50'],
-        'manila' => ['back' => 'bg-amber-500', 'front' => 'from-amber-200 to-amber-300', 'text' => 'text-amber-950', 'soft' => 'text-amber-900',
-            'icon' => 'bg-white/50 ring-amber-500/30', 'pill' => 'bg-amber-950/10', 'dot' => 'bg-amber-700', 'track' => 'bg-amber-950/10', 'fill' => 'bg-[#2A57B4]', 'line' => 'decoration-amber-900/40'],
+        'blue' => ['back' => 'bg-[#bcd5f2]', 'front' => 'from-[#e6f0fc] to-[#dcecfa]', 'text' => 'text-slate-900', 'soft' => 'text-slate-700',
+            'icon' => 'bg-white/80 ring-[#2A57B4]/15 text-[#2A57B4]', 'pill' => 'bg-white/80 text-[#24499A]', 'dot' => 'bg-[#2A57B4]', 'track' => 'bg-slate-900/10', 'fill' => 'bg-[#2A57B4]', 'line' => 'decoration-slate-900/30'],
+        'indigo' => ['back' => 'bg-[#d3c9ef]', 'front' => 'from-[#eee9f9] to-[#e6e0f5]', 'text' => 'text-slate-900', 'soft' => 'text-slate-700',
+            'icon' => 'bg-white/80 ring-violet-600/15 text-violet-700', 'pill' => 'bg-white/80 text-violet-800', 'dot' => 'bg-violet-600', 'track' => 'bg-slate-900/10', 'fill' => 'bg-violet-600', 'line' => 'decoration-slate-900/30'],
+        'green' => ['back' => 'bg-[#b6e3c5]', 'front' => 'from-[#e6f7eb] to-[#d9f3e1]', 'text' => 'text-slate-900', 'soft' => 'text-slate-700',
+            'icon' => 'bg-white/80 ring-emerald-600/15 text-emerald-700', 'pill' => 'bg-white/80 text-emerald-800', 'dot' => 'bg-emerald-600', 'track' => 'bg-slate-900/10', 'fill' => 'bg-emerald-600', 'line' => 'decoration-slate-900/30'],
+        'manila' => ['back' => 'bg-[#f3df93]', 'front' => 'from-[#fefae4] to-[#fef3c7]', 'text' => 'text-slate-900', 'soft' => 'text-slate-700',
+            'icon' => 'bg-white/80 ring-amber-600/20 text-amber-700', 'pill' => 'bg-white/80 text-amber-800', 'dot' => 'bg-amber-600', 'track' => 'bg-slate-900/10', 'fill' => 'bg-amber-500', 'line' => 'decoration-slate-900/30'],
     ];
 
     $docs = $insights['byType'];
@@ -83,7 +83,7 @@
 
     // Cards come in pairs (1 × 2) at every width; on phones each half is "pocket" sized:
     // tighter padding and type, with secondary detail lines hidden below cq-sm.
-    $sectionTitle = 'text-base font-bold tracking-tight text-[#1E4090] cq-sm:text-lg';
+    $sectionTitle = 'text-base font-semibold tracking-tight text-slate-900 cq-sm:text-lg';
     $card = 'min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm cq-sm:p-5';
     $cardTitle = 'flex min-w-0 items-center gap-1.5 text-[13px] font-semibold leading-tight text-[#2A57B4] cq-sm:gap-2 cq-sm:text-[15px]';
     $cardHead = 'flex flex-wrap items-center justify-between gap-x-2 gap-y-1';
@@ -123,7 +123,7 @@
                     </span>
 
                     {{-- Front of the folder, holding the figures --}}
-                    <span class="relative mt-8 flex flex-1 flex-col rounded-xl bg-gradient-to-b {{ $c['front'] }} p-3 {{ $c['text'] }} shadow-[0_-8px_18px_-12px_rgba(15,23,42,0.55)] ring-1 ring-inset ring-white/25 cq-sm:mt-11 cq-sm:p-5 cq-sm:pt-4">
+                    <span class="relative mt-8 flex flex-1 flex-col rounded-xl bg-gradient-to-b {{ $c['front'] }} p-3 {{ $c['text'] }} shadow-[0_-6px_14px_-12px_rgba(13,37,61,0.3)] ring-1 ring-inset ring-white/70 cq-sm:mt-11 cq-sm:p-5 cq-sm:pt-4">
                         <span class="flex items-start justify-between gap-2 cq-sm:gap-3">
                             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset {{ $c['icon'] }} cq-sm:h-10 cq-sm:w-10"><i class='bx {{ $icon }} text-lg cq-sm:text-xl' aria-hidden="true"></i></span>
                             <span class="inline-flex min-w-0 items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $c['pill'] }} cq-sm:gap-1.5 cq-sm:px-2.5 cq-sm:py-1 cq-sm:text-[11px]">
@@ -152,42 +152,41 @@
         <h2 id="tx-title" class="{{ $sectionTitle }}">Transactions in the last {{ $range }} days</h2>
 
         <div class="grid grid-cols-1 gap-2.5 cq-sm:grid-cols-2 cq-sm:gap-4">
-            {{-- Most requested documents: the row's feature card, in brand navy, with bold columns --}}
-            <div class="relative isolate flex min-w-0 flex-col overflow-hidden rounded-xl bg-gradient-to-br from-[#1E4090] via-[#2A57B4] to-[#3b6fd8] p-3 text-white shadow-lg ring-1 ring-white/10 cq-sm:p-5">
-                <i class="bx bx-bar-chart-alt-2 pointer-events-none absolute -bottom-6 -right-4 -z-10 text-[7rem] leading-none text-white/10 cq-sm:text-[9rem]" aria-hidden="true"></i>
+            {{-- Most requested documents: a white data card: requested bars in brand tint, completed in brand blue --}}
+            <div class="relative isolate flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-3 text-slate-900 shadow-sm cq-sm:p-5">
                 <div class="{{ $cardHead }}">
-                    <h3 class="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold leading-tight cq-sm:gap-2 cq-sm:text-[15px]">
-                        <span class="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 ring-1 ring-inset ring-white/25 cq-sm:flex"><i class="bx bx-file text-lg" aria-hidden="true"></i></span>
+                    <h3 class="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold leading-tight text-slate-900 cq-sm:gap-2 cq-sm:text-[15px]">
+                        <span class="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#dcecfa] text-[#2A57B4] cq-sm:flex"><i class="bx bx-file text-lg" aria-hidden="true"></i></span>
                         Most requested documents
                     </h3>
-                    <span class="hidden flex-col items-end gap-1 text-[11px] text-white/90 cq-sm:flex">
-                        <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-white/30 ring-1 ring-inset ring-white/40" aria-hidden="true"></span>Requested</span>
-                        <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-amber-300" aria-hidden="true"></span>Completed</span>
+                    <span class="hidden flex-col items-end gap-1 text-[11px] text-slate-600 cq-sm:flex">
+                        <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-[#c0d0ee]" aria-hidden="true"></span>Requested</span>
+                        <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-[#2A57B4]" aria-hidden="true"></span>Completed</span>
                     </span>
                 </div>
                 @if ($docs)
-                    <p class="mt-2 inline-flex w-fit max-w-full items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[11px] ring-1 ring-inset ring-white/20 cq-sm:gap-1.5 cq-sm:px-3 cq-sm:py-1 cq-sm:text-xs">
-                        <i class="bx bxs-star text-amber-300" aria-hidden="true"></i>
+                    <p class="mt-2 inline-flex w-fit max-w-full items-center gap-1 rounded-full bg-[#fef3c7] px-2 py-0.5 text-[11px] text-amber-900 cq-sm:gap-1.5 cq-sm:px-3 cq-sm:py-1 cq-sm:text-xs">
+                        <i class="bx bxs-star text-amber-500" aria-hidden="true"></i>
                         <span class="truncate"><span class="hidden cq-sm:inline">Top request: </span><span class="font-semibold">{{ $docs[0]['label'] }}</span> · {{ $docs[0]['total'] }}</span>
                     </p>
-                    <div class="mt-3 flex-1 rounded-lg bg-white/10 p-2 pl-6 ring-1 ring-inset ring-white/15 cq-sm:mt-4 cq-sm:p-3 cq-sm:pl-10">
+                    <div class="mt-3 flex-1 rounded-lg bg-slate-50 p-2 pl-6 ring-1 ring-inset ring-slate-200/70 cq-sm:mt-4 cq-sm:p-3 cq-sm:pl-10">
                         <div class="relative mt-3 h-32 cq-sm:mt-0 cq-sm:h-52">
                             @foreach ([0, 0.5, 1] as $f)
                                 <div class="pointer-events-none absolute inset-x-0 flex items-center" style="bottom: {{ $f * 100 }}%" aria-hidden="true">
-                                    <span class="absolute -left-6 w-5 translate-y-1/2 text-right text-[10px] tabular-nums text-white/80 cq-sm:-left-8 cq-sm:w-7 cq-sm:text-[11px]">{{ (int) round($docTop * $f) }}</span>
-                                    <span class="h-px w-full translate-y-1/2 {{ $f === 0 ? 'bg-white/40' : 'bg-white/15' }}"></span>
+                                    <span class="absolute -left-6 w-5 translate-y-1/2 text-right text-[10px] tabular-nums text-slate-500 cq-sm:-left-8 cq-sm:w-7 cq-sm:text-[11px]">{{ (int) round($docTop * $f) }}</span>
+                                    <span class="h-px w-full translate-y-1/2 {{ $f === 0 ? 'bg-slate-300' : 'bg-slate-200' }}"></span>
                                 </div>
                             @endforeach
                             <div class="absolute inset-0 flex items-end justify-around gap-1 cq-sm:gap-2.5">
                                 @foreach ($docs as $i => $doc)
                                     <div class="group relative flex h-full w-full max-w-14 flex-col justify-end" title="{{ $doc['label'] }}: {{ $doc['completed'] }} completed of {{ $doc['total'] }}">
-                                        <div class="relative w-full rounded-t-md bg-white/25 ring-1 ring-inset ring-white/30 transition group-hover:bg-white/35 cq-sm:rounded-t-lg" style="height: {{ max(2, $doc['total'] / $docTop * 100) }}%">
-                                            <span class="absolute inset-x-0 bottom-full mb-0.5 flex items-center justify-center gap-0.5 text-[10px] font-bold tabular-nums cq-sm:mb-1 cq-sm:text-xs">
-                                                @if ($i === 0)<i class="bx bxs-star hidden text-[11px] text-amber-300 cq-sm:inline" aria-hidden="true"></i>@endif{{ $doc['total'] }}
+                                        <div class="relative w-full rounded-t-md bg-[#c0d0ee] transition group-hover:bg-[#a9bfe8] cq-sm:rounded-t-lg" style="height: {{ max(2, $doc['total'] / $docTop * 100) }}%">
+                                            <span class="absolute inset-x-0 bottom-full mb-0.5 flex items-center justify-center gap-0.5 text-[10px] font-semibold tabular-nums text-slate-800 cq-sm:mb-1 cq-sm:text-xs">
+                                                @if ($i === 0)<i class="bx bxs-star hidden text-[11px] text-amber-500 cq-sm:inline" aria-hidden="true"></i>@endif{{ $doc['total'] }}
                                             </span>
-                                            <span class="absolute inset-x-0.5 bottom-0 rounded-t bg-gradient-to-t from-amber-400 to-amber-200 shadow-[0_0_12px_rgba(252,211,77,0.45)] cq-sm:inset-x-1.5 cq-sm:rounded-t-md" style="height: {{ $doc['total'] ? $doc['completed'] / $doc['total'] * 100 : 0 }}%"></span>
+                                            <span class="absolute inset-x-0.5 bottom-0 rounded-t bg-[#2A57B4] cq-sm:inset-x-1.5 cq-sm:rounded-t-md" style="height: {{ $doc['total'] ? $doc['completed'] / $doc['total'] * 100 : 0 }}%"></span>
                                         </div>
-                                        <div class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-6 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-white px-2.5 py-1.5 text-[11px] text-slate-800 shadow-lg group-hover:block">
+                                        <div class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-6 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] text-slate-800 shadow-lg group-hover:block">
                                             <p class="font-semibold text-[#1E4090]">{{ $doc['label'] }}</p>
                                             <p>{{ $doc['completed'] }} completed · {{ $doc['open'] }} still open</p>
                                         </div>
@@ -197,7 +196,7 @@
                         </div>
                         <div class="mt-1.5 flex justify-around gap-1 cq-sm:mt-2 cq-sm:gap-2.5">
                             @foreach ($docs as $doc)
-                                <span class="line-clamp-2 w-full max-w-16 text-center text-[9px] leading-tight text-white/90 cq-sm:text-[11px]">{{ $doc['label'] }}</span>
+                                <span class="line-clamp-2 w-full max-w-16 text-center text-[9px] leading-tight text-slate-600 cq-sm:text-[11px]">{{ $doc['label'] }}</span>
                             @endforeach
                         </div>
                     </div>
@@ -207,7 +206,7 @@
                     </table></div>
                 @else
                     <div class="flex-1 py-8 text-center cq-sm:py-12">
-                        <i class="bx bx-file text-3xl text-white/40 cq-sm:text-4xl" aria-hidden="true"></i>
+                        <i class="bx bx-file text-3xl text-slate-300 cq-sm:text-4xl" aria-hidden="true"></i>
                         <p class="mt-2 text-xs font-medium cq-sm:text-sm">No documents requested yet</p>
                     </div>
                 @endif
@@ -252,7 +251,7 @@
             ['Cleared', $clearance['Cleared'], 'Met every requirement', 'bx-check', 'bg-emerald-50 text-emerald-600', 'bg-emerald-500', '#10b981'],
             ['Pending', $clearance['Pending'], 'Still being checked', 'bx-time-five', 'bg-amber-50 text-amber-600', 'bg-amber-400', '#fbbf24'],
             ['Uncleared', $clearance['Uncleared'], 'Something left to settle', 'bx-x', 'bg-rose-50 text-rose-600', 'bg-rose-500', '#f43f5e'],
-            ['Not tagged', $clearance['not_tagged'], 'Not checked yet', 'bx-minus', 'bg-slate-100 text-slate-500', 'bg-slate-300', '#cbd5e1'],
+            ['Not tagged', $clearance['not_tagged'], 'Not checked yet', 'bx-minus', 'bg-slate-100 text-slate-500', 'bg-slate-300', '#d4d1cb'],
         ];
         // Donut slices, clockwise from twelve o'clock, with a hairline of white between neighbours.
         $slices = [];
@@ -290,7 +289,7 @@
                         <div class="relative h-24 w-24 shrink-0 cq-sm:h-32 cq-sm:w-32">
                             <svg viewBox="0 0 108 108" class="h-full w-full -rotate-90" role="img"
                                  aria-label="{{ collect($statusRows)->map(fn ($s) => $s[0] . ' ' . $s[1])->implode(', ') }}">
-                                <circle cx="54" cy="54" r="{{ $ringR }}" fill="none" stroke="#e2e8f0" stroke-width="13" />
+                                <circle cx="54" cy="54" r="{{ $ringR }}" fill="none" stroke="#e7e5e1" stroke-width="13" />
                                 @foreach ($slices as $sl)
                                     <circle cx="54" cy="54" r="{{ $ringR }}" fill="none" stroke="{{ $sl['color'] }}" stroke-width="13"
                                             stroke-dasharray="{{ round($sl['dash'], 2) }} {{ round($ringC, 2) }}" stroke-dashoffset="{{ round($sl['offset'], 2) }}">
@@ -508,14 +507,14 @@
             <div class="grid grid-cols-2 gap-2.5 cq-sm:gap-3">
                 @foreach ($cal['sessions'] as $session => $s)
                     @php $started = $s['now_serving'] !== null; @endphp
-                    <div class="relative isolate overflow-hidden rounded-xl bg-gradient-to-br {{ $session === 'morning' ? 'from-[#2A57B4] to-[#3b6fd8]' : 'from-[#1E4090] to-indigo-500' }} p-3 text-white shadow-sm cq-sm:p-4">
-                        <i class="bx {{ $session === 'morning' ? 'bx-sun' : 'bx-cloud' }} pointer-events-none absolute -bottom-3 -right-2 -z-10 text-5xl text-white/20 cq-sm:text-6xl" aria-hidden="true"></i>
+                    <div class="relative isolate overflow-hidden rounded-xl {{ $session === 'morning' ? 'bg-[#dcecfa]' : 'bg-[#e6e0f5]' }} p-3 text-slate-900 cq-sm:p-4">
+                        <i class="bx {{ $session === 'morning' ? 'bx-sun' : 'bx-cloud' }} pointer-events-none absolute -bottom-3 -right-2 -z-10 text-5xl text-slate-900/[0.07] cq-sm:text-6xl" aria-hidden="true"></i>
                         <div class="flex flex-wrap items-center justify-between gap-1">
                             <p class="text-xs font-semibold cq-sm:text-sm">{{ ucfirst($session) }}</p>
-                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold cq-sm:px-2.5 cq-sm:text-[11px] {{ $started ? 'bg-emerald-100 text-emerald-800' : 'bg-white/20 text-white' }}">{{ $started ? 'Serving ' . $s['now_serving'] : 'Not started' }}</span>
+                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold cq-sm:px-2.5 cq-sm:text-[11px] {{ $started ? 'bg-white/80 text-emerald-800' : 'bg-white/70 text-slate-600' }}">{{ $started ? 'Serving ' . $s['now_serving'] : 'Not started' }}</span>
                         </div>
-                        <p class="mt-2 text-xl font-semibold tabular-nums cq-sm:mt-3 cq-sm:text-2xl">{{ $s['attended'] }} <span class="text-xs font-medium text-white/90 cq-sm:text-sm">of {{ $s['total'] }} seen</span></p>
-                        <span class="mt-2 block h-1.5 overflow-hidden rounded-full bg-black/15" aria-hidden="true"><span class="block h-full rounded-full bg-amber-300" style="width: {{ $pct($s['attended'], $s['total']) }}%"></span></span>
+                        <p class="mt-2 text-xl font-semibold tabular-nums cq-sm:mt-3 cq-sm:text-2xl">{{ $s['attended'] }} <span class="text-xs font-medium text-slate-600 cq-sm:text-sm">of {{ $s['total'] }} seen</span></p>
+                        <span class="mt-2 block h-1.5 overflow-hidden rounded-full bg-slate-900/10" aria-hidden="true"><span class="block h-full rounded-full {{ $session === 'morning' ? 'bg-[#2A57B4]' : 'bg-violet-600' }}" style="width: {{ $pct($s['attended'], $s['total']) }}%"></span></span>
                     </div>
                 @endforeach
             </div>
@@ -542,17 +541,17 @@
 
                     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
                         {{-- Month header --}}
-                        <div class="flex items-center justify-between gap-3 bg-gradient-to-r from-[#1E4090] to-[#2A57B4] px-4 pb-3 pt-5 text-white">
+                        <div class="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 pb-3 pt-5 text-slate-900">
                             <div class="min-w-0">
-                                <p class="text-xl font-bold uppercase leading-none tracking-wide">{{ $calMonthName }}</p>
-                                <p class="mt-1 text-xs text-white/85">{{ $calYear }} · {{ $cal['monthTotal'] }} {{ Str::plural('booking', $cal['monthTotal']) }}</p>
+                                <p class="text-xl font-semibold leading-none tracking-tight">{{ $calMonthName }}</p>
+                                <p class="mt-1 text-xs text-slate-500">{{ $calYear }} · {{ $cal['monthTotal'] }} {{ Str::plural('booking', $cal['monthTotal']) }}</p>
                             </div>
                             <div class="flex items-center gap-1">
                                 @unless ($cal['isCurrent'])
-                                    <button type="button" wire:click="backToToday" class="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Today</button>
+                                    <button type="button" wire:click="backToToday" class="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">Today</button>
                                 @endunless
-                                <button type="button" wire:click="shiftMonth(-1)" class="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Previous month"><i class="bx bx-chevron-left text-xl" aria-hidden="true"></i></button>
-                                <button type="button" wire:click="shiftMonth(1)" class="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Next month"><i class="bx bx-chevron-right text-xl" aria-hidden="true"></i></button>
+                                <button type="button" wire:click="shiftMonth(-1)" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]" aria-label="Previous month"><i class="bx bx-chevron-left text-xl" aria-hidden="true"></i></button>
+                                <button type="button" wire:click="shiftMonth(1)" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]" aria-label="Next month"><i class="bx bx-chevron-right text-xl" aria-hidden="true"></i></button>
                             </div>
                         </div>
 

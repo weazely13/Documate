@@ -40,7 +40,7 @@ new #[Layout('layouts.guest')] class extends Component
             return;
         }
 
-        $this->redirect('/student/dashboard', navigate: true);
+        $this->redirect('/student/home', navigate: true);
     }
 };
 ?>

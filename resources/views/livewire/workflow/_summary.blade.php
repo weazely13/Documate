@@ -1,5 +1,5 @@
 {{-- Needs: $ws, $document. Shows the student and every answer on the form. --}}
-@php $values = $ws->field_values ?? []; @endphp
+@php $values = $ws->printedValues(); @endphp
 <dl class="space-y-3">
     <div>
         <dt class="text-xs font-medium text-slate-400">Student</dt>

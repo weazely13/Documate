@@ -35,14 +35,19 @@ final class AdmissionSlip extends WorkflowDocument
             'subject' => [
                 'label' => 'Subject', 'type' => 'text', 'required' => true, 'max' => 120,
                 'placeholder' => 'e.g. Data Structures',
+                'help' => 'The subject (course title) of the class you missed.',
             ],
+            'professor_title' => $this->salutationField('professor'),
             'professor' => [
                 'label' => 'Name of Professor', 'type' => 'text', 'required' => true, 'max' => 120,
-                'placeholder' => 'e.g. Prof. Juan Dela Cruz',
+                'placeholder' => 'e.g. Juan Dela Cruz', 'salutation' => 'professor_title',
+                'help' => 'Choose the title, then type the name of the professor who handles the subject.',
             ],
             'absence_date' => [
                 'label' => 'Date of Absence', 'type' => 'date', 'required' => true,
-                'rules' => ['before_or_equal:today'],
+                'past_only' => true,
+                'help' => 'The day you missed class. It must be before today.',
+                'rules' => ['before:today'],
             ],
             'reasons' => [
                 'label' => 'Reason/s for absence', 'type' => 'textarea', 'required' => true, 'max' => 500,

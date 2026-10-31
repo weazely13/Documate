@@ -12,6 +12,9 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use App\Enums\ApprovalStatus;
 use App\Models\StudentDocumentWorkspace;
+use App\Services\Workflow\DocumentPdf;
+use App\Services\Workflow\FormSupport;
+use Livewire\Attributes\Renderless;
 
 /** VPSD issues a document TO a student (e.g. the Student Appointment Slip). One button: it goes straight to signing. */
 class Issue extends Component
@@ -23,6 +26,9 @@ class Issue extends Component
     /** @var array<string, mixed> */
     public array $values = [];
     public ?int $sourceId = null;
+
+    /** The issuer confirms the details are accurate and that they may issue this. Asked on every issue. */
+    public bool $confirmed = false;
 
     public function mount(): void
     {
@@ -61,17 +67,26 @@ class Issue extends Component
         unset($this->document);
         $this->resetValues();
         $this->resetErrorBag();
+        $this->confirmed = false;
+        $this->dispatch('doc-changed');
     }
     public function updatedStudentId(): void
     {
         $this->sourceId = null;
+        $this->dispatch('doc-changed');
     }
 
     public function selectStudent(int $userId): void
     {
         $this->studentId = $userId;
-        $this->sourceId = null;   // add
+        $this->sourceId = null;
         $this->studentSearch = '';
+        $this->dispatch('doc-changed');
+    }
+
+    public function updatedSourceId(): void
+    {
+        $this->dispatch('doc-changed');
     }
     #[Computed]
     public function sourceOptions()
@@ -122,6 +137,7 @@ class Issue extends Component
             ->where(fn ($q) => $q
                 ->where('first_name', 'like', $term)
                 ->orWhere('last_name', 'like', $term)
+                ->orWhere('email', 'like', $term)
                 ->orWhere('student_number', 'like', $term))
             ->orderBy('last_name')
             ->limit(8)
@@ -173,7 +189,11 @@ class Issue extends Component
     public function issue()
     {
         $this->resetErrorBag();
-        $this->validate($this->rules(), [], $this->attributes());
+        $this->validate(
+            $this->rules() + ['confirmed' => ['accepted']],
+            ['confirmed.accepted' => 'Tick the box to confirm the details before issuing.'],
+            $this->attributes(),
+        );
 
         $student = $this->document->issuedToSelf() ? Auth::user() : User::findOrFail($this->studentId);
         if ($this->document->sourceDocumentType()) {
@@ -249,6 +269,61 @@ class Issue extends Component
             ->all();
     }
     
+
+    /**
+     * The document as it will print, from the current answers. Nothing is saved. Signatures stay blank and
+     * the QR code and fingerprint stay placeholders until the document is issued.
+     */
+    #[Renderless]
+    public function previewDocument(): string
+    {
+        $doc = $this->document;
+        $student = $doc->issuedToSelf() ? Auth::user() : $this->selectedStudent;
+
+        $answers = [];
+        foreach ($doc->fields() as $name => $f) {
+            $v = $this->values[$name] ?? null;
+            $answers[$name] = ($f['type'] ?? 'text') === 'checkbox' ? (bool) $v : (is_string($v) ? (trim($v) === '' ? null : trim($v)) : $v);
+        }
+        $answers = rescue(fn () => $doc->beforeIssue($answers), $answers, false);
+
+        $snapshot = [];
+        if ($student) {
+            $snapshot = [
+                'student_name' => FormSupport::systemValue($student, 'formatted_full_name'),
+                'student_program' => $doc->issuedToSelf() ? '' : FormSupport::systemValue($student, 'program_year_section'),
+                'student_course' => $doc->issuedToSelf() ? '' : FormSupport::systemValue($student, 'program'),
+                'student_number' => FormSupport::systemValue($student, 'student_number'),
+                'student_contact' => FormSupport::systemValue($student, 'contact_number'),
+                'student_address' => FormSupport::systemValue($student, 'address'),
+                'student_college' => FormSupport::systemValue($student, 'college'),
+                'student_year_section' => $doc->issuedToSelf() ? '' : FormSupport::systemValue($student, 'year_section'),
+            ];
+        }
+        if ($doc->issuedBySignatory()) {
+            $snapshot += [
+                'reporter_name' => FormSupport::systemValue(Auth::user(), 'formatted_full_name'),
+                'reporter_user_id' => Auth::id(),
+            ];
+        }
+        if ($doc->sourceDocumentType() && $this->sourceId && ($source = $this->sourceOptions->firstWhere('workspace_id', $this->sourceId))) {
+            $answers = rescue(fn () => $doc->fillFromSource($answers, $source), $answers, false);
+        }
+
+        $draft = (new StudentDocumentWorkspace())->forceFill([
+            'user_id' => $student?->id ?? Auth::id(),
+            'document_type' => $this->type,
+            'field_values' => $answers + $snapshot,
+        ]);
+
+        try {
+            return app(DocumentPdf::class)->previewHtml($draft->setRelation('user', $student ?? Auth::user()));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#4a5568;padding:24px">The preview will appear once the required details are filled in.</body></html>';
+        }
+    }
 
     public function render()
     {

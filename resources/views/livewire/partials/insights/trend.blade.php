@@ -52,7 +52,7 @@
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
                 <path :d="path" fill="none" stroke="#2A57B4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
                 <line x-show="point" :x1="hover === null ? 0 : x(hover)" :x2="hover === null ? 0 : x(hover)" y1="0" y2="100"
-                      stroke="#9ca3af" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+                      stroke="#9a978f" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
             </svg>
             <span x-show="point" x-cloak
                   class="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[#2A57B4] shadow"

@@ -35,6 +35,9 @@ class StudentDocumentWorkspace extends Model
         'analysis_data',
         'rejection_reason',
         'analyzed_at',
+        'ai_flag',
+        'ai_findings',
+        'ai_reviewed_at',
     ];
 
     protected $casts = [
@@ -46,6 +49,8 @@ class StudentDocumentWorkspace extends Model
         'analyzed_at' => 'datetime',
         'analysis_data' => 'array',
         'processing' => 'boolean',
+        'ai_findings' => 'array',
+        'ai_reviewed_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -72,9 +77,40 @@ class StudentDocumentWorkspace extends Model
         return $this->belongsTo(User::class)->withTrashed();
     }
 
+    /** Other students named on this transaction. They get a read-only copy. */
+    public function participants()
+    {
+        return $this->belongsToMany(User::class, 'workspace_participants', 'workspace_id', 'user_id', 'workspace_id', 'id')
+            ->withPivot('role', 'notified_at')
+            ->withTimestamps();
+    }
+
+    /** The owner, or a student named on it. */
+    public function isVisibleTo(?int $userId): bool
+    {
+        if (! $userId) {
+            return false;
+        }
+
+        return (int) $this->user_id === $userId
+            || $this->participants()->where('users.id', $userId)->exists();
+    }
+
     public function template()
     {
         return $this->belongsTo(\App\Models\Template::class, 'template_id', 'template_id');
+    }
+
+    /** The document's readable name, for paperless forms and paper templates alike. */
+    public function documentName(): ?string
+    {
+        if ($this->document_type) {
+            return \App\Workflow\Documents\DocumentRegistry::find($this->document_type)?->name() ?? $this->document_type;
+        }
+
+        $name = $this->template?->name;
+
+        return $name ? \App\Support\AppointmentPurposes::templateName($name) : null;
     }
 
     public function isCompleted(): bool

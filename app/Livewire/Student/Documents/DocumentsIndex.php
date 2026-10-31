@@ -16,7 +16,7 @@ use Carbon\Carbon;
 
 /**
  * The student's documents: Active (theirs, still moving), Issued to you (documents the VPSD office
- * or a signatory issued to them) and History (theirs, finished).
+ * or a signatory issued to them, and other students' transactions that list them) and History (theirs, finished).
  */
 class DocumentsIndex extends Component
 {
@@ -46,11 +46,19 @@ class DocumentsIndex extends Component
     private function tabQuery(string $tab): Builder
     {
         $issued = $this->issuedKeys;
-        $q = StudentDocumentWorkspace::query()->where('user_id', Auth::id());
 
         if ($tab === 'issued') {
-            return $q->whereNotNull('workflow_status')->whereIn('document_type', $issued);
+            // Issued to the student, plus other students' transactions that list them (their read-only copy).
+            return StudentDocumentWorkspace::query()
+                ->whereNotNull('workflow_status')
+                ->where(fn (Builder $w) => $w
+                    ->where(fn (Builder $own) => $own->where('user_id', Auth::id())->whereIn('document_type', $issued))
+                    ->orWhere(fn (Builder $named) => $named
+                        ->where('workflow_status', '!=', 'draft')
+                        ->whereHas('participants', fn (Builder $p) => $p->where('users.id', Auth::id()))));
         }
+
+        $q = StudentDocumentWorkspace::query()->where('user_id', Auth::id());
 
         // Active and History hold the student's own documents only.
         $q->where(fn (Builder $w) => $w->whereNull('document_type')->orWhereNotIn('document_type', $issued));

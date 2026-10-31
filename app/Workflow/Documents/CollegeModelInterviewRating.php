@@ -2,14 +2,15 @@
 
 namespace App\Workflow\Documents;
 
-use App\Models\User;
-use App\Services\Workflow\FormSupport;
+use Illuminate\Validation\Rule;
 
 /**
  * F-SDM-026 Rev. 1 (03-31-23): College Model Student Interview/Talent Presentation Rating Form.
- * A signatory (the interviewer) rates up to 10 interviewees on three 10-point criteria.
- * Every interviewee is picked from the student accounts, so each one is verified to have a record.
- * No student is notified: the record belongs to the interviewer. The VPSD office does the final verification.
+ * The student starts it, lists the students to be interviewed (up to 10, each picked from their
+ * DocuMate account) and names the interviewer. The interviewer scores every interviewee on three
+ * 10-point criteria while signing, from an emailed link or from their signatory account.
+ * The listed students are notified on submission and get a read-only copy of the document.
+ * Older records had the student as the only interviewee (row 1); they still print the same way.
  */
 final class CollegeModelInterviewRating extends WorkflowDocument
 {
@@ -22,33 +23,67 @@ final class CollegeModelInterviewRating extends WorkflowDocument
         'talent' => 'Talent',
     ];
 
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Awards; }
+
     public function key(): string { return 'college_model_interview_rating'; }
     public function name(): string { return 'College Model Student Interview/Talent Rating'; }
-    public function description(): string { return 'An interviewer\'s ratings of College Model Student interviewees.'; }
+    public function description(): string { return 'List the students to be interviewed and ask the interviewer to rate their interview and talent presentation.'; }
     public function formCode(): string { return 'F-SDM-026 Rev. 1 (03-31-23)'; }
-
-    public function issuedByOffice(): bool { return true; }
-    public function issuedBySignatory(): bool { return true; }
-    public function issuedToSelf(): bool { return true; }
 
     public function fields(): array
     {
+        return [
+            'interviewees' => [
+                'label' => 'Students to be interviewed', 'type' => 'students', 'required' => true,
+                'max_items' => self::ROWS,
+                'help' => 'Search by name, email or student number and add up to ' . self::ROWS . ' students. Each one must have a DocuMate account. They are notified when you submit and get a copy of the signed form.',
+            ],
+        ] + $this->signerContactFields('interviewer', 'Interviewer', 'They get a link to score and sign. If this email belongs to a DocuMate signatory account, they sign from their account instead.');
+    }
+
+    /** Listed interviewees, in order: [['id' => int, 'name' => string, 'number' => string], ...]. */
+    public static function interviewees(array $values): array
+    {
+        $list = [];
+        foreach (array_values(is_array($values['interviewees'] ?? null) ? $values['interviewees'] : []) as $row) {
+            if (is_array($row) && ! empty($row['id'])) {
+                $list[] = ['id' => (int) $row['id'], 'name' => (string) ($row['name'] ?? ''), 'number' => (string) ($row['number'] ?? '')];
+            }
+        }
+
+        return array_slice($list, 0, self::ROWS);
+    }
+
+    public function check(array $values): ?string
+    {
+        $list = self::interviewees($values);
+        if ($list === []) {
+            return 'Add at least one student to be interviewed.';
+        }
+        if (count(array_unique(array_column($list, 'id'))) !== count($list)) {
+            return 'Each student can only be listed once.';
+        }
+
+        return null;
+    }
+
+    /** The interviewer scores these while signing: three scores for each listed student. */
+    public function signerFields(array $values = []): array
+    {
+        $scores = array_map('strval', range(1, 10));
+        $rows = self::interviewees($values) ?: [['name' => $values['student_name'] ?? '']];
         $fields = [];
 
-        for ($i = 1; $i <= self::ROWS; $i++) {
-            $fields["interviewee_{$i}_user_id"] = [
-                'label' => "Interviewee {$i} account", 'type' => 'text', 'max' => 20,
-                'hidden' => true, 'staff_only' => true, 'sensitive' => true, 'group' => 'rating_rows',
-            ];
-            $fields["interviewee_{$i}_name"] = [
-                'label' => "Interviewee {$i}", 'type' => 'text', 'max' => 120,
-                'group' => 'rating_rows', 'sensitive' => true,
-            ];
+        foreach (array_values($rows) as $i => $row) {
+            $n = $i + 1;
             foreach (self::CRITERIA as $key => $label) {
-                $fields["score_{$i}_{$key}"] = [
-                    'label' => "{$label} (interviewee {$i})", 'type' => 'number',
-                    'group' => 'rating_rows', 'sensitive' => true,
-                    'rules' => ['integer', 'between:1,10'],
+                $fields["score_{$n}_{$key}"] = [
+                    'label' => trim(($row['name'] ?: "Interviewee {$n}") . " — {$label} (1 to 10)"),
+                    'type' => 'select', 'required' => true,
+                    'options' => $scores,
+                    'rules' => [Rule::in($scores)],
+                    'sensitive' => true,
+                    'group' => $row['name'] ?: "Interviewee {$n}",
                 ];
             }
         }
@@ -56,126 +91,66 @@ final class CollegeModelInterviewRating extends WorkflowDocument
         return $fields;
     }
 
-    /** An active Student/Officer account that is not the issuer. */
-    private function eligible(int $id, ?int $issuerId): ?User
+    /** One row per interviewee, with the total out of 30. */
+    public function signerValues(array $answers, array $values): array
     {
-        return User::query()
-            ->whereKey($id)
-            ->where('account_status', 'active')
-            ->whereHas('role', fn ($q) => $q->whereIn('role_name', ['Student', 'Officer']))
-            ->when($issuerId, fn ($q) => $q->where('id', '!=', $issuerId))
-            ->first();
-    }
+        $rows = self::interviewees($values) ?: [['name' => $values['student_name'] ?? null, 'number' => $values['student_number'] ?? null]];
 
-    public function beforeIssue(array $answers): array
-    {
-        $issuerId = auth()->id();
-
-        for ($i = 1; $i <= self::ROWS; $i++) {
-            $id = (int) ($answers["interviewee_{$i}_user_id"] ?? 0);
-            $student = $id ? $this->eligible($id, $issuerId) : null;
-
-            if ($student) {
-                // The name comes from the account, never from what was typed.
-                $answers["interviewee_{$i}_user_id"] = (string) $student->id;
-                $answers["interviewee_{$i}_name"] = FormSupport::systemValue($student, 'formatted_full_name');
-                $answers["interviewee_{$i}_number"] = (string) $student->student_number;
-            } else {
-                $answers["interviewee_{$i}_user_id"] = null;
-                $answers["interviewee_{$i}_number"] = null;
-            }
-
-            $name = trim((string) ($answers["interviewee_{$i}_name"] ?? ''));
-
-            if ($name === '') {
-                $answers["interviewee_{$i}_name"] = null;
-                $answers["total_{$i}"] = null;
-                foreach (array_keys(self::CRITERIA) as $key) {
-                    $answers["score_{$i}_{$key}"] = null;
-                }
-                continue;
-            }
-
-            $sum = 0;
-            foreach (array_keys(self::CRITERIA) as $key) {
-                $sum += (int) ($answers["score_{$i}_{$key}"] ?? 0);
-            }
-            $answers["total_{$i}"] = (string) $sum;
+        foreach (array_values($rows) as $i => $row) {
+            $n = $i + 1;
+            $answers["interviewee_{$n}_name"] = $row['name'] ?? null;
+            $answers["interviewee_{$n}_number"] = $row['number'] ?? null;
+            $answers["total_{$n}"] = (string) array_sum(array_map(
+                fn ($key) => (int) ($answers["score_{$n}_{$key}"] ?? 0),
+                array_keys(self::CRITERIA)
+            ));
         }
 
         return $answers;
     }
 
-    public function check(array $values): ?string
+    public function participants(array $values): array
     {
-        $count = 0;
-        $seen = [];
-
-        for ($i = 1; $i <= self::ROWS; $i++) {
-            $name = trim((string) ($values["interviewee_{$i}_name"] ?? ''));
-            $hasScore = false;
-            foreach (array_keys(self::CRITERIA) as $key) {
-                $raw = $values["score_{$i}_{$key}"] ?? null;
-                $hasScore = $hasScore || ($raw !== null && $raw !== '');
-            }
-
-            if ($name === '' && ! $hasScore) {
-                continue;
-            }
-            if ($name === '') {
-                return "Row {$i} has scores but no interviewee. Search for the student first.";
-            }
-            if (empty($values["interviewee_{$i}_number"])) {
-                return "Row {$i}: pick {$name} from the search results so their student account can be verified.";
-            }
-
-            $uid = (string) $values["interviewee_{$i}_user_id"];
-            if (isset($seen[$uid])) {
-                return "Row {$i}: {$name} is listed more than once.";
-            }
-            $seen[$uid] = true;
-
-            foreach (self::CRITERIA as $key => $label) {
-                $raw = $values["score_{$i}_{$key}"] ?? null;
-                $n = is_numeric($raw) ? (int) $raw : 0;
-                if ($n < 1 || $n > 10 || (string) $n !== trim((string) $raw)) {
-                    return "Row {$i} ({$name}): rate {$label} from 1 to 10.";
-                }
-            }
-            $count++;
+        $ids = [];
+        foreach (self::interviewees($values) as $row) {
+            $ids[$row['id']] = 'Interviewee';
         }
 
-        if ($count === 0) {
-            return 'Add at least one interviewee.';
-        }
-
-        $user = auth()->user();
-        if ($user?->signature_enabled && empty($user->signature_path)) {
-            return 'Upload your signature in your profile before issuing this rating form.';
-        }
-
-        return null;
+        return $ids;
     }
 
-    /** No approval steps: the interviewer's signature is captured at issue time. */
-    public function chain(array $values = []): array { return []; }
-
-    public function issueNote(): ?string
+    public function externalOverviewFields(): array
     {
-        return 'Search for each interviewee and pick them from the list. Only students with an active account can be rated, and their name is taken from their account. Rate each from 1 to 10 on every criterion; the total is computed. No student is notified. You appear as the interviewer, signed with your profile signature, and the VPSD office then does the final verification.';
+        return ['interviewees'];
+    }
+
+    public function formatValue(array $f, mixed $v): string
+    {
+        if (($f['type'] ?? '') === 'students') {
+            return collect(self::interviewees(['interviewees' => $v]))
+                ->map(fn ($r, $i) => ($i + 1) . '. ' . $r['name'] . ($r['number'] ? " ({$r['number']})" : ''))
+                ->implode("\n");
+        }
+
+        return parent::formatValue($f, $v);
+    }
+
+    public function chain(array $values = []): array
+    {
+        return [
+            ['type' => 'external', 'label' => 'Interviewer', 'name_field' => 'interviewer_name', 'email_field' => 'interviewer_email'],
+        ];
     }
 
     public function pdfView(): string { return 'pdf.college-model-interview-rating'; }
 
     public function summary(array $values): string
     {
-        $n = 0;
-        for ($i = 1; $i <= self::ROWS; $i++) {
-            if (! empty($values["interviewee_{$i}_name"])) {
-                $n++;
-            }
-        }
+        $count = count(self::interviewees($values));
 
-        return "Interview ratings · {$n} " . ($n === 1 ? 'interviewee' : 'interviewees');
+        return collect([
+            $count ? $count . ' ' . ($count === 1 ? 'interviewee' : 'interviewees') : null,
+            ! empty($values['interviewer_name']) ? 'Interviewer: ' . $this->personName($values, 'interviewer_name') : null,
+        ])->filter()->implode(' · ') ?: 'Interview/Talent rating';
     }
 }

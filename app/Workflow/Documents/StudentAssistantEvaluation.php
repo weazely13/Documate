@@ -6,9 +6,9 @@ use Illuminate\Validation\Rule;
 
 /**
  * F-SDM-018 Rev. 1 (03-31-23): Student Assistant Performance Evaluation Form.
- * The supervisor (any current signatory) rates the student assistant on 10 criteria. Only the
- * supervisor signs (on the paper form too), so the chain is empty: their signature is captured
- * when they issue it, then the VPSD does the final verification.
+ * The student assistant starts it and names their supervisor. The supervisor rates them on 10 criteria
+ * while signing, from an emailed link or from their signatory account when the email belongs to one.
+ * Older records were issued by the supervisor directly, with the ratings in the answers.
  */
 final class StudentAssistantEvaluation extends WorkflowDocument
 {
@@ -31,26 +31,27 @@ final class StudentAssistantEvaluation extends WorkflowDocument
     public const RENEW = 'Recommended for Renewal of Service as Student Assistant';
     public const NOT_RENEW = 'Not Recommended';
 
+    public function category(): \App\Enums\DocumentCategory { return \App\Enums\DocumentCategory::Requests; }
+
     public function key(): string { return 'student_assistant_evaluation'; }
     public function name(): string { return 'Student Assistant Performance Evaluation'; }
-    public function description(): string { return 'A supervisor\'s performance rating of a student assistant.'; }
+    public function description(): string { return 'Ask your supervisor to rate your performance as a student assistant.'; }
     public function formCode(): string { return 'F-SDM-018 Rev. 1 (03-31-23)'; }
-
-    /** The student never starts it. */
-    public function issuedByOffice(): bool { return true; }
-
-    /** Any current signatory may issue it. Also triggers the issuer snapshot (name, role, signature). */
-    public function issuedBySignatory(): bool { return true; }
 
     public function fields(): array
     {
-        $fields = [
+        return [
             'office_area' => [
                 'label' => 'Office/Area Assignment', 'type' => 'text', 'required' => true, 'max' => 120,
                 'placeholder' => 'e.g. Registrar\'s Office',
             ],
-        ];
+        ] + $this->signerContactFields('supervisor', 'Supervisor', 'They get a link to rate and sign. If this email belongs to a DocuMate signatory account, they sign from their account instead.');
+    }
 
+    /** The supervisor fills these in while signing. */
+    public function signerFields(array $values = []): array
+    {
+        $fields = [];
         $i = 1;
         foreach (self::CRITERIA as $key => $label) {
             $fields[$key] = [
@@ -91,41 +92,25 @@ final class StudentAssistantEvaluation extends WorkflowDocument
         return number_format($sum / count(self::CRITERIA), 2);
     }
 
-    public function beforeIssue(array $answers): array
+    /** The mean is stored with the ratings so it is sealed too. */
+    public function signerValues(array $answers, array $values): array
     {
         $answers['mean_rating'] = self::mean($answers);
 
         return $answers;
     }
 
-    public function check(array $values): ?string
+    public function chain(array $values = []): array
     {
-        if (self::mean($values) === null) {
-            return 'Rate all ten criteria from 1 to 5.';
-        }
-
-        $user = auth()->user();
-        if ($user?->signature_enabled && empty($user->signature_path)) {
-            return 'Upload your signature in your profile before issuing this evaluation.';
-        }
-
-        return null;
+        return [
+            ['type' => 'external', 'label' => 'Supervisor', 'name_field' => 'supervisor_name', 'email_field' => 'supervisor_email'],
+        ];
     }
 
-    /** No approval steps: the supervisor's signature is captured at issue time. */
-    public function chain(array $values = []): array { return []; }
-
-    public function issueNote(): ?string
-    {
-        return 'Rate the student assistant on all ten criteria. The mean rating is computed for you. You appear on the form as the supervisor (rater), signed with your profile signature. The VPSD office then does the final verification.';
-    }
+    /** Shown to the supervisor above the ratings. */
+    public function externalOverviewFields(): array { return ['office_area']; }
 
     public function pdfView(): string { return 'pdf.student-assistant-evaluation'; }
-
-    public function issuedMessage(array $values): string
-    {
-        return 'Your student assistant performance evaluation was issued. Once the VPSD office completes it, you can download the PDF from your Documents page.';
-    }
 
     public function summary(array $values): string
     {

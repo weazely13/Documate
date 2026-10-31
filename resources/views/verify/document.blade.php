@@ -6,16 +6,16 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Document Verification · DocuMate</title>
     <style>
-        :root { --blue:#2A57B4; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; }
+        :root { --blue:#2A57B4; --ink:#0d253d; --muted:#66707f; --line:#e7e5e1; }
         * { box-sizing: border-box; }
-        body { margin:0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background:#f8fafc; color:var(--ink); }
+        body { margin:0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background:#fafaf9; color:var(--ink); }
         .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
         .brand { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); }
         .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; margin-top:16px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
         .banner { border-radius:14px; padding:18px 20px; margin-top:14px; }
         .ok   { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; }
         .bad  { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
-        .none { background:#f1f5f9; border:1px solid var(--line); color:#334155; }
+        .none { background:#f5f4f2; border:1px solid var(--line); color:#273951; }
         .banner h1 { margin:0; font-size:20px; }
         .banner p { margin:6px 0 0; font-size:14px; line-height:1.5; }
         h2 { margin:0 0 10px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }

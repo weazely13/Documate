@@ -2,6 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   0. DESIGN TOKENS (see DESIGN.md)
+   Notion base: warm paper surfaces, hairline borders, 8px controls, 12px cards.
+   Stripe details: deep-navy ink, blue-tinted soft shadows, tabular figures.
+   ========================================================================== */
+:root {
+    --dm-brand: #2a57b4;
+    --dm-brand-deep: #24499a;
+    --dm-brand-press: #1e4090;
+    --dm-brand-tint: #f0f4fb;
+    --dm-ink: #0d253d;
+    --dm-ink-2: #273951;
+    --dm-ink-mute: #66707f;
+    --dm-ink-faint: #9a978f;
+    --dm-canvas: #ffffff;
+    --dm-ground: #fafaf9;
+    --dm-shell: #f5f4f2;
+    --dm-hover: #ecebe7;
+    --dm-hairline: #e7e5e1;
+    --dm-hairline-strong: #d4d1cb;
+    --dm-focus: rgba(42, 87, 180, 0.35);
+}
+
+html {
+    font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Form controls don't inherit the page face by default */
+button, input, select, textarea {
+    font-family: inherit;
+    font-feature-settings: inherit;
+}
+
+::selection {
+    background: #c0d0ee;
+    color: var(--dm-ink);
+}
+
+:focus-visible {
+    outline: 2px solid var(--dm-brand);
+    outline-offset: 2px;
+}
+
+input, textarea {
+    caret-color: var(--dm-brand);
+}
+
+/* Stripe's quiet data signal: counts, dates, money and IDs line up in tables and stat cards */
+table, .tabular-nums, [class*="text-2xl"], [class*="text-3xl"], [class*="text-4xl"] {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Page-wide scrollbars in the paper palette */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--dm-hairline-strong) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: var(--dm-hairline-strong);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--dm-ink-faint); }
+
+/* Home: the page scrolls over the sky, so its scrollbar is as slight as the browser allows,
+   on a clear track (the sky stops short of it, see partials.dash.header page mode) */
+.content:has(.dm-home-page) {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(13, 37, 61, 0.22) transparent;
+}
+.content:has(.dm-home-page)::-webkit-scrollbar { width: 6px; }
+.content:has(.dm-home-page)::-webkit-scrollbar-thumb { border: 0; background: rgba(13, 37, 61, 0.22); }
+
+/* Home ground particles. The dots are painted once on a layer 480px taller than the ground, and that layer
+   slides up 480px per cycle on the compositor (transform only, so no repaint per frame). Every tile height
+   divides 480, so the loop is seamless; the odd tile widths keep the field from looking like a grid.
+   Colour comes from --dm-particle (set per sky). The mask fades them in below the mountains. */
+.dm-particles {
+    --dm-particle: rgba(255, 255, 255, 0.6);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 260px);
+            mask-image: linear-gradient(to bottom, transparent 0, #000 260px);
+}
+.dm-particles::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 -480px 0;
+    background-image:
+        radial-gradient(circle at 23% 31%, var(--dm-particle) 0 1.4px, transparent 2.2px),
+        radial-gradient(circle at 71% 64%, var(--dm-particle) 0 1px, transparent 1.6px),
+        radial-gradient(circle at 46% 12%, var(--dm-particle) 0 2px, transparent 4px),
+        radial-gradient(circle at 87% 41%, var(--dm-particle) 0 0.8px, transparent 1.4px),
+        radial-gradient(circle at 12% 83%, var(--dm-particle) 0 1.2px, transparent 2px);
+    background-size: 173px 160px, 97px 120px, 293px 480px, 139px 96px, 229px 240px;
+    background-position: 0 0, 40px 60px, 120px 30px, 77px 13px, 151px 101px;
+    will-change: transform;
+    animation: dm-particles-drift 120s linear infinite;
+}
+@keyframes dm-particles-drift {
+    to { transform: translate3d(0, -480px, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .dm-particles::before { animation: none; }
+}
+
+/* Headings: Stripe-style negative tracking at display sizes, Notion's firm weight */
+h1, h2, .text-2xl, .text-3xl, .text-4xl {
+    letter-spacing: -0.02em;
+}
+.text-xl, h3 {
+    letter-spacing: -0.012em;
+}
+
 /* Alpine: keep x-cloak elements hidden until Alpine takes over, so collapsed panels never flash open. */
 [x-cloak] {
     display: none !important;
@@ -12,10 +131,10 @@
    1. LOGIN & REGISTER
    ========================================================================== */
 .input {
-    @apply w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500;
+    @apply w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
 }
 .input-file {
-    @apply border rounded-xl p-2 cursor-pointer;
+    @apply border border-slate-300 rounded-lg p-2 cursor-pointer;
 }
 .error {
     @apply text-red-600 text-sm mt-1 font-medium;
@@ -28,11 +147,11 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Arial, sans-serif;
 }
 
 body {
-    background: #f5f6fa;
+    background: var(--dm-ground);
+    color: var(--dm-ink);
 }
 
 /* LAYOUT CONTAINER
@@ -61,8 +180,8 @@ body:has(> .layout) {
     flex-direction: column;
     flex-shrink: 0;
     overflow: hidden;
-    background: #f8f9fb;
-    border-right: 1px solid #e5e7eb;
+    background: var(--dm-shell);
+    border-right: 1px solid var(--dm-hairline);
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 50;
     white-space: nowrap; /* Prevents text re-wrapping during collapse transitions */
@@ -122,7 +241,7 @@ body:has(> .layout) {
     align-items: center;
     gap: 8px;
     padding-right: 14px;
-    border-right: 1px solid #e5e7eb;
+    border-right: 1px solid #e7e5e1;
 }
 
 .topbar-institutions img {
@@ -141,7 +260,7 @@ body:has(> .layout) {
     max-width: 190px;
     font-size: 0.68rem;
     line-height: 1.2;
-    color: #6b7280;
+    color: #66707f;
 }
 
 .topbar-institutions-text strong {
@@ -185,11 +304,11 @@ body:has(> .layout) {
     gap: 10px;
     padding: 7px 8px;
     background: #fff;
-    border: 1px solid #e8eaef;
-    border-radius: 12px;
+    border: 1px solid var(--dm-hairline);
+    border-radius: 10px;
     text-decoration: none;
     color: inherit;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 1px 2px rgba(13, 37, 61, 0.05);
     transition: border-color 0.2s;
 }
 
@@ -219,7 +338,7 @@ body:has(> .layout) {
 }
 
 .nav-account > .bx {
-    color: #9ca3af;
+    color: #9a978f;
     font-size: 1.1rem;
 }
 
@@ -238,8 +357,8 @@ body:has(> .layout) {
     align-items: center;
     height: 36px;
     background: #fff;
-    border: 1px solid #e8eaef;
-    border-radius: 10px;
+    border: 1px solid var(--dm-hairline);
+    border-radius: 8px;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -256,7 +375,7 @@ body:has(> .layout) {
     place-items: center;
     background: none;
     border: 0;
-    color: #6b7280;
+    color: #66707f;
     font-size: 1.05rem;
     cursor: pointer;
 }
@@ -276,11 +395,11 @@ body:has(> .layout) {
     outline: 0;
     background: transparent;
     font-size: 0.84rem;
-    color: #111827;
+    color: #0d253d;
 }
 
 .nav-search input::placeholder {
-    color: #6b7280;
+    color: #66707f;
 }
 
 /* @tailwindcss/forms styles search inputs; the wrapper carries the focus ring instead */
@@ -307,11 +426,11 @@ body:has(> .layout) {
     font-family: inherit;
     font-size: 0.66rem;
     font-weight: 600;
-    color: #4b5563;
+    color: #4a5568;
     padding: 2px 5px;
     border-radius: 5px;
-    background: #f1f3f7;
-    border: 1px solid #e5e7eb;
+    background: #f5f4f2;
+    border: 1px solid #e7e5e1;
 }
 
 .sidebar.collapsed .nav-search {
@@ -338,7 +457,7 @@ body:has(> .layout) {
 /* Thin scrollbar when open; none on the icon rail, where its width would push the icons off-centre */
 .nav-body {
     scrollbar-width: thin;
-    scrollbar-color: #d1d5db transparent;
+    scrollbar-color: #d4d1cb transparent;
 }
 
 .sidebar.collapsed .nav-body {
@@ -358,7 +477,7 @@ body:has(> .layout) {
 .nav-section + .nav-section {
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px dashed #dde1e8;
+    border-top: 1px solid var(--dm-hairline);
 }
 
 .nav-section.is-foot {
@@ -371,12 +490,12 @@ body:has(> .layout) {
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 8px 10px;
-    border-radius: 9px;
+    padding: 7px 10px;
+    border-radius: 6px;
     border: 0;
     background: none;
-    color: #374151;
-    font-size: 0.86rem;
+    color: var(--dm-ink-2);
+    font-size: 0.875rem;
     font-weight: 500;
     text-align: left;
     text-decoration: none;
@@ -387,28 +506,27 @@ body:has(> .layout) {
 .nav-link > .bx:first-child {
     font-size: 1.15rem;
     min-width: 20px;
-    color: #6b7280;
+    color: #66707f;
     transition: color 0.15s;
 }
 
 .nav-link:hover {
-    background: #eef0f4;
-    color: #111827;
+    background: #ecebe7;
+    color: #0d253d;
 }
 
 .nav-link.active {
-    background: var(--brand);
-    color: #fff;
+    background: #e2e9f7;
+    color: var(--brand-deep);
     font-weight: 600;
-    box-shadow: 0 6px 14px -8px rgba(42, 87, 180, 0.8);
 }
 
 .nav-link.active > .bx:first-child {
-    color: #fff;
+    color: var(--brand);
 }
 
 .nav-link.active:hover {
-    background: var(--brand-deep);
+    background: #d8e2f4;
 }
 
 .nav-link.logout:hover {
@@ -438,8 +556,8 @@ body:has(> .layout) {
 }
 
 .nav-link.active .nav-badge {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    background: #fff;
+    color: var(--brand-deep);
 }
 
 .nav-dot {
@@ -451,7 +569,7 @@ body:has(> .layout) {
     height: 7px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 0 2px #f8f9fb;
+    box-shadow: 0 0 0 2px var(--dm-shell);
 }
 
 .sidebar.collapsed .nav-dot {
@@ -467,7 +585,7 @@ body:has(> .layout) {
 .nav-chevron {
     margin-left: auto;
     font-size: 1.1rem;
-    color: #9ca3af;
+    color: #9a978f;
     transition: transform 0.2s;
 }
 
@@ -486,7 +604,7 @@ body:has(> .layout) {
     gap: 1px;
     margin: 2px 0 2px 19px;
     padding-left: 12px;
-    border-left: 1px solid #dde1e8;
+    border-left: 1px solid #e7e5e1;
 }
 
 .nav-child {
@@ -494,22 +612,22 @@ body:has(> .layout) {
     display: flex;
     align-items: center;
     padding: 6px 10px;
-    border-radius: 8px;
-    color: #4b5563;
+    border-radius: 6px;
+    color: #4a5568;
     font-size: 0.84rem;
     text-decoration: none;
     transition: background-color 0.15s, color 0.15s;
 }
 
 .nav-child:hover {
-    background: #eef0f4;
-    color: #111827;
+    background: #ecebe7;
+    color: #0d253d;
 }
 
 .nav-child.active {
     color: var(--brand);
     font-weight: 600;
-    background: #eaf0fb;
+    background: #e2e9f7;
 }
 
 .nav-child.active::before {
@@ -529,7 +647,7 @@ body:has(> .layout) {
     display: none;
     padding: 18px 10px;
     font-size: 0.8rem;
-    color: #9ca3af;
+    color: #9a978f;
     text-align: center;
     white-space: normal;
 }
@@ -562,14 +680,14 @@ body:has(> .layout) {
 .nav-account:focus-visible,
 .nav-brand:focus-visible,
 .nav-search-btn:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--brand);
     outline-offset: 2px;
 }
 
 .name {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #111827;
+    color: #0d253d;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -577,7 +695,7 @@ body:has(> .layout) {
 
 .sub {
     font-size: 0.72rem;
-    color: #6b7280;
+    color: #66707f;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -605,7 +723,7 @@ body:has(> .layout) {
    3. TOPBAR & TOGGLE BUTTON ANIMATION
    ========================================================================== */
 .topbar {
-    height: 64px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -628,12 +746,12 @@ body:has(> .layout) {
 .topbar-crumb {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #6b7280;
+    color: #66707f;
     flex-shrink: 0;
 }
 
 .topbar-crumb-sep {
-    color: #d1d5db;
+    color: #d4d1cb;
     font-size: 1.1rem;
     flex-shrink: 0;
 }
@@ -642,7 +760,7 @@ body:has(> .layout) {
 .topbar h3 {
     font-size: 1.05rem;
     font-weight: 600;
-    color: #111827;
+    color: #0d253d;
     margin: 0;
 }
 
@@ -657,18 +775,18 @@ body:has(> .layout) {
     width: 38px;
     height: 38px;
     background: transparent;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e7e5e1;
     cursor: pointer;
     border-radius: 10px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #4b5563;
+    color: #4a5568;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 
 .collapse-btn:hover {
-    background-color: #f4f6fa;
+    background-color: #f5f4f2;
     border-color: rgba(42, 87, 180, 0.3);
     color: #2A57B4;
 }
@@ -676,7 +794,7 @@ body:has(> .layout) {
 .toggle-icon-box {
     display: inline-flex;
     font-size: 1.35rem;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .collapse-btn.collapsed .toggle-icon-box {
@@ -715,7 +833,7 @@ body:has(> .layout) {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: #2563eb;
+    background: #2a57b4;
     color: white;
     width: 55px;
     height: 55px;
@@ -765,7 +883,7 @@ body:has(> .layout) {
 }
 
 .chatbot-header {
-    background: #2563eb;
+    background: #2a57b4;
     color: white;
     padding: 10px;
     display: flex;
@@ -791,7 +909,7 @@ body:has(> .layout) {
 }
 
 .chatbot-input button {
-    background: #2563eb;
+    background: #2a57b4;
     color: white;
     border: none;
     padding: 10px;
@@ -799,7 +917,7 @@ body:has(> .layout) {
 
 #tooltip {
     position: fixed;
-    background: #111827;
+    background: #0d253d;
     color: white;
     padding: 5px 8px;
     font-size: 12px;
@@ -816,7 +934,7 @@ body:has(> .layout) {
 
 .chatbot-choice-label {
     margin-bottom: .45rem;
-    color: #475569;
+    color: #4a5568;
 }
 
 .chatbot-choice-list {
@@ -991,7 +1109,7 @@ body:has(> .layout) {
     background:
         radial-gradient(circle at top, rgba(42, 87, 180, 0.08), transparent 38%),
         linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 16px 40px rgba(13, 37, 61, 0.06);
 }
 
 .profile-hero-stack {
@@ -1040,7 +1158,7 @@ body:has(> .layout) {
 }
 
 .profile-display-name {
-    color: #111827;
+    color: #0d253d;
     font-size: 30px;
     font-weight: 700;
     line-height: 1.1;
@@ -1074,8 +1192,8 @@ body:has(> .layout) {
 }
 
 .profile-meta-chip.muted {
-    background: #f3f4f6;
-    color: #6b7280;
+    background: #f5f4f2;
+    color: #66707f;
 }
 
 .profile-save-button {
@@ -1115,12 +1233,12 @@ body:has(> .layout) {
     font-size: 34px;
     line-height: 1.1;
     font-weight: 800;
-    color: #111827;
+    color: #0d253d;
 }
 
 .profile-section-copy p {
     margin-top: 4px;
-    color: #6b7280;
+    color: #66707f;
     font-size: 15px;
 }
 
@@ -1128,7 +1246,7 @@ body:has(> .layout) {
     border-radius: 22px;
     border: 1px solid #d5deed;
     background: #ffffff;
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 16px 40px rgba(13, 37, 61, 0.06);
     padding: 24px;
 }
 
@@ -1152,14 +1270,14 @@ body:has(> .layout) {
 }
 
 .profile-card-heading h3 {
-    color: #111827;
+    color: #0d253d;
     font-size: 28px;
     font-weight: 800;
     line-height: 1.1;
 }
 
 .profile-card-heading p {
-    color: #6b7280;
+    color: #66707f;
     font-size: 14px;
     margin-top: 4px;
 }
@@ -1193,7 +1311,7 @@ body:has(> .layout) {
 .profile-label {
     display: inline-block;
     margin-bottom: 6px;
-    color: #111827;
+    color: #0d253d;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.01em;
@@ -1204,7 +1322,7 @@ body:has(> .layout) {
     border: 1px solid #cdd6e3;
     border-radius: 8px;
     background: #ffffff;
-    color: #111827;
+    color: #0d253d;
     padding: 11px 12px;
     font-size: 14px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -1337,19 +1455,19 @@ body:has(> .layout) {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 9999px;
-  background: linear-gradient(135deg, var(--chatbot-primary), var(--chatbot-primary-dark));
-  box-shadow: 0 8px 24px -4px rgba(var(--chatbot-primary-rgb), 0.45);
+  background: var(--chatbot-primary);
+  box-shadow: 0 8px 24px rgba(0, 55, 112, 0.18), 0 2px 6px rgba(0, 55, 112, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 60;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
 }
 
 .chatbot-btn:hover {
   transform: scale(1.06);
-  box-shadow: 0 10px 28px -4px rgba(var(--chatbot-primary-rgb), 0.55);
+  box-shadow: 0 12px 28px rgba(0, 55, 112, 0.22), 0 2px 6px rgba(0, 55, 112, 0.1);
 }
 
 .chatbot-btn:active {
@@ -1359,7 +1477,7 @@ body:has(> .layout) {
 .chatbot-btn i {
   font-size: 1.6rem;
   color: white;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .chatbot-btn.open i {
@@ -1395,7 +1513,7 @@ body:has(> .layout) {
   max-height: min(38rem, calc(100vh - 7.5rem));
   background: #ffffff;
   border-radius: 1.25rem;
-  box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 20px 50px -12px rgba(13, 37, 61, 0.25), 0 0 0 1px rgba(13, 37, 61, 0.04);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1504,12 +1622,12 @@ body:has(> .layout) {
 /* ---------------- BODY / MESSAGES ---------------- */
 
 .chatbot-body {
-  background: #f8fafc;
+  background: #fafaf9;
   scroll-behavior: smooth;
 }
 
 .chatbot-body::-webkit-scrollbar { width: 5px; }
-.chatbot-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+.chatbot-body::-webkit-scrollbar-thumb { background: #d4d1cb; border-radius: 9999px; }
 .chatbot-body::-webkit-scrollbar-track { background: transparent; }
 
 .chatbot-msg-row {
@@ -1523,8 +1641,8 @@ body:has(> .layout) {
 
 .chatbot-bubble-bot {
   background: white;
-  color: #1e293b;
-  border: 1px solid #e2e8f0;
+  color: #182c44;
+  border: 1px solid #e7e5e1;
   border-bottom-left-radius: 0.3rem;
 }
 
@@ -1563,7 +1681,7 @@ body:has(> .layout) {
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 9999px;
-  background: #94a3b8;
+  background: #9a978f;
   animation: chatbot-typing-bounce 1.3s ease-in-out infinite;
 }
 
@@ -1579,12 +1697,12 @@ body:has(> .layout) {
 
 .chatbot-input {
   background: white;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #e7e5e1;
   flex-shrink: 0;
 }
 
 .chatbot-input input {
-  background: #f1f5f9;
+  background: #f5f4f2;
   border: 1px solid transparent;
   border-radius: 9999px;
   padding: 0.55rem 1rem;
@@ -1691,9 +1809,63 @@ body.report-pdf-open .chatbot-panel {
 /* Slim scrollbars for side panels (Reports sidebar). */
 .thin-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #d4d1cb transparent;
 }
 .thin-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .thin-scroll::-webkit-scrollbar-track { background: transparent; }
-.thin-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-.thin-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.thin-scroll::-webkit-scrollbar-thumb { background: #d4d1cb; border-radius: 9999px; }
+.thin-scroll::-webkit-scrollbar-thumb:hover { background: #9a978f; }
+
+/* ---------------- WORKFLOW REVIEW: TRANSACTION PANEL OPEN ----------------
+   While a transaction's panel is open, the AI Assistant (button and chat window) steps aside instead of covering it.
+   - Phones (< 640px): the panel fills the screen, so the assistant hides until the panel closes.
+   - 640px to 1535px: the panel is a 440px drawer on the right. The button sits just left of it. Where the chat
+     window fits beside the drawer (860px+) it opens there, sized to the space left; on narrower screens it opens
+     as a full-screen sheet over everything, like it does on phones, so it is never squeezed.
+   - 1536px+: the panel is a 420px column in the page, so both move left of that column. */
+
+body.wf-panel-open .chatbot-btn,
+body.wf-panel-open .chatbot-panel {
+  transition-property: right, transform, opacity, visibility, box-shadow;
+}
+
+@media (max-width: 639.98px) {
+  body.wf-panel-open .chatbot-btn,
+  body.wf-panel-open .chatbot-panel {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1535.98px) {
+  body.wf-panel-open .chatbot-btn { right: calc(440px + 1rem); }
+}
+
+@media (min-width: 640px) and (max-width: 859.98px) {
+  body.wf-panel-open .chatbot-panel {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    z-index: 70;
+  }
+}
+
+@media (min-width: 860px) and (max-width: 1535.98px) {
+  body.wf-panel-open .chatbot-panel {
+    right: calc(440px + 1rem);
+    max-width: calc(100vw - 440px - 2rem);
+  }
+}
+
+@media (min-width: 1536px) {
+  body.wf-panel-open .chatbot-btn,
+  body.wf-panel-open .chatbot-panel { right: calc(420px + 3rem); }
+  body.wf-panel-open .chatbot-panel { max-width: calc(100vw - 420px - 4.5rem); }
+}

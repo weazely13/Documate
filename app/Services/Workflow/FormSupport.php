@@ -13,6 +13,23 @@ use Illuminate\Support\Str;
  */
 final class FormSupport
 {
+    /** The student's account details frozen into a form: what every form prints about them. */
+    public static function studentSnapshot(User $user, \App\Workflow\Documents\WorkflowDocument $document): array
+    {
+        return [
+            'student_name' => self::systemValue($user, 'formatted_full_name'),
+            'student_program' => self::systemValue($user, 'program_year_section'),
+            'student_course' => self::systemValue($user, 'program'),
+            'student_number' => self::systemValue($user, 'student_number'),
+            'contact_number' => self::systemValue($user, 'contact_number'),
+            'officer_position' => self::systemValue($user, 'officer_position'),
+            'officer_organization' => self::systemValue($user, 'officer_organization'),
+            'student_name_detail' => self::nameDetail($user),
+            'semester' => self::systemValue($user, 'current_semester'),
+            'academic_year' => self::systemValue($user, 'current_academic_year'),
+        ] + $document->studentSnapshotExtras($user);
+    }
+
     public static function systemValue(User $user, string $key, ?StudentDocumentWorkspace $workspace = null): string
     {
         $user->loadMissing('program', 'organization', 'officerRecord.position', 'officerRecord.organization');

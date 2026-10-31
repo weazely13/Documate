@@ -42,9 +42,10 @@ class ModelStudentRating extends WorkflowDocument
     public function fields(): array
     {
         return [
+            'rater_title' => $this->salutationField('rater_name'),
             'rater_name' => [
                 'label' => "Rater's full name", 'type' => 'text', 'required' => true, 'max' => 120,
-                'placeholder' => 'e.g. Maria Santos', 'sensitive' => true,
+                'placeholder' => 'e.g. Maria Santos', 'sensitive' => true, 'salutation' => 'rater_title',
                 'help' => 'A classmate or teacher who personally knows you.',
             ],
             'rater_relationship' => [

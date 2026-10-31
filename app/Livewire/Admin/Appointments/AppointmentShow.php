@@ -36,8 +36,9 @@ class AppointmentShow extends Component
 
     public function mount(Appointment $appointment): void
     {
-        $this->appointment = $appointment->load('user', 'workspace.template', 'reschedules', 'reapplications', 'statusLogs.changedBy');
+        $this->appointment = $appointment->load('user.program', 'workspace.template', 'reviewer', 'reschedules', 'reapplications', 'statusLogs.changedBy');
         $this->appointment->refreshMissedStatusIfLapsed();
+        $this->adminNotes = (string) ($this->appointment->admin_notes ?? '');
 
         if (
             $this->appointment->status === 'approved'
@@ -143,6 +144,7 @@ class AppointmentShow extends Component
             'reviewed_at' => now(),
         ]);
 
+        $this->showApproveConfirm = false;
         $this->appointment->logStatus('approved', null, Auth::id());
         $this->appointment->user->notify(new AppointmentStatusChanged($this->appointment, 'approved'));
         $this->appointment->refresh();
@@ -202,6 +204,14 @@ class AppointmentShow extends Component
         $this->appointment->user->notify(new AppointmentStatusChanged($this->appointment, 'rescheduled'));
         $this->showReschedule = false;
         $this->appointment->refresh();
+    }
+
+    /** Office notes about this visit; visible to staff only. */
+    public function saveNotes(): void
+    {
+        $this->validate(['adminNotes' => 'nullable|string|max:2000']);
+        $this->appointment->update(['admin_notes' => trim($this->adminNotes) ?: null]);
+        $this->dispatch('toast', type: 'success', title: 'Notes saved', message: 'Only the office can see these notes.');
     }
 
     public function markAttended(): void

@@ -105,6 +105,21 @@ trait HasTransactionWorkflow
         return $this->hasMany(TransactionApproval::class, 'workspace_id', 'workspace_id')->orderBy('step_order');
     }
 
+    /** The answers plus what each signer filled in while signing (ratings, scores): what the form prints. */
+    public function printedValues(): array
+    {
+        $values = $this->field_values ?? [];
+        if (! $this->exists) {
+            return $values;
+        }
+
+        foreach ($this->approvals()->where('status', ApprovalStatus::Approved->value)->get() as $a) {
+            $values = array_merge($values, (array) ($a->response['values'] ?? []));
+        }
+
+        return $values;
+    }
+
     public function auditLogs(): HasMany
     {
         return $this->hasMany(TransactionAuditLog::class, 'workspace_id', 'workspace_id')->orderBy('created_at')->orderBy('id');

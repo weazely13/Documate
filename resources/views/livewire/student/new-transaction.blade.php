@@ -46,7 +46,7 @@
                     @php
                         [$backUrl, $backLabel] = $editingWorkspaceId
                             ? [route('student.documents.index'), 'My documents']
-                            : [route('student.new-transaction'), 'New transaction'];
+                            : [route('student.home'), 'Home'];
                     @endphp
                     <a href="{{ $backUrl }}" wire:navigate title="Back to {{ $backLabel }}" class="{{ $iconBtn }}">
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -304,7 +304,7 @@
                     x-transition.opacity
                     x-teleport-owner="instructions-modal"
                     class="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4"
-                    style="background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);"
+                    style="background: rgba(13,37,61, 0.55); backdrop-filter: blur(2px);"
                     @click.self="showInstructions = false"
                     @keydown.escape.window="showInstructions = false"
                 >
@@ -372,7 +372,7 @@
                     x-transition.opacity
                     x-teleport-owner="error-modal"
                     class="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4"
-                    style="background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);"
+                    style="background: rgba(13,37,61, 0.55); backdrop-filter: blur(2px);"
                     @click.self="errorModal.open = false"
                     @keydown.escape.window="errorModal.open = false"
                 >
@@ -408,80 +408,24 @@
     @else
 
         {{-- ============================================================
-            FORM PICKER: paperless forms and paper templates, grouped by category
+            HOME: the sky of the time of day fills the page; the greeting is centered,
+            with the form search, the office's busy times and unfinished work below.
         ============================================================= --}}
-        <div class="mx-auto max-w-3xl space-y-6">
+        @php
+            $categories = collect($formItems)->unique('category')->map(fn ($i) => ['key' => $i['category'], 'label' => $i['categoryLabel']])->values();
 
-            <div>
-                <h2 class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">What do you need?</h2>
-                <p class="mt-1 text-sm text-slate-500">
-                    Pick a form. <span class="font-medium text-slate-700">Online</span> forms are signed and finished here.
-                    <span class="font-medium text-amber-800">Print</span> forms are filled in here, then printed and brought to the VPSD office.
-                </p>
-            </div>
+        @endphp
+        <div>
+            @include('livewire.partials.verify-account-card')
 
-            {{-- Search with the category dropdown beside it (stacked on narrow phones) --}}
-            <div class="flex flex-col gap-2 min-[480px]:flex-row">
-                <div class="relative min-w-0 flex-1">
-                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                        <i class='bx bx-search text-lg' aria-hidden="true"></i>
-                    </div>
-                    <input
-                        type="search"
-                        wire:model.live.debounce.250ms="search"
-                        placeholder="Search, e.g. permit, consent, clearance"
-                        aria-label="Search forms"
-                        class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-base placeholder-slate-400 focus:border-[#2A57B4] focus:outline-none focus:ring-1 focus:ring-[#2A57B4] sm:text-sm"
-                    />
-                </div>
-
-                <select wire:model.live="category" aria-label="Form category"
-                        class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-3.5 pr-10 text-base text-slate-700 focus:border-[#2A57B4] focus:outline-none focus:ring-1 focus:ring-[#2A57B4] min-[480px]:w-56 sm:text-sm">
-                    <option value="all">All categories</option>
-                    @foreach (\App\Enums\DocumentCategory::cases() as $cat)
-                        @continue($cat === \App\Enums\DocumentCategory::Other && ! collect($templates)->contains('category', 'other'))
-                        <option value="{{ $cat->value }}">{{ $cat->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="space-y-6" wire:loading.class="opacity-60" wire:target="search, category">
-                @forelse ($groups as $group)
-                    <section wire:key="group-{{ $group['key'] }}" class="space-y-2.5">
-                        <h3 class="flex items-baseline gap-2 text-sm font-semibold text-slate-600">
-                            {{ $group['label'] }}
-                            <span class="font-medium text-slate-400">{{ count($group['items']) }}</span>
-                        </h3>
-                        <div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
-                            @foreach ($group['items'] as $item)
-                                <a href="{{ $item['url'] }}" wire:navigate wire:key="item-{{ $group['key'] }}-{{ $loop->index }}"
-                                   class="group flex items-center gap-4 px-4 py-4 transition hover:bg-slate-50 sm:px-5">
-                                    <div class="min-w-0 flex-1">
-                                        <p class="break-words text-[15px] font-semibold text-slate-900 group-hover:text-[#2A57B4]">{{ $item['name'] }}</p>
-                                        @if ($item['description'])
-                                            <p class="mt-0.5 line-clamp-2 text-sm text-slate-500 sm:line-clamp-1">{{ $item['description'] }}</p>
-                                        @endif
-                                    </div>
-                                    @if ($item['paper'])
-                                        <span class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800">Print</span>
-                                    @else
-                                        <span class="hidden shrink-0 text-xs font-medium text-slate-500 sm:inline">Online</span>
-                                    @endif
-                                    <i class='bx bx-chevron-right shrink-0 text-xl text-slate-300 group-hover:text-[#2A57B4]' aria-hidden="true"></i>
-                                </a>
-                            @endforeach
-                        </div>
-                    </section>
-                @empty
-                    <div class="rounded-2xl border border-dashed border-slate-200 px-4 py-14 text-center">
-                        <p class="text-sm font-medium text-slate-700">No form matches{{ $search ? ' "' . $search . '"' : '' }}.</p>
-                        @if ($category !== 'all' || $search)
-                            <button type="button" wire:click="$set('category', 'all'); $set('search', '')"
-                                    class="mt-2 text-sm font-semibold text-[#2A57B4] hover:underline">Show all forms</button>
-                        @endif
-                    </div>
-                @endforelse
-            </div>
+            @include('livewire.partials.dash.header', [
+                'page' => true,
+                'name' => $firstName,
+                'facts' => $facts,
+                'slides' => $slides,
+                'picker' => false,
+                'inner' => ['livewire.student._home', compact('formItems', 'categories', 'resume', 'appointments')],
+            ])
         </div>
     @endif
 </div>

@@ -106,7 +106,7 @@ class NewTransaction extends Component
 
     public function goToDashboard()
     {
-        return $this->redirectRoute('student.new-transaction', navigate: true);
+        return $this->redirectRoute('student.home', navigate: true);
     }
 
     #[Renderless]
@@ -276,12 +276,14 @@ class NewTransaction extends Component
             'description' => $d->description(),
             'paper' => false,
             'url' => route('student.transactions.new', ['type' => $d->key(), 'from' => 'new']),
+            'preview' => route('student.forms.preview', $d->key()),
         ])->merge(collect($this->filteredTemplates)->map(fn ($t) => [
             'category' => $t['category'],
             'name' => $this->formatTitle($t['name']),
             'description' => $t['description'],
             'paper' => true,
             'url' => route('student.new-transaction', ['template' => $t['template_id']]),
+            'preview' => $t['preview_url'],
         ]));
 
         return collect(DocumentCategory::cases())
@@ -302,9 +304,157 @@ class NewTransaction extends Component
             $this->category = 'all';
         }
 
+        if ($this->selectedTemplate) {
+            return view('livewire.student.new-transaction', ['groups' => []])
+                ->layout('layouts.app', ['title' => 'New Transaction']);
+        }
+
+        $user = Auth::user()->loadMissing('program');
+
         return view('livewire.student.new-transaction', [
-            'groups' => $this->selectedTemplate ? [] : $this->groups,
-        ])->layout('layouts.app', ['title' => 'New Transaction']);
+            'groups' => [],
+            'firstName' => $user->first_name ?: 'there',
+            'facts' => collect([$user->student_number, $user->program?->name])->filter()->values()->all(),
+            'formItems' => $this->formItems(),
+            'resume' => $this->unfinished((int) $user->id),
+            'appointments' => $this->upcomingAppointments((int) $user->id),
+            'slides' => $this->busySlides(),
+        ])->layout('layouts.app', ['title' => 'Home']);
+    }
+
+    /** The student's next visits for Home (soonest first), with the live "now serving" number for today's. */
+    private function upcomingAppointments(int $userId): \Illuminate\Support\Collection
+    {
+        $list = \App\Models\Appointment::with('workspace.template')
+            ->where('user_id', $userId)
+            ->whereIn('status', ['pending', 'approved'])
+            ->whereDate('appointment_date', '>=', today())
+            ->orderBy('appointment_date')
+            ->orderByRaw("CASE session WHEN 'morning' THEN 0 ELSE 1 END")
+            ->limit(4)
+            ->get();
+
+        $serving = \App\Models\OfficeAvailability::where('date', today()->toDateString())->first();
+
+        return $list->each(fn ($a) => $a->setAttribute('now_serving',
+            $a->status === 'approved' && $a->appointment_date->isToday() ? $serving?->{'now_serving_' . $a->session} : null));
+    }
+
+    /**
+     * When the VPSD office is busiest, from appointments: every booking from the last 90 days through the
+     * next 30 (rejected and withdrawn ones never brought anyone in, so they are left out). Appointments are
+     * booked by session, so "time of day" means each weekday's morning and afternoon.
+     *
+     * @return array<int, array{0: string, 1: array}> slides for partials.dash.header
+     */
+    private function busySlides(): array
+    {
+        $names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        $short = ['Su', 'M', 'Tu', 'W', 'Th', 'F', 'Sa'];
+        $sessions = ['morning' => 'AM', 'afternoon' => 'PM'];
+
+        $rows = \App\Models\Appointment::query()
+            ->whereBetween('appointment_date', [today()->subDays(90)->toDateString(), today()->addDays(30)->toDateString()])
+            ->whereNotIn('status', ['rejected', 'retracted'])
+            ->get(['appointment_date', 'session']);
+
+        $byDay = array_fill(0, 7, 0);
+        $bySlot = [];
+        foreach ($rows as $r) {
+            $d = $r->appointment_date->dayOfWeek;
+            $byDay[$d]++;
+            $session = isset($sessions[$r->session]) ? $r->session : 'morning';
+            $bySlot[$d][$session] = ($bySlot[$d][$session] ?? 0) + 1;
+        }
+
+        $note = 'Appointments at the VPSD office, the last 90 days and the next 30.';
+
+        // Busiest days: Monday first, the office's week.
+        $order = [1, 2, 3, 4, 5, 6, 0];
+        $dayBars = array_map(fn ($d) => ['label' => $short[$d], 'name' => $names[$d] . 's', 'n' => $byDay[$d]], $order);
+        $topDay = $rows->isNotEmpty() ? array_search(max($byDay), $byDay, true) : null;
+
+        // Busiest times: each open weekday's morning and afternoon (weekends only if anyone booked them).
+        $slotBars = [];
+        foreach ($order as $d) {
+            if (in_array($d, [0, 6], true) && ! $byDay[$d]) {
+                continue;
+            }
+            foreach ($sessions as $key => $ampm) {
+                $slotBars[] = [
+                    'label' => $short[$d], 'sub' => $ampm,
+                    'name' => $names[$d] . ' ' . ($key === 'morning' ? 'mornings' : 'afternoons'),
+                    'n' => $bySlot[$d][$key] ?? 0,
+                ];
+            }
+        }
+        $ranked = collect($slotBars)->filter(fn ($b) => ! in_array(mb_substr($b['name'], 0, 3), ['Sun', 'Sat'], true))->sortBy('n');
+        $busiest = collect($slotBars)->sortByDesc('n')->first();
+        $quietest = $ranked->first();
+
+        return [
+            ['livewire.student._sky-chart', [
+                'title' => 'Busiest days',
+                'note' => $note,
+                'bars' => $dayBars,
+                'caption' => $topDay !== null
+                    ? 'Busiest: <strong>' . e($names[$topDay]) . 's</strong>, ' . $byDay[$topDay] . ' ' . \Illuminate\Support\Str::plural('appointment', $byDay[$topDay])
+                    : null,
+            ]],
+            ['livewire.student._sky-chart', [
+                'title' => 'Busiest times of day',
+                'note' => $note,
+                'bars' => $slotBars,
+                'caption' => $busiest && $busiest['n']
+                    ? 'Busiest: <strong>' . e($busiest['name']) . '</strong>'
+                        . ($quietest && $quietest['name'] !== $busiest['name'] ? ' &middot; Quietest: <strong>' . e($quietest['name']) . '</strong>' : '')
+                    : null,
+            ]],
+        ];
+    }
+
+    /**
+     * Every form a student can start, for the Home search: online forms and paper templates, in category order.
+     *
+     * @return array<int, array{name: string, description: string, category: string, categoryLabel: string, paper: bool, url: string}>
+     */
+    private function formItems(): array
+    {
+        $search = $this->search;
+        $category = $this->category;
+        $this->search = '';
+        $this->category = 'all';
+        $groups = $this->groups;
+        [$this->search, $this->category] = [$search, $category];
+
+        return collect($groups)->flatMap(fn ($g) => collect($g['items'])->map(fn ($i) => [
+            'name' => $i['name'],
+            'description' => (string) $i['description'],
+            'category' => $g['key'],
+            'categoryLabel' => $g['label'],
+            'paper' => $i['paper'],
+            'url' => $i['url'],
+            'preview' => $i['preview'] ?? null,
+        ]))->values()->all();
+    }
+
+    /** Drafts and documents sent back for changes: the ones only the student can move. */
+    private function unfinished(int $userId): array
+    {
+        return StudentDocumentWorkspace::query()
+            ->where('user_id', $userId)
+            ->whereIn('workflow_status', ['draft', 'action_required'])
+            ->with(['template', 'approvals.role'])
+            ->withCount(['approvals', 'approvals as approved_count' => fn ($q) => $q->where('status', 'approved')])
+            ->orderByRaw("CASE workflow_status WHEN 'action_required' THEN 0 ELSE 1 END")
+            ->latest('updated_at')
+            ->limit(4)
+            ->get()
+            ->map(fn ($ws) => \App\Support\DocumentProgress::describe($ws) + [
+                'id' => $ws->workspace_id,
+                'updated' => $ws->updated_at?->diffForHumans(),
+            ])
+            ->all();
     }
     private function programAbbreviation(string $program): string
     {

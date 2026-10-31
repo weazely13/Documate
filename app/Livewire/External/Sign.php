@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use InvalidArgumentException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Renderless;
+use App\Services\Workflow\DocumentPdf;
 use Livewire\Component;
 use App\Workflow\Documents\DocumentRegistry;
 
@@ -39,6 +41,9 @@ class Sign extends Component
     public bool $codeSent = false;
 
     public ?string $rating = null;
+
+    /** What the signer fills in, for documents with signer fields (e.g. the ten evaluation criteria). */
+    public array $answers = [];
     public string $signerName = '';
     public bool $attest = false;
     public string $signature = '';
@@ -223,6 +228,11 @@ class Sign extends Component
             'signature.required' => 'Please draw your signature in the box.',
         ], ['signerName' => 'name']);
 
+        $doc = DocumentRegistry::get($this->req->workspace->document_type);
+        $filled = $this->kind() === 'form'
+            ? $doc->signerResponse($this->answers, $this->req->workspace->field_values ?? [])
+            : null;
+
         $path = $hash = null;
         if ($this->applySignature) {
             try { [$path, $hash] = app(ExternalSignatureStore::class)->fromDataUrl($this->signature); }
@@ -230,10 +240,11 @@ class Sign extends Component
         }
 
 
-        $isRating = $this->kind() === 'rating';
         $n = (int) $this->rating;
 
         $response = match ($this->kind()) {
+            'form' => ['values' => $filled, 'attested' => true],
+            'recommend' => ['recommended' => true, 'attested' => true],
             'rating' => ['rating' => $n, 'rating_label' => ModelStudentRating::RATINGS[$n] ?? '', 'attested' => true],
             'review' => ['reviewed' => true, 'attested' => true],
             'consent' => ['consented' => true, 'attested' => true],
@@ -279,13 +290,49 @@ class Sign extends Component
         unset($this->req);
     }
 
+    /**
+     * The whole document as it will print, with this signer's answers, name and drawn signature filled in live.
+     * Only for a verified signer on an open request. Nothing is saved, sealed or audited.
+     */
+    #[Renderless]
+    public function previewDocument(): string
+    {
+        abort_unless($this->state() === 'form', 403);
+
+        $ws = $this->req->workspace->loadMissing('user');
+        $doc = DocumentRegistry::get($ws->document_type);
+        $values = $ws->field_values ?? [];
+
+        $filled = [];
+        if ($this->kind() === 'form') {
+            $answers = [];
+            foreach (array_keys($doc->signerFields($values)) as $name) {
+                $v = $this->answers[$name] ?? null;
+                $answers[$name] = is_string($v) ? (trim($v) === '' ? null : trim($v)) : $v;
+            }
+            $filled = rescue(fn () => $doc->signerValues($answers, $values), [], false);
+        }
+
+        $response = $this->kind() === 'rating' && isset(ModelStudentRating::RATINGS[(int) $this->rating])
+            ? ['rating' => (int) $this->rating, 'rating_label' => ModelStudentRating::RATINGS[(int) $this->rating]]
+            : ['values' => $filled];
+
+        return app(DocumentPdf::class)->previewHtml($ws, [
+            'approval_id' => $this->req->approval?->id,
+            'name' => trim($this->signerName),
+            'values' => $filled,
+            'response' => $response,
+            'signature' => $this->applySignature ? $this->signature : null,
+        ]);
+    }
+
     public function render()
     {
         $values = $this->req->workspace->field_values ?? [];
         $doc = DocumentRegistry::get($this->req->workspace->document_type);
         $keys = match ($this->kind()) {
             'review', 'guardian', 'witness' => $doc->externalOverviewFields(),
-            'consent' => [],
+            'consent', 'form', 'recommend' => $doc->externalOverviewFields(),
             default => ['activity', 'purposes', 'activity_slots', 'venue', 'persons_involved'],
         };
 
@@ -306,6 +353,8 @@ class Sign extends Component
             'organization' => $values['non_academic_org'] ?? '',
             'details' => $details,
             'relationship' => strtolower((string) ($values['relationship'] ?? '')),
-        ])->layout('layouts.external', ['title' => 'Rating request']);
+            'signerFields' => $doc->signerFields($values),
+            'signerRole' => (string) $this->req->approval?->label,
+        ])->layout('layouts.external', ['title' => 'Rating request', 'wide' => $this->state() === 'form']);
     }
 }

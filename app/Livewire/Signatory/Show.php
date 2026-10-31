@@ -40,6 +40,9 @@ class Show extends Component
     public string $inspectionRemarks = '';
 
     public ?string $rating = null;
+
+    /** What the signer fills in while signing, for documents with signer fields. */
+    public array $answers = [];
         
 
     public function mount(TransactionApproval $approval): void
@@ -116,6 +119,7 @@ class Show extends Component
             $this->reason = '';
             $this->modal = $which;
             $this->rating = null;
+            $this->answers = [];
         }
     }
 
@@ -147,6 +151,11 @@ class Show extends Component
             'rating' => $kind === 'rating' ? ['required', 'in:1,2,3,4,5'] : ['nullable'],
         ], ['rating.required' => 'Choose a rating.'], ['password' => 'password', 'inspectionRemarks' => 'remarks']);
 
+        if ($kind === 'form') {
+            $ws = $this->approval->workspace;
+            DocumentRegistry::get($ws->document_type)->signerResponse($this->answers, $ws->field_values ?? []);
+        }
+
         if (! Hash::check($this->password, $user->password)) {
             RateLimiter::hit($key, 60);
             $this->addError('password', 'That password is not correct.');
@@ -160,6 +169,7 @@ class Show extends Component
             app(TransactionWorkflow::class)->approve($this->approval, $user, 'account_password', [
                 'inspection_remarks' => $this->inspectionRemarks,
                 'rating' => $this->rating,
+                'answers' => $this->answers,
             ]);
         } catch (WorkflowException $e) {
             $this->password = '';

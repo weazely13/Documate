@@ -103,7 +103,12 @@ class Show extends Component
 
     private function needsIdentityCheck(): bool
     {
-        $ws = $this->workspace;
+        return self::identityCheckNeeded($this->workspace);
+    }
+
+    /** True when an external rater must be checked by hand before signing can open (shared with Workflow Review). */
+    public static function identityCheckNeeded(StudentDocumentWorkspace $ws): bool
+    {
         $values = $ws->field_values ?? [];
         $doc = DocumentRegistry::get($ws->document_type);
 
@@ -129,6 +134,13 @@ class Show extends Component
             $this->message = '';
             $this->reissue = true;
             $this->modal = $which;
+
+            // Start from the AI's wording when it suggested this same decision; the reviewer edits or replaces it.
+            $ai = $this->workspace->ai_findings ?? [];
+            $suggests = ['request' => 'request_changes', 'reject' => 'reject'][$which] ?? null;
+            if ($suggests && ($ai['recommendation'] ?? null) === $suggests && ! empty($ai['message'])) {
+                $this->message = $ai['message'];
+            }
         }
     }
 
@@ -212,6 +224,13 @@ class Show extends Component
         }
 }
 
+    /** Runs the AI pre-check again (e.g. after it failed, or to get a second look). */
+    public function runAiCheck(): void
+    {
+        \App\Jobs\ReviewTransactionSubmission::start($this->workspace);
+        unset($this->workspace);
+    }
+
     /* ------------------------------- render ------------------------------ */
 
     public function render()
@@ -225,7 +244,7 @@ class Show extends Component
 
         $chainPreview = collect($document->chain($values))->map(function ($step) use ($values, $ws, $document) {
             if (($step['type'] ?? 'internal') === 'external') {
-                $name = trim((string) ($values[$step['name_field']] ?? ''));
+                $name = $document->personName($values, $step['name_field']);
                 $email = trim((string) ($values[$step['email_field']] ?? ''));
 
                 // Email belongs to a signatory account: they sign from the account, not the emailed link.
@@ -259,6 +278,25 @@ class Show extends Component
 
         $audit = \App\Workflow\AuditLabels::history($ws);
 
+        // Same status wording and waiting time as the Workflow Review list.
+        $status = $ws->workflow_status->value;
+        $signed = $approvals->filter(fn ($a) => $a->status->value === 'approved')->count();
+        $statusLine = match (true) {
+            $status === 'completed' => ['Completed', 'font-medium text-emerald-700', 'bx-check-circle text-emerald-600'],
+            $status === 'rejected' => ['Rejected', 'font-medium text-rose-700', 'bx-x-circle text-rose-600'],
+            $status === 'voided' => ['Voided', 'text-slate-700', 'bx-block text-slate-500'],
+            $status === 'approved' => ['Ready to finish', 'font-medium text-emerald-700', 'bx-check-circle text-emerald-600'],
+            $status === 'action_required' => ['Waiting on student', 'text-slate-700', 'bx-hourglass text-amber-600'],
+            $status === 'under_review' && $approvals->isNotEmpty() => ['Signed ' . $signed . ' of ' . $approvals->count(), 'text-slate-700', 'bx-pen text-violet-600'],
+            $status === 'under_review' => ['Under review', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],
+            default => ['New', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],
+        };
+        $waiting = null;
+        if (in_array($status, ['submitted', 'under_review', 'action_required', 'approved'], true)) {
+            $timing = \App\Support\ReviewQueue::withWaitingSince(StudentDocumentWorkspace::query())->whereKey($ws->getKey())->first();
+            $waiting = \App\Support\WaitingTime::describe(\App\Support\ReviewQueue::waitingSince($timing), flag: $status !== 'action_required');
+        }
+
         return view('livewire.admin.workflow.show', [
             'issuer' => \App\Support\Issuers::label(\App\Support\Issuers::forOne($ws)),
             'ws' => $ws,
@@ -273,6 +311,9 @@ class Show extends Component
                 ? \App\Models\StudentDocumentWorkspace::whereKey($ws->superseded_by)->value('transaction_code')
                 : null,
             'reviewerFields' => $document->reviewerFields(),
+            'statusLine' => $statusLine,
+            'waiting' => $waiting,
+            'signed' => $signed,
         ])->layout('layouts.app', ['title' => $ws->transaction_code ?: 'Workflow Review']);
     }
 }

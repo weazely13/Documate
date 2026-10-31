@@ -49,7 +49,7 @@
                     {{-- Mobile: avatar left, text right. Desktop: centered stack. --}}
                     <div class="flex items-center gap-4 lg:flex-col lg:gap-0 lg:text-center">
                         @if($user->profile_picture)
-                            <img src="{{ asset('storage/' . $user->profile_picture) }}" class="h-16 w-16 shrink-0 rounded-full object-cover ring-4 ring-white/25 lg:mx-auto lg:h-20 lg:w-20">
+                            <img alt="Profile photo" src="{{ asset('storage/' . $user->profile_picture) }}" class="h-16 w-16 shrink-0 rounded-full object-cover ring-4 ring-white/25 lg:mx-auto lg:h-20 lg:w-20">
                         @else
                             <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/15 text-xl font-bold ring-4 ring-white/25 lg:mx-auto lg:h-20 lg:w-20 lg:text-2xl">
                                 {{ $initials }}

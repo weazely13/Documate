@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-10-31T04:41:34.507Z",
+        "reason": "Brief-pinned: user chose the Notion design base, whose DESIGN.md specifies Notion-Sans (Inter-based) for every UI surface; recorded in DESIGN.md"
+      }
+    ]
+  }
+}

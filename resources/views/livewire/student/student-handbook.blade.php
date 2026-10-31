@@ -182,7 +182,7 @@
         }
 
         .handbook-text {
-            color: #334155;
+            color: #273951;
             font-size: 0.95rem;
             line-height: 1.78;
             overflow-wrap: anywhere;
@@ -212,7 +212,7 @@
 
         .handbook-text .hb-heading-3 {
             margin: 1.45rem 0 .5rem;
-            color: #334155;
+            color: #273951;
             font-size: .98rem;
             line-height: 1.45;
             font-weight: 700;
@@ -220,7 +220,7 @@
 
         .handbook-text .hb-heading-4 {
             margin: 1.15rem 0 .4rem;
-            color: #475569;
+            color: #4a5568;
             font-size: .94rem;
             line-height: 1.45;
             font-weight: 650;
@@ -228,7 +228,7 @@
 
         .handbook-text .hb-heading-5 {
             margin: .9rem 0 .3rem;
-            color: #64748b;
+            color: #66707f;
             font-size: .9rem;
             line-height: 1.45;
             font-weight: 650;
@@ -244,7 +244,7 @@
 
         .handbook-text .hb-numbered strong.hb-number {
             font-weight: 750;
-            color: #1e293b;
+            color: #182c44;
         }
 
         /* Bulleted requirements/items */
@@ -275,17 +275,17 @@
 
         .handbook-text .hb-label {
             font-weight: 700;
-            color: #1e293b;
+            color: #182c44;
         }
 
         .handbook-text strong {
             font-weight: 750;
-            color: #1e293b;
+            color: #182c44;
         }
 
         .handbook-text em {
             font-style: italic;
-            color: #475569;
+            color: #4a5568;
         }
 
         .handbook-text mark {
@@ -314,15 +314,15 @@
         .handbook-text th,
         .handbook-text td {
             padding: .65rem .75rem;
-            border: 1px solid #cbd5e1;
+            border: 1px solid #d4d1cb;
             text-align: left;
             vertical-align: top;
         }
 
         .handbook-text th {
             font-weight: 750;
-            background: #f1f5f9;
-            color: #1e293b;
+            background: #f5f4f2;
+            color: #182c44;
         }
 
         .hb-flash {

@@ -1,8 +1,22 @@
 @php
     use App\Workflow\Documents\CollegeModelInterviewRating as R;
 
-    $interviewer = $reporterSigner;
-    $dateSigned = ($issuedAt ?? $submittedAt)?->format('F j, Y') ?? '';
+    // Older records were issued by the signer (snapshot in the answers); newer ones are signed in the chain.
+    $legacy = trim((string) ($reporterSigner['name'] ?? '')) !== '';
+    $interviewer = $legacy ? $reporterSigner : (collect($signers)->first() ?? $reporterSigner);
+    $dateSigned = $legacy
+        ? (($issuedAt ?? $submittedAt)?->format('F j, Y') ?? '')
+        : ($interviewer['signed_at'] ?? null)?->format('F j, Y') ?? '';
+    if (! $legacy) {
+        // The listed students fill the rows before the interviewer scores them. Older records: the student is row 1.
+        $listed = R::interviewees($v);
+        foreach ($listed as $i => $row) {
+            $v['interviewee_' . ($i + 1) . '_name'] ??= $row['name'];
+        }
+        if ($listed === []) {
+            $v['interviewee_1_name'] ??= $v['student_name'] ?? null;
+        }
+    }
     $lookup = preg_replace('#^https?://#', '', route('document.lookup'));
 @endphp
 <!DOCTYPE html>
@@ -41,7 +55,6 @@
     .sig-detail { font-size: 6.5pt; color: #666; }
 
     .note { margin-top: 26pt; font-size: 7.5pt; font-style: italic; }
-    .formno { border-top: 1.2pt solid #000; margin-top: 2pt; padding-top: 1pt; font-size: 10pt; }
 
     .foot { position: fixed; left: 0; right: 0; bottom: -78pt; height: 72pt; border-top: .6pt solid #c8c8c8; padding-top: 8pt; font-family: 'DejaVu Sans', sans-serif; }
     .foot-k { font-size: 6.5pt; color: #888; text-transform: uppercase; letter-spacing: .8pt; }
@@ -59,7 +72,7 @@
 
 <table class="hdr">
     <tr>
-        <td style="width:92pt; text-align:center;">@if ($seal)<img src="{{ $seal }}" width="76" height="76">@endif</td>
+        <td style="width:92pt; text-align:center;">@if ($seal)<img alt="Leyte Normal University seal" src="{{ $seal }}" width="76" height="76">@endif</td>
         <td class="sans t">
             <div class="b">Leyte Normal University</div>
             <div>Tacloban City</div>
@@ -108,26 +121,23 @@
 </div>
 
 <div class="note">The data collected here will be for the sole use of the legitimate interests of the university as an educational institution.</div>
-<div class="formno">{{ $formCode }}</div>
 
-@unless ($preview ?? false)
 <div class="foot">
     <table>
         <tr>
-            <td style="width:70pt; vertical-align:top;">@if ($qr)<img src="{{ $qr }}" width="58" height="58">@endif</td>
+            <td style="width:70pt; vertical-align:top;">@if ($qr)<img alt="QR code for verifying this document" src="{{ $qr }}" width="58" height="58">@elseif ($preview ?? false)<span class="ph-qr" style="width:58px;height:58px;">QR code<br>on issue</span>@endif</td>
             <td style="vertical-align:top;">
                 <div class="foot-k">Verify this document</div>
                 <div class="foot-t">Scan the QR code, or go to <strong>{{ $lookup }}</strong> and enter:</div>
                 <div class="foot-t" style="margin-top:2pt;">
-                    Reference &nbsp;<span class="foot-v mono">{{ $code }}</span><br>
-                    Fingerprint &nbsp;<span class="foot-v mono">{{ $fingerprint ?: '-' }}</span>
+                    Reference &nbsp;<span class="foot-v mono">@if ($code){{ $code }}@else<span class="ph-text">assigned on submit</span>@endif</span><br>
+                    Fingerprint &nbsp;<span class="foot-v mono">@if ($fingerprint){{ $fingerprint }}@elseif ($preview ?? false)<span class="ph-text">assigned when issued</span>@else-@endif</span>
                 </div>
             </td>
             <td style="width:135pt; vertical-align:top;" class="foot-form">{{ $formCode }}</td>
         </tr>
     </table>
 </div>
-@endunless
 
 @if ($preview ?? false)
     <div class="watermark">PREVIEW{{ $issuedAt ? '' : ' · NOT YET ISSUED' }}</div>

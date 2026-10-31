@@ -59,7 +59,7 @@
         .modal-panel { transition: opacity .25s ease, transform .25s ease; }
 
         /* ---------- Legal content ---------- */
-        .legal-content h4 { font-weight: 700; color: #1f2937; margin-top: 1.25rem; margin-bottom: .4rem; }
+        .legal-content h4 { font-weight: 700; color: #182c44; margin-top: 1.25rem; margin-bottom: .4rem; }
         .legal-content h4:first-child { margin-top: 0; }
         .legal-content p { margin-bottom: .6rem; }
         .legal-content ul { list-style: disc; padding-left: 1.25rem; margin-bottom: .6rem; }

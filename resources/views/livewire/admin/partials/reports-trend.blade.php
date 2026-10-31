@@ -52,7 +52,7 @@
             <div class="relative h-56" @mouseleave="hover = null">
                 @foreach ([0, 0.25, 0.5, 0.75, 1] as $f)
                     <div class="pointer-events-none absolute inset-x-0 flex items-center" style="bottom: {{ $f * 100 }}%" aria-hidden="true">
-                        <span class="absolute -left-8 w-6 translate-y-1/2 text-right text-[11px] tabular-nums" style="color: {{ $dual ? $series[0][2] : '#94a3b8' }}">{{ (int) round(($dual ? $tops[$series[0][0]] : $top) * $f) }}</span>
+                        <span class="absolute -left-8 w-6 translate-y-1/2 text-right text-[11px] tabular-nums" style="color: {{ $dual ? $series[0][2] : '#9a978f' }}">{{ (int) round(($dual ? $tops[$series[0][0]] : $top) * $f) }}</span>
                         @if ($dual)<span class="absolute -right-8 w-6 translate-y-1/2 text-[11px] tabular-nums" style="color: {{ $series[1][2] }}">{{ (int) round($tops[$series[1][0]] * $f) }}</span>@endif
                         <span class="h-px w-full translate-y-1/2 {{ $f === 0 ? 'bg-slate-300' : 'bg-slate-100' }}"></span>
                     </div>

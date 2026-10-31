@@ -3,6 +3,12 @@
      @include('livewire.partials.dash.header', ['name' => 'Maria', 'facts' => ['2026-2027 | First Semester']])
      'action' => ['label' => 'New transaction', 'url' => route(...), 'icon' => 'bx-plus'] adds a primary button beside the picker.
      The host component needs a public int $range (bound to the picker); 'picker' => false leaves the picker out.
+     'tall' => true leaves room at the bottom for something laid across the scene's lower edge.
+     'page' => true makes the scene the whole page's background, edge to edge (it scrolls with the page; below the first screen the ground carries on), with the greeting centered;
+       'slides' => [['view', [...data]], ...] turn the greeting into the first slide of a carousel (7s, pauses on hover);
+       'lines' => [...] rotate under the greeting (the facts come first), and 'inner' => ['view.name', [...data]] lays out the page
+       inside the scene and gets $hero (the greeting carousel's HTML) to place; text there can follow the sky with
+       group-data-[ink=light]/greet:* classes.
 
      The scene follows the viewer's own clock (re-checked every 30s):
        sky   night (19-5) · dawn (5-7) · morning (7-12) · afternoon (12-17) · dusk (17-19)
@@ -30,8 +36,11 @@
     $bodyStyle = sprintf('--bx: %.2f%%; --by: %.2f%%; --bxm: %.2f%%; --bym: %.2f%%;', 52 + $p * 44, 78 - $arc * 66, 66 + $p * 28, 20 - $arc * 10);
 @endphp
 
+@php $page = $page ?? false; @endphp
 <header data-sky="{{ $sky }}" :data-sky="sky" data-ink="{{ $ink }}" :data-ink="ink" data-day="{{ $isDay ? 'yes' : 'no' }}" :data-day="body.day ? 'yes' : 'no'"
-        class="group/greet relative isolate overflow-hidden rounded-2xl border border-slate-200/70 px-5 pb-8 pt-6 sm:px-7 sm:pb-10 sm:pt-7 data-[ink=light]:border-transparent"
+        class="group/greet relative isolate {{ $page
+            ? 'dm-home-page -m-4 min-h-[calc(100dvh-60px)] md:-m-6'
+            : 'overflow-hidden rounded-2xl border border-slate-200 px-5 pt-6 sm:px-7 sm:pt-7 data-[ink=light]:border-transparent ' . (($tall ?? false) ? 'pb-20 sm:pb-24' : 'pb-8 sm:pb-10') }}"
         x-data="{
             now: new Date(),
             get minutes() { return this.now.getHours() * 60 + this.now.getMinutes(); },
@@ -60,13 +69,15 @@
         }"
         x-init="setInterval(() => { now = new Date() }, 30000)">
 
-    {{-- SCENE --}}
-    <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+    {{-- SCENE. Page mode: it scrolls with the page under rounded top corners; the sky and mountains fill the
+         first screen and the ground (the nearest range's colour) carries on below it. --}}
+    <div class="pointer-events-none absolute inset-0 -z-10 {{ $page ? 'overflow-hidden' : '' }}" aria-hidden="true">
+      <div class="{{ $page ? 'absolute inset-x-0 top-0 h-[calc(100dvh-60px)]' : 'absolute inset-0' }}">
         {{-- Skies, cross-fading --}}
         <div class="absolute inset-0 bg-gradient-to-b from-[#0b1a42] via-[#14306b] to-[#1E4090] opacity-0 transition-opacity duration-1000 group-data-[sky=night]/greet:opacity-100"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-[#c9d8f6] via-[#e9e6f2] to-[#fcd9c4] opacity-0 transition-opacity duration-1000 group-data-[sky=dawn]/greet:opacity-100"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-[#cfe0fb] via-[#e6efff] to-[#f6f9ff] opacity-0 transition-opacity duration-1000 group-data-[sky=morning]/greet:opacity-100"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-[#9cc2f5] via-[#c6dbfa] to-[#eaf2ff] opacity-0 transition-opacity duration-1000 group-data-[sky=afternoon]/greet:opacity-100"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-[#dfe7f6] via-[#efebf5] to-[#fde6d6] opacity-0 transition-opacity duration-1000 group-data-[sky=dawn]/greet:opacity-100"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-[#e3eefb] via-[#f1f6fd] to-[#fbfbfa] opacity-0 transition-opacity duration-1000 group-data-[sky=morning]/greet:opacity-100"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-[#cfe2f8] via-[#e4eefb] to-[#f8fafd] opacity-0 transition-opacity duration-1000 group-data-[sky=afternoon]/greet:opacity-100"></div>
         <div class="absolute inset-0 bg-gradient-to-b from-[#1E4090] via-[#8a4f7d] to-[#eb6834] opacity-0 transition-opacity duration-1000 group-data-[sky=dusk]/greet:opacity-100"></div>
 
         {{-- Stars (night; faint at dusk) --}}
@@ -97,17 +108,123 @@
         </div>
 
         {{-- Mountains: three ranges, brand blues by day, deep navy silhouettes after sunset --}}
-        <svg class="absolute inset-x-0 bottom-0 h-28 w-full sm:h-32" viewBox="0 60 1200 180" preserveAspectRatio="none">
-            <path class="fill-[#2A57B4]/[0.14] transition-colors duration-1000 group-data-[sky=dawn]/greet:fill-[#7c6aa8]/25 group-data-[sky=dusk]/greet:fill-[#14306b]/60 group-data-[sky=night]/greet:fill-[#24499A]/45"
+        <svg class="absolute inset-x-0 bottom-0 w-full {{ $page ? 'h-40 sm:h-56' : 'h-28 sm:h-32' }}" viewBox="0 60 1200 180" preserveAspectRatio="none">
+            <path class="fill-[#2A57B4]/[0.07] transition-colors duration-1000 group-data-[sky=dawn]/greet:fill-[#7c6aa8]/25 group-data-[sky=dusk]/greet:fill-[#14306b]/60 group-data-[sky=night]/greet:fill-[#24499A]/45"
                   d="M0 150 L90 122 L170 140 L262 96 L360 134 L470 88 L560 124 L660 72 L760 118 L852 82 L960 128 L1062 92 L1200 118 V240 H0 Z" />
-            <path class="fill-[#2A57B4]/[0.24] transition-colors duration-1000 group-data-[sky=dawn]/greet:fill-[#5c5a9c]/35 group-data-[sky=dusk]/greet:fill-[#14306b]/80 group-data-[sky=night]/greet:fill-[#14306b]/80"
+            <path class="fill-[#2A57B4]/[0.11] transition-colors duration-1000 group-data-[sky=dawn]/greet:fill-[#5c5a9c]/35 group-data-[sky=dusk]/greet:fill-[#14306b]/80 group-data-[sky=night]/greet:fill-[#14306b]/80"
                   d="M0 186 L120 162 L212 176 L330 132 L442 170 L560 142 L690 104 L800 150 L902 120 L1012 160 L1120 136 L1200 150 V240 H0 Z" />
-            <path class="fill-[#2A57B4]/[0.36] transition-colors duration-1000 group-data-[sky=dawn]/greet:fill-[#3f4f97]/45 group-data-[sky=dusk]/greet:fill-[#0b1a42] group-data-[sky=night]/greet:fill-[#0b1a42]"
+            <path class="fill-[#2A57B4]/[0.16] transition-colors duration-1000 group-data-[sky=dawn]/greet:fill-[#3f4f97]/45 group-data-[sky=dusk]/greet:fill-[#0b1a42] group-data-[sky=night]/greet:fill-[#0b1a42]"
                   d="M0 214 L150 198 L282 210 L420 180 L560 204 L702 170 L860 200 L980 176 L1100 196 L1200 186 V240 H0 Z" />
         </svg>
+      </div>
+      @if ($page)
+          {{-- Ground: the three ranges' combined colour where they meet the bottom of the first screen --}}
+          {{-- On a long page (Explore) the ground gets drifting particles and a range of hills at the very bottom;
+               a short ground (Overview) stays plain. --}}
+          <div class="absolute inset-x-0 bottom-0 top-[calc(100dvh-60px)] -mt-px overflow-hidden transition-colors duration-1000
+                      bg-[#bbc9e5] group-data-[sky=afternoon]/greet:bg-[#b9c8e7] group-data-[sky=dawn]/greet:bg-[#7d7caa] group-data-[sky=dusk]/greet:bg-[#0b1a42] group-data-[sky=night]/greet:bg-[#0b1a42]"
+               x-data="{ long: false }" x-init="new ResizeObserver(() => long = $el.offsetHeight > 420).observe($el)">
+              {{-- Particles: stars after sunset, soft specks of blue by day --}}
+              <div class="dm-particles absolute inset-0 opacity-0 transition-opacity duration-1000
+                          [--dm-particle:rgba(42,87,180,0.22)] group-data-[sky=dawn]/greet:[--dm-particle:rgba(255,255,255,0.5)] group-data-[sky=dusk]/greet:[--dm-particle:rgba(255,255,255,0.6)] group-data-[sky=night]/greet:[--dm-particle:rgba(255,255,255,0.6)]"
+                   :class="long && 'opacity-100'"></div>
+
+              {{-- Bottom: three rolling ranges and a quiet line --}}
+              <div class="absolute inset-x-0 bottom-0 h-48 opacity-0 transition-opacity duration-1000 sm:h-64" :class="long && 'opacity-100'">
+                  <svg class="absolute inset-0 h-full w-full" viewBox="0 0 1200 260" preserveAspectRatio="none">
+                      <path class="fill-[#2A57B4]/[0.10] group-data-[sky=dawn]/greet:fill-[#3f4f97]/30 group-data-[sky=dusk]/greet:fill-[#1E4090]/35 group-data-[sky=night]/greet:fill-[#1E4090]/35"
+                            d="M0 120 C 140 80, 260 70, 400 104 S 660 150, 800 108 S 1060 60, 1200 96 V260 H0 Z" />
+                      <path class="fill-[#2A57B4]/[0.16] group-data-[sky=dawn]/greet:fill-[#3f4f97]/45 group-data-[sky=dusk]/greet:fill-[#24499A]/30 group-data-[sky=night]/greet:fill-[#24499A]/30"
+                            d="M0 168 C 180 132, 320 140, 470 160 S 760 198, 920 162 S 1120 128, 1200 146 V260 H0 Z" />
+                      <path class="fill-[#2A57B4]/[0.24] group-data-[sky=dawn]/greet:fill-[#2f3c7a]/60 group-data-[sky=dusk]/greet:fill-[#14306b] group-data-[sky=night]/greet:fill-[#14306b]"
+                            d="M0 214 C 160 194, 300 198, 450 208 S 760 236, 940 212 S 1130 192, 1200 200 V260 H0 Z" />
+                  </svg>
+                  <p class="absolute inset-x-0 bottom-5 text-center text-xs font-medium tracking-wide text-[#1E4090]/70 group-data-[ink=light]/greet:text-white/50">
+                      DocuMate &middot; Office of the Vice President for Student Development &middot; Leyte Normal University
+                  </p>
+              </div>
+          </div>
+      @endif
     </div>
 
     {{-- CONTENT --}}
+    @if ($page)
+        @php $rotating = array_values(array_filter(array_merge([implode(' · ', $facts ?? [])], $lines ?? []))); @endphp
+        @php ob_start(); @endphp
+            {{-- The greeting is slide 1; 'slides' => [['view', data], ...] add more (Home: the office's busy times).
+                 Slides share one grid cell, so the area keeps the tallest slide's height and nothing jumps. --}}
+            @php $extra = $slides ?? []; $count = 1 + count($extra); @endphp
+            <div x-data="{
+                    i: 0, n: {{ $count }}, paused: false,
+                    go(k) { this.i = (k + this.n) % this.n; },
+                 }"
+                 x-init="if (n > 1 && ! window.matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => { if (! paused) go(i + 1) }, 7000)"
+                 @mouseenter="paused = true" @mouseleave="paused = false" @focusin="paused = true" @focusout="paused = false"
+                 @if ($count > 1) role="region" aria-roledescription="carousel" aria-label="Greeting and office hours" @endif>
+                <div class="grid">
+                    <div class="flex flex-col justify-center transition-opacity duration-700 [grid-area:1/1]" :class="i === 0 ? 'opacity-100' : 'pointer-events-none opacity-0'"
+                         @if ($count > 1) role="group" aria-roledescription="slide" aria-label="1 of {{ $count }}" :aria-hidden="(i !== 0).toString()" @endif>
+                <p class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-medium text-slate-700 group-data-[ink=light]/greet:text-blue-50 [@media(max-height:620px)]:hidden">
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-[#1E4090] group-data-[sky=dawn]/greet:text-[#b4471a] group-data-[ink=light]/greet:text-white">
+                        <span class="hidden group-data-[day=yes]/greet:inline-flex" aria-hidden="true"><i class='bx bxs-sun text-lg text-[#eb6834]'></i></span>
+                        <span class="hidden group-data-[day=no]/greet:inline-flex" aria-hidden="true"><i class='bx bxs-moon text-lg text-[#fcd34d]'></i></span>
+                        <time class="tabular-nums" x-text="clock">{{ now()->format('g:i A') }}</time>
+                    </span>
+                    <span class="text-slate-400 group-data-[ink=light]/greet:text-white/40" aria-hidden="true">·</span>
+                    <span>{{ now()->format('l, F j') }}</span>
+                </p>
+
+                <h1 class="mt-2 text-[clamp(1.75rem,4.6dvh,2.5rem)] font-semibold leading-[1.1] tracking-[-0.025em] text-slate-900 sm:text-[clamp(2rem,5.2dvh,3.25rem)] group-data-[ink=light]/greet:text-white">
+                    <span x-text="greeting">{{ $greeting }}</span>,
+                    <span class="whitespace-nowrap font-['Gveret_Levin',cursive] text-[1.15em] font-semibold leading-none tracking-normal text-[#2A57B4] group-data-[ink=light]/greet:text-white">{{ $name }}</span>
+                </h1>
+
+                {{-- One line at a time: the facts, then what the office is like right now --}}
+                @if ($rotating)
+                    <div class="relative mx-auto mt-2.5 h-6 w-full max-w-2xl text-sm [@media(max-height:680px)]:hidden font-medium text-slate-700 group-data-[ink=light]/greet:text-blue-50 sm:text-[15px]"
+                         x-data="{ i: 0, n: {{ count($rotating) }} }"
+                         x-init="if (n > 1 && ! window.matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => i = (i + 1) % n, 5000)"
+                         aria-live="off">
+                        @foreach ($rotating as $k => $line)
+                            <p class="absolute inset-x-0 truncate transition-opacity duration-700" :class="i === {{ $k }} ? 'opacity-100' : 'opacity-0'" @if ($k) style="opacity:0" @endif>{{ $line }}</p>
+                        @endforeach
+                    </div>
+                @endif
+                    </div>
+                    @foreach ($extra as $k => [$view, $data])
+                        <div class="flex flex-col justify-center opacity-0 transition-opacity duration-700 [grid-area:1/1]" :class="i === {{ $k + 1 }} ? 'opacity-100' : 'pointer-events-none opacity-0'"
+                             role="group" aria-roledescription="slide" aria-label="{{ $k + 2 }} of {{ $count }}" :aria-hidden="(i !== {{ $k + 1 }}).toString()">
+                            @include($view, $data)
+                        </div>
+                    @endforeach
+                </div>
+
+                @if ($count > 1)
+                    <div class="mt-2 flex items-center justify-center gap-2.5">
+                        <button type="button" @click="go(i - 1)" aria-label="Previous"
+                                class="flex h-7 w-7 items-center justify-center rounded-full text-slate-600 hover:bg-slate-900/5 hover:text-slate-900 group-data-[ink=light]/greet:text-white/80 group-data-[ink=light]/greet:hover:bg-white/10 group-data-[ink=light]/greet:hover:text-white"><i class='bx bx-chevron-left text-xl' aria-hidden="true"></i></button>
+                        @for ($k = 0; $k < $count; $k++)
+                            <button type="button" @click="go({{ $k }})" aria-label="Show slide {{ $k + 1 }}" :aria-current="(i === {{ $k }}).toString()"
+                                    class="h-1.5 rounded-full transition-all"
+                                    :class="i === {{ $k }} ? 'w-6 bg-[#2A57B4] group-data-[ink=light]/greet:bg-white' : 'w-1.5 bg-slate-900/20 group-data-[ink=light]/greet:bg-white/40'"></button>
+                        @endfor
+                        <button type="button" @click="go(i + 1)" aria-label="Next"
+                                class="flex h-7 w-7 items-center justify-center rounded-full text-slate-600 hover:bg-slate-900/5 hover:text-slate-900 group-data-[ink=light]/greet:text-white/80 group-data-[ink=light]/greet:hover:bg-white/10 group-data-[ink=light]/greet:hover:text-white"><i class='bx bx-chevron-right text-xl' aria-hidden="true"></i></button>
+                    </div>
+                @endif
+            </div>
+
+        @php $hero = ob_get_clean(); @endphp
+
+        {{-- The inner view lays out the page and prints $hero (the greeting carousel) where it belongs --}}
+        <div class="relative mx-auto max-w-5xl px-4 pb-28 pt-3 sm:px-8 md:pb-16">
+            @isset($inner)
+                @include($inner[0], ($inner[1] ?? []) + ['hero' => $hero])
+            @else
+                <div class="pt-10 text-center">{!! $hero !!}</div>
+            @endisset
+        </div>
+    @else
     <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
         <div class="min-w-0">
             {{-- Time line: sun or moon, the time, the date (its own line on phones) --}}
@@ -122,7 +239,7 @@
             </p>
 
             {{-- The greeting, with the name in the brand's script face --}}
-            <h1 class="mt-2.5 text-[2rem] font-bold leading-[1.1] tracking-tight text-slate-900 sm:text-[2.5rem] lg:text-[2.75rem] group-data-[ink=light]/greet:text-white">
+            <h1 class="mt-2.5 text-[2rem] font-semibold leading-[1.1] tracking-[-0.025em] text-slate-900 sm:text-[2.5rem] lg:text-[2.75rem] group-data-[ink=light]/greet:text-white">
                 <span x-text="greeting">{{ $greeting }}</span>,
                 <span class="whitespace-nowrap font-['Gveret_Levin',cursive] text-[1.15em] font-semibold leading-none tracking-normal text-[#2A57B4] group-data-[ink=light]/greet:text-white">{{ $name }}</span>
             </h1>
@@ -139,7 +256,7 @@
         <div class="flex flex-wrap items-center gap-2">
             @isset($action)
                 <a href="{{ $action['url'] }}" wire:navigate
-                   class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] focus-visible:ring-offset-2 [@media(pointer:coarse)]:min-h-[44px]
+                   class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] focus-visible:ring-offset-2 [@media(pointer:coarse)]:min-h-[44px]
                        group-data-[ink=light]/greet:bg-white group-data-[ink=light]/greet:text-[#1E4090] group-data-[ink=light]/greet:hover:bg-blue-50 group-data-[ink=light]/greet:focus-visible:ring-white group-data-[ink=light]/greet:focus-visible:ring-offset-[#1E4090]">
                     <i class='bx {{ $action['icon'] ?? 'bx-plus' }} text-base' aria-hidden="true"></i>{{ $action['label'] }}
                 </a>
@@ -149,7 +266,7 @@
                 <span class="sr-only">Period for the charts</span>
                 <i class='bx bx-calendar pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-gray-500' aria-hidden="true"></i>
                 <select wire:model.live="range"
-                        class="rounded-xl border-gray-200 bg-white py-2 pl-9 pr-9 text-sm font-medium text-gray-700 shadow-sm focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30 [@media(pointer:coarse)]:min-h-[44px] group-data-[ink=light]/greet:border-white/20">
+                        class="rounded-lg border-gray-200 bg-white py-2 pl-9 pr-9 text-sm font-medium text-gray-700 shadow-sm focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30 [@media(pointer:coarse)]:min-h-[44px] group-data-[ink=light]/greet:border-white/20">
                     @foreach (\App\Support\DashboardInsights::RANGES as $days)
                         <option value="{{ $days }}" @selected($days == ($range ?? null))>Last {{ $days }} days</option>
                     @endforeach
@@ -158,4 +275,5 @@
             @endif
         </div>
     </div>
+    @endif
 </header>

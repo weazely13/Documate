@@ -3,7 +3,7 @@
     <!-- 🔷 TOPBAR -->
     <div class="h-12 bg-white border-b flex items-center justify-between px-5">
         <div class="flex items-center gap-2">
-            <img src="{{ asset('images/favicon.png') }}" class="w-5 h-5">
+            <img alt="" src="{{ asset('images/favicon.png') }}" class="w-5 h-5">
             <span class="font-semibold text-sm">DOCUMATE</span>
         </div>
 
@@ -398,7 +398,7 @@
                             height: {{ $canvasDimensions['height'] }}px;
                         ">
 
-                        <img x-show="imagePreview"
+                        <img alt="Preview of the uploaded image" x-show="imagePreview"
                             :src="imagePreview"
                             class="absolute inset-0 w-full h-full pointer-events-none">
 

@@ -25,4 +25,11 @@ class ReviewAppointmentSubmission implements ShouldQueue
     {
         $agent->review($this->appointment);
     }
+
+    /** Out of retries: show "Review failed" with a re-run button instead of "Reviewing…" forever. */
+    public function failed(\Throwable $e): void
+    {
+        report($e);
+        app(AppointmentReviewAgent::class)->markFailed($this->appointment);
+    }
 }

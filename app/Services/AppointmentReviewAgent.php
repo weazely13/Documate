@@ -110,6 +110,13 @@ class AppointmentReviewAgent
             $result['incorrect_probability'] = $probability;
             $result['recommendation'] = $recommendation;
             $result['reason_category'] = $reasonCategory;
+
+            // Does the purpose fit the attached document (or, without one, the office's transactions)?
+            $relevance = is_array($result['relevance'] ?? null) ? $result['relevance'] : [];
+            $result['relevance'] = [
+                'relevant' => (bool) ($relevance['relevant'] ?? true),
+                'note' => mb_substr(trim((string) ($relevance['note'] ?? '')), 0, 200),
+            ];
             $appointment->update([
                 'ai_flag' => ($result['status'] ?? null) === 'flagged' ? 'flagged' : 'clean',
                 'ai_findings' => $result,
@@ -124,9 +131,10 @@ class AppointmentReviewAgent
         }
     }
 
-    public function failed(\Throwable $e): void
+    /** Called by the job once its retries are used up. */
+    public function markFailed(Appointment $appointment): void
     {
-        $this->appointment->update([
+        $appointment->update([
             'ai_flag' => 'review_failed',
             'ai_findings' => ['summary' => 'The AI review service was unavailable. Please try again.'],
             'ai_reviewed_at' => now(),
@@ -135,19 +143,45 @@ class AppointmentReviewAgent
         
 
     /**
-     * TODO: adjust `document_field_values` to however StudentDocumentWorkspace
-     * actually stores the filled-in field data in your schema (e.g. a
-     * `field_values` json column, a related `workspace_fields` table, etc.)
-     * — it isn't in the code you shared, so this assumes a `field_values` cast.
+     * What the model sees: the purpose, the attached document read the way the office reads it
+     * (name, what it is for, where it stands, its answers), the student, and the transactions
+     * the office handles, so it can judge whether the purpose fits.
      */
     protected function buildSnapshot(Appointment $appointment): array
     {
         $workspace = $appointment->workspace;
+        $doc = $workspace?->document_type ? \App\Workflow\Documents\DocumentRegistry::find($workspace->document_type) : null;
+
+        $answers = null;
+        if ($workspace && $doc) {
+            $values = $workspace->field_values ?? [];
+            $answers = [];
+            foreach ($doc->fields() as $name => $f) {
+                if (! empty($f['hidden']) || in_array($f['type'] ?? 'text', ['signature', 'file', 'image', 'photo'], true)) {
+                    continue;
+                }
+                $v = $values[$name] ?? null;
+                try {
+                    $answers[$f['label'] ?? $name] = is_array($v) ? json_encode($v) : $doc->formatValue($f, $v);
+                } catch (\Throwable) {
+                    $answers[$f['label'] ?? $name] = is_scalar($v) ? (string) $v : json_encode($v);
+                }
+            }
+        } elseif ($workspace) {
+            $answers = $workspace->field_values ?? null;
+        }
+
+        $handled = \App\Support\AppointmentPurposes::labels();
 
         return [
-            'purpose_of_transaction' => $appointment->purpose,
-            'document_template' => $workspace?->template?->name,
-            'document_field_values' => $workspace?->field_values ?? null,
+            'purpose_of_visit' => $appointment->purpose,
+            'attached_document' => $workspace ? [
+                'name' => $workspace->documentName(),
+                'what_it_is_for' => $doc?->description() ?? 'A paper form handled at the office.',
+                'where_it_stands' => $workspace->workflow_status?->label() ?? $workspace->status,
+                'answers' => $answers,
+            ] : null,
+            'transactions_the_office_handles' => $handled,
             'student' => [
                 'name' => $appointment->user->full_name,
                 'student_number' => $appointment->user->student_number,
@@ -164,9 +198,18 @@ class AppointmentReviewAgent
     You will be given the purpose-of-transaction text a student typed, and — if the appointment
     has a document attached — the field values they filled into a document template.
 
-    If document_template and document_field_values are both null, this is a general visit with
-    no document attached. In that case, only evaluate the purpose text (garbled/placeholder/unclear)
-    and do NOT flag the absence of a document as an issue.
+    You also get the list of transactions the office handles.
+
+    RELEVANCE (always check this):
+    - With a document attached: does the purpose of the visit fit that document and what it is for?
+      A purpose about one transaction with a different document attached (for example an off-campus
+      activity permit as the purpose and an Admission Slip attached) is a purpose_mismatch.
+      A general purpose such as an inquiry is fine with any document.
+    - With no document attached: is the purpose something the office handles (one of the listed
+      transactions, or a sensible inquiry about records or requirements)? A purpose that names one of
+      the listed transactions is relevant. Do NOT flag the absence of a document by itself.
+    Report it in "relevance". When it is not relevant, also list it in "issues" and use reason_category
+    "purpose_mismatch" if you recommend rejecting.
 
     Check for:
     - Garbled, nonsensical, or placeholder text (e.g. "asdf", keyboard mashing, "N/A" where a real answer is required)
@@ -182,6 +225,7 @@ class AppointmentReviewAgent
     "reason_category": "missing_fields" | "identity_mismatch" | "garbled_text" | "purpose_mismatch" | "invalid_format" | "other" | null,
     "incorrect_probability": 0-100,
     "summary": "one short sentence overview",
+    "relevance": { "relevant": true | false, "note": "one short sentence on how the purpose fits the document" },
     "issues": [
         { "field": "which field or section", "issue": "one short sentence, under 20 words", "severity": "low" | "medium" | "high" }
     ]

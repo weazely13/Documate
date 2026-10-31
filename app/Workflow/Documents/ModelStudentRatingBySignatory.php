@@ -17,6 +17,9 @@ class ModelStudentRatingBySignatory extends WorkflowDocument
 
     public function issuedByOffice(): bool { return true; }
     public function issuedBySignatory(): bool { return true; }
+
+    /** Students now start the rating themselves; this version stays only for older records. */
+    public function retired(): bool { return true; }
     public function notifiesStudent(): bool { return false; }
 
     public function fields(): array

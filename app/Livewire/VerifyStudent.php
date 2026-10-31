@@ -232,7 +232,7 @@ class VerifyStudent extends Component
     }
     public function goToSystem()
     {
-        return $this->redirect('/student/dashboard', navigate: true);
+        return $this->redirect('/student/home', navigate: true);
     }
 
     public function render()

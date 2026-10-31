@@ -32,7 +32,7 @@
             </div>
 
             <!-- TITLE -->
-            <h1 class="text-2xl font-bold text-center mb-1 text-[#2A57B4]" style="font-family: 'Montserrat', sans-serif;">
+            <h1 class="text-2xl font-semibold tracking-tight text-center mb-1 text-slate-900">
                 Login to your account
             </h1>
             <p class="text-sm text-gray-500 text-center mb-6">
@@ -118,7 +118,7 @@
                 <!-- LOGIN BUTTON -->
                 <button
                     type="submit"
-                    class="w-full py-3 bg-[#2A57B4] hover:opacity-90 hover:scale-[1.01] active:scale-95 text-white font-bold rounded-full shadow-lg shadow-[#2A57B4]/20 transition-all">
+                    class="w-full h-11 bg-[#2A57B4] hover:bg-[#24499A] active:bg-[#1E4090] text-white font-medium rounded-lg shadow-sm transition-colors">
                     Sign In
                 </button>
 
@@ -133,7 +133,7 @@
 
             <!-- REGISTER BUTTON -->
             <a href="/register"
-               class="block w-full text-center py-3 bg-[#FFBF00] hover:opacity-90 text-[#2A57B4] font-bold rounded-full shadow-md transition">
+               class="flex h-11 w-full items-center justify-center bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-800 font-medium rounded-lg shadow-sm transition-colors">
                 Create an account
             </a>
 
@@ -154,7 +154,7 @@
          style="background-image: url('/images/backdrop.jpg');">
         <div class="absolute inset-0 bg-gradient-to-t from-[#2A57B4]/90 via-[#2A57B4]/40 to-transparent"></div>
         <div class="relative z-10 p-8 text-white">
-            <p class="text-2xl font-bold leading-snug" style="font-family: 'Montserrat', sans-serif;">
+            <p class="text-2xl font-bold leading-snug">
                 Tap, select, access.
             </p>
             <p class="text-sm text-white/80 mt-2">
@@ -171,7 +171,7 @@
             <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
                 <div>
                     <p class="text-[.7rem] uppercase tracking-wider text-[#2A57B4] font-bold">VPSD DocuMate — Leyte Normal University</p>
-                    <h3 class="text-2xl font-bold text-[#2A57B4] mt-1">Terms & Conditions</h3>
+                    <h3 class="text-2xl font-semibold tracking-tight text-slate-900 mt-1">Terms & Conditions</h3>
                     <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
                 </div>
                 <button type="button" @click="activeModal = null" class="text-gray-400 hover:text-gray-700 transition shrink-0">
@@ -194,7 +194,7 @@
                     <span>I have read and agree to the Terms and Conditions.</span>
                 </label>
                 <button type="button" :disabled="!agreeTerms" @click="activeModal = null"
-                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-full font-semibold transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
+                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-lg font-medium transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
                     I Agree
                 </button>
             </div>
@@ -209,7 +209,7 @@
             <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
                 <div>
                     <p class="text-[.7rem] uppercase tracking-wider text-[#2A57B4] font-bold">VPSD DocuMate — Leyte Normal University</p>
-                    <h3 class="text-2xl font-bold text-[#2A57B4] mt-1">Privacy Policy</h3>
+                    <h3 class="text-2xl font-semibold tracking-tight text-slate-900 mt-1">Privacy Policy</h3>
                     <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
                 </div>
                 <button type="button" @click="activeModal = null" class="text-gray-400 hover:text-gray-700 transition shrink-0">
@@ -229,7 +229,7 @@
                     <span>I have read and agree to the Privacy Policy.</span>
                 </label>
                 <button type="button" :disabled="!agreePrivacy" @click="activeModal = null"
-                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-full font-semibold transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
+                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-lg font-medium transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
                     I Agree
                 </button>
             </div>
@@ -239,7 +239,7 @@
         <div class="fixed inset-0 z-[100] flex items-center justify-center px-4" role="dialog" aria-modal="true">
             <div class="absolute inset-0 bg-black/50" wire:click="$set('showForgot', false)"></div>
             <form wire:submit="sendResetLink" class="relative w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
-                <h3 class="text-lg font-bold text-[#2A57B4]">Reset your password</h3>
+                <h3 class="text-lg font-semibold tracking-tight text-slate-900">Reset your password</h3>
                 <p class="text-sm text-gray-500">Enter the email on your account and we'll send you a reset link.</p>
                 <div>
                     <input type="email" wire:model="resetEmail" placeholder="you@gmail.com" autofocus
@@ -247,8 +247,8 @@
                     @error('resetEmail') <p class="error">{{ $message }}</p> @enderror
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" wire:click="$set('showForgot', false)" class="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="rounded-full bg-[#2A57B4] px-5 py-2 text-sm font-semibold text-white hover:opacity-90">Send link</button>
+                    <button type="button" wire:click="$set('showForgot', false)" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="rounded-lg bg-[#2A57B4] px-5 py-2 text-sm font-medium text-white hover:bg-[#24499A]">Send link</button>
                 </div>
             </form>
         </div>

@@ -53,11 +53,11 @@
 
         if (in_array($role, ['Student', 'Officer'], true)) {
             $navSections[] = ['key' => 'workspace', 'label' => 'Workspace', 'items' => [
-                ['Dashboard', 'bx-home', 'student.dashboard', ['student.dashboard'], 0],
-                ['Create Transaction', 'bx-plus-circle', 'student.new-transaction', ['student.new-transaction*', 'student.transactions.new'], 0],
-                ['Documents', 'bx-folder', 'student.documents.index', ['student.documents.*', 'student.transactions.show'], $slipCount],
+                ['Home', 'bx-home', 'student.home', ['student.home', 'student.new-transaction*', 'student.transactions.new'], 0],
+                ['My Documents', 'bx-folder', 'student.documents.index', ['student.documents.*', 'student.transactions.show'], $slipCount],
                 ['Appointments', 'bx-calendar', 'student.appointments.index', ['student.appointments.*'], 0],
                 ['Clearance Status', 'bx-check-circle', 'student.clearance-status', ['student.clearance-status'], 0],
+                ['Activity Summary', 'bx-line-chart', 'student.dashboard', ['student.dashboard'], 0],
             ]];
             if ($role === 'Officer') {
                 $navSections[] = ['key' => 'officer', 'label' => 'Student Officer', 'items' => [

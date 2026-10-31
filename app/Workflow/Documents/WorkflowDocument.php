@@ -18,6 +18,44 @@ use App\Models\StudentDocumentWorkspace;
  */
 abstract class WorkflowDocument
 {
+    /** Courtesy titles offered in front of the names of teachers, officials and other personnel. */
+    public const SALUTATIONS = ['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Prof.', 'Engr.', 'Atty.', 'Rev.'];
+
+    /**
+     * A "Title" select for a person's name. Put it right before the name field and give the name
+     * field 'salutation' => '<this key>': the form shows both on one row and the title is printed in front.
+     */
+    protected function salutationField(string $nameField, bool $required = true): array
+    {
+        return [
+            'label' => 'Title', 'type' => 'select', 'required' => $required,
+            'options' => self::SALUTATIONS,
+            'rules' => [\Illuminate\Validation\Rule::in(self::SALUTATIONS)],
+            'salutation_of' => $nameField,
+        ];
+    }
+
+    /** "Dr. Maria Santos": the name with its title, if the form asked for one. */
+    public function personName(array $values, string $nameField): string
+    {
+        $name = trim((string) ($values[$nameField] ?? ''));
+        $titleKey = $this->allFields()[$nameField]['salutation'] ?? null;
+        $title = $titleKey ? trim((string) ($values[$titleKey] ?? '')) : '';
+
+        return static::withTitle($title, $name);
+    }
+
+    public static function withTitle(?string $title, ?string $name): string
+    {
+        $name = trim((string) $name);
+        $title = trim((string) $title);
+        if ($name === '' || $title === '' || str_starts_with(strtolower($name), strtolower($title))) {
+            return $name;
+        }
+
+        return $title . ' ' . $name;
+    }
+
     /** The Guidance Counselor is only available on Wednesdays. If today is Wednesday, use the next one. */
     public static function nextWednesday(): string
     {
@@ -104,7 +142,85 @@ abstract class WorkflowDocument
 
     public function allFields(): array
     {
-        return $this->fields() + $this->reviewerFields();
+        return $this->fields() + $this->reviewerFields() + $this->signerFields();
+    }
+
+    /**
+     * Fields the person signing a step fills in while they sign (ratings, scores), same format as fields().
+     * Their answers are kept in their sealed approval, because the student's answers lock at the first signature.
+     */
+    public function signerFields(array $values = []): array
+    {
+        return [];
+    }
+
+    /** Turns the signer's answers into the values printed on the form (e.g. totals). $values = the student's answers. */
+    public function signerValues(array $answers, array $values): array
+    {
+        return $answers;
+    }
+
+    /**
+     * Validates what the signer filled in and returns what is stored in their approval.
+     *
+     * @throws \Illuminate\Validation\ValidationException keyed "answers.<field>"
+     */
+    public function signerResponse(array $input, array $values): array
+    {
+        $rules = $names = [];
+        foreach ($this->signerFields($values) as $name => $f) {
+            $r = [($f['required'] ?? false) ? 'required' : 'nullable'];
+            if (in_array($f['type'] ?? 'text', ['text', 'textarea'], true)) {
+                $r[] = 'string';
+                $r[] = 'max:' . ($f['max'] ?? 500);
+            }
+            $rules["answers.{$name}"] = array_merge($r, $f['rules'] ?? []);
+            $names["answers.{$name}"] = strtolower(preg_replace('/^\d+\.\s*/', '', $f['label']));
+        }
+
+        $data = \Illuminate\Support\Facades\Validator::make(['answers' => $input], $rules, [], $names)->validate()['answers'] ?? [];
+        $answers = [];
+        foreach (array_keys($this->signerFields($values)) as $name) {
+            $v = $data[$name] ?? null;
+            $answers[$name] = is_string($v) ? (trim($v) === '' ? null : trim($v)) : $v;
+        }
+
+        return $this->signerValues($answers, $values);
+    }
+
+    /** Retired documents stay readable (old records) but can no longer be issued. */
+    public function retired(): bool
+    {
+        return false;
+    }
+
+    /**
+     * A name / email pair for a person who signs from an emailed link, or from their signatory
+     * account when the email belongs to one. Use the keys in chain() as name_field / email_field.
+     */
+    protected function signerContactFields(string $prefix, string $who, string $help): array
+    {
+        return [
+            "{$prefix}_title" => $this->salutationField("{$prefix}_name"),
+            "{$prefix}_name" => [
+                'label' => "{$who}'s full name", 'type' => 'text', 'required' => true, 'max' => 120,
+                'placeholder' => 'e.g. Maria Santos', 'sensitive' => true, 'salutation' => "{$prefix}_title",
+                'help' => "Choose their title, then type their first and last name as they write it.",
+            ],
+            "{$prefix}_email" => [
+                'label' => "{$who}'s email address", 'type' => 'text', 'required' => true, 'max' => 150,
+                'placeholder' => 'name@example.com', 'sensitive' => true, 'help' => $help,
+                'rules' => [
+                    'email:rfc',
+                    function ($attribute, $value, $fail) {
+                        $own = auth()->user()?->email;
+                        if ($own && $value && strcasecmp(trim($value), $own) === 0) {
+                            $fail("Use the other person's email address, not your own.");
+                        }
+                    },
+                ],
+            ],
+        ];
     }
     /**
      * Account details the system fills in. Shown read-only on the student form,
@@ -269,7 +385,14 @@ abstract class WorkflowDocument
         return $this->issuedByRole() !== null || $this->issuedBySignatory();
     }
 
+    /** May issue a new one now. Retired documents can't be issued, but their issuers still finish older records. */
     public function canBeIssuedBy(User $user): bool
+    {
+        return ! $this->retired() && $this->isIssuerRole($user);
+    }
+
+    /** Holds the role that issues this document. */
+    public function isIssuerRole(User $user): bool
     {
         if ($role = $this->issuedByRole()) {
             return $user->holdsSignatoryRole($role);
@@ -349,12 +472,35 @@ abstract class WorkflowDocument
     {
         return [];
     }
+    /**
+     * Other students named on this transaction: user id => role label. They are notified when it is
+     * submitted and when it is completed, and can open a read-only copy.
+     *
+     * @return array<int, string>
+     */
+    public function participants(array $values): array
+    {
+        return [];
+    }
+
+    /**
+     * True when the student must say they are an organization officer before they may use this form.
+     * The form asks first and hides everything else until they answer.
+     */
+    public function requiresOfficer(): bool
+    {
+        return false;
+    }
+
     /** Plain-language steps from start to finish, built from this form's own rules. */
     public function guide(array $values = []): array
     {
         $steps = [];
 
-        $fill = 'Your name, program, year and section come from your profile. You only enter the details that are specific to this request.';
+        $fill = 'Your name, program, year and section come from your profile and are shown locked. You only enter the details that are specific to this request.';
+        if ($this->requiresOfficer()) {
+            $fill = 'Confirm that you are an officer of a student organization. ' . $fill;
+        }
         if ($this->usesNomineePicker()) {
             $fill .= ' Search for the nominee and pick them from the list.';
         }
@@ -391,7 +537,7 @@ abstract class WorkflowDocument
         }
 
         $steps[] = ['Final verification', 'Once every signature is in, the VPSD office does the final check and marks the transaction Completed.'];
-        $steps[] = ['Download your copy', 'The official PDF appears on this page. Print it only if a physical copy is required. Anyone can verify it with the QR code or Reference No. and Fingerprint printed on it.'];
+        $steps[] = ['Transaction form', 'Once the VPSD office completes and issues the transaction form to you, the official PDF becomes available on this page. It cannot be saved before then. Print it only if a physical copy is required. Anyone can verify it with the QR code or Reference No. and Fingerprint printed on it.'];
 
         return $steps;
     }

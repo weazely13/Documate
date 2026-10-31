@@ -63,7 +63,7 @@
 
 <table class="hdr">
     <tr>
-        <td style="width:52pt;">@if ($seal)<img src="{{ $seal }}" width="42" height="42">@endif</td>
+        <td style="width:52pt;">@if ($seal)<img alt="Leyte Normal University seal" src="{{ $seal }}" width="42" height="42">@endif</td>
         <td>
             <div class="org-name">LEYTE NORMAL UNIVERSITY</div>
             <div class="org-office">Office of the Vice President for Student Development</div>
@@ -79,24 +79,22 @@
 
 @yield('body')
 
-@unless ($preview ?? false)
 <div class="foot">
     <table>
         <tr>
-            <td style="width:70pt;">@if ($qr)<img src="{{ $qr }}" width="58" height="58">@endif</td>
+            <td style="width:70pt;">@if ($qr)<img alt="QR code for verifying this document" src="{{ $qr }}" width="58" height="58">@elseif ($preview ?? false)<span class="ph-qr" style="width:58px;height:58px;">QR code<br>on issue</span>@endif</td>
             <td>
                 <div class="foot-k">Verify this document</div>
                 <div class="foot-t">Scan the QR code, or go to <strong>{{ $lookup }}</strong> and enter:</div>
                 <div class="foot-t" style="margin-top:2pt;">
-                    Reference &nbsp;<span class="foot-v mono">{{ $code }}</span><br>
-                    Fingerprint &nbsp;<span class="foot-v mono">{{ $fingerprint ?: '-' }}</span>
+                    Reference &nbsp;<span class="foot-v mono">@if ($code){{ $code }}@else<span class="ph-text">assigned on submit</span>@endif</span><br>
+                    Fingerprint &nbsp;<span class="foot-v mono">@if ($fingerprint){{ $fingerprint }}@elseif ($preview ?? false)<span class="ph-text">assigned when issued</span>@else-@endif</span>
                 </div>
             </td>
             <td style="width:135pt;" class="foot-form">{{ $formCode }}</td>
         </tr>
     </table>
 </div>
-@endunless
 
 </body>
 @if ($preview ?? false)

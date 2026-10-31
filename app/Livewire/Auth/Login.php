@@ -114,7 +114,7 @@ class Login extends Component
             return $this->redirect('/verify', navigate: true);
         }
 
-        return $this->redirect('/student/dashboard', navigate: true);
+        return $this->redirect('/student/home', navigate: true);
     }
 
     protected function maskEmail(string $email): string

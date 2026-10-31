@@ -16,7 +16,7 @@
 @endphp
 
 <a href="{{ $url }}" wire:navigate
-   class="flex min-w-0 flex-col rounded-2xl border border-gray-200/70 bg-white p-4 transition cq-sm:p-5 hover:border-[#2A57B4]/30 hover:shadow-[0_8px_24px_-16px_rgba(15,23,42,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
+   class="flex min-w-0 flex-col rounded-2xl border border-gray-200/70 bg-white p-4 transition cq-sm:p-5 hover:border-[#2A57B4]/30 hover:shadow-[0_8px_24px_-16px_rgba(13,37,61,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
     <div class="flex items-start justify-between gap-2 cq-sm:items-center cq-sm:gap-3">
         <p class="line-clamp-2 text-sm font-medium leading-snug text-gray-700 cq-sm:block cq-sm:truncate">{{ $label }}</p>
         <i class='bx {{ $icon }} shrink-0 text-lg text-[#2A57B4]' aria-hidden="true"></i>

@@ -4,7 +4,7 @@ namespace App\Workflow\Documents;
 
 /**
  * F-SDM-023 Rev. 1 (03-31-23): Student Complaint/Grievance Form.
- * Student files it. Chain: parent/guardian, then up to two witnesses, each through an emailed
+ * Student files it. Chain: parent/guardian, then one required and one optional witness, each through an emailed
  * link + one-time code (no account). The complainant signs with their profile e-signature.
  */
 final class StudentComplaintGrievance extends WorkflowDocument
@@ -13,9 +13,12 @@ final class StudentComplaintGrievance extends WorkflowDocument
 
     private const WITNESSES = 2;
 
+    /** Witnesses the student must name. */
+    private const REQUIRED_WITNESSES = 1;
+
     public function key(): string { return 'student_complaint_grievance'; }
     public function name(): string { return 'Student Complaint/Grievance'; }
-    public function description(): string { return 'File a complaint with the VPSD office. Your parent/guardian and witnesses sign online.'; }
+    public function description(): string { return 'File a complaint with the VPSD office. Your parent/guardian and at least one witness sign online.'; }
     public function formCode(): string { return 'F-SDM-023 Rev. 1 (03-31-23)'; }
 
     public function requiresStudentSignature(): bool { return true; }
@@ -50,13 +53,20 @@ final class StudentComplaintGrievance extends WorkflowDocument
             ],
         ];
 
+        // At least one witness is required; the rest are optional.
         for ($i = 1; $i <= self::WITNESSES; $i++) {
+            $required = $i <= self::REQUIRED_WITNESSES;
             $fields["witness_{$i}_name"] = [
-                'label' => "Witness #{$i} full name", 'type' => 'text', 'max' => 120, 'sensitive' => true,
-            ] + ($i === 1 ? ['help' => 'Optional. Leave witness rows blank if you have none.'] : []);
+                'label' => "Witness #{$i} full name", 'type' => 'text', 'required' => $required, 'max' => 120,
+                'placeholder' => 'e.g. Juan Dela Cruz', 'sensitive' => true,
+                'help' => $required
+                    ? 'Someone who saw or knows what happened. They read the complaint and sign it online.'
+                    : 'Optional. Leave this witness blank if you have only one.',
+            ];
             $fields["witness_{$i}_email"] = [
-                'label' => "Witness #{$i} email address", 'type' => 'text', 'max' => 150,
+                'label' => "Witness #{$i} email address", 'type' => 'text', 'required' => $required, 'max' => 150,
                 'placeholder' => 'name@example.com', 'sensitive' => true,
+                'help' => 'A secure signing link and one-time code are sent here. Double-check it.',
                 'rules' => ['email:rfc', $notSelf],
             ];
         }
@@ -73,6 +83,9 @@ final class StudentComplaintGrievance extends WorkflowDocument
             $email = strtolower(trim((string) ($values["witness_{$i}_email"] ?? '')));
 
             if ($name === '' && $email === '') {
+                if ($i <= self::REQUIRED_WITNESSES) {
+                    return "Name Witness #{$i}: their full name and email address are required.";
+                }
                 continue;
             }
             if ($name === '' || $email === '') {

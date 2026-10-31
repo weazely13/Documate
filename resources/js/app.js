@@ -1,3 +1,4 @@
+import '@fontsource-variable/inter';
 import './bootstrap';
 import { lnuHandbook } from './lnu-handbook';
 import './insights';

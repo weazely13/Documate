@@ -70,7 +70,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Protected pages
     Route::middleware(['verified.student', 'role:student,officer'])->group(function () {
-        Route::get('/dashboard', StudentDashboard::class)->name('dashboard');
+        // Home: greeting and the form search. The old dashboard is now the Activity summary.
+        Route::get('/student/home', NewTransaction::class)->name('student.home');
+        Route::redirect('/dashboard', '/student/home')->name('dashboard');
         Route::get('/student/dashboard', StudentDashboard::class)->name('student.dashboard');
         Route::get('/clearance-status', ClearanceStatusPage::class)->name('student.clearance-status');
 
@@ -144,6 +146,10 @@ Route::middleware(['auth'])->group(function () {
         Route::redirect('/student/transactions', '/student/new-transaction')->name('student.transactions.index');
         Route::get('/student/transactions/new/{type}', \App\Livewire\Student\Transactions\Form::class)
             ->name('student.transactions.new');
+        Route::get('/student/forms/{type}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'blank'])
+            ->name('student.forms.preview');
+        Route::get('/student/transactions/{workspace}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'student'])
+            ->name('student.transactions.preview');
         Route::get('/student/transactions/{workspace}', \App\Livewire\Student\Transactions\Form::class)
             ->name('student.transactions.show');
       
@@ -196,7 +202,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/appointments', \App\Livewire\Admin\Appointments\AppointmentsBoard::class)
             ->name('admin.appointments.index');
 
-        Route::get('/admin/appointments/availability', \App\Livewire\Admin\Appointments\AvailabilityCalendar::class)
+        // Office hours now live on the Appointments calendar.
+        Route::redirect('/admin/appointments/availability', '/admin/appointments?cal=month&edit=1')
             ->name('admin.appointments.availability');
             
         Route::get('/admin/appointments/{appointment}', \App\Livewire\Admin\Appointments\AppointmentShow::class)
@@ -235,6 +242,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/workflow/{workspace}', \App\Livewire\Admin\Workflow\Show::class)->name('admin.workflow.show');
         Route::get('/admin/workflow/{workspace}/report', [\App\Http\Controllers\WorkflowReportController::class, 'download'])
             ->name('admin.workflow.report');
+        Route::get('/admin/workflow/{workspace}/report/preview', [\App\Http\Controllers\WorkflowReportController::class, 'preview'])
+            ->name('admin.workflow.report.preview');
         Route::get('/admin/workflow/{workspace}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'admin'])
             ->name('admin.workflow.preview');
     });

@@ -1,23 +1,23 @@
 @php
-    $btn = 'inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50';
-    $field = 'mt-1.5 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-base outline-none focus:border-[#2A57B4] focus:ring-4 focus:ring-blue-100 sm:py-2.5 sm:text-sm';
+    $btn = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-center leading-snug text-sm font-medium transition focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:cursor-not-allowed disabled:opacity-50 [@media(pointer:coarse)]:min-h-11';
+    $field = 'mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-base outline-none focus:border-[#2A57B4] focus:ring-[3px] focus:ring-[#2A57B4]/20 sm:py-2.5 sm:text-sm';
     $isMine = (int) $approval->acted_by === (int) auth()->id();
     $actionBlocked = ! $signatureReady || ($canSchedule && ! $schedDate);
 @endphp
 
 {{-- pb-32 leaves room for the sticky action bar on phones --}}
-<div class="mx-auto max-w-3xl space-y-4 sm:space-y-5 {{ $canAct ? 'pb-32 sm:pb-0' : '' }}">
+<div class="mx-auto max-w-3xl space-y-4 sm:space-y-5 xl:max-w-[1440px] {{ $canAct ? 'pb-32 sm:pb-0' : '' }}">
 
     {{-- Header --}}
     <div>
         <a href="{{ route('signatory.inbox') }}" wire:navigate
            class="-ml-1 inline-flex min-h-[44px] items-center gap-0.5 pr-3 text-sm font-medium text-slate-500 hover:text-[#2A57B4]">
-            <i class='bx bx-chevron-left text-xl'></i> Signing Inbox
+            <i class='bx bx-chevron-left text-xl' aria-hidden="true"></i> Signing Inbox
         </a>
         <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-                <h2 class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{{ $document->name() }}</h2>
-                <p class="mt-0.5 font-mono text-xs text-slate-400">{{ $ws->transaction_code }}</p>
+                <h2 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $document->name() }}</h2>
+                <p class="mt-0.5 font-mono text-xs text-slate-500">{{ $ws->transaction_code }}</p>
             </div>
             <div class="shrink-0">@include('livewire.workflow._badge', ['status' => $ws->workflow_status])</div>
         </div>
@@ -54,8 +54,11 @@
         </div>
     @endif
 
+    {{-- Wide screens: the document on the right (sticky), everything to act on at the left. Narrow: stacked, document first. --}}
+    <div class="space-y-4 sm:space-y-5 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] xl:items-start xl:gap-6 xl:space-y-0">
+
     {{-- Preview --}}
-    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 xl:sticky xl:top-0 xl:order-2 xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto">
         <p class="text-xs font-medium text-slate-500">You are signing as</p>
         <h3 class="text-sm font-semibold text-slate-900">{{ $approval->role->label ?? 'Account signer' }} <span class="font-normal text-slate-500">({{ $approval->label }})</span></h3>
         <div class="mt-4 border-t border-slate-100 pt-4">@include('livewire.workflow._preview', [
@@ -64,9 +67,12 @@
         ])</div>
     </section>
 
+    <div class="min-w-0 space-y-4 sm:space-y-5 xl:order-1">
+
     {{-- Approval chain --}}
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <h3 class="text-sm font-semibold text-slate-900">Approval chain</h3>
+        <p class="mt-0.5 text-xs text-slate-500">Everyone who signs this document, in order. Your step is highlighted.</p>
         <div class="mt-3">@include('livewire.workflow._chain', ['approvals' => $approvals])</div>
     </section>
 
@@ -108,18 +114,18 @@
                                 @php $ready = $verified->get($m->id, false); @endphp
                                 <div class="grid shrink-0 grid-cols-2 gap-2 sm:flex">
                                     <button type="button" wire:click="startEdit({{ $m->id }})"
-                                            class="{{ $btn }} border border-slate-300 bg-white !px-3 text-slate-700 hover:bg-slate-50">Fix email</button>
+                                            class="{{ $btn }} border border-slate-300 bg-white !px-3 text-slate-700 hover:bg-slate-50">Edit email</button>
 
                                     @if ($ready)
                                         <button type="button" wire:click="resendLink({{ $m->id }})" wire:loading.attr="disabled" wire:target="resendLink({{ $m->id }})"
                                                 @if ($live) wire:confirm="Email a new link? The previous link will stop working." @endif
                                                 class="{{ $btn }} bg-[#2A57B4] !px-3 text-white hover:bg-[#24499A]">
-                                            <span wire:loading.remove wire:target="resendLink({{ $m->id }})">{{ $req ? 'Resend link' : 'Send link' }}</span>
+                                            <span wire:loading.remove wire:target="resendLink({{ $m->id }})">{{ $req ? 'Resend signing link' : 'Send signing link' }}</span>
                                             <span wire:loading wire:target="resendLink({{ $m->id }})">Sending…</span>
                                         </button>
                                     @else
                                         <button type="button" wire:click="openSend({{ $m->id }})"
-                                                class="{{ $btn }} bg-[#2A57B4] !px-3 text-white hover:bg-[#24499A]">Send link</button>
+                                                class="{{ $btn }} bg-[#2A57B4] !px-3 text-white hover:bg-[#24499A]">Send signing link</button>
                                     @endif
                                 </div>
                             @endif
@@ -127,12 +133,12 @@
 
                         @if ($editingId === $m->id)
                             <div class="mt-3 rounded-lg bg-slate-50 p-3">
-                                <label class="block text-xs font-semibold text-slate-600">Correct email address</label>
-                                <input type="email" wire:model="editEmail" inputmode="email" autocomplete="off" class="{{ $field }}">
-                                <p class="mt-1 text-[11px] text-slate-400">Any link already sent to the old address stops working.</p>
+                                <label for="edit-email-{{ $m->id }}" class="block text-xs font-semibold text-slate-600">Correct email address</label>
+                                <input id="edit-email-{{ $m->id }}" type="email" wire:model="editEmail" inputmode="email" autocomplete="off" class="{{ $field }}" autofocus>
+                                <p class="mt-1 text-[11px] text-slate-500">Any link already sent to the old address stops working.</p>
                                 @error('send') <p class="mt-1 text-xs font-medium text-rose-600">{{ $message }}</p> @enderror
                                 <div class="mt-3 flex gap-2">
-                                    <button type="button" wire:click="saveEmail" class="{{ $btn }} flex-1 bg-[#2A57B4] text-white hover:bg-[#24499A] sm:flex-none">Save</button>
+                                    <button type="button" wire:click="saveEmail" class="{{ $btn }} flex-1 bg-[#2A57B4] text-white hover:bg-[#24499A] sm:flex-none">Save email</button>
                                     <button type="button" wire:click="closeSend" class="{{ $btn }} flex-1 border border-slate-300 bg-white text-slate-700 sm:flex-none">Cancel</button>
                                 </div>
                             </div>
@@ -140,8 +146,8 @@
 
                         @if ($sendingId === $m->id)
                             <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                <label class="block text-xs font-semibold text-amber-900">How did you verify this member?</label>
-                                <select wire:model.live="identityMethod" class="{{ $field }} border-amber-300">
+                                <label for="identity-{{ $m->id }}" class="block text-xs font-semibold text-amber-900">How did you verify this member?</label>
+                                <select id="identity-{{ $m->id }}" wire:model.live="identityMethod" class="{{ $field }} border-amber-300">
                                     <option value="">Choose…</option>
                                     @foreach (\App\Services\Workflow\TransactionWorkflow::IDENTITY_METHODS as $key => $label)
                                         <option value="{{ $key }}">{{ $label }}</option>
@@ -149,7 +155,8 @@
                                 </select>
                                 @error('identityMethod') <p class="mt-1 text-xs font-medium text-rose-600">{{ $message }}</p> @enderror
 
-                                <input type="text" wire:model="identityNote" maxlength="300" placeholder="Note (optional). No ID or phone numbers."
+                                <label for="identity-note-{{ $m->id }}" class="sr-only">Verification note (optional)</label>
+                                <input id="identity-note-{{ $m->id }}" type="text" wire:model="identityNote" maxlength="300" placeholder="Note (optional). No ID or phone numbers."
                                        class="{{ $field }} !mt-2 border-amber-300">
 
                                 <label class="mt-3 flex items-start gap-3 text-sm text-amber-900">
@@ -163,7 +170,7 @@
                                     <button type="button" wire:click="sendLink" wire:loading.attr="disabled"
                                             @disabled(! $identityMethod || ! $identityConfirmed)
                                             class="{{ $btn }} flex-[2] bg-[#2A57B4] text-white hover:bg-[#24499A] sm:flex-none">
-                                        <span wire:loading.remove wire:target="sendLink">Email the link</span>
+                                        <span wire:loading.remove wire:target="sendLink">Send signing link</span>
                                         <span wire:loading wire:target="sendLink">Sending…</span>
                                     </button>
                                     <button type="button" wire:click="closeSend" class="{{ $btn }} flex-1 border border-amber-300 bg-white text-slate-700 sm:flex-none">Cancel</button>
@@ -226,37 +233,53 @@
 
     {{-- Primary actions: sticky bottom bar on phones, inline on larger screens --}}
     @if ($canAct)
-        <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(15,23,42,0.06)] backdrop-blur sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
+        <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(13,37,61,0.06)] backdrop-blur sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
             <div class="mx-auto max-w-3xl">
                 @if ($actionBlocked)
-                    <p class="mb-2 text-xs font-medium text-amber-700">
+                    <p id="action-blocked" class="mb-2 text-xs font-medium text-amber-700">
                         {{ ! $signatureReady ? 'Add your e-signature to enable signing.' : 'Set the counselling schedule to enable signing.' }}
                     </p>
                 @endif
                 <div class="flex gap-2">
                     <button type="button" wire:click="openModal('reject')"
-                            class="{{ $btn }} flex-1 border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 sm:flex-none">Reject</button>
+                            class="{{ $btn }} flex-1 border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 sm:flex-none">
+                        <i class="bx bx-x-circle text-base" aria-hidden="true"></i> Reject document
+                    </button>
                     <button type="button" wire:click="openModal('approve')" @disabled($actionBlocked)
-                            class="{{ $btn }} flex-[2] bg-[#2A57B4] text-white hover:bg-[#24499A] sm:flex-none">Approve and sign</button>
+                            @if ($actionBlocked) aria-describedby="action-blocked" @endif
+                            class="{{ $btn }} flex-[2] bg-[#2A57B4] text-white hover:bg-[#24499A] sm:flex-none">
+                        <i class="bx bx-pen text-base" aria-hidden="true"></i> Approve and sign
+                    </button>
                 </div>
             </div>
         </div>
     @endif
 
+    </div>{{-- left column --}}
+    </div>{{-- two columns --}}
+
     {{-- Modal: bottom sheet on phones, centered dialog on larger screens --}}
     @if ($modal)
         <div class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm sm:items-center sm:p-4"
-             wire:keydown.escape="closeModal" wire:click.self="closeModal" role="dialog" aria-modal="true">
-            <div class="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl sm:p-6">
+             wire:keydown.escape="closeModal" wire:click.self="closeModal" role="dialog" aria-modal="true" aria-labelledby="sign-modal-title">
+            <div class="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl sm:p-6"
+                 x-data x-init="$nextTick(() => ($el.querySelector('select, textarea, input:not([type=hidden]):not([type=radio])') || $el.querySelector('button'))?.focus())"
+                 @keydown.tab="
+                    const f = [...$el.querySelectorAll('button:not([disabled]), input:not([type=hidden]), select, textarea')].filter(e => e.offsetParent !== null);
+                    if (! f.length) return;
+                    if ($event.shiftKey && document.activeElement === f[0]) { $event.preventDefault(); f[f.length - 1].focus(); }
+                    else if (! $event.shiftKey && document.activeElement === f[f.length - 1]) { $event.preventDefault(); f[0].focus(); }">
                 <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 sm:hidden"></div>
 
                 @if ($modal === 'approve')
-                    <h3 class="text-lg font-bold text-slate-900">Confirm your signature</h3>
+                    <h3 id="sign-modal-title" class="text-lg font-semibold text-slate-900">Confirm your signature</h3>
                     <p class="mt-1 text-sm text-slate-500">I have reviewed this {{ strtolower($document->name()) }} and authorize this action. Your signature below will be applied and sealed.</p>
 
                     @if (auth()->user()->signature_enabled)
                         @if ($signatureReady)
-                            <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}" alt="Your signature" class="mt-4 h-16 rounded-lg border border-slate-100 bg-white p-1">
+                            <p class="mt-4 text-xs font-medium text-slate-500">Digitally signed by</p>
+                            <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}" alt="Your saved e-signature" class="mt-1 h-16 rounded-lg border border-slate-100 bg-white p-1">
+                            <p class="mt-1 border-b border-slate-300 pb-0.5 text-sm font-semibold text-slate-900">{{ auth()->user()->full_name }}</p>
                         @endif
                     @else
                         <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -265,41 +288,48 @@
                     @endif
 
                     @if ($document->signerRecordsInspection())
-                        <label class="mt-4 block text-sm font-medium text-slate-700">Inspection remarks <span class="text-slate-400">(optional)</span></label>
-                        <textarea wire:model="inspectionRemarks" rows="3" maxlength="300" placeholder="e.g. Haircut done. Cleared." class="{{ $field }}"></textarea>
+                        <label for="inspection-remarks" class="mt-4 block text-sm font-medium text-slate-700">Inspection remarks <span class="text-slate-500">(optional)</span></label>
+                        <textarea id="inspection-remarks" wire:model="inspectionRemarks" rows="3" maxlength="300" placeholder="e.g. Haircut done. Cleared." class="{{ $field }}"></textarea>
                         @error('inspectionRemarks') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
                     @endif
 
                     @if (($kind ?? null) === 'rating')
-                        <p class="mt-4 text-sm font-medium text-slate-700">Your rating</p>
-                        <div class="mt-1.5 space-y-1.5">
+                        <p id="rating-label" class="mt-4 text-sm font-medium text-slate-700">Your rating</p>
+                        <div class="mt-1.5 space-y-1.5" role="radiogroup" aria-labelledby="rating-label">
                             @foreach (\App\Workflow\Documents\ModelStudentRating::RATINGS as $n => $label)
-                                <label wire:key="rt-{{ $n }}" class="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50">
-                                    <input type="radio" wire:model="rating" value="{{ $n }}" class="h-5 w-5 accent-[#2A57B4]">
-                                    <span class="font-medium text-slate-800">{{ $label }}</span><span class="ml-auto text-slate-400">({{ $n }})</span>
+                                <label wire:key="rt-{{ $n }}" class="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/20">
+                                    <input type="radio" name="rating" wire:model="rating" value="{{ $n }}" class="h-5 w-5 accent-[#2A57B4]">
+                                    <span class="font-medium text-slate-800">{{ $label }}</span><span class="ml-auto text-slate-500">({{ $n }})</span>
                                 </label>
                             @endforeach
                         </div>
                         @error('rating') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
+                    @elseif (($kind ?? null) === 'form')
+                        <div class="mt-4">
+                            @include('livewire.workflow._signer-fields', ['fields' => $document->signerFields($ws->field_values ?? [])])
+                        </div>
                     @endif
 
                     <label for="sign-password" class="mt-4 block text-sm font-medium text-slate-700">Enter your password to sign</label>
-                    <input id="sign-password" type="password" wire:model="password" wire:keydown.enter="approve" autocomplete="current-password" class="{{ $field }}">
-                    @error('password') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
+                    <input id="sign-password" type="password" wire:model="password" wire:keydown.enter="approve" autocomplete="current-password" class="{{ $field }}"
+                           aria-required="true" @error('password') aria-invalid="true" aria-describedby="sign-password-error" @enderror>
+                    @error('password') <p id="sign-password-error" role="alert" class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
                     @error('action') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
 
                     <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                         <button type="button" wire:click="closeModal" class="{{ $btn }} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Cancel</button>
                         <button type="button" wire:click="approve" wire:loading.attr="disabled" class="{{ $btn }} bg-[#2A57B4] text-white hover:bg-[#24499A]">
-                            <span wire:loading.remove wire:target="approve">Sign document</span>
+                            <span wire:loading.remove wire:target="approve">Sign and approve</span>
                             <span wire:loading wire:target="approve">Signing…</span>
                         </button>
                     </div>
                 @else
-                    <h3 class="text-lg font-bold text-slate-900">Reject this document</h3>
-                    <p class="mt-1 text-sm text-slate-500">This ends the whole transaction. The student sees your reason.</p>
-                    <textarea wire:model="reason" rows="4" maxlength="500" placeholder="Why are you rejecting it?" class="{{ $field }} !mt-4"></textarea>
-                    @error('action') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
+                    <h3 id="sign-modal-title" class="text-lg font-semibold text-slate-900">Reject this document</h3>
+                    <p id="reject-help" class="mt-1 text-sm text-slate-500">This ends the whole transaction. The student sees your reason.</p>
+                    <label for="reject-reason" class="mt-4 block text-sm font-medium text-slate-700">Reason for rejecting <span class="text-rose-600" aria-hidden="true">*</span></label>
+                    <textarea id="reject-reason" wire:model="reason" rows="4" maxlength="500" placeholder="e.g. The activity date overlaps with final exams." class="{{ $field }}"
+                              aria-required="true" aria-describedby="reject-help @error('action') reject-error @enderror" @error('action') aria-invalid="true" @enderror></textarea>
+                    @error('action') <p id="reject-error" role="alert" class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
                     <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                         <button type="button" wire:click="closeModal" class="{{ $btn }} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Cancel</button>
                         <button type="button" wire:click="reject" wire:loading.attr="disabled" class="{{ $btn }} bg-rose-600 text-white hover:bg-rose-700">Reject document</button>

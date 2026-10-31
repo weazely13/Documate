@@ -48,7 +48,7 @@
                 </a>
             </div>
 
-            <h1 class="text-2xl font-bold text-[#2A57B4] mb-6" style="font-family: 'Montserrat', sans-serif;">
+            <h1 class="text-2xl font-semibold tracking-tight text-slate-900 mb-6">
                 Create your account
             </h1>
 
@@ -247,7 +247,7 @@
                         <div class="w-40 h-40 rounded-full border-2 border-dashed border-[#2A57B4]/30 flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#2A57B4]/10 to-[#FFBF00]/20">
 
                             @if($profile_picture)
-                                <img src="{{ $profile_picture->temporaryUrl() }}"
+                                <img alt="Profile photo" src="{{ $profile_picture->temporaryUrl() }}"
                                     class="w-full h-full object-cover">
                             @else
                                 <span class="text-gray-400 text-sm text-center px-2">
@@ -266,7 +266,7 @@
                         </p>
                     </div>
                     <div>
-                        <h1 class="font-bold text-[#2A57B4]" style="font-family: 'Montserrat', sans-serif;">Student Verification</h1>
+                        <h1 class="font-semibold text-slate-900">Student Verification</h1>
 
                         @if (session()->has('message'))
                             <div>{{ session('message') }}</div>
@@ -443,9 +443,9 @@
                         <button type="submit"
                             :disabled="!canSubmit"
                             :class="canSubmit
-                                ? 'bg-[#FFBF00] hover:opacity-90 text-[#2A57B4]'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
-                            class="w-full px-5 py-3 rounded-full font-bold transition">
+                                ? 'bg-[#2A57B4] hover:bg-[#24499A] text-white shadow-sm'
+                                : 'bg-slate-200 text-slate-500 cursor-not-allowed'"
+                            class="w-full px-5 py-3 rounded-lg font-medium transition">
                             Register
                         </button>
                     </div>
@@ -458,7 +458,7 @@
                             <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
                                 <div>
                                     <p class="text-[.7rem] uppercase tracking-wider text-[#2A57B4] font-bold">VPSD DocuMate — Leyte Normal University</p>
-                                    <h3 class="text-2xl font-bold text-[#2A57B4] mt-1">Terms & Conditions</h3>
+                                    <h3 class="text-2xl font-semibold tracking-tight text-slate-900 mt-1">Terms & Conditions</h3>
                                     <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
                                 </div>
                                 <button type="button" @click="activeModal = null" class="text-gray-400 hover:text-gray-700 transition shrink-0">
@@ -479,7 +479,7 @@
                                 </label>
                                 <button type="button" :disabled="!termsBoxChecked"
                                     @click="agreedTerms = true; activeModal = null"
-                                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-full font-semibold transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
+                                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-lg font-medium transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
                                     I Agree
                                 </button>
                             </div>
@@ -494,7 +494,7 @@
                             <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
                                 <div>
                                     <p class="text-[.7rem] uppercase tracking-wider text-[#2A57B4] font-bold">VPSD DocuMate — Leyte Normal University</p>
-                                    <h3 class="text-2xl font-bold text-[#2A57B4] mt-1">Privacy Policy</h3>
+                                    <h3 class="text-2xl font-semibold tracking-tight text-slate-900 mt-1">Privacy Policy</h3>
                                     <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
                                 </div>
                                 <button type="button" @click="activeModal = null" class="text-gray-400 hover:text-gray-700 transition shrink-0">
@@ -515,7 +515,7 @@
                                 </label>
                                 <button type="button" :disabled="!privacyBoxChecked"
                                     @click="agreedPrivacy = true; activeModal = null"
-                                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-full font-semibold transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
+                                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-lg font-medium transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
                                     I Agree
                                 </button>
                             </div>
@@ -531,14 +531,14 @@
                 <div class="flex justify-between pt-6">
                     @if($step > 1)
                         <button type="button" wire:click="prevStep"
-                            class="px-5 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-full transition">
+                            class="px-5 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg transition">
                             Back
                         </button>
                     @endif
 
                     @if($step < 3)
                         <button type="button" wire:click="nextStep"
-                            class="px-5 py-2 bg-[#2A57B4] hover:opacity-90 text-white rounded-full font-semibold transition ml-auto">
+                            class="px-5 py-2 bg-[#2A57B4] hover:opacity-90 text-white rounded-lg font-medium transition ml-auto">
                             Next
                         </button>
                     @endif
@@ -553,7 +553,7 @@
          style="background-image: url('/images/backdrop.jpg');">
         <div class="absolute inset-0 bg-gradient-to-t from-[#2A57B4]/90 via-[#2A57B4]/40 to-transparent"></div>
         <div class="relative z-10 p-8 text-white">
-            <p class="text-2xl font-bold leading-snug" style="font-family: 'Montserrat', sans-serif;">
+            <p class="text-2xl font-bold leading-snug">
                 Join DocuMate.
             </p>
             <p class="text-sm text-white/80 mt-2">
@@ -573,7 +573,7 @@
         <h2 class="text-red-600 font-semibold mb-2">Incomplete Form</h2>
         <p class="mb-4 text-gray-600">Please fill all required fields correctly.</p>
         <button @click="showError=false"
-            class="px-6 py-2 bg-[#2A57B4] hover:opacity-90 text-white rounded-full transition">
+            class="px-6 py-2 bg-[#2A57B4] hover:opacity-90 text-white rounded-lg transition">
             OK
         </button>
     </div>
@@ -586,7 +586,7 @@
 
     <div class="bg-white p-6 rounded-2xl w-[600px] max-h-[90vh] overflow-y-auto shadow-2xl">
 
-        <h2 class="text-lg font-bold mb-4 text-center text-[#2A57B4]" style="font-family: 'Montserrat', sans-serif;">Verification Details</h2>
+        <h2 class="text-lg font-semibold tracking-tight mb-4 text-center text-slate-900">Verification Details</h2>
 
         <div class="mb-4 text-center">
 
@@ -610,7 +610,7 @@
             <div class="relative w-28 h-28">
                 <svg class="w-28 h-28 transform -rotate-90">
                     <circle cx="56" cy="56" r="50"
-                        stroke="#e5e7eb" stroke-width="10" fill="none"/>
+                        stroke="#e7e5e1" stroke-width="10" fill="none"/>
 
                     @php
                         $scoreColor = $matchScore >= 75 ? '#16a34a' : '#dc2626'; // green or red
@@ -784,7 +784,7 @@
         </div>
 
         <button @click="open = false"
-            class="mt-4 w-full bg-[#2A57B4] hover:opacity-90 text-white py-2 rounded-full transition">
+            class="mt-4 w-full bg-[#2A57B4] hover:opacity-90 text-white py-2 rounded-lg transition">
             Close
         </button>
     </div>
