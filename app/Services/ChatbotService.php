@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ChatbotService
@@ -267,8 +266,10 @@ class ChatbotService
                 $score = $normalizedPart !== '' && str_contains($normalizedQuestion, $normalizedPart) ? 100 : 0;
 
                 foreach ($normalizedKeywords as $keyword) {
-                    if ($keyword !== '' && str_contains($normalizedPart, $keyword)) {
-                        $score += 5;
+                    if ($keyword !== '' && str_contains($keyword, ' ') && str_contains($normalizedPart, $keyword)) {
+                        $score += 8;
+                    } elseif ($normalizedPart === $keyword) {
+                        $score += 6;
                     }
                 }
 
@@ -286,7 +287,7 @@ class ChatbotService
                 }
             }
 
-            if ($bestMatch && ! isset($matches[$bestMatch['question']])) {
+            if ($bestMatch && $bestScore >= 4 && ! isset($matches[$bestMatch['question']])) {
                 $matches[$bestMatch['question']] = $bestMatch;
             }
         }
@@ -373,6 +374,7 @@ Your job:
 
 Scope:
 - Answer only questions directly about Leyte Normal University, its students, offices, services, policies, or the DocuMate system.
+- DocuMate's primary and sole office served is the Office of the Vice President for Student Development (VPSD). Other LNU offices may be mentioned only as supporting offices or references when relevant to a VPSD or student transaction; do not imply that DocuMate is designed to serve those offices.
 - Do not answer unrelated general-knowledge questions or questions about other schools or organizations. Politely state that you can assist only with LNU and DocuMate matters, then invite an LNU-related question.
 - For a topic that is generally applicable but asked in a clearly LNU context, answer only the part that can be supported by the supplied LNU or DocuMate sources. If those sources do not cover it, say so rather than giving a general answer.
 - A prior in-scope message does not make a later unrelated request in scope. Apply this boundary to the user's latest request.
@@ -381,26 +383,27 @@ Scope:
 Reply formatting (this matters):
 - Use a courteous, neutral, professional tone. Write in complete sentences with standard grammar and spelling. Avoid slang, emojis, overly familiar language, filler, and casual openers such as "Sure!" or "Hey!".
 - Start with the direct answer. Keep routine replies to 2-5 concise sentences; use a short numbered list for procedures.
-- Answer only the specific question asked. Include only information needed to answer it; do not add unsolicited background, examples, recommendations, adjacent topics, or extra offers. If clarification is necessary, ask one concise question.
-- Give the user a complete answer before asking anything. End every substantive answer with one brief, relevant follow-up question that helps continue the LNU or DocuMate conversation. Do not replace the answer with a question.
+- Answer only the specific question asked. Start with the answer; do not repeat the question or add a greeting, preamble, unrelated background, examples, recommendations, adjacent topics, or extra offers. Include only details needed to answer accurately. If clarification is necessary, ask one concise question.
+- Give the user a complete answer before asking anything. End every substantive answer with at most one brief follow-up question, and include it only when it directly relates to the user's request. Do not replace the answer with a question.
 - Use Markdown bullets or numbered lists for scannability, with one item or step per line. Avoid tables and long paragraphs in the chat panel.
-- Use **bold** sparingly for labels. Use a short, descriptive heading only for longer answers. Keep spacing consistent and do not repeat the same information.
+- Keep a simple answer to one short paragraph. For any answer with multiple facts or steps, organize it with a brief Markdown heading and a compact list. Use numbered lists for procedures and bullets for options or facts; put each item on its own line and bold short labels where useful. Never put multiple numbered steps in one paragraph.
+- Use `> ` for one important note or caution. Use inline code only for exact field names or values the user must type. Do not use tables, decorative symbols, repeated headings, or a list when a sentence is clearer. Keep spacing consistent and do not repeat information.
 - Preserve official names and exact form field names or instructions when the source requires them. Explain them in clear, formal language without changing their meaning.
 - Be respectful without sounding stiff. Do not add an apology unless one is needed to acknowledge a problem.
 - When giving a destination with a URL, link its exact label using that relative URL, e.g. [Appointments](/student/appointments). If a control has no URL, explain its exact location without making a link. Never invent a URL.
 - For FAQ questions, call search_faqs and treat its returned answers as authoritative. For "where/how do I find" questions, call get_navigation_help.
 - For personal records, call the matching user-scoped data function. For a named document, call get_template_requirements; use list_document_templates only when the user asks what is available.
-- You may call one information function and suggest_quick_replies in the same turn. Suggestions must stay directly related to the user's question and be useful next actions, not a substitute for the answer.
+- You may call one information function and suggest_quick_replies in the same turn. Suggest only FAQ questions directly related to the user's request; do not add general or unrelated suggestions. Suggestions are optional and never replace the answer.
 
 When the user asks about their own requests, appointments, or clearance status, call the relevant tool instead of guessing.
 - When an authenticated user asks about their own account status or enrollment verification result, call get_my_account_status. It returns only that user's current account and verification data. Do not ask for their student number or email.
 - For verification, distinguish the current-period status from the latest submission attempt: a current-period status of verified means the user has a verified record for that period, even if a later attempt was rejected. If no verification period exists, say the system has no current period to report.
 - Explain account steps from the Account & Access FAQs. Keep new registration separate from re-verifying an existing inactive account. Never claim a verification is pending, approved, or failed unless the FAQ or current-user status tool supports that statement.
-- For an authenticated Admin asking for current dashboard figures, action counts, today's appointments, or recent activity, call get_admin_dashboard_summary and report only the returned data. State its "as_of" time when giving live counts. Never expose the admin dashboard tool or its results to students, officers, or unauthenticated users.
-- The admin dashboard's Pending Transactions count includes workspaces whose status is pending; Pending Appointment Review counts appointments with pending status; Today's Appointments counts appointments scheduled for today's date. Clearance Rate is the rounded percentage of all clearance records marked Cleared. Do not interpret these counts as broader totals.
+- For an authenticated Admin asking about current dashboard figures, transaction stages, overdue work, signatures, clearance, requested forms, appointment bookings or queues, or submission trends, call get_admin_dashboard_summary and use its returned definitions and figures. State its "as_of" time for live counts. Never expose this dashboard tool or its results to students, officers, or unauthenticated users.
+- Dashboard figures refresh every 60 seconds. Transaction and signature trend totals cover the last 30 days by default. "Overdue" means at least 7 school days waiting. Clearance counts use active students/officers and the latest status per student for the current semester; "Not tagged" is separate from "Uncleared". Report only the requested metric and preserve those definitions.
 - Never write tool names, JSON, or "suggest_quick_replies" in your reply text. Tools are called silently.
 - When the user asks what documents they can request, call list_document_templates and present the returned names as a short list. Link New Transaction using the navigation map.
-- For get_template_requirements, preserve the returned field names and instructions; do not invent field types or requirements.
+- When a user asks for the requirements or process of a named form, call get_template_requirements. Preserve the returned form name, field names, special notes, and instructions; do not invent requirements. If the user has not named a form, explain the common workflow only and ask which form they mean for exact requirements. If the tool returns multiple matching forms, show those names and ask them to choose before giving form-specific instructions.
 
 {$processContext}
 Treat the guide as general workflow context. Prefer exact page names and links from this role-specific navigation map when giving directions:
@@ -514,6 +517,21 @@ HYMN
                     includeAdminDashboardTool: $includeAdminDashboardTool,
                 );
 
+                if ($requiredTool && $response->status() === 400 && $this->isToolChoiceMismatch($response->body())) {
+                    Log::warning('Groq rejected the required tool choice; retrying with automatic tool selection.', [
+                        'required_tool' => $requiredTool,
+                        'round' => $round,
+                    ]);
+
+                    $response = $this->callGroq(
+                        $messages,
+                        withTools: true,
+                        requiredTool: null,
+                        includeNavigationTool: $includeNavigationTool,
+                        includeAdminDashboardTool: $includeAdminDashboardTool,
+                    );
+                }
+
                 if ($response->failed()) {
                     Log::error('Groq chatbot error', [
                         'round' => $round,
@@ -588,9 +606,36 @@ HYMN
     protected function formatFaqResults(array $faqs): string
     {
         return collect($faqs)
-            ->map(fn ($faq) => '**' . $faq['question'] . "**\n" . $faq['answer'])
-            ->implode("\n\n")
-            . "\n\nWould you like help with another DocuMate question?";
+            ->map(fn ($faq) => '### ' . $faq['question'] . "\n\n" . $this->formatFaqAnswer((string) $faq['answer']))
+            ->implode("\n\n---\n\n");
+    }
+
+    protected function formatFaqAnswer(string $answer): string
+    {
+        $answer = trim($answer);
+        if ($answer === '' || preg_match('/(?:^|\n)\s*(?:[-*]|\d+[.)]|#{1,6}\s)/', $answer)) {
+            return $answer;
+        }
+
+        $protected = [];
+        $answer = preg_replace_callback('/\b(?:Mr|Mrs|Ms|Dr|Prof)\.|\b[A-Z]\./u', function ($match) use (&$protected) {
+            $token = 'FAQDOT' . count($protected) . 'TOKEN';
+            $protected[$token] = $match[0];
+
+            return $token;
+        }, $answer);
+
+        $sentences = preg_split('/(?<=[.!?])\s+(?=[A-Z0-9\[])/u', $answer, -1, PREG_SPLIT_NO_EMPTY) ?: [$answer];
+        $sentences = array_map(
+            fn ($sentence) => strtr(trim($sentence), $protected),
+            $sentences,
+        );
+
+        if (count($sentences) < 2) {
+            return implode(' ', $sentences);
+        }
+
+        return implode("\n", array_map(fn ($sentence) => '- ' . $sentence, $sentences));
     }
 
     protected function formatOfficeResults(array $result, string $question = ''): string
@@ -616,7 +661,7 @@ HYMN
             $locations = collect($office['locations'] ?? [])->filter()->implode('; ');
             $hours = collect($office['hours_options'] ?? [])->filter()->implode('; ');
             $contacts = collect($office['contacts'] ?? [])->filter()->implode(', ');
-            $lines = ['**' . $office['name'] . '**'];
+            $lines = ['### ' . $office['name']];
 
             if ($showAllDetails || $requestedDetails['head']) {
                 $lines[] = '';
@@ -628,12 +673,12 @@ HYMN
             }
 
             if (($showAllDetails || $requestedDetails['responsibilities']) && $responsibilities !== '') {
-                $lines[] = '- Responsibilities: ' . $responsibilities;
+                $lines[] = '- **Responsibilities:** ' . $responsibilities;
             }
             if (($showAllDetails || $requestedDetails['location']) && $locations !== '') {
                 $locationLabel = count($office['locations'] ?? []) > 1
-                    ? '- Locations (multiple directory entries): '
-                    : '- Location: ';
+                    ? '- **Locations** (multiple directory entries): '
+                    : '- **Location:** ';
                 $lines[] = $locationLabel . $locations;
             }
 
@@ -644,10 +689,10 @@ HYMN
             }
 
             if ($includeHours) {
-                $lines[] = '- Hours: ' . $hours;
+                $lines[] = '- **Hours:** ' . $hours;
             }
             if ($showAllDetails || $requestedDetails['contact']) {
-                $lines[] = '- Contact: ' . ($contacts !== '' ? $contacts : 'Not publicly listed');
+                $lines[] = '- **Contact:** ' . ($contacts !== '' ? $contacts : 'Not publicly listed');
             }
 
             return implode("\n", $lines);
@@ -741,12 +786,94 @@ HYMN
         return intdiv($m, 60) . 'h ' . ($m % 60) . 'm';
     }
     
-    protected function templateRequirements(string $name): array
+    protected function templateRequirements(string $name, ?\App\Models\User $user = null): array
     {
         $name = trim(preg_replace('/\b(form|document|the)\b/i', '', $name));
         $name = trim($name);
         if ($name === '') {
             return ['error' => 'No template name given. Ask the user which document they mean.'];
+        }
+
+        // The New Transaction picker contains code-defined paperless workflow forms as well
+        // as database-backed paper templates. Resolve workflow forms here too so named-form
+        // questions return the correct requirements and approval process.
+        $workflowDocuments = collect(\App\Workflow\Documents\DocumentRegistry::all())->values();
+        $needle = trim(preg_replace('/[^\pL\pN]+/u', ' ', Str::lower(Str::ascii($name))) ?? '');
+        $queryTerms = collect(explode(' ', $needle))->filter(fn ($term) => mb_strlen($term) > 2)->unique();
+        $workflowMatches = $workflowDocuments->map(function ($document) use ($needle, $queryTerms) {
+            $normalizedName = trim(preg_replace('/[^\pL\pN]+/u', ' ', Str::lower(Str::ascii($document->name()))) ?? '');
+            $normalizedDescription = trim(preg_replace('/[^\pL\pN]+/u', ' ', Str::lower(Str::ascii($document->description()))) ?? '');
+            $score = $normalizedName === $needle ? 100 : 0;
+            if ($normalizedName !== '' && str_contains($normalizedName, $needle)) {
+                $score = max($score, 50 + mb_strlen($needle));
+            }
+            foreach ($queryTerms as $term) {
+                if (preg_match('/\b' . preg_quote($term, '/') . '\b/', $normalizedName)) {
+                    $score += 10;
+                } elseif (preg_match('/\b' . preg_quote($term, '/') . '\b/', $normalizedDescription)) {
+                    $score += 2;
+                }
+            }
+
+            return ['document' => $document, 'score' => $score];
+        })->filter(fn ($match) => $match['score'] > 0)->sortByDesc('score')->values();
+        $bestScore = $workflowMatches->first()['score'] ?? 0;
+        $workflowMatches = $workflowMatches->filter(fn ($match) => $match['score'] === $bestScore)->values();
+
+        if ($workflowMatches->count() > 1) {
+            return [
+                'note' => 'Several workflow documents match this name. Ask the student which one they mean before giving form-specific instructions.',
+                'matches' => $workflowMatches->map(fn ($match) => [
+                    'document' => $match['document']->name(),
+                    'description' => $match['document']->description(),
+                    'type' => $match['document']->issuedByOffice() ? 'office-issued document' : 'online workflow form',
+                ])->all(),
+            ];
+        }
+
+        $workflowDocument = $workflowMatches->first()['document'] ?? null;
+
+        if ($workflowDocument) {
+            if ($workflowDocument->issuedByOffice()) {
+                return [[
+                    'document' => $workflowDocument->name(),
+                    'description' => $workflowDocument->description(),
+                    'type' => 'office-issued document',
+                    'student_action' => 'Students cannot start this document from New Transaction. It is issued by VPSD or the relevant authorized university staff. Contact the issuing office or staff member to ask whether it applies to your case.',
+                ]];
+            }
+
+            $fields = collect($workflowDocument->fields())->map(function ($field, $key) {
+                return [
+                    'field' => $field['label'] ?? Str::headline($key),
+                    'type' => $field['type'] ?? 'text',
+                    'required' => (bool) ($field['required'] ?? false),
+                    'options' => $field['options'] ?? null,
+                    'help' => $field['help'] ?? null,
+                ];
+            })->values()->all();
+            $profileValues = $user ? $workflowDocument->studentSnapshotExtras($user) : [];
+            $steps = collect($workflowDocument->guide($profileValues))->map(fn ($step) => [
+                'step' => $step[0] ?? 'Step',
+                'details' => $step[1] ?? '',
+            ])->values()->all();
+
+            return [[
+                'document' => $workflowDocument->name(),
+                'description' => $workflowDocument->description(),
+                'type' => 'online workflow form',
+                'fields_to_fill_in' => $fields,
+                'system_filled' => array_values($workflowDocument->systemFields()),
+                'requires_student_signature' => $workflowDocument->requiresStudentSignature(),
+                'requires_item_photo' => $workflowDocument->requiresItemPhoto(),
+                'uses_nominee_picker' => $workflowDocument->usesNomineePicker(),
+                'student_instructions' => $workflowDocument->studentNote(),
+                'nominee_selection_requirement' => $workflowDocument->usesNomineePicker()
+                    ? 'Select the nominee from the student search list. The nominee profile must include an address and contact number.'
+                    : null,
+                'signer_sets_schedule' => $workflowDocument->signerSetsSchedule(),
+                'instructions' => $steps,
+            ]];
         }
 
         $templates = \App\Models\Template::query()
@@ -883,7 +1010,7 @@ HYMN
         $query = Str::lower(Str::ascii($query));
 
         if ($this->isAdmin($user)
-            && preg_match('/\b(?:dashboard|action center|system overview|recent activity|today(?:\x27s)? appointments?|pending verifications?|pending transactions?|appointment requests?|appointments? (?:awaiting|pending) (?:review|approval)|clearance rate|active accounts?|students and officers|how many (?:students|accounts|transactions|verifications|appointments))\b/', $query)) {
+            && preg_match('/\b(?:dashboard|action center|system overview|recent activity|today(?:\x27s)? appointments?|today at the office|appointments? calendar|calendar bookings?|now serving|pending verifications?|pending transactions?|appointment requests?|appointments? (?:awaiting|pending) (?:review|approval)|requests? to review|ready to finish|waiting for signatures?|pending signatures?|signatories|waiting longest|longest waiting|holding up|overdue|clearance rate|students cleared|not tagged|uncleared|by organization|most requested documents?|popular forms?|submission origins?|where (?:do|are) (?:our )?submissions come from|transaction stages?|workflow stages?|open requests?|workload|turnaround time|completion rate|active accounts?|active students|students and officers|how many (?:students|accounts|transactions|verifications|appointments|signatures|requests))\b/', $query)) {
             return 'get_admin_dashboard_summary';
         }
 
@@ -905,8 +1032,9 @@ HYMN
             return 'get_my_appointments';
         }
 
-        if (preg_match('/\b(?:what(?: is|\x27s) the status of my|check my|show my|my recent|my current)\b/', $query)
-            && preg_match('/\b(?:document|transaction|request|workspace)\b/', $query)) {
+        $asksForOwnTransactionStatus = preg_match('/\b(?:what(?: is|\x27s) the status of my|check my|show my|my recent|my current|where is my|any update (?:on|about) my|what is happening to my)\b/', $query) === 1;
+        if ($user && $asksForOwnTransactionStatus
+            && (preg_match('/\b(?:document|transaction|request|workspace)\b/', $query) === 1 || $this->queryNamesDocument($query))) {
             return 'get_my_document_workspaces';
         }
 
@@ -915,20 +1043,61 @@ HYMN
             return 'get_appointment_availability';
         }
 
-        if (preg_match('/\b(?:what|which|list|show|find)\b.*\b(?:documents?|forms?|paperwork|templates?|certificates?|transcripts?)\b.*\b(?:available|request|get|apply|choose|select|submit|complete|fill)\b/', $query)) {
+        if (preg_match('/\b(?:what|which|list|show|find)\b.*\b(?:documents?|forms?|paperwork|templates?|certificates?|transcripts?|transactions?|requests?)\b.*\b(?:available|request|get|apply|choose|select|submit|complete|fill|do)\b/', $query)) {
             return 'list_document_templates';
         }
 
-        if (preg_match('/\b(?:requirements?|what do i need|what should i (?:submit|provide|prepare)|which fields|what fields|what information|how do i fill)\b/', $query)
-            && preg_match('/\b(?:document|form|paperwork|application|certificate|permit|transcript|good moral)\b/', $query)) {
+        $asksDocumentDetails = preg_match('/\b(?:requirements?|what do i need|what should i (?:submit|provide|prepare)|which fields|what fields|what information|how do i (?:fill|complete|apply|request|submit)|process|procedure|workflow|steps)\b/', $query) === 1;
+        if ($asksDocumentDetails && $this->queryNamesDocument($query)) {
             return 'get_template_requirements';
         }
 
-        if (preg_match('/\b(faq|frequently asked|what is documate|who can|is my data secure|which office|forgot(?:ten)? (?:my )?password|password reset|create an account|sign up|signup|register|registration|student account|email address|log in|login|sign in|enrollment slip|e.?slip|verification failed|update profile|change password|who can view|privacy policy|terms and conditions)\b/', $query)) {
+        if (preg_match('/\b(faq|frequently asked|what is documate|who can|is my data secure|which office|student id|id renewal|id replacement|id reprinting|id printing|lost (?:my )?id|damaged (?:my )?id|alumni id|forgot(?:ten)? (?:my )?password|password reset|create an account|sign up|signup|register|registration|student account|email address|log in|login|sign in|enrollment slip|e.?slip|verification failed|update profile|change password|who can view|privacy policy|terms and conditions)\b/', $query)) {
             return 'search_faqs';
         }
 
         return null;
+    }
+
+    /** Avoid forcing a form-specific tool when the student asks about forms in general. */
+    protected function queryNamesDocument(string $query): bool
+    {
+        $normalize = fn (string $value) => trim(preg_replace('/[^\pL\pN]+/u', ' ', Str::lower(Str::ascii($value))) ?? '');
+        $normalizedQuery = $normalize($query);
+        $queryTerms = collect(explode(' ', $normalizedQuery))->filter()->unique();
+
+        $names = collect(\App\Workflow\Documents\DocumentRegistry::all())
+            ->map(fn ($document) => $document->name())
+            ->merge(\App\Models\Template::query()
+                ->where('status', 'active')
+                ->whereNotNull('current_version_id')
+                ->pluck('name'));
+
+        foreach ($names as $name) {
+            $normalizedName = $normalize((string) $name);
+            if ($normalizedName !== '' && str_contains($normalizedQuery, $normalizedName)) {
+                return true;
+            }
+
+            $nameTerms = collect(explode(' ', $normalizedName))
+                ->filter(fn ($term) => mb_strlen($term) > 1 && ! in_array($term, ['the', 'for', 'and', 'form'], true))
+                ->unique();
+            $matched = $nameTerms->filter(fn ($term) => $queryTerms->contains($term))->count();
+            if ($nameTerms->count() >= 2 && $matched >= max(2, $nameTerms->count() - 1)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function isToolChoiceMismatch(string $body): bool
+    {
+        $body = Str::lower($body);
+
+        return str_contains($body, 'does not match request.tool_choice')
+            || (str_contains($body, 'attempted to call tool') && str_contains($body, 'tool_choice'))
+            || (str_contains($body, 'tool choice is required') && str_contains($body, 'did not call a tool'));
     }
 
     protected function isOfficeQuestion(string $query): bool
@@ -1030,8 +1199,12 @@ HYMN
                 'type' => 'function',
                 'function' => [
                     'name' => 'get_my_document_workspaces',
-                    'description' => 'Get the logged-in student\'s document transaction requests: status, template used, and whether an appointment is attached.',
-                    'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+                'description' => 'Get the logged-in student\'s latest document transactions, distinguishing Online workflow forms from Print templates and returning current workflow status, VPSD action notes, pending signatory, and signature progress. Pass document_name when the user asks about a specific form.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => ['document_name' => ['type' => 'string', 'description' => 'Optional form name to find that transaction, including older requests.']],
+                    'required' => [],
+                ],
                 ],
             ],
             [
@@ -1046,7 +1219,7 @@ HYMN
                 'type' => 'function',
                 'function' => [
                     'name' => 'list_document_templates',
-                    'description' => 'List document types available to request in New Transaction.',
+                    'description' => 'List the student-requestable Online workflow forms and Print paper templates available in New Transaction. Office-issued forms are not student-requestable.',
                     'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
                 ],
             ],
@@ -1084,7 +1257,7 @@ HYMN
                 'type' => 'function',
                 'function' => [
                     'name' => 'get_template_requirements',
-                    'description' => 'Get the form fields a student must fill in to complete a document request (New Transaction), plus fields auto-filled by the system and the step-by-step instructions. Pass the document name (partial names work).',
+                    'description' => 'Get exact requirements and process instructions for a named Online workflow form or Print paper template in New Transaction. Returns student fields, system-filled values, and saved form instructions; online forms also include special notes, signature/photo requirements, and approval steps. Partial names work; if several forms match, ask the student to choose.',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => [
@@ -1123,7 +1296,7 @@ HYMN
                 'type' => 'function',
                 'function' => [
                     'name' => 'get_admin_dashboard_summary',
-                    'description' => 'Get current Admin Dashboard metrics, pending action counts, today\'s appointments, and recent activity. Use for administrator questions about live dashboard figures or workload. The result is only available to an authenticated Admin.',
+                    'description' => 'Get the live admin dashboard summary: review and overdue workflow queues, ready-to-finish work, signatures by role, transaction totals and stages, most-requested forms, submission origins, clearance this semester, and today\'s appointment sessions, queue, and calendar totals. Use when an administrator asks about dashboard features or current operations. Available only to an authenticated Admin.',
                     'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
                 ],
             ];
@@ -1147,9 +1320,21 @@ HYMN
             $query = (string) ($args['query'] ?? '');
 
             if ($this->isBroadOfficeRequest($query)) {
+                $studentServiceOffices = collect($directory)
+                    ->filter(fn ($office) => in_array(Str::lower($office['name']), [
+                        "registrar's office",
+                        "cashier's office",
+                        'office of student affairs (osa)',
+                        'admissions office',
+                        'office of the vice president for student development',
+                    ], true));
+                $prioritizedDirectory = $studentServiceOffices
+                    ->concat(collect($directory)->reject(fn ($office) => $studentServiceOffices->contains('name', $office['name'])))
+                    ->values();
+
                 return [
                     'note' => 'Showing the first 10 offices from the LNU directory. Ask about a specific office or service for more detail.',
-                    'offices' => array_slice($directory, 0, 10),
+                    'offices' => $prioritizedDirectory->take(10)->all(),
                 ];
             }
 
@@ -1173,23 +1358,58 @@ HYMN
         }
 
         return match ($name) {
-            'get_my_document_workspaces' => \App\Models\StudentDocumentWorkspace::query()
-                ->where('user_id', $userId)
-                ->with('template:template_id,name')
-                ->latest('workspace_id')
-                ->limit(10)
-                ->get()
-                ->map(fn ($w) => [
-                    'workspace_id' => $w->workspace_id,
-                    'document' => $w->template?->name,
-                    'status' => $w->status,
-                    'processing' => (bool) $w->processing,
-                    'processing_stage' => $w->processing_stage,
-                    'analysis_status' => $w->analysis_status,
-                    'has_attended_appointment' => $w->hasAttendedAppointment(),
-                    'completed_at' => $w->completed_at?->diffForHumans(),
-                ])
-                ->toArray(),
+            'get_my_document_workspaces' => (function () use ($userId, $args) {
+                $workspaces = \App\Models\StudentDocumentWorkspace::query()->where('user_id', $userId);
+                $requestedName = trim((string) ($args['document_name'] ?? ''));
+
+                if ($requestedName !== '') {
+                    $normalize = fn (string $value) => trim(preg_replace('/[^\pL\pN]+/u', ' ', Str::lower(Str::ascii($value))) ?? '');
+                    $needle = $normalize($requestedName);
+                    $workflowKeys = collect(\App\Workflow\Documents\DocumentRegistry::all())
+                        ->filter(function ($document) use ($normalize, $needle) {
+                            $name = $normalize($document->name());
+                            return $name !== '' && (str_contains($name, $needle) || str_contains($needle, $name));
+                        })->keys()->all();
+
+                    $workspaces->where(function ($query) use ($workflowKeys, $requestedName) {
+                        if ($workflowKeys !== []) {
+                            $query->whereIn('document_type', $workflowKeys);
+                        }
+                        $query->orWhereHas('template', fn ($template) => $template->where('name', 'like', '%' . $requestedName . '%'));
+                    });
+                }
+
+                return $workspaces->with(['template:template_id,name', 'approvals.role'])
+                ->latest('workspace_id')->limit(10)->get()
+                ->map(function ($w) {
+                    $workflowDocument = $w->document_type
+                        ? \App\Workflow\Documents\DocumentRegistry::find($w->document_type)
+                        : null;
+                    $pendingApproval = $w->approvals->first(fn ($approval) =>
+                        $approval->status === \App\Enums\ApprovalStatus::Pending
+                    );
+                    $approvedSignatures = $w->approvals->where('status', \App\Enums\ApprovalStatus::Approved)->count();
+
+                    return [
+                        'transaction_code' => $w->transaction_code,
+                        'document' => $workflowDocument?->name() ?? $w->template?->name ?? 'Document request',
+                        'type' => $workflowDocument ? 'Online workflow form' : 'Print paper template',
+                        'status' => $w->workflow_status?->label() ?? $w->displayStatus()['label'],
+                        'submitted_at' => $w->submitted_at?->toDateTimeString(),
+                        'student_action_note' => $w->workflow_status === \App\Enums\TransactionStatus::ActionRequired
+                            ? $w->workflow_note
+                            : null,
+                        'pending_signatory' => $pendingApproval
+                            ? ($pendingApproval->role?->label ?? $pendingApproval->label)
+                            : null,
+                        'signatures' => $w->approvals->isNotEmpty()
+                            ? ['approved' => $approvedSignatures, 'required' => $w->approvals->count()]
+                            : null,
+                        'appointment_status' => $w->appointments()->whereNotIn('status', ['retracted'])->latest()->value('status'),
+                        'completed_at' => $w->completed_at?->diffForHumans(),
+                    ];
+                })->toArray();
+            })(),
 
             'get_my_appointments' => \App\Models\Appointment::query()
                 ->where('user_id', $userId)
@@ -1211,6 +1431,14 @@ HYMN
                 ->toArray(),
 
             'list_document_templates' => (function () {
+                $workflowDocuments = collect(\App\Workflow\Documents\DocumentRegistry::all())
+                    ->filter(fn ($document) => ! $document->issuedByOffice())
+                    ->map(fn ($document) => [
+                        'name' => $document->name(),
+                        'description' => $document->description(),
+                        'type' => 'online workflow form',
+                    ]);
+
                 $rows = \App\Models\Template::query()
                     ->where('status', 'active')
                     ->whereNotNull('current_version_id')
@@ -1220,11 +1448,13 @@ HYMN
                     ->map(fn ($t) => [
                         'name' => $t->name,
                         'document_size' => $t->currentVersion?->document_size,
+                        'type' => 'paper template',
                     ])
-                    ->values()
-                    ->toArray();
+                    ->values();
 
-                return $rows ?: ['note' => 'No templates are currently available in New Transaction.'];
+                $rows = $workflowDocuments->concat($rows)->sortBy('name')->values()->all();
+
+                return $rows ?: ['note' => 'No documents are currently available in New Transaction.'];
             })(),
 
             'get_my_clearance_status' => \App\Models\ClearanceStatus::query()
@@ -1236,7 +1466,7 @@ HYMN
             'get_my_account_status' => $this->myAccountStatus($userId),
 
             'get_appointment_availability' => $this->availabilityFor($args['date'] ?? null),
-            'get_template_requirements' => $this->templateRequirements($args['template_name'] ?? ''),
+            'get_template_requirements' => $this->templateRequirements($args['template_name'] ?? '', $user),
 
             default => ['error' => "Unknown tool: {$name}"],
         };
@@ -1303,72 +1533,7 @@ HYMN
 
     protected function adminDashboardSummary(): array
     {
-        $totalStudents = DB::table('users')
-            ->join('roles', 'roles.id', '=', 'users.role_id')
-            ->whereIn('roles.role_name', ['Student', 'Officer'])
-            ->count();
-        $activeAccounts = DB::table('users')->where('account_status', 'active')->count();
-        $pendingVerifications = DB::table('student_verifications')->where('status', 'pending')->count();
-        $pendingTransactions = DB::table('student_document_workspaces')->where('status', 'pending')->count();
-        $todayAppointmentsCount = DB::table('appointments')->whereDate('appointment_date', today())->count();
-        $pendingAppointmentReview = DB::table('appointments')->where('status', 'pending')->count();
-        $clearanceTotal = DB::table('clearance_statuses')->count();
-        $clearedCount = DB::table('clearance_statuses')->where('status', 'Cleared')->count();
-
-        $recentAppointments = DB::table('appointments as a')
-            ->join('users as u', 'u.id', '=', 'a.user_id')
-            ->select(
-                DB::raw("'appointment' as type"),
-                'a.appointment_id as id',
-                DB::raw("CONCAT_WS(' ', u.first_name, CONCAT(UPPER(LEFT(NULLIF(TRIM(u.middle_name), ''), 1)), '.'), u.last_name, NULLIF(u.suffix, '')) as user_name"),
-                'a.status',
-                'a.created_at'
-            )
-            ->orderByDesc('a.created_at')
-            ->limit(5);
-        $recentTransactions = DB::table('student_document_workspaces as w')
-            ->join('users as u', 'u.id', '=', 'w.user_id')
-            ->select(
-                DB::raw("'transaction' as type"),
-                'w.workspace_id as id',
-                DB::raw("CONCAT_WS(' ', u.first_name, CONCAT(UPPER(LEFT(NULLIF(TRIM(u.middle_name), ''), 1)), '.'), u.last_name, NULLIF(u.suffix, '')) as user_name"),
-                'w.status',
-                'w.created_at'
-            )
-            ->orderByDesc('w.created_at')
-            ->limit(5);
-
-        return [
-            'as_of' => now()->toDateTimeString(),
-            'dashboard_metrics' => [
-                'students_and_officers' => $totalStudents,
-                'active_accounts' => $activeAccounts,
-                'pending_verifications' => $pendingVerifications,
-                'pending_transactions' => $pendingTransactions,
-                'todays_appointments' => $todayAppointmentsCount,
-                'pending_appointment_review' => $pendingAppointmentReview,
-                'clearance_rate_percent' => $clearanceTotal > 0 ? round(($clearedCount / $clearanceTotal) * 100) : 0,
-            ],
-            'action_center' => [
-                'pending_verifications' => $pendingVerifications,
-                'pending_transactions' => $pendingTransactions,
-                'appointment_requests' => $pendingAppointmentReview,
-            ],
-            'todays_appointments_preview' => DB::table('appointments as a')
-                ->join('users as u', 'u.id', '=', 'a.user_id')
-                ->select('a.appointment_id', 'a.appointment_date', 'a.status', DB::raw("CONCAT_WS(' ', u.first_name, CONCAT(UPPER(LEFT(NULLIF(TRIM(u.middle_name), ''), 1)), '.'), u.last_name, NULLIF(u.suffix, '')) as user_name"))
-                ->whereDate('a.appointment_date', today())
-                ->orderBy('a.appointment_date')
-                ->limit(5)
-                ->get()
-                ->toArray(),
-            'recent_activity' => $recentAppointments
-                ->unionAll($recentTransactions)
-                ->orderByDesc('created_at')
-                ->limit(8)
-                ->get()
-                ->toArray(),
-        ];
+        return app(\App\Livewire\Admin\Dashboard::class)->chatbotSummary();
     }
 
     protected function navigationPages(?\App\Models\User $user): array
@@ -1418,6 +1583,17 @@ HYMN
         $pages[] = ['label' => 'Sign in', 'route' => 'login', 'description' => 'Sign in using your student number or registered email and password.', 'keywords' => 'login log in credentials access'];
         $pages[] = ['label' => 'Create an account', 'route' => 'register', 'description' => 'Register a DocuMate student account and verify enrollment.', 'keywords' => 'sign up signup registration new account'];
         $pages[] = ['label' => 'Password reset', 'route' => 'password.request', 'description' => 'Request an email link to reset your password.', 'keywords' => 'forgot password recover change password'];
+
+        if ($user && $user->isSignatory() && ! $this->isAdmin($user)) {
+            array_unshift($pages, ['label' => 'Signing Inbox', 'route' => 'signatory.inbox', 'description' => 'Review documents awaiting your signature and view your signing history.', 'keywords' => 'sign approve reject pending documents history']);
+            $pages[] = ['label' => 'Issued Documents', 'route' => 'signatory.issued', 'description' => 'Review documents you issued to students.', 'keywords' => 'issued documents forms records'];
+            if ($user->issuableDocuments() !== []) {
+                $pages[] = ['label' => 'Issue a Document', 'route' => 'signatory.issue', 'description' => 'Create and send a document that your signatory role is authorized to issue.', 'keywords' => 'issue create new document send'];
+            }
+            if ($user->holdsSignatoryRole('guidance_counselor')) {
+                $pages[] = ['label' => 'Counseling Availability', 'route' => 'signatory.availability', 'description' => 'Set the dates and times students can attend counseling.', 'keywords' => 'counseling availability schedule time'];
+            }
+        }
 
         if (in_array($role, ['student', 'officer'], true)) {
             $pages[] = ['label' => 'Account Verification', 'route' => 'verify.page', 'description' => 'Upload an enrollment slip to verify or reactivate your account.', 'keywords' => 'verify account e-slip enrollment slip inactive'];
@@ -1481,6 +1657,13 @@ HYMN
         $role = Str::lower($user->role->role_name ?? 'student');
         $isStaff = in_array($role, ['officer', 'student officer', 'admin'], true);
         $isAdmin = $this->isAdmin($user);
+        $wants = fn (array $words) => collect($words)->contains(function ($word) use ($q) {
+            $word = Str::lower(Str::ascii($word));
+
+            return str_contains($word, ' ')
+                ? str_contains($q, $word)
+                : preg_match('/\b' . preg_quote($word, '/') . '(?:s|es|ed|ing)?\b/', $q) === 1;
+        });
 
         $overview = <<<TXT
     DOCUMATE OVERVIEW (use only these facts for "how do I..." questions):
@@ -1488,25 +1671,37 @@ HYMN
     TXT;
 
         $transaction = <<<TXT
-    HOW TO COMPLETE A DOCUMENT TRANSACTION (in order):
-    1. Open the New Transaction tab and select a document.
-    2. Fill in the form inputs (text fields) for that document. Some fields (name, student number, program, current date) are filled in automatically.
-    3. Save to workspace. The document appears in the Documents tab under In Progress (pending).
-    4. Set an appointment, either inside the document page (Set Appointment button) or from the Appointments tab.
-    5. When the appointment is approved, a notification with the appointment date appears in the Notifications tab.
-    6. Print the document using the Save PDF button (New Transaction page). You can also View, Export or Download the PDF from the document page.
-    7. Get the document signed by all required signatories BEFORE your appointment date.
-    8. On the appointment date, bring the signed document to the VPSD office. The Vice President signs the accomplished documents that already have the signatories.
-    9. The VPSD secretary marks the appointment as attended once it is done with no errors. The document then moves to the Completed tab.
-    10. The secretary uploads a photo of the final document as the digital copy. An AI reads the text and checks that the photo matches the student's document. If the photo is not accepted, the secretary re-uploads it.
-    Other document actions: Edit Document (date fields set to "today" update to the current date when re-saved) and Delete (cannot be undone).
-    Timeline: each document page shows an Activity Timeline (created, PDF generated, appointment status, photo uploaded, AI review, completed).
+    STUDENT DOCUMENT TRANSACTION PROCESS:
+    Online workflow form: Open New Transaction and select a form marked Online. Complete its required fields. Use Save draft to keep unfinished work; use Submit to send it to VPSD and lock editing while it is under review. Name, student number, and program details come from the profile; some forms also require an e-signature, nominee selection, or photo. Track the request in Documents. VPSD may request corrections, reject it, or accept it for signatory approval. For Action Required, follow the VPSD note, edit, and Resubmit. After required approvals, VPSD completes the transaction and the official PDF is available from its transaction page.
+    Online status meanings: Draft is saved but not submitted; Submitted is awaiting VPSD review; Under Review is being checked by VPSD or is in signing when approvals are shown; Action Required needs the student's correction and resubmission; Approved means all signatories acted and VPSD must complete final verification; Completed means the official PDF can be downloaded; Rejected is closed; Voided is a completed record withdrawn but retained in history.
+    Paper template: select the template in New Transaction, complete its fillable fields, save the workspace, and use Save PDF to generate the document. Follow the instructions printed on that form or provided by the responsible office for any physical signatures, submission, or appointment; the app does not apply one approval process to every paper template.
+    Office-issued forms are created by VPSD or authorized university staff and cannot be started by students from New Transaction.
+    Appointments are a separate transaction and are required only when the office or specific form directs the student to book one. Check Documents for each transaction's current status and activity timeline.
     TXT;
 
         if ($isAdmin) {
             $transaction = <<<'TXT'
     ADMIN DOCUMENT TRANSACTIONS:
-    Open Transactions to review student document workspaces. Use the transaction records/logbooks tabs, status filters, search, sorting, and folder or table views to locate records. Open a record to review its document and activity timeline. Use Document Uploads to review final copies after an appointment is marked attended; its statuses include Needs Upload, Needs Re-upload, and Verified.
+    For online workflow forms, open Workflow Review. Start review on a new submission, then inspect its answers. While under review, send it for signing, request changes, or reject it. Once signatories have acted, do not request changes if anyone has signed; reject if needed. When all signatures are collected, the transaction is Approved: complete final verification to seal the record and issue its official PDF. An Action Required transaction is waiting for the student to resubmit. Use Transaction Records for searching all transactions and paper-template history. Appointments are reviewed separately; paper form uploads are handled in Document Uploads.
+    TXT;
+        }
+
+        $signatoryGuide = null;
+        $issuanceGuide = null;
+
+        if ($user && $user->isSignatory() && ! $isAdmin
+            && $wants(['sign', 'signing', 'signature', 'signatory', 'approval', 'approve', 'reject'])) {
+            $signatoryGuide = <<<'TXT'
+    SIGNATORY PROCESS:
+    Open Signing Inbox and choose a request in Waiting. Review the form and any form-specific signing instructions, then choose Approve and sign or Reject. Approval requires password confirmation and may require a saved signature, rating, inspection remarks, or a schedule depending on the form. Approving opens the next workflow step; rejecting ends the whole transaction and sends the student the rejection reason. Use History to review completed signing actions.
+    TXT;
+        }
+
+        if ($user && $user->isSignatory() && ! $isAdmin && $user->issuableDocuments() !== []
+            && $wants(['issue', 'issued', 'send for signing'])) {
+            $issuanceGuide = <<<'TXT'
+    SIGNATORY DOCUMENT ISSUANCE:
+    Open Issue a Document, choose a document your role is authorized to issue, select the student when required, and complete the document fields. If the form asks for an approved application, select the student's eligible application. Choose Issue and send for signing. The student is notified; depending on the form, it may then wait in your Signing Inbox or be routed to another signer. Follow the form-specific notes shown on the issue page.
     TXT;
         }
 
@@ -1548,22 +1743,22 @@ HYMN
         if ($isAdmin) {
             $parts[] = <<<'TXT'
     ADMIN DASHBOARD REFERENCE:
-    The dashboard refreshes automatically every 10 seconds. The Action Center highlights pending verifications, pending transactions, and appointment requests awaiting review. System Overview shows Students & Officers, Active Accounts, Pending Transactions, Clearance Rate, Today's Appointments, and Pending Appointment Review. Recent Activity combines the latest appointments and transactions. Today's Appointments shows up to five scheduled appointments. Use the live dashboard summary tool for current counts and activity; these descriptions explain what the dashboard sections represent.
-    Related admin pages: Verification handles account submissions; Transactions reviews document requests; Appointments manages booking requests and availability; Document Uploads reviews final document images; Clearance Monitoring manages student clearance; Reports provides system reports; Manage Users controls accounts and roles; Document Templates manages forms.
+    The dashboard refreshes every 60 seconds and its transaction/signature trend period is the last 30 days. At a glance: Requests to review counts open work with the office; Overdue means 7 or more school days; Ready to finish means fully signed. Waiting for signatures counts open approval steps. Students cleared is based on active students/officers and current-semester status; Not tagged is separate from Uncleared. Appointment requests are pending appointments.
+    Transactions shows submitted/completed trends, open workflow stages (with the office, signatories, student action required, ready to finish, and recent paper forms), completion and turnaround metrics, most-requested forms, and submission origins by college/program. Clearance shows the current-semester totals, organizations, and latest tags. Signatories shows pending work by role, assigned holders, and the longest-waiting signatures. Today at the office shows morning/afternoon bookings, attended counts, now-serving queue numbers, a month calendar, and the selected day's appointment list.
+    Use the live dashboard summary tool for current figures or queries about any of these sections. Related pages: Workflow Review handles digital transaction review and signatures; Transaction Records shows all transactions including paper forms; Appointments manages requests and calendar availability; Clearance manages student clearance; Users and Accounts Manager handles accounts, verification periods, organizations, and signatories; Templates & Uploads handles paper forms and uploaded copies; Reports provides system reports.
     TXT;
         }
 
-        $wants = fn (array $words) => collect($words)->contains(function ($word) use ($q) {
-            $word = Str::lower(Str::ascii($word));
-
-            return str_contains($word, ' ')
-                ? str_contains($q, $word)
-                : preg_match('/\b' . preg_quote($word, '/') . '(?:s|es|ed|ing)?\b/', $q) === 1;
-        });
+        if ($signatoryGuide) {
+            $parts[] = $signatoryGuide;
+        }
+        if ($issuanceGuide) {
+            $parts[] = $issuanceGuide;
+        }
 
         $matchedAny = false;
 
-        if ($wants(['transaction', 'transactions', 'document', 'documents', 'form', 'forms', 'application', 'paperwork', 'workspace', 'pdf', 'print', 'sign', 'signature', 'signatory', 'submission', 'submit', 'submitted', 'fill out', 'verify', 'verification', 'photo', 'upload', 'secretary', 'vpsd', 'template', 'edit', 'update'])) {
+        if ($wants(['transaction', 'transactions', 'document', 'documents', 'form', 'forms', 'application', 'paperwork', 'workspace', 'pdf', 'print', 'sign', 'signature', 'signatory', 'submission', 'submit', 'submitted', 'fill out', 'verify', 'verification', 'photo', 'upload', 'secretary', 'vpsd', 'template', 'edit', 'update', 'process', 'procedure', 'issue', 'issued', 'permit', 'clearance', 'assistantship', 'slip', 'nomination', 'grievance', 'absence', 'renewal', 'status', 'draft', 'under review', 'action required', 'approved', 'completed', 'rejected', 'voided'])) {
             $parts[] = $transaction;
             $matchedAny = true;
         }
