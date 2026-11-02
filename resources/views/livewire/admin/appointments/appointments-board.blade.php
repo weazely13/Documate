@@ -68,7 +68,7 @@
     <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div class="min-w-0">
             <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">Appointments</h1>
-            <p class="mt-0.5 text-sm text-slate-500">See who is coming, set the office's hours, review requests and run the queue.</p>
+            <p class="mt-0.5 text-sm text-slate-500">Manage appointment requests, office hours, and the appointment queue.</p>
         </div>
         <button type="button" wire:click="toggleEditingHours" aria-pressed="{{ $editingHours ? 'true' : 'false' }}"
                 class="{{ $editingHours ? $btnPrimary : $btnSecondary }} shrink-0 self-start md:self-auto">

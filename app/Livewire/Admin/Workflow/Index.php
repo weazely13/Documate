@@ -36,7 +36,7 @@ class Index extends Component
     public const TABS = [
         'attention' => 'To review',
         'signing' => 'In signing',
-        'action_required' => 'Waiting on student',
+        'action_required' => 'Changes required',
     ];
 
     /** Tabs whose waiting time is the office's (or a signatory's) to act on, so it is flagged. */
@@ -53,8 +53,8 @@ class Index extends Component
     /** AI filter: key => label. */
     public const AI_FILTERS = [
         '' => 'All',
-        'flagged' => 'Worth a look',
-        'clean' => 'Looks fine',
+        'flagged' => 'Requires further review',
+        'clean' => 'No issues detected',
         'unchecked' => 'Not checked',
     ];
 

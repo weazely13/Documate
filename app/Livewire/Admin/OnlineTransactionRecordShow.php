@@ -62,8 +62,8 @@ class OnlineTransactionRecordShow extends Component
             TransactionStatus::Completed => ['Completed', 'emerald'],
             TransactionStatus::Rejected => ['Rejected', 'slate'],
             TransactionStatus::Voided => ['Voided', 'slate'],
-            TransactionStatus::ActionRequired => ['Still open: waiting on student', 'blue'],
-            default => ['Still open: in review or signing', 'blue'],
+            TransactionStatus::ActionRequired => ['In progress: for revision', 'blue'],
+            default => ['In progress: in review or signing', 'blue'],
         };
 
         // Every answer the form holds, as the student (and the office) filled it in.

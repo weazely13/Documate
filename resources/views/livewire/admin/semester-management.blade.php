@@ -14,7 +14,7 @@
 <div>
     <x-admin.page-header
         title="Semesters & School Years"
-        description="Each semester runs between a start and an end date. The one that contains today becomes current automatically, every night and whenever you save dates."
+        description="Add a start and end date to each semester to enable automatic identification of the current semester."
         :crumbs="['Admin' => $homeUrl, 'Semesters & School Years' => null]" />
 
     @include('livewire.admin._admin-nav')
@@ -24,12 +24,12 @@
         @if ($undated->isNotEmpty())
             <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
                 <i class='bx bx-calendar-exclamation mt-0.5 text-lg' aria-hidden="true"></i>
-                <p><b>{{ $undated->count() }} {{ \Illuminate\Support\Str::plural('semester', $undated->count()) }} still need dates:</b> {{ $undated->map->label()->implode(', ') }}. Until they have dates they won't switch on by themselves and the date checks don't apply to them. Use <b>Add dates</b> on each one.</p>
+                <p><b>{{ $undated->count() }} {{ \Illuminate\Support\Str::plural('semester', $undated->count()) }} still need dates:</b> {{ $undated->map->label()->implode(', ') }}. Until they have dates they won't switch on by themselves and the date checks don't apply to them. <b>Add dates</b> on each semester.</p>
             </div>
         @endif
 
         {{-- Create --}}
-        <x-admin.section title="Create a new semester" description="Give it the dates classes run. It becomes current on its start date; you don't have to switch it by hand.">
+        <x-admin.section title="Add a new semester"> 
             <form wire:submit.prevent="createSemester" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] lg:items-end">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">School year</label>
@@ -62,7 +62,7 @@
 
                 <button type="submit" wire:loading.attr="disabled" wire:target="createSemester"
                         class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#2A57B4] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:py-2">
-                    <i class='bx bx-plus text-base'></i> Create semester
+                    <i class='bx bx-plus text-base'></i> New semester
                 </button>
             </form>
         </x-admin.section>

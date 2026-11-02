@@ -16,7 +16,7 @@
 
     $groups = [
         'Accounts' => [
-            'accounts' => ['Manage Accounts', route('admin.users'), 'bx-user', 'Find, review and remove student, officer, signatory and admin accounts.'],
+            'accounts' => ['Manage Accounts', route('admin.users'), 'bx-user', 'Oversee user access, account information, organizations, and signatory roles.'],
             'verifications' => ['Account Verifications', route('admin.verification'), 'bx-id-card', 'Open a verification period and see who has verified their account.'],
         ],
         'Organizations' => [
@@ -101,7 +101,7 @@
             <div class="hidden rounded-2xl border border-gray-200/70 bg-white p-3 shadow-sm cq-lg:block">
                 <div class="px-2 pb-2 pt-1">
                     <h1 class="text-xl font-bold tracking-tight text-gray-900">Users and Accounts Manager</h1>
-                    <p class="mt-0.5 text-xs text-gray-500">Accounts, organizations and who can sign.</p>
+                
                 </div>
 
                 <nav aria-label="Users and accounts">

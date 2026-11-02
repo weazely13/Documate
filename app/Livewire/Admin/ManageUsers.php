@@ -307,6 +307,6 @@ class ManageUsers extends Component
             'users' => $users,
             'roles' => $roles,
             'selectedUser' => $selectedUser,
-        ])->layout('layouts.app', ['title' => 'Users & Access']);
+        ])->layout('layouts.app', ['title' => 'Users & Accounts']);
     }
 }

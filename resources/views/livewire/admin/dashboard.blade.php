@@ -28,7 +28,7 @@
         ['Requests to review', number_format($work['to_review']),
             $work['overdue'] ? $work['overdue'] . ' overdue' : 'none overdue', 'bx-file-find',
             'blue', $pct($work['overdue'], $work['to_review']),
-            $work['overdue'] . ' of ' . $work['to_review'] . ' have waited 7+ school days · ' . $work['ready'] . ' more are fully signed and ready to finish',
+            $work['overdue'] . ' of ' . $work['to_review'] . ' have waited for 7+ school days · ' . $work['ready'] . ' more are fully signed and ready to finish',
             'Open Workflow Review', route('admin.workflow.index')],
         ['Waiting for signatures', number_format($work['signing']),
             $work['signing_late'] ? $work['signing_late'] . ' overdue' : 'on time', 'bx-edit',
@@ -188,7 +188,7 @@
                                         </div>
                                         <div class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-6 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] text-slate-800 shadow-lg group-hover:block">
                                             <p class="font-semibold text-[#1E4090]">{{ $doc['label'] }}</p>
-                                            <p>{{ $doc['completed'] }} completed · {{ $doc['open'] }} still open</p>
+                                            <p>{{ $doc['completed'] }} completed · {{ $doc['open'] }} in progress</p>
                                         </div>
                                     </div>
                                 @endforeach
@@ -218,7 +218,7 @@
                     <h3 class="{{ $cardTitle }}"><i class="bx bx-transfer hidden cq-sm:inline" aria-hidden="true"></i>Who has the open requests</h3>
                     <a href="{{ route('admin.transactions.index') }}" wire:navigate class="{{ $link }}">All records <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
                 </div>
-                <p class="mt-1 text-xs text-slate-600 cq-sm:text-sm"><span class="font-semibold text-slate-900">{{ number_format($tx['open']) }}</span> still open<span class="hidden cq-sm:inline">. This is where each one is waiting.</span></p>
+                <p class="mt-1 text-xs text-slate-600 cq-sm:text-sm"><span class="font-semibold text-slate-900">{{ number_format($tx['open']) }}</span> in progress<span class="hidden cq-sm:inline">. This is where each one is waiting.</span></p>
                 <ul class="mt-2.5 grid grid-cols-2 gap-1.5 cq-sm:mt-4 cq-sm:grid-cols-1 cq-sm:gap-3 cq-lg:grid-cols-2">
                     @foreach ($tx['stages'] as $i => [$label, $count, $color, $meaning])
                         <li class="rounded-lg border border-slate-200 p-2 cq-sm:p-3.5">

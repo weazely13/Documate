@@ -13,7 +13,7 @@
     // One plain-language status per row: [text, text classes, icon + its colour].
     $statusFor = function ($row, $queue) {
         return match (true) {
-            $queue === 'action_required' => ['Waiting on student', 'text-slate-700', 'bx-hourglass text-amber-600'],
+            $queue === 'action_required' => ['For revision', 'text-slate-700', 'bx-hourglass text-amber-600'],
             $queue === 'signing' => ['Signed ' . (int) $row->approved_count . ' of ' . (int) $row->approvals_count, 'text-slate-700', 'bx-pen text-violet-600'],
             $row->workflow_status?->value === 'approved' => ['Ready to finish', 'font-medium text-emerald-700', 'bx-check-circle text-emerald-600'],
             $row->workflow_status?->value === 'submitted' => ['New', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],
@@ -44,8 +44,8 @@
             $row->ai_flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200', null],
             $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200', null],
             $rec === 'request_changes' => ['Suggests changes', 'bg-amber-50 text-amber-800 ring-amber-200', null],
-            $row->ai_flag === 'flagged' => ['Worth a look', 'bg-amber-50 text-amber-800 ring-amber-200', null],
-            default => ['Looks fine', 'bg-emerald-50 text-emerald-800 ring-emerald-200', null],
+            $row->ai_flag === 'flagged' => ['Requires further review', 'bg-amber-50 text-amber-800 ring-amber-200', null],
+            default => ['No issues detected', 'bg-emerald-50 text-emerald-800 ring-emerald-200', null],
         };
     };
 
@@ -75,9 +75,9 @@
 
     // Queue cards: Notion tints from DESIGN.md's work folders. [key, label, tint, accent text, icon, hint].
     $cards = [
-        ['attention', 'To review', 'bg-sky-50', 'text-[#1E4090]', 'bx-time-five', 'Waiting for the office'],
-        ['signing', 'In signing', 'bg-violet-50', 'text-violet-700', 'bx-pen', 'Out with signatories'],
-        ['action_required', 'Waiting on student', 'bg-amber-50', 'text-amber-800', 'bx-hourglass', 'Sent back for changes'],
+        ['attention', 'To review', 'bg-sky-50', 'text-[#1E4090]', 'bx-time-five', 'Awaiting administrator review'],
+        ['signing', 'In signing', 'bg-violet-50', 'text-violet-700', 'bx-pen', 'Pending signatory action'],
+        ['action_required', 'For revision', 'bg-amber-50', 'text-amber-800', 'bx-hourglass', 'Returned to the student for required changes'],
     ];
 
     $legend = [
@@ -101,7 +101,7 @@
                 {{ $viewingFlagged ? 'Flagged by AI' : $tabs[$tab] }}
             </h1>
             <p class="mt-0.5 text-sm text-slate-500">
-                Select a transaction to check it and decide here. Finished ones are in
+                Select a transaction to review and take the appropriate action. Completed transactions are in
                 <a href="{{ route('admin.transactions.index') }}" wire:navigate class="rounded font-medium text-[#2A57B4] hover:underline {{ $focus }}">Transaction Records</a>.
             </p>
         </div>
@@ -192,7 +192,7 @@
             @if ($overdue->isNotEmpty())
                 <span role="status" class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-rose-800 ring-1 ring-rose-200">
                     <i class="bx bx-error text-base" aria-hidden="true"></i>
-                    {{ $overdue->count() }} waiting 7+ school days
+                    {{ $overdue->count() }} waiting for 7+ school days
                 </span>
             @endif
         </div>
@@ -342,7 +342,7 @@
                         @empty
                             <tr>
                                 <td colspan="6" class="px-6 py-16 text-center text-sm text-slate-500">
-                                    {{ trim($search) !== '' || $ai !== '' ? 'No match. Try another search or filter.' : 'Nothing waiting here.' }}
+                                    {{ trim($search) !== '' || $ai !== '' ? 'No matching records found.' : 'Nothing waiting here.' }}
                                 </td>
                             </tr>
                         @endforelse
@@ -415,7 +415,7 @@
                     </li>
                 @empty
                     <li class="rounded-2xl border border-dashed border-slate-300 px-4 py-12 text-center text-sm text-slate-500 cq-sm:col-span-2">
-                        {{ trim($search) !== '' || $ai !== '' ? 'No match. Try another search or filter.' : 'Nothing waiting here.' }}
+                        {{ trim($search) !== '' || $ai !== '' ? 'No matching records found.' : 'Nothing waiting here.' }}
                     </li>
                 @endforelse
             </ul>

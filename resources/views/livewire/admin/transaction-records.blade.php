@@ -28,7 +28,7 @@
 
         <x-admin.page-header
             title="Transaction Records"
-            description="Every transaction, paperless and paper-based. Look-up only: open ones are handled in Workflow Review and Appointments."
+            description="View all transaction records. Ongoing transactions are managed through Workflow Review and Appointments."
             :crumbs="['Admin' => $homeUrl, 'Transaction Records' => null]">
             <x-slot:actions>
                 <button type="button" wire:click="setActiveTab('logbooks')"
@@ -83,7 +83,7 @@
                                     </span>
                                     <span class="shrink-0 text-[13px] text-gray-500">
                                         {{ $s['forms']->count() }} {{ Str::plural('transaction', $s['forms']->count()) }}
-                                        @if ($s['open_count']) · <span class="text-[#2A57B4]">{{ $s['open_count'] }} still open</span> @endif
+                                        @if ($s['open_count']) · <span class="text-[#2A57B4]">{{ $s['open_count'] }} in progress</span> @endif
                                         · {{ $s['latest_label'] }}
                                     </span>
                                 </button>

@@ -270,7 +270,7 @@ class Dashboard extends Component
         $stages = [
             ['With the office', $work['to_review'], '#0891b2', 'Staff need to review these'],
             ['With signatories', $work['signing'], '#9061f9', 'Waiting for officials to sign'],
-            ['With the student', ReviewQueue::query('action_required')->count(), '#d97706', 'Sent back to the student to fix'],
+            ['With the student', ReviewQueue::query('action_required')->count(), '#d97706', 'Returned to the student for required changes'],
             ['Ready to finish', $work['ready'], '#0e9f6e', 'Fully signed, just needs completing'],
             // Paper forms count as open until missed (two weeks without a visit), as in Transaction Records.
             ['Paper forms', StudentDocumentWorkspace::query()->whereNull('workflow_status')->where('status', '!=', 'completed')

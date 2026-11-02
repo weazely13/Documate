@@ -21,7 +21,7 @@ final class ReportAssessment
         'completion' => ['Completion', 'How many requests filed in the period are finished and issued.', ['higher', 70, 40, '%']],
         'returns' => ['Returns', 'How many requests were rejected or voided.', ['lower', 5, 15, '%']],
         'turnaround' => ['Turnaround', 'How long a completed request took, from filing to completion.', ['lower', 3, 7, ' days']],
-        'waiting' => ['Waiting work', 'Requests still open that were filed more than 7 days ago.', ['lower', 0, 5, '']],
+        'waiting' => ['Waiting work', 'Requests in progress that were filed more than 7 days ago.', ['lower', 0, 5, '']],
         'demand' => ['Demand', 'How the number of requests changed against the comparison period.', null],
         'participation' => ['Participation', 'How many organization members filed at least one form in the period.', ['higher', 50, 25, '%']],
         'members_cleared' => ['Members cleared', 'How many organization members are cleared for the semester.', ['higher', 70, 40, '%']],
