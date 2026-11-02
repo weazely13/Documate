@@ -3,33 +3,39 @@
 namespace App\Livewire\Admin\DocumentUploads;
 
 use App\Models\StudentDocumentWorkspace;
-use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
 
+/**
+ * Admin › Templates & Uploads › Uploads: the signed paper forms students brought to the office, filed like
+ * Transaction Records: by form (folders), by student, or all of them. Each one opens its check page.
+ */
 class DocumentUploadsIndex extends Component
 {
-    use WithPagination;
-
-    public const PER_PAGE = 20;
-
-    public const FILTERS = [
+    public const STATUSES = [
         'needs_action' => 'Needs action',
+        'reviewing' => 'Being checked',
         'verified' => 'Verified',
         'all' => 'All',
     ];
 
-    public const SORTS = [
-        'student' => 'Student',
-        'forms' => 'Forms',
-        'latest' => 'Latest attended',
-        'status' => 'Status',
-    ];
+    #[Url(as: 'filter', except: 'needs_action')]
+    public string $filter = 'needs_action';
 
-    #[Url(except: 'needs_action')]
-    public string $filter = 'needs_action'; // needs_action | verified | all
+    #[Url(as: 'by', except: 'folder')]
+    public string $by = 'folder';
+
+    #[Url(as: 'folder', except: '')]
+    public string $folder = '';
+
+    #[Url(as: 'student', except: '')]
+    public string $student = '';
+
+    #[Url(as: 'view', except: 'cards')]
+    public string $view = 'cards';
 
     #[Url(except: '')]
     public string $search = '';
@@ -40,204 +46,171 @@ class DocumentUploadsIndex extends Component
     #[Url(except: '')]
     public string $dateTo = '';
 
-    /** "key:asc" or "key:desc". Empty means latest attended first. */
-    #[Url(except: '')]
-    public string $sort = '';
+    #[Url(as: 'page', except: 1)]
+    public int $currentPage = 1;
 
-    public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingFilter(): void { $this->resetPage(); }
-    public function updatingDateFrom(): void { $this->resetPage(); }
-    public function updatingDateTo(): void { $this->resetPage(); }
-    public function updatingSort(): void { $this->resetPage(); }
-
-    public function clearDateFilter(): void
+    public function updated($property): void
     {
-        $this->dateFrom = '';
-        $this->dateTo = '';
-        $this->resetPage();
-    }
-
-    /** Header click: ascending, then descending, then back to the default order. */
-    public function sortBy(string $key): void
-    {
-        if (! array_key_exists($key, self::SORTS)) {
-            return;
+        if (in_array($property, ['filter', 'search', 'dateFrom', 'dateTo'], true)) {
+            $this->currentPage = 1;
         }
-
-        [$current, $dir] = $this->parsedSort();
-
-        $this->sort = match (true) {
-            $current !== $key => "{$key}:asc",
-            $dir === 'asc' => "{$key}:desc",
-            default => '',
-        };
-
-        $this->resetPage();
     }
 
-    public function clearSort(): void
+    public function setBy(string $by): void
     {
-        $this->sort = '';
-        $this->resetPage();
+        $this->by = in_array($by, ['folder', 'student', 'all'], true) ? $by : 'folder';
+        $this->folder = $this->student = '';
+        $this->currentPage = 1;
     }
 
-    /** @return array{0: ?string, 1: ?string} */
-    private function parsedSort(): array
+    public function openFolder(string $type): void
     {
-        [$key, $dir] = array_pad(explode(':', $this->sort, 2), 2, null);
-
-        if (! array_key_exists((string) $key, self::SORTS) || ! in_array($dir, ['asc', 'desc'], true)) {
-            return [null, null];
-        }
-
-        return [$key, $dir];
+        $this->folder = $type;
+        $this->currentPage = 1;
     }
 
-    private function sortOptions(): array
+    public function openStudent(string $key): void
     {
-        $options = ['' => 'Default: latest attended first'];
-
-        foreach (self::SORTS as $key => $label) {
-            $options["{$key}:asc"] = match ($key) {
-                'student' => 'Student: A to Z',
-                'forms' => 'Forms: fewest first',
-                'latest' => 'Latest attended: oldest first',
-                'status' => 'Status: fewest needing action first',
-            };
-            $options["{$key}:desc"] = match ($key) {
-                'student' => 'Student: Z to A',
-                'forms' => 'Forms: most first',
-                'latest' => 'Latest attended: newest first',
-                'status' => 'Status: most needing action first',
-            };
-        }
-
-        return $options;
+        $this->student = $key;
+        $this->currentPage = 1;
     }
 
-    /** One entry per form, with the search and date filters applied. */
-    protected function rows(): Collection
+    public function closeOpened(): void
     {
+        $this->folder = $this->student = '';
+        $this->currentPage = 1;
+    }
+
+    public function setView(string $view): void
+    {
+        $this->view = $view === 'table' ? 'table' : 'cards';
+    }
+
+    public function clearDates(): void
+    {
+        $this->dateFrom = $this->dateTo = '';
+        $this->currentPage = 1;
+    }
+
+    public function previousPage(): void
+    {
+        $this->currentPage = max(1, $this->currentPage - 1);
+    }
+
+    public function nextPage(int $last): void
+    {
+        $this->currentPage = min($last, $this->currentPage + 1);
+    }
+
+    /** Every paper form with an attended visit, newest visit first, with the search and dates applied. */
+    private function rows(): Collection
+    {
+        $term = Str::lower(trim($this->search));
+
         return StudentDocumentWorkspace::query()
             ->whereHas('appointments', fn ($q) => $q->where('status', 'attended'))
-            ->with(['user', 'template', 'appointments'])
+            ->with(['user', 'template.currentVersion', 'appointments'])
             ->get()
-            ->map(fn (StudentDocumentWorkspace $workspace) => [
-                'workspace_id' => $workspace->workspace_id,
-                'user_id' => $workspace->user_id,
-                'student_name' => $this->fullName($workspace->user),
-                'student_number' => $workspace->user?->student_number ?: 'N/A',
-                'type' => $workspace->template?->name ?: 'Untitled template',
-                'attended_at' => optional($workspace->appointments->firstWhere('status', 'attended'))?->updated_at,
-                'doc_status' => $workspace->documentVerificationStatus(),
-            ])
-            ->filter(function (array $r) {
-                if ($this->dateFrom === '' && $this->dateTo === '') {
-                    return true;
-                }
-                if (! $r['attended_at']) {
-                    return false;
-                }
-                $attendedDate = $r['attended_at']->format('Y-m-d');
-                if ($this->dateFrom !== '' && $attendedDate < $this->dateFrom) return false;
-                if ($this->dateTo !== '' && $attendedDate > $this->dateTo) return false;
-
-                return true;
-            })
-            ->filter(fn (array $r) => $this->search === '' || str_contains(
-                strtolower($r['student_name'] . ' ' . $r['student_number'] . ' ' . $r['type']),
-                strtolower($this->search)
-            ))
-            ->values();
-    }
-
-    private function forTab(Collection $rows, string $tab): Collection
-    {
-        return $rows->filter(fn (array $r) => match ($tab) {
-            'needs_action' => in_array($r['doc_status'], ['Needs Upload', 'Needs Re-upload']),
-            'verified' => $r['doc_status'] === 'Verified',
-            default => true,
-        });
-    }
-
-    /** One row per student, forms newest first. */
-    private function group(Collection $rows): Collection
-    {
-        return $rows
-            ->groupBy('user_id')
-            ->map(function (Collection $forms) {
-                $forms = $forms
-                    ->sortByDesc(fn (array $r) => $r['attended_at']?->timestamp ?? 0)
-                    ->values();
-                $first = $forms->first(); // latest form
+            ->map(function (StudentDocumentWorkspace $ws) {
+                $visit = $ws->appointments->where('status', 'attended')->sortByDesc('updated_at')->first();
+                $status = $ws->documentVerificationStatus();
+                $photo = $ws->supporting_file_path && $ws->isSupportingFileImage() ? Storage::disk('public')->url($ws->supporting_file_path) : null;
+                $form = $ws->template?->currentVersion?->image_path ? Storage::disk('public')->url($ws->template->currentVersion->image_path) : null;
 
                 return [
-                    'user_id' => $first['user_id'],
-                    'student_name' => $first['student_name'],
-                    'student_number' => $first['student_number'],
-                    'forms' => $forms,
-                    'total' => $forms->count(),
-                    'needs_action' => $forms->whereIn('doc_status', ['Needs Upload', 'Needs Re-upload'])->count(),
-                    'all_verified' => $forms->every(fn ($f) => $f['doc_status'] === 'Verified'),
-                    'latest_attended' => $first['attended_at'],
+                    'id' => $ws->workspace_id,
+                    'user' => $ws->user,
+                    'user_id' => (string) $ws->user_id,
+                    'student_name' => $ws->user?->full_name ?: 'Unknown student',
+                    'student_number' => $ws->user?->student_number ?: 'N/A',
+                    'type' => $ws->template?->name ?: 'Untitled form',
+                    'visited' => $visit?->updated_at,
+                    'visited_label' => $visit?->updated_at?->format('M j, Y') ?? '—',
+                    'status' => $status,
+                    'state' => match ($status) {
+                        'Verified' => 'verified',
+                        'Reviewing' => 'reviewing',
+                        default => 'needs_action',
+                    },
+                    'photo' => $photo,
+                    'form_image' => $form,
+                    'has_file' => (bool) $ws->supporting_file_path,
+                    'url' => route('admin.document-uploads.show', $ws->workspace_id),
                 ];
             })
+            ->filter(function ($r) use ($term) {
+                $day = $r['visited']?->format('Y-m-d');
+                if ($this->dateFrom !== '' && (! $day || $day < $this->dateFrom)) return false;
+                if ($this->dateTo !== '' && (! $day || $day > $this->dateTo)) return false;
+
+                return $term === '' || Str::contains(Str::lower($r['student_name'] . ' ' . $r['student_number'] . ' ' . $r['type']), $term);
+            })
+            ->sortByDesc(fn ($r) => $r['visited']?->timestamp ?? 0)
             ->values();
-    }
-
-    private function sorted(Collection $students): Collection
-    {
-        [$key, $dir] = $this->parsedSort();
-
-        if (! $key) {
-            return $students->sortByDesc(fn (array $s) => $s['latest_attended']?->timestamp ?? 0)->values();
-        }
-
-        $value = match ($key) {
-            'student' => fn (array $s) => strtolower($s['student_name']),
-            'forms' => fn (array $s) => $s['total'],
-            'latest' => fn (array $s) => $s['latest_attended']?->timestamp ?? 0,
-            'status' => fn (array $s) => $s['needs_action'] * 10 + ($s['all_verified'] ? 0 : 1),
-        };
-
-        return $students->sortBy($value, SORT_REGULAR, $dir === 'desc')->values();
-    }
-
-    private function fullName(?User $user): string
-    {
-        if (! $user) return 'Unknown student';
-
-        return trim(preg_replace('/\s+/', ' ', implode(' ', array_filter([
-            $user->first_name, $user->middle_name, $user->last_name, $user->suffix,
-        ])))) ?: ('User #' . $user->id);
     }
 
     public function render()
     {
-        $rows = $this->rows();
+        $all = $this->rows();
+        $counts = collect(self::STATUSES)->map(fn ($l, $k) => $k === 'all' ? $all->count() : $all->where('state', $k)->count());
+        $this->filter = array_key_exists($this->filter, self::STATUSES) ? $this->filter : 'needs_action';
+        $records = $this->filter === 'all' ? $all : $all->where('state', $this->filter)->values();
 
-        $counts = collect(self::FILTERS)->map(
-            fn ($label, $key) => $this->group($this->forTab($rows, $key))->count()
-        );
+        $folders = $records->groupBy('type')->map(fn ($g, $type) => [
+            'type' => $type,
+            'count' => $g->count(),
+            'students' => $g->pluck('user_id')->unique()->count(),
+            'needs' => $g->where('state', 'needs_action')->count(),
+            'paperless' => false,
+            'latest' => $g->first()['visited_label'],
+            'thumbs' => $g->map(fn ($r) => $r['photo'] ?? $r['form_image'])->filter()->take(2)->map(fn ($src) => ['src' => $src, 'image' => true])->values(),
+        ])->sortByDesc('count')->values();
 
-        $students = $this->sorted($this->group($this->forTab($rows, $this->filter)));
+        $students = $records->groupBy('user_id')->map(fn ($g, $key) => [
+            'key' => (string) $key,
+            'user' => $g->first()['user'],
+            'student_name' => $g->first()['student_name'],
+            'student_number' => $g->first()['student_number'],
+            'forms' => $g->values(),
+            'verified' => $g->where('state', 'verified')->count(),
+            'needs' => $g->where('state', 'needs_action')->count(),
+            'latest' => $g->first()['visited_label'],
+            'folders' => $g->groupBy('type')->map(fn ($x, $t) => ['type' => $t, 'forms' => $x->values()])->values(),
+        ])->values();
 
-        $total = $students->count();
-        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
-        $page = min(max(1, $this->getPage()), $lastPage);
+        $this->by = in_array($this->by, ['folder', 'student', 'all'], true) ? $this->by : 'folder';
+        $openStudent = $this->student !== '' ? $students->firstWhere('key', $this->student) : null;
+        if ($this->student !== '' && ! $openStudent) $this->student = '';
+        if ($this->folder !== '' && ! $folders->contains('type', $this->folder)) $this->folder = '';
 
-        [$sortKey, $sortDir] = $this->parsedSort();
+        $level = match (true) {
+            $this->by === 'all' => 'all',
+            $this->by === 'folder' && $this->folder === '' => 'folders',
+            $this->by === 'folder' => 'folder',
+            $openStudent !== null => 'student',
+            default => 'students',
+        };
+        $items = match ($level) {
+            'all' => $records,
+            'folder' => $records->where('type', $this->folder)->values(),
+            'students' => $students,
+            default => collect(),
+        };
+        $perPage = $level === 'students' ? 20 : 24;
+        $lastPage = max(1, (int) ceil($items->count() / $perPage));
+        $this->currentPage = min(max(1, $this->currentPage), $lastPage);
 
         return view('livewire.admin.document-uploads.index', [
-            'students' => $students->forPage($page, self::PER_PAGE)->values(),
-            'total' => $total,
-            'page' => $page,
+            'level' => $level,
+            'pageItems' => $items->slice(($this->currentPage - 1) * $perPage, $perPage)->values(),
+            'itemCount' => $items->count(),
             'lastPage' => $lastPage,
+            'folders' => $folders,
+            'openStudent' => $openStudent,
+            'recordCount' => $records->count(),
+            'studentCount' => $students->count(),
             'counts' => $counts,
-            'filters' => self::FILTERS,
-            'sortKey' => $sortKey,
-            'sortDir' => $sortDir,
-            'sortOptions' => $this->sortOptions(),
-        ])->layout('layouts.app', ['title' => 'Document Uploads']);
+            'statuses' => self::STATUSES,
+        ])->layout('layouts.app', ['title' => 'Uploads']);
     }
 }

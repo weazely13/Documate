@@ -1019,7 +1019,7 @@ class OrganizationRoleManager extends Component
                 ->when($this->filterOrgProgram, fn ($q, $p) => $q->forProgram($p))
                 ->when($this->filterOrgStatus !== '', fn ($q) => $q->where('is_active', $this->filterOrgStatus === '1'))
                 ->orderBy('name')
-                ->paginate(10, pageName: 'orgPage');
+                ->paginate(20, pageName: 'orgPage');
             $data['takenPrograms'] = $this->takenProgramMap();
         }
 
@@ -1030,11 +1030,12 @@ class OrganizationRoleManager extends Component
                 ->when($this->filterProgCollege, fn ($q, $c) => $q->where('college_id', $c))
                 ->when($this->filterProgStatus !== '', fn ($q) => $q->where('is_active', $this->filterProgStatus === '1'))
                 ->orderBy('name')
-                ->paginate(10, pageName: 'programPage');
+                ->paginate(20, pageName: 'programPage');
         }
 
         if ($this->panel === 'positions') {
             $data['positions'] = OfficerPosition::withCount('officers')->orderBy('sort_order')->orderBy('title')->get();
+            $data['positionsPaged'] = $this->pageOf($data['positions'], 'positionPage');
         }
 
         if ($this->panel === 'officers') {
@@ -1055,7 +1056,7 @@ class OrganizationRoleManager extends Component
                 ->when($this->filterOffOrg, fn ($q, $o) => $q->where('organization_id', $o))
                 ->when($this->filterOffPosition, fn ($q, $p) => $q->where('officer_position_id', $p))
                 ->latest()
-                ->paginate(15, pageName: 'officerPage');
+                ->paginate(20, pageName: 'officerPage');
 
             $data['selectedStudent'] = $this->selectedStudentId ? User::with('program')->find($this->selectedStudentId) : null;
         }
@@ -1067,6 +1068,9 @@ class OrganizationRoleManager extends Component
                 ->latest('id')->limit(100)->get()
                 ->unique('user_id')->values();
             $data['signatoryRoles'] = SignatoryRole::withCount('assignments')->orderBy('label')->get();
+            // The tables page through 20 at a time; the full lists still feed the dropdowns.
+            $data['rolesPaged'] = $this->pageOf($data['signatoryRoles'], 'rolePage');
+            $data['invitationsPaged'] = $this->pageOf($data['invitations'], 'invitePage');
 
             // How many active, currently-in-window holders each role has — used to
             // warn in the UI before a role ends up with zero holders.
@@ -1092,11 +1096,22 @@ class OrganizationRoleManager extends Component
                 ->when($this->filterSigStatus === 'expired', fn ($q) => $q->where('is_active', true)->whereNotNull('active_until')->where('active_until', '<', $today))
                 ->orderByDesc('is_active')
                 ->orderBy('active_from')
-                ->paginate(15, pageName: 'signatoryPage');
+                ->paginate(20, pageName: 'signatoryPage');
 
             $data['sigSelectedUser'] = $this->sigSelectedUser;
         }
 
         return view('livewire.admin.organization-role-manager', $data);
     }
+
+    /** A page of 20 from a list that is loaded whole (small lists that also feed dropdowns). */
+    private function pageOf(\Illuminate\Support\Collection $items, string $pageName): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        $page = max(1, (int) $this->getPage($pageName));
+
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $items->forPage($page, 20)->values(), $items->count(), 20, $page, ['pageName' => $pageName]
+        );
+    }
+
 }

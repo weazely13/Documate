@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Workflow;
 
 use App\Exceptions\Workflow\WorkflowException;
+use App\Models\IssueDraft;
 use App\Models\User;
 use App\Services\Workflow\TransactionWorkflow;
 use App\Workflow\Documents\DocumentRegistry;
@@ -30,13 +31,31 @@ class Issue extends Component
     /** The issuer confirms the details are accurate and that they may issue this. Asked on every issue. */
     public bool $confirmed = false;
 
+    /** The saved draft being worked on (Save draft / Home "Pick up where you left off"). */
+    public ?int $draftId = null;
+
     public function mount(): void
     {
         $docs = $this->officeDocuments();
         abort_if(empty($docs), 404);
 
-        $this->type = (string) array_key_first($docs);
+        // Home links straight to one report with ?doc=<key>; anything unknown falls back to the first.
+        $asked = (string) request()->query('doc', '');
+        $this->type = array_key_exists($asked, $docs) ? $asked : (string) array_key_first($docs);
         $this->resetValues();
+
+        // ?draft=<id> reopens a report saved earlier by this person.
+        if ($draft = IssueDraft::where('issuer_id', Auth::id())->find((int) request()->query('draft'))) {
+            if (array_key_exists($draft->document_type, $docs)) {
+                $this->type = $draft->document_type;
+                unset($this->document);
+                $this->resetValues();
+                $this->values = array_intersect_key(($draft->field_values ?? []) + $this->values, $this->values);
+                $this->studentId = $draft->student_id;
+                $this->sourceId = $draft->source_id;
+                $this->draftId = $draft->id;
+            }
+        }
     }
 
     /** @return array<string, WorkflowDocument> */
@@ -186,6 +205,24 @@ class Issue extends Component
         return $attrs;
     }
 
+    /** Keeps what is filled in so far, without checks, so the report can be finished later. */
+    public function saveDraft(): void
+    {
+        $draft = IssueDraft::updateOrCreate(
+            ['id' => $this->draftId, 'issuer_id' => Auth::id()],
+            [
+                'issuer_id' => Auth::id(),
+                'document_type' => $this->type,
+                'student_id' => $this->studentId,
+                'source_id' => $this->sourceId,
+                'field_values' => $this->values,
+            ],
+        );
+        $this->draftId = $draft->id;
+        $this->dispatch('toast', type: 'success', title: 'Draft saved',
+            message: 'Find it on Home under "Pick up where you left off" and in Issued documents.');
+    }
+
     public function issue()
     {
         $this->resetErrorBag();
@@ -214,6 +251,10 @@ class Issue extends Component
             $this->addError('form', $e->getMessage());
 
             return;
+        }
+
+        if ($this->draftId) {
+            IssueDraft::where('issuer_id', Auth::id())->whereKey($this->draftId)->delete();
         }
 
         if ($this->document->issuerIsStaff()) {

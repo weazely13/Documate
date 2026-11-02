@@ -48,6 +48,22 @@ class SemesterManagement extends Component
         ];
     }
 
+    /** The "Create a semester" dialog. */
+    public bool $showCreate = false;
+
+    public function openCreate(): void
+    {
+        $this->resetErrorBag();
+        $this->showCreate = true;
+    }
+
+    public function closeCreate(): void
+    {
+        $this->resetErrorBag();
+        $this->reset(['school_year', 'semester_label', 'starts_on', 'ends_on']);
+        $this->showCreate = false;
+    }
+
     public function createSemester(): void
     {
         $this->validate();
@@ -77,6 +93,7 @@ class SemesterManagement extends Component
         ]);
 
         $this->reset(['school_year', 'semester_label', 'starts_on', 'ends_on']);
+        $this->showCreate = false;
         $this->syncCurrent();
 
         session()->flash('message', 'Semester created: ' . $semester->label());

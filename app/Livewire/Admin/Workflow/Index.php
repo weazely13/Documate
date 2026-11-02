@@ -509,6 +509,7 @@ class Index extends Component
         if (! array_key_exists($this->tab, self::TABS)) {
             $this->tab = 'attention';
         }
+        $queue = $this->tab;
         if (! array_key_exists($this->ai, self::AI_FILTERS)) {
             $this->ai = '';
         }
@@ -533,7 +534,7 @@ class Index extends Component
         $flaggedCount = (clone $flaggedQuery)->count();
         $flaggedFaces = (clone $flaggedQuery)->with('user')->latest('ai_reviewed_at')->limit(3)->get();
 
-        $q = ReviewQueue::withWaitingSince(ReviewQueue::query($this->tab))
+        $q = ReviewQueue::withWaitingSince(ReviewQueue::query($queue))
             ->with('user.role')
             ->withCount([
                 'approvals',
@@ -558,7 +559,7 @@ class Index extends Component
         }
 
         $this->applyAiFilter($q);
-        $uncheckedInTab = ReviewQueue::apply($this->checkable(), $this->tab)
+        $uncheckedInTab = ReviewQueue::apply($this->checkable(), $queue)
             ->where(fn ($w) => $w->whereNull('ai_flag')->orWhere('ai_flag', 'review_failed'))
             ->count();
 
@@ -567,7 +568,7 @@ class Index extends Component
         [$sortKey, $sortDir] = $this->parsedSort();
 
         $rows = $q->paginate(20);
-        $flagged = in_array($this->tab, self::FLAGGED_TABS, true);
+        $flagged = in_array($queue, self::FLAGGED_TABS, true);
         $skipAi = self::uncheckedKeys();
         // Waiting on student: the student has the next move, so show the plain age only.
         $issuers = Issuers::for($rows->getCollection());

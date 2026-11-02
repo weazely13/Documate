@@ -379,7 +379,7 @@ class AppointmentsBoard extends Component
     {
         $start = Carbon::parse($this->month . '-01')->startOfMonth();
 
-        return $this->days($start->copy()->startOfWeek(Carbon::SUNDAY), $start->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY));
+        return $this->days($start->copy()->startOfWeek(Carbon::SUNDAY), $start->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY));
     }
 
     #[Computed]

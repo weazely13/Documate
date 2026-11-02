@@ -5,10 +5,12 @@ namespace App\Models;
 use App\Models\Concerns\Auditable;
 use App\Enums\DocumentCategory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Template extends Model
 {
-    use Auditable;
+    // Deleting a template hides it; transactions made from it keep their form, preview and PDF.
+    use Auditable, SoftDeletes;
 
     protected string $auditModule = 'Templates';
 
@@ -19,6 +21,7 @@ class Template extends Model
 
     protected $fillable = [
         'name',
+        'description',
         'category',
         'created_by',
         'status',

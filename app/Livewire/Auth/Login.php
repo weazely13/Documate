@@ -107,7 +107,7 @@ class Login extends Component
                 ]);
             }
 
-            return $this->redirect(route('signatory.inbox'), navigate: true);
+            return $this->redirect(route('signatory.home'), navigate: true);
         }
 
         if ($user->account_status !== 'active') {

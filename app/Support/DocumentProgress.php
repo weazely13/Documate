@@ -94,4 +94,27 @@ class DocumentProgress
             'closed' => $tone === 'closed',
         ];
     }
+
+    /**
+     * What a document's thumbnail shows: [url, isImage]. Sent paperless documents show themselves as they print,
+     * drafts a blank copy of their form, paper forms their template image; null when there is nothing to show.
+     */
+    public static function thumbnail(StudentDocumentWorkspace $workspace): array
+    {
+        if (! $workspace->usesWorkflow()) {
+            $image = $workspace->template?->currentVersion?->image_path;
+
+            return $image ? [\Illuminate\Support\Facades\Storage::disk('public')->url($image), true] : [null, false];
+        }
+
+        $doc = DocumentRegistry::find($workspace->document_type);
+
+        return match (true) {
+            ! $doc => [null, false],
+            $workspace->workflow_status?->value !== 'draft' => [route('student.transactions.preview', $workspace->workspace_id), false],
+            ! $doc->issuedByOffice() => [route('student.forms.preview', $workspace->document_type), false],
+            default => [null, false],
+        };
+    }
+
 }

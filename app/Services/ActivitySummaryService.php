@@ -45,6 +45,30 @@ class ActivitySummaryService
         return 'activity-summary:' . $userId . ':' . md5(json_encode($facts));
     }
 
+    /** Facts with 'audience' => 'signatory' get this instead: the reader signs and issues documents. */
+    private const SIGNATORY_PROMPT = <<<'PROMPT'
+    You write a short activity summary for a signatory (a faculty member or office head who signs and issues
+    documents) using DocuMate, the paperless forms system of the Office of the Vice President for Student
+    Development (VPSD) at Leyte Normal University.
+
+    RULES
+    - Use ONLY the facts in the JSON below. Never invent documents, dates, people or numbers.
+    - Speak to the signatory as "you". Plain, professional, specific English. No markdown, no emoji.
+    - Lead with what needs them: documents waiting for their signature (and how long the oldest has waited),
+      then what they signed, rejected and issued in the period, then their response time and trend.
+    - Mention real document and role names and counts from the facts where they help.
+    - If there is little or no activity, say so plainly.
+
+    RETURN ONLY JSON:
+    {
+      "headline": "one sentence, at most 12 words",
+      "summary": "two or three sentences",
+      "next_steps": ["up to 3 short actions the signatory can take, most urgent first; empty list if none"]
+    }
+
+    FACTS
+    PROMPT;
+
     private function ask(array $facts): array
     {
         $apiKey = config('services.gemini.eslip_key');
@@ -54,7 +78,7 @@ class ActivitySummaryService
             throw new \RuntimeException('The AI summary is not set up (services.gemini.eslip_key / eslip_model).');
         }
 
-        $prompt = <<<PROMPT
+        $prompt = ($facts['audience'] ?? 'student') === 'signatory' ? self::SIGNATORY_PROMPT : <<<PROMPT
         You write a short activity summary for a university student using DocuMate, the paperless forms
         system of the Office of the Vice President for Student Development (VPSD) at Leyte Normal University.
 

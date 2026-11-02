@@ -1,194 +1,222 @@
+{{-- Admin › Templates & Uploads › Uploads: signed paper forms brought to the office, filed like Transaction Records. --}}
 @php
-    $field = 'rounded-lg border-slate-300 py-2.5 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] sm:py-2 sm:text-sm';
-
-    $statusBadge = fn ($status) => match ($status) {
-        'Verified' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-        'Needs Re-upload' => 'bg-rose-50 text-rose-700 ring-rose-200',
-        'Reviewing' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-        default => 'bg-amber-50 text-amber-700 ring-amber-200',
+    $focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]/40 focus-visible:ring-offset-1';
+    $themes = [
+        ['back' => 'bg-[#bcd5f2]', 'front' => 'from-[#e6f0fc] to-[#dcecfa]', 'ink' => 'text-[#1E4090]'],
+        ['back' => 'bg-[#d3c9ef]', 'front' => 'from-[#eee9f9] to-[#e6e0f5]', 'ink' => 'text-[#5b3fa0]'],
+        ['back' => 'bg-[#b6e3c5]', 'front' => 'from-[#e6f7eb] to-[#d9f3e1]', 'ink' => 'text-[#1f6b3a]'],
+        ['back' => 'bg-[#f3df93]', 'front' => 'from-[#fefae4] to-[#fef3c7]', 'ink' => 'text-[#8a5a00]'],
+        ['back' => 'bg-[#f6c3d8]', 'front' => 'from-[#fdeef4] to-[#fde0ec]', 'ink' => 'text-[#9d2457]'],
+        ['back' => 'bg-[#f6cdb5]', 'front' => 'from-[#fef4ee] to-[#fdece3]', 'ink' => 'text-[#9a4521]'],
+    ];
+    $folderTheme = fn (string $t) => $themes[crc32($t) % count($themes)];
+    $tag = fn (array $r) => match ($r['status']) {
+        'Verified' => ['Verified', 'bg-emerald-600 text-white'],
+        'Reviewing' => ['Being checked', 'bg-[#2A57B4] text-white'],
+        'Needs Re-upload' => ['Sent back', 'bg-rose-600 text-white'],
+        default => ['Needs upload', 'bg-amber-500 text-white'],
     };
+    $inside = in_array($level, ['folder', 'student', 'all'], true);
+    $backBtn = 'inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 [@media(pointer:coarse)]:h-11 ' . $focus;
+    $dateLabel = $dateFrom || $dateTo
+        ? trim(($dateFrom ? \Carbon\Carbon::parse($dateFrom)->format('M j') : 'Any') . ' – ' . ($dateTo ? \Carbon\Carbon::parse($dateTo)->format('M j, Y') : 'today'))
+        : null;
 @endphp
 
-<div class="mx-auto max-w-6xl">
-
+<div class="mx-auto w-full max-w-7xl pb-16">
     <x-admin.area-header name="documents" active="uploads" />
 
-    {{-- Tabs --}}
-    <div class="mb-4 border-b border-slate-200">
-        <nav class="-mb-px flex gap-6 overflow-x-auto whitespace-nowrap" aria-label="Upload status">
-            @foreach ($filters as $key => $label)
-                <button type="button" wire:click="$set('filter', '{{ $key }}')" wire:key="filter-{{ $key }}"
-                        @if ($filter === $key) aria-current="page" @endif
-                        class="inline-flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition
-                            {{ $filter === $key
-                                ? 'border-[#2A57B4] text-[#2A57B4]'
-                                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700' }}">
-                    {{ $label }}
-                    <span class="rounded-full px-1.5 text-[11px] font-medium tabular-nums {{ $filter === $key ? 'bg-[#2A57B4]/10 text-[#2A57B4]' : 'bg-slate-100 text-slate-500' }}">{{ $counts[$key] }}</span>
+    {{-- Filing and status --}}
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex min-w-0 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist" aria-label="File uploads by">
+            @foreach (['folder' => ['bxs-folder', 'By form', 'Forms'], 'student' => ['bxs-user-account', 'By student', 'Students'], 'all' => ['bxs-file', 'All uploads', 'All']] as $b => [$icon, $label, $short])
+                <button type="button" role="tab" wire:click="setBy('{{ $b }}')" aria-selected="{{ $by === $b ? 'true' : 'false' }}"
+                        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition sm:px-4 [@media(pointer:coarse)]:h-11 {{ $focus }} {{ $by === $b ? 'bg-[#2A57B4] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i class="bx {{ $icon }} text-base max-sm:!hidden" aria-hidden="true"></i><span class="sm:hidden">{{ $short }}</span><span class="hidden sm:inline">{{ $label }}</span>
                 </button>
             @endforeach
-        </nav>
-    </div>
-
-    {{-- Toolbar --}}
-    <div class="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:flex lg:flex-wrap lg:items-end">
-        <div class="relative col-span-2 lg:min-w-[260px] lg:max-w-sm lg:flex-1">
-            <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.2-5.2m0 0A7.5 7.5 0 1 0 5.2 5.2a7.5 7.5 0 0 0 10.6 10.6Z" />
-            </svg>
-            <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search student, ID, or document"
-                   class="w-full pl-9 pr-3 {{ $field }}">
         </div>
-
-        <div>
-            <label for="date-from" class="mb-1 block text-xs font-medium text-slate-500">Attended from</label>
-            <input id="date-from" type="date" wire:model.live="dateFrom" class="w-full {{ $field }}">
-        </div>
-        <div>
-            <label for="date-to" class="mb-1 block text-xs font-medium text-slate-500">To</label>
-            <input id="date-to" type="date" wire:model.live="dateTo" class="w-full {{ $field }}">
-        </div>
-
-        @if ($dateFrom !== '' || $dateTo !== '')
-            <button type="button" wire:click="clearDateFilter"
-                    class="col-span-2 py-2 text-center text-xs font-medium text-slate-500 hover:text-slate-800 lg:col-span-1 lg:py-2.5">Clear dates</button>
-        @endif
-
-        {{-- Sort menu (phones and tablets; large screens use the column headers) --}}
-        <div class="col-span-2 flex items-center gap-2 md:hidden">
-            <label for="sort-menu" class="shrink-0 text-xs font-medium text-slate-500">Sort by</label>
-            <select id="sort-menu" wire:model.live="sort" class="w-full {{ $field }}">
-                @foreach ($sortOptions as $value => $text)
-                    <option value="{{ $value }}">{{ $text }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        @if ($sortKey)
-            <button type="button" wire:click="clearSort" class="hidden py-2.5 text-xs font-medium text-slate-500 hover:text-slate-800 md:inline">Reset sorting</button>
-        @endif
-
-        <span class="col-span-2 text-xs text-slate-500 lg:ml-auto lg:py-2.5">{{ number_format($total) }} {{ \Illuminate\Support\Str::plural('student', $total) }}</span>
-    </div>
-
-    {{-- Table (md and up) --}}
-    <div class="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
-        <table class="min-w-full text-sm">
-            <thead class="border-b border-slate-100 bg-slate-50 text-xs">
-                <tr>
-                    <x-admin.sort-th key="student" label="Student" :sort="$sortKey" :dir="$sortDir" />
-                    <x-admin.sort-th key="forms" label="Forms" :sort="$sortKey" :dir="$sortDir" />
-                    <x-admin.sort-th key="latest" label="Latest attended" :sort="$sortKey" :dir="$sortDir" />
-                    <x-admin.sort-th key="status" label="Status" :sort="$sortKey" :dir="$sortDir" />
-                </tr>
-            </thead>
-
-            @forelse ($students as $s)
-                {{-- One tbody per student so the expand state stays with that student --}}
-                <tbody wire:key="student-{{ $s['user_id'] ?? 'unknown' }}" x-data="{ open: false }" class="border-t border-slate-100 first:border-t-0">
-
-                    <tr @click="open = !open" class="cursor-pointer transition hover:bg-slate-50">
-                        <td class="px-4 py-3.5">
-                            <button type="button" @click.stop="open = !open" :aria-expanded="open" class="flex items-center gap-2.5 text-left">
-                                <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform" :class="open && 'rotate-90'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.17 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02Z" clip-rule="evenodd"/></svg>
-                                <span>
-                                    <span class="block font-semibold text-slate-900">{{ $s['student_name'] }}</span>
-                                    <span class="block text-xs text-slate-400">{{ $s['student_number'] }}</span>
-                                </span>
-                            </button>
-                        </td>
-                        <td class="px-4 py-3.5 text-slate-600">{{ $s['total'] }} {{ \Illuminate\Support\Str::plural('form', $s['total']) }}</td>
-                        <td class="px-4 py-3.5 text-slate-500">{{ $s['latest_attended']?->format('M j, Y') ?? '—' }}</td>
-                        <td class="px-4 py-3.5">
-                            @if ($s['needs_action'] > 0)
-                                <span class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">{{ $s['needs_action'] }} need action</span>
-                            @elseif ($s['all_verified'])
-                                <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">All verified</span>
-                            @else
-                                <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">Reviewing</span>
-                            @endif
-                        </td>
-                    </tr>
-
-                    <tr x-show="open" x-cloak>
-                        <td colspan="4" class="bg-slate-50/70 px-4 py-2">
-                            <ul class="divide-y divide-slate-200/70">
-                                @foreach ($s['forms'] as $r)
-                                    <li wire:key="doc-upload-{{ $r['workspace_id'] }}">
-                                        <a href="{{ route('admin.document-uploads.show', $r['workspace_id']) }}" wire:navigate
-                                           class="flex items-center justify-between gap-3 rounded-lg py-2.5 pl-8 pr-2 hover:bg-white">
-                                            <div class="min-w-0">
-                                                <p class="truncate font-medium text-slate-800">{{ $r['type'] }}</p>
-                                                <p class="text-xs text-slate-400">Attended {{ $r['attended_at']?->format('M j, Y g:i A') ?? '—' }}</p>
-                                            </div>
-                                            <span class="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $statusBadge($r['doc_status']) }}">{{ $r['doc_status'] }}</span>
-                                        </a>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </td>
-                    </tr>
-                </tbody>
-            @empty
-                <tbody>
-                    <tr><td colspan="4" class="px-4 py-14 text-center text-sm text-slate-500">No records match your filters.</td></tr>
-                </tbody>
-            @endforelse
-        </table>
-    </div>
-
-    {{-- Cards (phones) --}}
-    <div class="space-y-3 md:hidden">
-        @forelse ($students as $s)
-            <div wire:key="student-card-{{ $s['user_id'] ?? 'unknown' }}" x-data="{ open: false }"
-                 class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-
-                <button type="button" @click="open = !open" :aria-expanded="open" class="flex w-full items-start gap-3 p-4 text-left">
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate font-semibold text-slate-900">{{ $s['student_name'] }}</p>
-                        <p class="text-xs text-slate-400">{{ $s['student_number'] }}</p>
-                        <div class="mt-2.5 flex flex-wrap items-center gap-2">
-                            @if ($s['needs_action'] > 0)
-                                <span class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">{{ $s['needs_action'] }} need action</span>
-                            @elseif ($s['all_verified'])
-                                <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">All verified</span>
-                            @else
-                                <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">Reviewing</span>
-                            @endif
-                            <span class="text-xs text-slate-500">{{ $s['total'] }} {{ \Illuminate\Support\Str::plural('form', $s['total']) }} · {{ $s['latest_attended']?->format('M j, Y') ?? '—' }}</span>
-                        </div>
-                    </div>
-                    <svg class="mt-1 h-5 w-5 shrink-0 text-slate-400 transition-transform" :class="open && 'rotate-90'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.17 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02Z" clip-rule="evenodd"/></svg>
+        <div class="-mx-1 flex gap-1.5 overflow-x-auto px-1" role="group" aria-label="Status">
+            @foreach ($statuses as $key => $label)
+                <button type="button" wire:click="$set('filter', '{{ $key }}')" aria-pressed="{{ $filter === $key ? 'true' : 'false' }}"
+                        class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-medium transition [@media(pointer:coarse)]:h-11 {{ $focus }}
+                            {{ $filter === $key ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
+                    {{ $label }} <span class="tabular-nums {{ $filter === $key ? 'text-white/70' : 'text-slate-400' }}">{{ $counts[$key] }}</span>
                 </button>
+            @endforeach
+        </div>
+    </div>
 
-                <ul x-show="open" x-cloak class="divide-y divide-slate-100 border-t border-slate-100 bg-slate-50/70">
-                    @foreach ($s['forms'] as $r)
-                        <li wire:key="doc-upload-card-{{ $r['workspace_id'] }}">
-                            <a href="{{ route('admin.document-uploads.show', $r['workspace_id']) }}" wire:navigate
-                               class="flex items-center justify-between gap-3 px-4 py-3 active:bg-white">
-                                <div class="min-w-0">
-                                    <p class="truncate text-sm font-medium text-slate-800">{{ $r['type'] }}</p>
-                                    <p class="text-xs text-slate-400">Attended {{ $r['attended_at']?->format('M j, Y g:i A') ?? '—' }}</p>
-                                </div>
-                                <span class="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 {{ $statusBadge($r['doc_status']) }}">{{ $r['doc_status'] }}</span>
+    {{-- Search, dates and view --}}
+    <div class="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm sm:p-3">
+        <div class="relative min-w-0 flex-1 basis-56">
+            <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true"></i>
+            <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search student, student no. or form" aria-label="Search uploads"
+                   class="h-10 w-full rounded-lg border-slate-300 py-0 pl-10 pr-3 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm [@media(pointer:coarse)]:h-11">
+        </div>
+        <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape="open = false">
+            <button type="button" @click="open = !open" :aria-expanded="open"
+                    class="inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium [@media(pointer:coarse)]:h-11 {{ $focus }} {{ $dateLabel ? 'border-[#2A57B4]/40 bg-[#eef3fc] text-[#1E4090]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
+                <i class="bx bx-calendar text-base" aria-hidden="true"></i><span class="whitespace-nowrap">{{ $dateLabel ?? 'Visit date' }}</span><i class="bx bx-chevron-down text-base text-slate-400" aria-hidden="true"></i>
+            </button>
+            {{-- Phones: a sheet from the bottom. Wider: under the button, kept inside the screen. --}}
+            <div x-show="open" x-cloak x-transition.opacity class="fixed inset-0 z-40 bg-slate-900/30 sm:hidden" @click="open = false" aria-hidden="true"></div>
+            <div x-show="open" x-cloak x-transition.opacity
+                 x-init="$watch('open', v => v && $nextTick(() => { if (window.innerWidth < 640) return; const r = $el.getBoundingClientRect(); $el.style.transform = r.right > window.innerWidth - 8 ? `translateX(${window.innerWidth - 8 - r.right}px)` : (r.left < 8 ? `translateX(${8 - r.left}px)` : ''); }))"
+                 class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-slate-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:z-30 sm:mt-1.5 sm:w-72 sm:rounded-xl sm:border sm:p-3 sm:shadow-lg"
+                 role="dialog" aria-label="Visit date">
+                <p class="mb-2 text-sm font-semibold text-slate-900 sm:hidden">Visit date</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="block"><span class="mb-0.5 block text-[11px] text-slate-500">From</span><input type="date" wire:model.live="dateFrom" class="h-9 w-full rounded-lg border-slate-300 px-2 py-0 text-sm"></label>
+                    <label class="block"><span class="mb-0.5 block text-[11px] text-slate-500">To</span><input type="date" wire:model.live="dateTo" class="h-9 w-full rounded-lg border-slate-300 px-2 py-0 text-sm"></label>
+                </div>
+                @if ($dateLabel)
+                    <button type="button" wire:click="clearDates" @click="open = false" class="mt-2 text-sm font-medium text-[#2A57B4] hover:underline">Clear dates</button>
+                @endif
+            </div>
+        </div>
+        @if ($inside)
+            <div class="inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="View">
+                @foreach (['cards' => ['bx-grid-alt', 'Cards'], 'table' => ['bx-list-ul', 'Table']] as $v => [$vIcon, $vLabel])
+                    <button type="button" wire:click="setView('{{ $v }}')" aria-pressed="{{ $view === $v ? 'true' : 'false' }}" title="{{ $vLabel }}"
+                            class="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition {{ $focus }} {{ $view === $v ? 'bg-white text-[#2A57B4] shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-800' }}">
+                        <i class="bx {{ $vIcon }} text-lg" aria-hidden="true"></i><span class="hidden sm:inline">{{ $vLabel }}</span>
+                    </button>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
+    @if ($recordCount === 0)
+        <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-16 text-center">
+            <i class="bx bx-images text-4xl text-slate-300" aria-hidden="true"></i>
+            <p class="mt-2 text-sm font-medium text-slate-700">{{ $filter === 'needs_action' && ! $search && ! $dateLabel ? 'Nothing to upload. Every signed form brought in is checked.' : 'No upload matches.' }}</p>
+        </div>
+
+    @elseif ($level === 'folders')
+        <h2 class="mb-3 text-[15px] font-semibold text-slate-900">Forms <span class="ml-1 text-sm font-normal tabular-nums text-slate-500">{{ $folders->count() }} · {{ $recordCount }} {{ Str::plural('upload', $recordCount) }}</span></h2>
+        <ul class="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 xl:grid-cols-5">
+            @foreach ($folders as $f)
+                @include('livewire.admin.partials.archive-folder', ['f' => $f, 'click' => 'openFolder(' . \Illuminate\Support\Js::from($f['type']) . ')'])
+            @endforeach
+        </ul>
+
+    @elseif ($level === 'students')
+        <h2 class="mb-3 text-[15px] font-semibold text-slate-900">Students <span class="ml-1 text-sm font-normal tabular-nums text-slate-500">{{ $itemCount }}</span></h2>
+        <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            @foreach ($pageItems as $s)
+                @php $band = $folderTheme($s['student_name']); @endphp
+                <li wire:key="up-st-{{ $s['key'] }}">
+                    <button type="button" wire:click="openStudent('{{ $s['key'] }}')"
+                            class="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#2A57B4]/30 hover:shadow-md motion-reduce:hover:translate-y-0 {{ $focus }}">
+                        <span class="block h-14 bg-gradient-to-br {{ $band['front'] }}" aria-hidden="true"></span>
+                        <span class="flex flex-1 flex-col px-4 pb-4">
+                            <x-dm.avatar :user="$s['user']" :name="$s['student_name']" class="-mt-9 h-16 w-16 text-lg ring-4 ring-white shadow-sm" />
+                            <span class="mt-2 block truncate text-[15px] font-semibold text-slate-900 group-hover:text-[#2A57B4]">{{ $s['student_name'] }}</span>
+                            <span class="block truncate text-xs tabular-nums text-slate-500">{{ $s['student_number'] }}</span>
+                            <span class="mt-3 grid grid-cols-3 divide-x divide-slate-200 rounded-lg border border-slate-200 text-center">
+                                <span class="py-2"><span class="block text-lg font-semibold tabular-nums text-slate-900">{{ $s['forms']->count() }}</span><span class="block text-[11px] text-slate-500">{{ Str::plural('form', $s['forms']->count()) }}</span></span>
+                                <span class="py-2"><span class="block text-lg font-semibold tabular-nums text-[#8a5a00]">{{ $s['needs'] }}</span><span class="block text-[11px] text-slate-500">to upload</span></span>
+                                <span class="py-2"><span class="block text-lg font-semibold tabular-nums text-[#1f6b3a]">{{ $s['verified'] }}</span><span class="block text-[11px] text-slate-500">verified</span></span>
+                            </span>
+                            <span class="mt-auto flex items-center justify-between pt-3 text-xs text-slate-500">
+                                <span>Visited {{ $s['latest'] }}</span>
+                                <span class="inline-flex items-center gap-0.5 font-medium text-[#2A57B4]">Open <i class="bx bx-chevron-right text-base"></i></span>
+                            </span>
+                        </span>
+                    </button>
+                </li>
+            @endforeach
+        </ul>
+
+    @else
+        {{-- One folder, one student's uploads, or every upload --}}
+        @php
+            $list = match ($level) {
+                'student' => $openStudent['forms'],
+                default => $pageItems,
+            };
+        @endphp
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+            @if ($level !== 'all')
+                <button type="button" wire:click="closeOpened" class="{{ $backBtn }}"><i class="bx bx-chevron-left text-lg" aria-hidden="true"></i> {{ $level === 'folder' ? 'All forms' : 'All students' }}</button>
+            @endif
+            @if ($level === 'student')
+                <x-dm.avatar :user="$openStudent['user']" :name="$openStudent['student_name']" class="h-10 w-10 text-sm" />
+            @endif
+            <h2 class="min-w-0 text-lg font-semibold text-slate-900">
+                {{ match ($level) { 'folder' => $folder, 'student' => $openStudent['student_name'], default => 'All uploads' } }}
+                <span class="ml-1 text-sm font-normal tabular-nums text-slate-500">{{ $list->count() }} {{ Str::plural('form', $list->count()) }}</span>
+            </h2>
+        </div>
+
+        @if ($view === 'cards')
+            <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                @foreach ($list as $r)
+                    @php [$tText, $tCls] = $tag($r); @endphp
+                    <li wire:key="up-{{ $r['id'] }}" class="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] motion-reduce:hover:translate-y-0">
+                        <div class="relative aspect-[842/1000] overflow-hidden border-b border-slate-200 bg-[#eef0f3]">
+                            @if ($r['photo'])
+                                <img src="{{ $r['photo'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover">
+                            @elseif ($r['form_image'])
+                                <img src="{{ $r['form_image'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top opacity-35 grayscale">
+                                <span class="absolute inset-0 grid place-items-center"><span class="grid h-12 w-12 place-items-center rounded-full bg-white/90 text-slate-500 shadow-sm"><i class="bx bx-camera text-2xl" aria-hidden="true"></i></span></span>
+                            @endif
+                            <span class="absolute right-2 top-2 rounded-md px-1.5 py-0.5 text-[11px] font-medium shadow-sm {{ $tCls }}">{{ $tText }}</span>
+                        </div>
+                        <div class="flex flex-1 flex-col px-3 pb-2 pt-2.5">
+                            <a href="{{ $r['url'] }}" wire:navigate class="truncate rounded text-sm font-semibold text-[#2A57B4] after:absolute after:inset-0 after:content-[''] hover:text-[#1E4090] {{ $focus }}">
+                                {{ $level === 'student' ? $r['type'] : $r['student_name'] }}
+                            </a>
+                            <p class="mt-0.5 truncate text-xs text-slate-500">{{ $level === 'student' ? $r['student_number'] : ($level === 'all' ? $r['type'] : $r['student_number']) }}</p>
+                            <p class="mt-1 flex items-center gap-1.5 text-xs text-slate-600"><i class="bx bx-calendar-check text-sm text-slate-400" aria-hidden="true"></i>Visited {{ $r['visited_label'] }}</p>
+                        </div>
+                        <div class="relative z-10 grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200 text-slate-500">
+                            <a href="{{ $r['url'] }}" wire:navigate class="flex h-9 items-center justify-center gap-1 text-xs font-medium hover:bg-slate-50 hover:text-[#2A57B4] [@media(pointer:coarse)]:h-11 {{ $focus }}">
+                                <i class="bx {{ $r['state'] === 'needs_action' ? 'bx-upload' : 'bx-file' }} text-base" aria-hidden="true"></i>{{ $r['state'] === 'needs_action' ? 'Upload' : 'Open' }}
+                            </a>
+                            @if ($r['photo'])
+                                <a href="{{ $r['photo'] }}" target="_blank" rel="noopener" class="flex h-9 items-center justify-center gap-1 text-xs font-medium hover:bg-slate-50 hover:text-[#2A57B4] [@media(pointer:coarse)]:h-11 {{ $focus }}"><i class="bx bx-show text-base" aria-hidden="true"></i>Photo</a>
+                            @else
+                                <span class="flex h-9 items-center justify-center gap-1 text-xs text-slate-300 [@media(pointer:coarse)]:h-11"><i class="bx bx-image text-base" aria-hidden="true"></i>No photo</span>
+                            @endif
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="hidden grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_8rem_9rem_6rem] gap-4 border-b border-slate-200 px-4 py-2.5 text-xs font-medium text-slate-500 md:grid">
+                    <span>Student</span><span>Form</span><span>Visited</span><span>Status</span><span></span>
+                </div>
+                <ul class="divide-y divide-slate-100">
+                    @foreach ($list as $r)
+                        @php [$tText, $tCls] = $tag($r); @endphp
+                        <li wire:key="upr-{{ $r['id'] }}">
+                            <a href="{{ $r['url'] }}" wire:navigate class="block px-4 py-3 hover:bg-slate-50 md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_8rem_9rem_6rem] md:items-center md:gap-4 {{ $focus }}">
+                                <span class="flex min-w-0 items-center gap-2.5">
+                                    <x-dm.avatar :user="$r['user']" :name="$r['student_name']" class="h-7 w-7 text-[10px]" />
+                                    <span class="min-w-0"><span class="block truncate text-sm text-slate-900">{{ $r['student_name'] }}</span><span class="block truncate text-xs tabular-nums text-slate-500">{{ $r['student_number'] }}</span></span>
+                                </span>
+                                <span class="mt-1 block truncate text-sm text-slate-700 md:mt-0">{{ $r['type'] }}</span>
+                                <span class="mt-1 block text-xs tabular-nums text-slate-500 md:mt-0 md:text-sm">{{ $r['visited_label'] }}</span>
+                                <span class="mt-1 block md:mt-0"><span class="inline-block rounded-md px-1.5 py-0.5 text-[11px] font-medium {{ $tCls }}">{{ $tText }}</span></span>
+                                <span class="hidden text-right text-sm font-medium text-[#2A57B4] md:block">{{ $r['state'] === 'needs_action' ? 'Upload' : 'Open' }} →</span>
                             </a>
                         </li>
                     @endforeach
                 </ul>
             </div>
-        @empty
-            <p class="rounded-xl border border-dashed border-slate-300 px-4 py-12 text-center text-sm text-slate-500">No records match your filters.</p>
-        @endforelse
-    </div>
+        @endif
+    @endif
 
-    {{-- Pager --}}
-    @if ($lastPage > 1)
-        <div class="mt-4 flex items-center justify-between gap-3">
-            <button type="button" wire:click="previousPage" @disabled($page <= 1)
-                    class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:py-2">Previous</button>
-            <span class="text-sm text-slate-500">Page {{ $page }} of {{ $lastPage }}</span>
-            <button type="button" wire:click="nextPage" @disabled($page >= $lastPage)
-                    class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:py-2">Next</button>
+    @if ($lastPage > 1 && in_array($level, ['folder', 'students', 'all'], true))
+        <div class="mt-5 flex items-center justify-between gap-3">
+            <p class="text-xs tabular-nums text-slate-500">Page {{ $currentPage }} of {{ $lastPage }}</p>
+            <div class="flex gap-2">
+                <button type="button" wire:click="previousPage" @disabled($currentPage === 1) class="{{ $backBtn }} disabled:cursor-not-allowed disabled:text-slate-300"><i class="bx bx-chevron-left text-lg"></i> Previous</button>
+                <button type="button" wire:click="nextPage({{ $lastPage }})" @disabled($currentPage === $lastPage) class="{{ $backBtn }} disabled:cursor-not-allowed disabled:text-slate-300">Next <i class="bx bx-chevron-right text-lg"></i></button>
+            </div>
         </div>
     @endif
 </div>

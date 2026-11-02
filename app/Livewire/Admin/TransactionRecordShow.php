@@ -13,8 +13,14 @@ class TransactionRecordShow extends Component
 {
     public StudentDocumentWorkspace $workspace;
 
+    /** Opened from the upload page ("Full record"): Back returns there. */
+    public ?string $backUrl = null;
+
     public function mount(StudentDocumentWorkspace $workspace)
     {
+        if (request('back') === 'upload') {
+            $this->backUrl = route('admin.document-uploads.show', $workspace->workspace_id);
+        }
         // Online transactions have their own records page.
         if ($workspace->usesWorkflow()) {
             $this->workspace = $workspace;
@@ -235,6 +241,7 @@ class TransactionRecordShow extends Component
             : '—';
 
         return view('livewire.admin.transaction-record-show', [
+            'backUrl' => $this->backUrl,
             'studentName' => $user ? $this->fullName($user) : 'Unknown student',
             'status' => $status,
             'appointmentStatus' => $appointmentStatus,
@@ -262,7 +269,7 @@ class TransactionRecordShow extends Component
             'rejectionReason' => $this->workspace->rejection_reason,
             'processingStage' => $this->workspace->processing_stage,
         ])->layout('layouts.app', [
-            'title' => 'Transactions > ' . ($user ? $this->fullName($user) : 'Record') . ' - ' . ($this->workspace->template?->name ?: 'Document'),
+            'title' => '#' . str_pad((string) $this->workspace->workspace_id, 4, '0', STR_PAD_LEFT),
         ]);
     }
 }

@@ -2,6 +2,12 @@ import '@fontsource-variable/inter';
 import './bootstrap';
 import { lnuHandbook } from './lnu-handbook';
 import './insights';
+import './pdf-to-image';
+import templateEditor from './template-editor';
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('templateEditor', templateEditor);
+});
 
 document.addEventListener('livewire:navigating', () => {
     document.querySelectorAll('body > [x-teleport-owner]').forEach((el) => el.remove());
@@ -209,13 +215,13 @@ document.addEventListener('alpine:init', () => {
         _onValidationError: null,
         _onWorkspaceSaved: null,
 
+        // The page shrinks to the width of its frame (never past 100%).
         fitPreview() {
-            if (window.innerWidth >= 1280) { this.previewScale = 1; return; }
             const frame = this.$refs.previewFrame;
-            if (!frame || !frame.clientWidth || !frame.clientHeight) return;
-            const scaleToFitWidth = frame.clientWidth / this.canvasWidth;
-            const scaleToFitHeight = frame.clientHeight / this.canvasHeight;
-            this.previewScale = Math.min(scaleToFitWidth, scaleToFitHeight, 1);
+            if (!frame || !frame.clientWidth) return;
+            const cs = getComputedStyle(frame);
+            const inner = frame.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            this.previewScale = Math.min(inner / this.canvasWidth, 1);
         },
 
 
@@ -245,6 +251,7 @@ document.addEventListener('alpine:init', () => {
             window.addEventListener('resize', this._onResize);
 
             this.$watch('mobileTab', () => this.$nextTick(() => this.fitPreview()));
+            if (this.$refs.previewFrame) new ResizeObserver(() => this.fitPreview()).observe(this.$refs.previewFrame);
 
             this._onPdfReady = (event) => {
                 const detail = event.detail?.[0] || event.detail || {};
@@ -328,6 +335,11 @@ document.addEventListener('alpine:init', () => {
             const groupName = field.group_name || 'Other';
             const idx = this.groups.indexOf(groupName);
             if (idx !== -1) this.activeGroupIndex = idx;
+            // The paper form lists every field: bring the first one to fix into view.
+            this.$nextTick(() => {
+                const el = document.getElementById('pf-' + name);
+                if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.focus({ preventScroll: true }); }
+            });
         },
 
         inputClasses(name, disabled) {
@@ -436,11 +448,13 @@ document.addEventListener('alpine:init', () => {
             if (field.text_case === 'uppercase') caseCss = 'text-transform: uppercase;';
             else if (field.text_case === 'smallcaps') caseCss = 'text-transform: lowercase; font-variant: small-caps;';
 
+            // The template editor keeps italic in the weight (Thin / Regular / Bold / Italic).
+            const italic = field.font_weight === 'italic' || field.font_style === 'italic';
             return `
                 font-family: '${field.font_family}', sans-serif;
                 font-size: ${fontSize}px;
-                font-weight: ${field.font_weight};
-                font-style: ${field.font_style || 'normal'};
+                font-weight: ${field.font_weight === 'italic' ? 'normal' : field.font_weight};
+                font-style: ${italic ? 'italic' : 'normal'};
                 color: ${field.text_color};
                 text-align: ${field.alignment};
                 line-height: ${lineHeight};

@@ -77,8 +77,8 @@
             // Templates and Uploads share one area; accounts, verifications, organizations and signatories share another
             $navSections[] = ['key' => 'manage', 'label' => 'Management', 'items' => [
                 ['Templates & Uploads', 'bx-file', 'admin.templates', ['admin.document-uploads.*', 'admin.templates*'], 0],
-                ['Clearance', 'bx-clipboard', 'admin.clearance-monitoring', ['admin.clearance-monitoring*', 'admin.semesters'], 0],
-                ['Users Manager', 'bx-group', 'admin.users', ['admin.users', 'admin.verification'], 0],
+                ['Clearance', 'bx-clipboard', 'admin.clearance-monitoring', ['admin.clearance-monitoring*'], 0],
+                ['Users Manager', 'bx-group', 'admin.users', ['admin.users', 'admin.verification', 'admin.semesters'], 0],
                 ['Reports', 'bx-bar-chart', 'admin.reports', ['admin.reports'], 0],
             ]];
             $navSections[] = ['key' => 'system', 'label' => 'System', 'items' => [
@@ -88,11 +88,18 @@
         }
 
         if (auth()->check() && ! $inactive && auth()->user()->isSignatory()) {
-            $signItems = [
-                ['Signing Inbox', 'bx-pen', 'signatory.inbox', ['signatory.inbox', 'signatory.show'], \App\Models\TransactionApproval::assignableTo(auth()->user())->count()],
-            ];
+            // A dedicated signing account gets its own Home and Activity summary, like a student's.
+            // Students and admins who also sign keep their own Home and summary; signing nests under them.
+            $ownAccount = auth()->user()->isSignatoryAccount();
+            $signItems = [];
+            if ($ownAccount) {
+                $signItems[] = ['Home', 'bx-home', 'signatory.home', ['signatory.home', 'signatory.issue'], 0];
+            }
+            $signItems[] = ['Signing Inbox', 'bx-pen', 'signatory.inbox', ['signatory.inbox', 'signatory.show'], \App\Models\TransactionApproval::assignableTo(auth()->user())->count()];
             if (count(auth()->user()->issuableDocuments()) > 0) {
-                $signItems[] = ['Issue a Report', 'bx-file', 'signatory.issue', ['signatory.issue'], 0];
+                if (! $ownAccount) {
+                    $signItems[] = ['Issue a Report', 'bx-file', 'signatory.issue', ['signatory.issue'], 0];
+                }
                 $signItems[] = ['Issued Documents', 'bx-folder-open', 'signatory.issued', ['signatory.issued*'], 0];
             }
             if (auth()->user()->holdsSignatoryRole('guidance_counselor')) {
@@ -101,8 +108,11 @@
             if (auth()->user()->isVpsd()) {
                 $signItems[] = ['All Documents', 'bx-show', 'signatory.oversight', ['signatory.oversight*'], 0];
             }
+            if ($ownAccount) {
+                $signItems[] = ['Activity Summary', 'bx-line-chart', 'signatory.activity', ['signatory.activity'], 0];
+            }
             // Nest signing under one row when it sits beside another role's pages
-            $navSections[] = ['key' => 'signing', 'label' => 'Signing', 'items' => $signItems,
+            $navSections[] = ['key' => 'signing', 'label' => $ownAccount ? 'Workspace' : 'Signing', 'items' => $signItems,
                 'parent' => (! empty($navSections) && count($signItems) > 1) ? ['Signing', 'bx-pen'] : null];
         }
 

@@ -101,6 +101,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/workflow/{workspace}/item-photo', [\App\Http\Controllers\ItemPhotoController::class, 'show'])
         ->name('workflow.item-photo');
     Route::get('/signing', \App\Livewire\Signatory\Inbox::class)->name('signatory.inbox');
+    // Home and Activity summary for dedicated signing accounts (students and admins keep their own)
+    Route::get('/signing/home', \App\Livewire\Signatory\Home::class)->name('signatory.home');
+    Route::get('/signing/activity', \App\Livewire\Signatory\ActivitySummary::class)->name('signatory.activity');
+    Route::get('/signing/forms/{type}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'issuable'])
+        ->name('signatory.forms.preview');
     Route::get('/signing/issue', \App\Livewire\Admin\Workflow\Issue::class)->name('signatory.issue');
     Route::get('/signing/availability', \App\Livewire\Signatory\Availability::class)->name('signatory.availability');
     Route::get('/signing/oversight', \App\Livewire\Signatory\Oversight::class)->name('signatory.oversight');
@@ -192,12 +197,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/templates', TemplateManager::class)
             ->name('admin.templates');
 
-        Route::get('/admin/templates/{template}/editor', function ($templateId) {
-            return "     for Template ID: " . $templateId;
-        })->name('admin.templates.editor');
-        
         Route::get('/admin/templates/{template}/editor', TemplateEditor::class)
             ->name('admin.templates.editor');
+
+        Route::get('/admin/templates/{template}/preview', \App\Livewire\Admin\Templates\TemplatePreview::class)
+            ->name('admin.templates.preview');
 
         Route::get('/admin/appointments', \App\Livewire\Admin\Appointments\AppointmentsBoard::class)
             ->name('admin.appointments.index');
@@ -215,7 +219,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/document-uploads/{workspace}', \App\Livewire\Admin\DocumentUploads\DocumentUploadShow::class)
             ->name('admin.document-uploads.show');
 
-        Route::get('/admin/verification', VerificationManagement::class)
+        // Verifications now sit inside Users and accounts > Accounts.
+        Route::redirect('/admin/verification', '/admin/users?view=verifications')
             ->name('admin.verification');
         
         Route::get('/admin/reports', Reports::class)
@@ -245,7 +250,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/workflow/{workspace}/report/preview', [\App\Http\Controllers\WorkflowReportController::class, 'preview'])
             ->name('admin.workflow.report.preview');
         Route::get('/admin/workflow/{workspace}/preview', [\App\Http\Controllers\WorkflowPreviewController::class, 'admin'])
-            ->name('admin.workflow.preview');
+            ->name('admin.workflow.preview')
+            ->withTrashed();
     });
 
     // OFFICER

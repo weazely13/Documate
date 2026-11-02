@@ -62,63 +62,91 @@
     $sessions = ['morning' => ['Morning', '8:00 – 12:00'], 'afternoon' => ['Afternoon', '1:00 – 5:00']];
 @endphp
 
-<div class="mx-auto max-w-[1440px] space-y-5" x-data @if ($polling) wire:poll.5s @endif>
+<div class="mx-auto max-w-[1440px] space-y-5 pb-32" x-data @if ($polling) wire:poll.5s @endif>
 
     {{-- Header --}}
-    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div class="flex items-end justify-between gap-3">
         <div class="min-w-0">
             <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">Appointments</h1>
-            <p class="mt-0.5 text-sm text-slate-500">See who is coming, set the office's hours, review requests and run the queue.</p>
+            <p class="mt-0.5 hidden text-sm text-slate-500 sm:block">See who is coming, set the office's hours, review requests and run the queue.</p>
         </div>
         <button type="button" wire:click="toggleEditingHours" aria-pressed="{{ $editingHours ? 'true' : 'false' }}"
-                class="{{ $editingHours ? $btnPrimary : $btnSecondary }} shrink-0 self-start md:self-auto">
+                class="{{ $editingHours ? $btnPrimary : $btnSecondary }} shrink-0 max-sm:!px-3">
             <i class="bx bx-time text-base {{ $editingHours ? '' : 'text-slate-500' }}" aria-hidden="true"></i>
-            {{ $editingHours ? 'Done setting hours' : 'Set office hours' }}
+            <span class="sm:hidden">{{ $editingHours ? 'Done' : 'Hours' }}</span><span class="hidden sm:inline">{{ $editingHours ? 'Done setting hours' : 'Set office hours' }}</span>
         </button>
     </div>
 
-    {{-- Toolbar --}}
-    <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <div class="inline-flex rounded-lg bg-slate-100 p-1" role="group" aria-label="View">
-                @foreach (['calendar' => ['bx-calendar', 'Calendar'], 'list' => ['bx-list-ol', 'Day list'], 'history' => ['bx-history', 'All']] as $key => [$icon, $label])
-                    <button type="button" wire:click="setViewMode('{{ $key }}')" aria-pressed="{{ $viewMode === $key ? 'true' : 'false' }}" class="{{ $seg($viewMode === $key) }}">
-                        <i class="bx {{ $icon }} text-base" aria-hidden="true"></i> {{ $label }}
-                    </button>
-                @endforeach
-            </div>
-            @if ($viewMode === 'calendar')
-                <div class="inline-flex rounded-lg bg-slate-100 p-1" role="group" aria-label="Calendar range">
-                    @foreach (['week' => 'Week', 'month' => 'Month'] as $key => $label)
-                        <button type="button" wire:click="setCalendarMode('{{ $key }}')" aria-pressed="{{ $calendarMode === $key ? 'true' : 'false' }}" class="{{ $seg($calendarMode === $key) }}">{{ $label }}</button>
-                    @endforeach
-                </div>
-            @endif
+    {{-- Toolbar: one line at every width. On phones the labels drop to icons, search opens over the bar,
+         and the date and status fields become icons with the native picker laid over them. --}}
+    @php
+        $segM = fn ($on) => 'inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-sm transition-colors sm:px-3 [@media(pointer:coarse)]:min-h-10 ' . $focus . ' '
+            . ($on ? 'bg-white font-medium text-[#24499A] shadow-sm' : 'text-slate-600 hover:text-slate-900');
+        $pickWrap = 'relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 focus-within:ring-[3px] focus-within:ring-[#2A57B4]/30 sm:block sm:h-auto sm:w-auto sm:border-0 sm:bg-transparent sm:focus-within:ring-0 max-sm:[@media(pointer:coarse)]:h-11 max-sm:[@media(pointer:coarse)]:w-11';
+        $pickField = 'absolute inset-0 h-full w-full cursor-pointer opacity-0 sm:static sm:h-9 sm:py-0 sm:opacity-100 sm:[@media(pointer:coarse)]:h-11 ' . $field;
+    @endphp
+    <div class="relative flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-2 sm:gap-2 sm:p-3">
+        <div class="inline-flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="View">
+            @foreach (['calendar' => ['bx-calendar', 'Calendar'], 'list' => ['bx-list-ol', 'Day list'], 'history' => ['bx-history', 'All']] as $key => [$icon, $label])
+                <button type="button" wire:click="setViewMode('{{ $key }}')" aria-pressed="{{ $viewMode === $key ? 'true' : 'false' }}" class="{{ $segM($viewMode === $key) }}" title="{{ $label }}">
+                    <i class="bx {{ $icon }} text-base" aria-hidden="true"></i><span class="max-md:sr-only">{{ $label }}</span>
+                </button>
+            @endforeach
         </div>
 
-        <div class="flex min-w-0 flex-wrap items-center gap-2">
-            @if ($viewMode !== 'history')
-                <div class="flex items-center gap-1">
-                    <button type="button" wire:click="step(-1)" class="{{ $iconBtn }}" aria-label="Previous {{ $viewMode === 'list' ? 'day' : $calendarMode }}"><i class="bx bx-chevron-left text-xl" aria-hidden="true"></i></button>
-                    <p class="min-w-[9.5rem] text-center text-sm font-medium tabular-nums text-slate-900" aria-live="polite">{{ $rangeLabel }}</p>
-                    <button type="button" wire:click="step(1)" class="{{ $iconBtn }}" aria-label="Next {{ $viewMode === 'list' ? 'day' : $calendarMode }}"><i class="bx bx-chevron-right text-xl" aria-hidden="true"></i></button>
-                    <button type="button" wire:click="jumpToday" class="{{ $btnBase }} !px-3 text-[#2A57B4] hover:bg-[#f0f4fb]">Today</button>
-                </div>
-                @if ($viewMode === 'list')
-                    <label>
-                        <span class="sr-only">Go to a day</span>
-                        <input type="date" wire:model.live="selectedDate" class="h-9 w-40 py-0 [@media(pointer:coarse)]:h-11 {{ $field }}">
-                    </label>
-                @endif
+        @if ($viewMode === 'calendar')
+            <div class="ml-auto inline-flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="Calendar range">
+                @foreach (['week' => 'Week', 'month' => 'Month'] as $key => $label)
+                    <button type="button" wire:click="setCalendarMode('{{ $key }}')" aria-pressed="{{ $calendarMode === $key ? 'true' : 'false' }}" class="{{ $segM($calendarMode === $key) }}">{{ $label }}</button>
+                @endforeach
+            </div>
+        @endif
+
+        @if ($viewMode === 'list')
+            <div class="flex shrink-0 items-center gap-1">
+                <button type="button" wire:click="step(-1)" class="{{ $iconBtn }}" aria-label="Previous day"><i class="bx bx-chevron-left text-xl" aria-hidden="true"></i></button>
+                <label class="{{ str_replace(['grid h-9 w-9', 'max-sm:[@media(pointer:coarse)]:w-11'], ['inline-flex h-9 items-center gap-1 px-2 max-sm:min-w-9', ''], $pickWrap) }}" title="Go to a day">
+                    <i class="bx bx-calendar text-lg sm:!hidden" aria-hidden="true"></i>
+                    <span class="text-sm font-medium tabular-nums text-slate-800 sm:hidden" aria-hidden="true">{{ $day->isToday() ? 'Today' : $day->format('M j') }}</span>
+                    <span class="sr-only">Go to a day</span>
+                    <input type="date" wire:model.live="selectedDate" class="{{ $pickField }} sm:w-40" @click="try { $el.showPicker() } catch (e) {}">
+                </label>
+                <button type="button" wire:click="step(1)" class="{{ $iconBtn }}" aria-label="Next day"><i class="bx bx-chevron-right text-xl" aria-hidden="true"></i></button>
+                @unless ($day->isToday())
+                    <button type="button" wire:click="jumpToday" class="{{ $btnBase }} !px-2.5 text-[#2A57B4] hover:bg-[#f0f4fb] max-sm:hidden">Today</button>
+                @endunless
+            </div>
+            <p class="hidden min-w-0 truncate text-sm font-medium tabular-nums text-slate-900 xl:block" aria-live="polite">{{ $rangeLabel }}</p>
+        @endif
+
+        @if ($viewMode !== 'calendar')
+            <x-dm.toolbar-search class="ml-auto sm:max-w-xs" placeholder="Search name, number or purpose" label="Search by name, student number or purpose" />
+        @endif
+
+        @if ($viewMode === 'history')
+            <label class="{{ $pickWrap }}" title="Filter by date">
+                <i class="bx bx-calendar text-lg sm:!hidden" aria-hidden="true"></i>
+                @if ($filterDate)<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                <span class="sr-only">Filter by date</span>
+                <input type="date" wire:model.live="filterDate" class="{{ $pickField }} sm:w-40" @click="try { $el.showPicker() } catch (e) {}">
+            </label>
+            <label class="{{ $pickWrap }}" title="Filter by status">
+                <i class="bx bx-filter-alt text-lg sm:!hidden" aria-hidden="true"></i>
+                @if ($filterStatus)<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                <span class="sr-only">Filter by status</span>
+                <select wire:model.live="filterStatus" class="{{ $pickField }} sm:w-40">
+                    <option value="">All statuses</option>
+                    @foreach (['pending' => 'Pending', 'approved' => 'Approved', 'attended' => 'Attended', 'missed' => 'Missed', 'rejected' => 'Rejected', 'retracted' => 'Withdrawn'] as $v => $l)
+                        <option value="{{ $v }}">{{ $l }}</option>
+                    @endforeach
+                </select>
+            </label>
+            @if ($filterDate || $filterStatus || $search)
+                <button type="button" wire:click="clearHistoryFilters" class="{{ $iconBtn }} shrink-0 text-[#2A57B4]" aria-label="Clear filters" title="Clear filters">
+                    <i class="bx bx-reset text-lg" aria-hidden="true"></i>
+                </button>
             @endif
-            @if ($viewMode !== 'calendar')
-                <div class="relative min-w-0 flex-1 lg:w-64 lg:flex-none">
-                    <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" aria-hidden="true"></i>
-                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, number or purpose"
-                           aria-label="Search by name, student number or purpose" class="h-9 w-full pl-9 pr-3 [@media(pointer:coarse)]:h-11 {{ $field }}">
-                </div>
-            @endif
-        </div>
+        @endif
     </div>
 
     {{-- ===================================== CALENDAR ===================================== --}}
@@ -134,30 +162,44 @@
             </p>
         @endif
 
+        @php
+            $inMonth = collect($this->monthDays)->where('inMonth', true);
+            $weekCount = collect($this->weekDays)->sum('count');
+            $monthStart = \Carbon\Carbon::parse($month . '-01');
+            $isCurrent = $calendarMode === 'month'
+                ? $month === now()->format('Y-m')
+                : $weekStart->isSameDay(now()->startOfWeek(\Carbon\Carbon::SUNDAY));
+            [$calTitle, $calSub] = $calendarMode === 'month'
+                ? [$monthStart->format('F'), $monthStart->format('Y') . ' · ' . $inMonth->sum('count') . ' ' . str('booking')->plural($inMonth->sum('count')) . ($inMonth->sum('pending') ? ' · ' . $inMonth->sum('pending') . ' to approve' : '')]
+                : [$rangeLabel, $weekCount . ' ' . str('booking')->plural($weekCount) . ' this week'];
+        @endphp
+        {{-- Not clipped: an event's popover may spill past the calendar's edges --}}
+        <x-dm.wall-calendar :title="$calTitle" :subtitle="$calSub" prev="step(-1)" next="step(1)" :clip="false"
+                            :today="$isCurrent ? null : 'jumpToday'" :unit="$calendarMode" :weekdays="$calendarMode === 'month'">
         @if ($calendarMode === 'week')
             {{-- Week: two sessions a day, the visits as cards --}}
-            <section class="rounded-2xl border border-slate-200 bg-white max-md:overflow-x-auto" aria-label="Week of {{ $rangeLabel }}">
-                <div class="grid min-w-[760px] grid-cols-[88px_repeat(7,minmax(0,1fr))]">
-                    {{-- Day headers, with their hours --}}
-                    <div class="border-b border-slate-200 p-2 text-xs text-slate-500"><span class="sr-only">Session</span></div>
+            <div class="max-md:overflow-x-auto" role="group" aria-label="Week of {{ $rangeLabel }}">
+                <div class="grid min-w-[760px] grid-cols-[88px_repeat(7,minmax(0,1fr))]" wire:loading.class="opacity-60" wire:target="step, jumpToday">
+                    {{-- Day headers, in the calendar's weekday band, with their hours --}}
+                    <div class="border-b border-blue-100 bg-blue-50 p-2 text-xs text-slate-500"><span class="sr-only">Session</span></div>
                     @foreach ($this->weekDays as $d)
-                        <div class="border-b border-l border-slate-200 p-2 text-center {{ $d['weekend'] ? 'bg-slate-50' : '' }}">
-                            <p class="text-xs font-medium text-slate-500">{{ $d['carbon']->format('D') }}</p>
+                        <div class="border-b border-l border-blue-100 bg-blue-50 p-2 text-center">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide {{ $d['carbon']->dayOfWeek === 0 ? 'text-rose-600' : 'text-[#2A57B4]' }}">{{ $d['carbon']->format('D') }}</p>
                             <button type="button" wire:click="openDay('{{ $d['date'] }}')"
                                     class="mx-auto mt-0.5 grid h-8 w-8 place-items-center rounded-full text-base font-semibold tabular-nums {{ $focus }}
-                                        {{ $d['isToday'] ? 'bg-[#2A57B4] text-white' : 'text-slate-900 hover:bg-[#f0f4fb]' }}"
+                                        {{ $d['isToday'] ? 'bg-[#2A57B4] text-white shadow-sm' : ($d['closed'] ? 'text-rose-500 hover:bg-white' : 'text-slate-900 hover:bg-white') }}"
                                     aria-label="Open the list for {{ $d['carbon']->format('l, F j') }}">{{ $d['day'] }}</button>
                             @if ($d['weekend'])
-                                <p class="mt-1 text-[11px] text-slate-500">Closed</p>
+                                <p class="mt-1 text-[11px] font-medium text-rose-400">Closed</p>
                             @else
                                 <div class="mt-1 flex items-center justify-center gap-1">
-                                    <p class="text-[11px] tabular-nums {{ $d['closed'] ? 'text-rose-700' : 'text-slate-500' }}">
+                                    <p class="text-[11px] tabular-nums {{ $d['closed'] ? 'font-medium text-rose-400' : 'text-slate-500' }}">
                                         @if ($d['closed']) Closed
                                         @else {{ $d['morning']['open'] ? $d['morning']['left'] : '–' }} · {{ $d['afternoon']['open'] ? $d['afternoon']['left'] : '–' }} left
                                         @endif
                                     </p>
                                     <button type="button" wire:click="editDayHours('{{ $d['date'] }}')"
-                                            class="grid h-6 w-6 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-[#2A57B4] [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9 {{ $focus }} {{ $editingHours || $d['custom'] ? 'text-[#2A57B4]' : '' }}"
+                                            class="grid h-6 w-6 place-items-center rounded-md text-slate-400 hover:bg-white hover:text-[#2A57B4] [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9 {{ $focus }} {{ $editingHours || $d['custom'] ? 'text-[#2A57B4]' : '' }}"
                                             aria-label="Set office hours for {{ $d['carbon']->format('l, F j') }}" title="Set hours">
                                         <i class="bx bx-time-five text-sm" aria-hidden="true"></i>
                                     </button>
@@ -166,10 +208,10 @@
                         </div>
                     @endforeach
 
-                    {{-- Sessions --}}
+                    {{-- Sessions, labelled in their dashboard tints --}}
                     @foreach ($sessions as $sKey => [$sName, $sTime])
-                        <div class="border-b border-slate-200 p-2 last:border-b-0 {{ $loop->last ? 'border-b-0' : '' }}">
-                            <p class="text-xs font-medium text-slate-700">{{ $sName }}</p>
+                        <div class="p-2 {{ $loop->last ? '' : 'border-b border-slate-100' }} {{ $sKey === 'morning' ? 'bg-[#dcecfa]/50' : 'bg-[#e6e0f5]/50' }}">
+                            <p class="flex items-center gap-1 text-xs font-semibold text-slate-800"><i class="bx {{ $sKey === 'morning' ? 'bx-sun' : 'bx-cloud' }} text-sm text-slate-500" aria-hidden="true"></i>{{ $sName }}</p>
                             <p class="text-[11px] tabular-nums text-slate-500">{{ $sTime }}</p>
                         </div>
                         @foreach ($this->weekDays as $i => $d)
@@ -178,10 +220,10 @@
                                 $items = $cell['items'];
                                 $side = $loop->index >= 4 ? 'left' : 'right';
                             @endphp
-                            <div class="min-h-[132px] space-y-1.5 border-l border-slate-200 p-1.5 {{ $loop->parent->last ? '' : 'border-b' }}
-                                {{ $d['weekend'] || ! $cell['open'] ? 'bg-[repeating-linear-gradient(135deg,#fafaf9_0_6px,#f5f4f2_6px_12px)]' : '' }}">
+                            <div class="min-h-[132px] space-y-1.5 border-l border-slate-100 p-1.5 {{ $loop->parent->last ? '' : 'border-b' }}
+                                {{ $d['weekend'] || ! $cell['open'] ? 'bg-rose-50/40' : ($d['isToday'] ? 'bg-blue-50/40' : '') }}">
                                 @if (! $d['weekend'] && ! $cell['open'])
-                                    <p class="px-1 pt-1 text-[11px] text-slate-500">Session closed</p>
+                                    <p class="px-1 pt-1 text-[11px] font-medium text-rose-400">Session closed</p>
                                 @endif
                                 @foreach ($items->take(4) as $a)
                                     @php $isPop = $openId === $a->appointment_id; @endphp
@@ -218,17 +260,14 @@
                         @endforeach
                     @endforeach
                 </div>
-            </section>
+            </div>
         @else
-            {{-- Month --}}
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="{{ $monthLabel }}">
-                <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-medium text-slate-500" aria-hidden="true">
-                    @foreach (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $wd)
-                        <div class="py-2">{{ $wd }}</div>
-                    @endforeach
-                </div>
-                <div class="grid grid-cols-7">
-                    @foreach ($this->monthDays as $cell)
+            {{-- Month: the dashboard's ruled day boxes. No @continue in here (see the dashboard); each box is keyed by date. --}}
+            <div class="grid grid-cols-7 [&>*:nth-child(7n)]:border-r-0" wire:loading.class="opacity-60" wire:target="step, jumpToday">
+                @foreach ($this->monthDays as $cell)
+                    @if (! $cell['inMonth'])
+                        <span wire:key="m-{{ $cell['date'] }}" class="h-[4.5rem] border-b border-r border-slate-100 bg-slate-50/70 p-1.5 text-xs text-slate-300 sm:h-24" aria-hidden="true">{{ $cell['day'] }}</span>
+                    @else
                         @php
                             $picked = in_array($cell['date'], $hoursDates, true);
                             $label = $cell['carbon']->format('l, F j') . ': '
@@ -236,79 +275,84 @@
                                 . ($cell['pending'] ? ', ' . $cell['pending'] . ' pending' : '')
                                 . ($cell['flagged'] ? ', ' . $cell['flagged'] . ' flagged by AI' : '')
                                 . ($editingHours ? ($picked ? ', selected' : ', select to set hours') : '');
+                            $box = match (true) {
+                                $picked => 'bg-blue-50 ring-2 ring-inset ring-[#2A57B4]',
+                                $cell['closed'] => 'bg-rose-50/40',
+                                $cell['count'] > 5 => 'bg-blue-100/70 hover:bg-blue-100',
+                                $cell['count'] > 2 => 'bg-blue-50 hover:bg-blue-100/60',
+                                default => 'hover:bg-slate-50',
+                            };
                         @endphp
                         <button type="button" wire:key="m-{{ $cell['date'] }}"
                                 wire:click="{{ $editingHours ? "toggleHoursDate('{$cell['date']}')" : "openDay('{$cell['date']}')" }}"
                                 @disabled($editingHours && $cell['weekend'])
                                 @if ($editingHours) aria-pressed="{{ $picked ? 'true' : 'false' }}" @endif
+                                @if ($cell['isToday']) aria-current="date" @endif
                                 aria-label="{{ $label }}"
-                                class="group relative flex min-h-[64px] flex-col border-b border-r border-slate-100 p-1.5 text-left transition-colors sm:min-h-[112px] sm:p-2 [&:nth-child(7n)]:border-r-0 {{ $focus }}
-                                    {{ ! $cell['inMonth'] ? 'bg-slate-50/60' : ($cell['closed'] ? 'bg-[repeating-linear-gradient(135deg,#fafaf9_0_6px,#f5f4f2_6px_12px)]' : 'bg-white hover:bg-[#f0f4fb]') }}
-                                    {{ $picked ? '!bg-[#e2e9f7] ring-2 ring-inset ring-[#2A57B4]' : '' }}
-                                    {{ $editingHours && $cell['weekend'] ? 'cursor-not-allowed' : '' }}">
+                                class="relative flex h-[4.5rem] min-w-0 flex-col justify-between border-b border-r border-slate-100 p-1.5 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2A57B4] sm:h-24 {{ $box }} {{ $editingHours && $cell['weekend'] ? 'cursor-not-allowed' : '' }}">
                             <span class="flex items-start justify-between gap-1">
+                                <span @class([
+                                    'flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums',
+                                    'bg-[#2A57B4] text-white shadow-sm' => $cell['isToday'],
+                                    'text-rose-500' => ! $cell['isToday'] && $cell['closed'],
+                                    'text-slate-800' => ! $cell['isToday'] && ! $cell['closed'],
+                                ])>{{ $cell['day'] }}</span>
                                 @if ($editingHours && ! $cell['weekend'])
-                                    <span class="grid h-4 w-4 place-items-center rounded border {{ $picked ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-300 bg-white' }}" aria-hidden="true">
+                                    <span class="mt-0.5 grid h-4 w-4 place-items-center rounded border {{ $picked ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-300 bg-white' }}" aria-hidden="true">
                                         @if ($picked)<i class="bx bx-check text-xs"></i>@endif
                                     </span>
-                                @elseif ($cell['count'] && $cell['inMonth'])
-                                    <span class="hidden -space-x-1.5 sm:flex" aria-hidden="true">
-                                        @foreach ($cell['people'] as $p)
-                                            <span class="relative grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-[#e2e9f7] text-[9px] font-semibold text-[#1E4090] ring-2 ring-white">
-                                                {{ $initials($p) }}
-                                                @if ($avatar($p))
-                                                    <img src="{{ $avatar($p) }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">
-                                                @endif
-                                            </span>
-                                        @endforeach
-                                        @if ($cell['count'] > 3)
-                                            <span class="relative grid h-6 min-w-6 place-items-center rounded-full bg-slate-100 px-1 text-[9px] font-semibold text-slate-600 ring-2 ring-white">+{{ $cell['count'] - 3 }}</span>
-                                        @endif
-                                    </span>
                                 @else
-                                    <span></span>
+                                    <span class="mt-1 flex gap-0.5" aria-hidden="true">
+                                        @if ($cell['flagged'])<span class="h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span>@endif
+                                        @if ($cell['pending'])<span class="h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"></span>@endif
+                                    </span>
                                 @endif
-                                <span class="grid h-6 min-w-6 place-items-center rounded-full text-xs tabular-nums
-                                    {{ $cell['isToday'] ? 'bg-[#2A57B4] font-semibold text-white' : ($cell['inMonth'] ? 'text-slate-700' : 'text-slate-400') }}">{{ $cell['day'] }}</span>
                             </span>
-
-                            @if ($cell['inMonth'])
-                                @if ($cell['closed'])
-                                    <span class="mt-auto hidden text-[11px] text-slate-500 sm:block">Closed</span>
-                                @else
-                                    <span class="mt-auto hidden min-w-0 sm:block">
-                                        @if ($cell['count'])
-                                            <span class="block truncate text-xs font-medium text-slate-900">{{ $cell['names'] }}{{ $cell['count'] > 2 ? '…' : '' }}</span>
-                                        @endif
-                                        <span class="block text-[11px] tabular-nums text-slate-500">
-                                            {{ $cell['morning']['open'] ? $cell['morning']['left'] : '–' }} · {{ $cell['afternoon']['open'] ? $cell['afternoon']['left'] : '–' }} slots left{{ $cell['custom'] ? ' · custom' : '' }}
+                            @if ($cell['closed'])
+                                <span class="text-[10px] font-medium text-rose-400">Closed</span>
+                            @else
+                                <span class="min-w-0">
+                                    @if ($cell['count'])
+                                        <span class="mb-1 flex -space-x-1.5" aria-hidden="true" title="{{ $cell['names'] }}{{ $cell['count'] > 2 ? '…' : '' }}">
+                                            @foreach ($cell['people'] as $pi => $person)
+                                                <x-dm.avatar :user="$person" class="h-5 w-5 text-[8px] ring-2 ring-white sm:h-6 sm:w-6 sm:text-[9px] {{ $pi >= 2 ? 'max-sm:hidden' : '' }}" />
+                                            @endforeach
+                                            @if ($cell['count'] > 3)
+                                                <span class="relative hidden h-6 min-w-6 place-items-center rounded-full bg-slate-100 px-1 text-[9px] font-semibold text-slate-600 ring-2 ring-white sm:grid">+{{ $cell['count'] - 3 }}</span>
+                                            @endif
                                         </span>
-                                    </span>
-                                    <span class="mt-1 flex flex-wrap gap-1" aria-hidden="true">
-                                        @if ($cell['pending'])
-                                            <span class="rounded-full bg-amber-50 px-1.5 text-[10px] font-medium tabular-nums text-amber-800 ring-1 ring-amber-200">{{ $cell['pending'] }}<span class="hidden sm:inline"> pending</span></span>
+                                    @endif
+                                    <span class="flex min-w-0 items-center gap-1">
+                                        @if ($cell['count'])
+                                            <span class="truncate rounded bg-[#2A57B4]/10 px-1 text-[10px] font-semibold tabular-nums text-[#1E4090]">{{ $cell['count'] }}<span class="hidden md:inline"> booked</span></span>
                                         @endif
-                                        @if ($cell['flagged'])
-                                            <span class="rounded-full bg-rose-50 px-1.5 text-[10px] font-medium tabular-nums text-rose-800 ring-1 ring-rose-200">{{ $cell['flagged'] }}<span class="hidden sm:inline"> flagged</span></span>
-                                        @endif
-                                        @if ($cell['count'] && ! $cell['pending'])
-                                            <span class="h-1.5 w-1.5 rounded-full bg-[#2A57B4] sm:hidden"></span>
+                                        @if ($cell['count'] || $cell['custom'])
+                                            <span class="hidden truncate text-[10px] tabular-nums text-slate-500 xl:inline">{{ $cell['morning']['open'] ? $cell['morning']['left'] : '–' }} · {{ $cell['afternoon']['open'] ? $cell['afternoon']['left'] : '–' }} left{{ $cell['custom'] ? ' · custom' : '' }}</span>
                                         @endif
                                     </span>
-                                @endif
+                                </span>
                             @endif
                         </button>
-                    @endforeach
-                </div>
-            </section>
+                    @endif
+                @endforeach
+            </div>
         @endif
+        </x-dm.wall-calendar>
 
         <p class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-amber-50 ring-1 ring-amber-200" aria-hidden="true"></span> Pending</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-rose-50 ring-1 ring-rose-200" aria-hidden="true"></span> Flagged by AI</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-sky-50 ring-1 ring-sky-200" aria-hidden="true"></span> Approved</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-emerald-50 ring-1 ring-emerald-200" aria-hidden="true"></span> Attended</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-[repeating-linear-gradient(135deg,#fafaf9_0_2px,#d4d1cb_2px_3px)]" aria-hidden="true"></span> Closed</span>
+            @if ($calendarMode === 'month')
+                <span class="inline-flex items-center gap-1.5"><span class="rounded bg-[#2A57B4]/10 px-1 text-[10px] font-semibold text-[#1E4090]" aria-hidden="true">3</span> Booked</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span> Pending</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-rose-500" aria-hidden="true"></span> Flagged by AI</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-rose-50 ring-1 ring-rose-200" aria-hidden="true"></span> Closed</span>
+                <span class="hidden sm:inline">A deeper blue day is a busier day.</span>
+            @else
+                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-amber-50 ring-1 ring-amber-200" aria-hidden="true"></span> Pending</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-rose-50 ring-1 ring-rose-200" aria-hidden="true"></span> Flagged by AI</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-sky-50 ring-1 ring-sky-200" aria-hidden="true"></span> Approved</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-emerald-50 ring-1 ring-emerald-200" aria-hidden="true"></span> Attended</span>
+                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-rose-50/60 ring-1 ring-rose-100" aria-hidden="true"></span> Closed</span>
+            @endif
         </p>
 
         {{-- Several days picked for new hours --}}
@@ -329,56 +373,49 @@
     {{-- ===================================== DAY LIST ===================================== --}}
     @if ($viewMode === 'list')
         {{-- The day's queue, front and centre --}}
-        <section class="grid gap-4 md:grid-cols-2" aria-label="Queue for {{ $rangeLabel }}">
+        <div class="cq">
+        <section class="grid grid-cols-2 gap-2.5 cq-sm:gap-3" aria-label="Queue for {{ $rangeLabel }}">
             @foreach ($sessions as $key => [$name, $time])
-                @php $q = $this->queueBoard[$key]; @endphp
-                <div class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <h2 class="text-[15px] font-semibold text-slate-900">{{ $name }}</h2>
-                            <p class="text-xs tabular-nums text-slate-500">{{ $time }} ·
-                                {{ $q['open'] ? $q['remaining'] . ' of ' . $q['slots'] . ' slots left' : 'Closed this day' }}
-                            </p>
-                        </div>
-                        <button type="button" wire:click="skipNowServing('{{ $key }}')" @disabled(! $q['next'])
-                                class="{{ $btnPrimary }}">
-                            Call next <i class="bx bx-right-arrow-alt text-base" aria-hidden="true"></i>
-                        </button>
+                @php
+                    $q = $this->queueBoard[$key];
+                    $qTotal = $q['list']->whereIn('status', ['approved', 'attended', 'missed'])->count();
+                    $qStatus = ! $q['open'] ? 'Closed' : ($q['now_serving'] ? 'Serving #' . $q['now_serving'] : 'Not started');
+                @endphp
+                <x-dm.session-card :session="$key" :label="$name" :time="$time" :value="$q['done']" :total="$qTotal"
+                                   :status="$qStatus" :live="(bool) $q['now_serving']">
+                    <div class="mt-3 min-w-0" aria-live="polite">
+                        <p class="text-[11px] text-slate-600">Now serving</p>
+                        <p class="truncate text-sm font-semibold cq-sm:text-[15px]">{{ $q['serving']?->user?->full_name ?? 'Nobody called yet' }}</p>
+                        <p class="mt-0.5 truncate text-[11px] tabular-nums text-slate-600">
+                            Next {{ $q['next'] ? '#' . $q['next']->queue_number : '–' }} · {{ $q['waiting'] }} waiting<span class="hidden cq-sm:inline"> · {{ $q['open'] ? $q['remaining'] . ' of ' . $q['slots'] . ' slots left' : 'closed this day' }}</span>
+                        </p>
                     </div>
-                    <div class="mt-4 flex items-end gap-4">
-                        <div class="min-w-0">
-                            <p class="text-xs text-slate-500">Now serving</p>
-                            <p class="text-4xl font-semibold leading-none tracking-[-0.02em] tabular-nums text-[#2A57B4]" aria-live="polite">
-                                {{ $q['now_serving'] ? '#' . $q['now_serving'] : '–' }}
-                            </p>
-                            <p class="mt-1 truncate text-sm text-slate-700">{{ $q['serving']?->user?->full_name ?? 'Nobody called yet' }}</p>
-                        </div>
-                        <dl class="ml-auto grid grid-cols-2 gap-x-4 text-right text-xs">
-                            <dt class="text-slate-500">Waiting</dt><dd class="font-semibold tabular-nums text-slate-900">{{ $q['waiting'] }}</dd>
-                            <dt class="text-slate-500">Served</dt><dd class="font-semibold tabular-nums text-slate-900">{{ $q['done'] }}</dd>
-                            <dt class="text-slate-500">Next</dt><dd class="font-semibold tabular-nums text-slate-900">{{ $q['next'] ? '#' . $q['next']->queue_number : '–' }}</dd>
-                        </dl>
-                    </div>
+                    <button type="button" wire:click="skipNowServing('{{ $key }}')" @disabled(! $q['next'])
+                            class="{{ $btnPrimary }} mt-3 w-full !px-3 cq-sm:w-auto cq-sm:self-start">
+                        <span class="cq-sm:hidden">Next</span><span class="hidden cq-sm:inline">Call next</span>
+                        <i class="bx bx-right-arrow-alt text-base" aria-hidden="true"></i>
+                    </button>
                     @if ($q['list']->isNotEmpty())
-                        <ul class="mt-4 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3" aria-label="{{ $name }} queue numbers">
+                        <ul class="mt-3 flex flex-wrap gap-1 border-t border-slate-900/10 pt-2.5 cq-sm:gap-1.5" aria-label="{{ $name }} queue numbers">
                             @foreach ($q['list'] as $item)
                                 @php
                                     $style = match (true) {
                                         $item->status === 'attended' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
-                                        in_array($item->status, ['retracted', 'missed'], true) => 'border-slate-200 bg-slate-100 text-slate-500 line-through',
+                                        in_array($item->status, ['retracted', 'missed'], true) => 'border-transparent bg-slate-900/5 text-slate-500 line-through',
                                         $item->queue_number === $q['now_serving'] => 'border-[#2A57B4] bg-[#2A57B4] text-white',
-                                        default => 'border-slate-200 bg-white text-slate-700 hover:border-[#2A57B4]',
+                                        default => 'border-transparent bg-white/75 text-slate-800 hover:border-[#2A57B4] hover:bg-white',
                                     };
+                                    $chip = 'grid h-7 min-w-7 place-items-center rounded-md border px-1 text-[11px] font-medium tabular-nums cq-sm:h-8 cq-sm:min-w-8 cq-sm:rounded-lg cq-sm:text-xs [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:min-w-10';
                                 @endphp
                                 <li>
                                     @if ($item->status === 'approved')
                                         <button type="button" wire:click="setNowServing('{{ $key }}', {{ $item->queue_number }})"
-                                                class="grid h-8 min-w-8 place-items-center rounded-lg border px-1.5 text-xs font-medium tabular-nums [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:min-w-11 {{ $style }} {{ $focus }}"
+                                                class="{{ $chip }} {{ $style }} {{ $focus }}"
                                                 aria-label="Call number {{ $item->queue_number }}, {{ $item->user?->full_name }}" title="{{ $item->user?->full_name }}">
                                             {{ $item->queue_number }}
                                         </button>
                                     @else
-                                        <span class="grid h-8 min-w-8 place-items-center rounded-lg border px-1.5 text-xs font-medium tabular-nums {{ $style }}" title="{{ $item->user?->full_name }} ({{ $item->status }})">
+                                        <span class="{{ $chip }} {{ $style }}" title="{{ $item->user?->full_name }} ({{ $item->status }})">
                                             {{ $item->queue_number }}<span class="sr-only">, {{ $item->status }}</span>
                                         </span>
                                     @endif
@@ -386,9 +423,10 @@
                             @endforeach
                         </ul>
                     @endif
-                </div>
+                </x-dm.session-card>
             @endforeach
         </section>
+        </div>
 
         {{-- Two phases: review the requests, then serve the approved ones --}}
         <nav aria-label="Phases">
@@ -459,24 +497,6 @@
 
     {{-- ===================================== HISTORY ===================================== --}}
     @if ($viewMode === 'history')
-        <div class="flex flex-wrap items-end gap-3">
-            <label class="block">
-                <span class="block text-sm font-medium text-slate-700">Date</span>
-                <input type="date" wire:model.live="filterDate" class="mt-1 h-9 w-44 py-0 [@media(pointer:coarse)]:h-11 {{ $field }}">
-            </label>
-            <label class="block">
-                <span class="block text-sm font-medium text-slate-700">Status</span>
-                <select wire:model.live="filterStatus" class="mt-1 h-9 w-44 py-0 [@media(pointer:coarse)]:h-11 {{ $field }}">
-                    <option value="">All statuses</option>
-                    @foreach (['pending' => 'Pending', 'approved' => 'Approved', 'attended' => 'Attended', 'missed' => 'Missed', 'rejected' => 'Rejected', 'retracted' => 'Withdrawn'] as $v => $l)
-                        <option value="{{ $v }}">{{ $l }}</option>
-                    @endforeach
-                </select>
-            </label>
-            @if ($filterDate || $filterStatus || $search)
-                <button type="button" wire:click="clearHistoryFilters" class="{{ $btnBase }} text-[#2A57B4] hover:bg-[#f0f4fb]">Clear filters</button>
-            @endif
-        </div>
 
         @php $hist = $this->historyRows; @endphp
         <div class="cq space-y-3">

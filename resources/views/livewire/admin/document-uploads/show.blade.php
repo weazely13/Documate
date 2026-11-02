@@ -1,77 +1,65 @@
 @php
     $docStatus = $workspace->documentVerificationStatus();
-    $statusBadge = match ($docStatus) {
-        'Verified' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-        'Reviewing' => 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
-        'Needs Re-upload' => 'bg-rose-50 text-rose-700 ring-rose-600/20',
-        default => 'bg-amber-50 text-amber-700 ring-amber-600/20',
+    [$statusText, $statusTag] = match ($docStatus) {
+        'Verified' => ['Verified', 'bg-emerald-600 text-white'],
+        'Reviewing' => ['Being checked', 'bg-[#2A57B4] text-white'],
+        'Needs Re-upload' => ['Sent back', 'bg-rose-600 text-white'],
+        'Needs Upload' => ['Needs upload', 'bg-amber-500 text-white'],
+        default => ['Awaiting visit', 'bg-slate-500 text-white'],
     };
+    // Where the paper form is: 0 visit, 1 upload, 2 AI check, 3 verified
+    $stage = match ($docStatus) {
+        'Verified' => 4,
+        'Reviewing' => 2,
+        'Needs Upload', 'Needs Re-upload' => 1,
+        default => 0,
+    };
+    $focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]/40 focus-visible:ring-offset-1';
 
     $card = 'rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5';
-    $homeUrl = \Illuminate\Support\Facades\Route::has('admin.dashboard') ? route('admin.dashboard') : url('/');
     $studentName = ($workspace->user?->full_name ?? '');
     $templateName = $workspace->template?->name ?? 'Document Workspace';
 @endphp
 
-<div x-data="{ confirmReupload: false }" class="mx-auto max-w-6xl space-y-5" wire:poll.2s="pollStatus">
-
-    <x-admin.page-header
-        :title="$templateName"
-        :description="trim($studentName . ' · ' . ($workspace->user?->student_number ?: 'No student number'), ' ·')"
-        :crumbs="['Admin' => $homeUrl, 'Document Uploads' => route('admin.document-uploads.index'), $templateName => null]">
-        <x-slot:actions>
-            <span class="inline-flex items-center rounded-full {{ $statusBadge }} px-2.5 py-1 text-xs font-semibold ring-1 ring-inset">{{ $docStatus }}</span>
-            <a href="{{ route('admin.transactions.show', $workspace->workspace_id) }}" wire:navigate
-               class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                Full transaction record
-            </a>
-        </x-slot:actions>
-    </x-admin.page-header>
+<div x-data="{ confirmReupload: false }" class="mx-auto max-w-7xl pb-16" wire:poll.2s="pollStatus">
+    {{-- Title bar: back, the form and where it stands --}}
+    <div class="mb-5 flex flex-wrap items-center gap-3">
+        <a href="{{ route('admin.document-uploads.index') }}" wire:navigate aria-label="Back to uploads" title="Back to uploads"
+           class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 {{ $focus }}">
+            <i class="bx bx-arrow-back text-lg" aria-hidden="true"></i>
+        </a>
+        <div class="min-w-0 flex-1">
+            <h1 class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xl font-semibold tracking-[-0.015em] text-slate-900 sm:text-2xl">
+                <span class="min-w-0">{{ $templateName }}</span>
+                <span class="rounded-md px-1.5 py-0.5 text-xs font-medium {{ $statusTag }}">{{ $statusText }}</span>
+            </h1>
+            <p class="mt-0.5 truncate text-sm text-slate-500">{{ $studentName ?: 'Unknown student' }} · {{ $workspace->user?->student_number ?: 'No student number' }} · paper form</p>
+        </div>
+        <a href="{{ route('admin.transactions.show', ['workspace' => $workspace->workspace_id, 'back' => 'upload']) }}" wire:navigate
+           class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 [@media(pointer:coarse)]:h-11 {{ $focus }}">
+            <i class="bx bx-file text-base" aria-hidden="true"></i> Full record
+        </a>
+    </div>
 
     {{-- Engine Partials --}}
     @include('livewire.student.partials.preview-engine')
 
-    <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-
-        {{-- Primary column --}}
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        {{-- Left: the check, step by step --}}
         <div class="min-w-0 space-y-5">
-
-            {{-- Document preview --}}
-            <div class="rounded-xl border border-slate-200 bg-slate-900/5 p-2 shadow-sm sm:p-4"
-                x-data="documentPreviewEngine(@js($this->fields), @js($workspace->field_values ?? []))">
-
-                {{-- Mobile: fit to screen with pinch zoom --}}
-                <div
-                    x-data="pinchZoomPreview({ contentWidth: {{ $this->canvas['width'] ?? 800 }}, contentHeight: {{ $this->canvas['height'] ?? 1130 }} })"
-                    x-ref="zoomFrame"
-                    @pointerdown="onPointerDown($event)"
-                    @pointermove="onPointerMove($event)"
-                    @pointerup="onPointerUp($event)"
-                    @pointercancel="onPointerUp($event)"
-                    class="sm:hidden relative touch-none overflow-hidden rounded-lg border border-slate-200 bg-white"
-                    style="height: 65vh; height: 65dvh;">
-                    <div id="document-preview-canvas-mobile"
-                        class="absolute left-0 top-0 origin-top-left"
-                        :style="`transform: translate(${translateX}px, ${translateY}px) scale(${scale}); width: {{ $this->canvas['width'] ?? 800 }}px; height: {{ $this->canvas['height'] ?? 1130 }}px;`">
-                        @include('livewire.student.partials.preview-canvas', ['workspace' => $workspace, 'fields' => $this->fields])
-                    </div>
-                    <div class="absolute bottom-2 right-2 flex items-center gap-1 rounded-lg border border-slate-200 bg-white/95 p-1 shadow-sm">
-                        <button type="button" @click="zoomBy(-0.25)" aria-label="Zoom out" class="flex h-9 w-9 items-center justify-center rounded-md text-slate-600"><i class='bx bx-minus'></i></button>
-                        <span class="px-1 text-[11px] font-semibold text-slate-600" x-text="Math.round(scale*100)+'%'"></span>
-                        <button type="button" @click="zoomBy(0.25)" aria-label="Zoom in" class="flex h-9 w-9 items-center justify-center rounded-md text-slate-600"><i class='bx bx-plus'></i></button>
-                        <button type="button" @click="reset()" class="rounded-md px-2 py-2 text-[11px] font-medium text-slate-500">Reset</button>
-                    </div>
-                </div>
-
-                {{-- Desktop: horizontal-scroll canvas --}}
-                <div class="hidden -mx-2 overflow-x-auto sm:mx-0 sm:block">
-                    <div id="document-preview-canvas"
-                        class="relative mx-auto overflow-visible rounded-lg bg-white shadow-sm ring-1 ring-slate-200"
-                        style="width: {{ $this->canvas['width'] ?? 800 }}px; height: {{ $this->canvas['height'] ?? 1130 }}px; max-width: none;">
-                        @include('livewire.student.partials.preview-canvas', ['workspace' => $workspace, 'fields' => $this->fields])
-                    </div>
-                </div>
-            </div>
+            <ol class="grid grid-cols-4 gap-2" aria-label="Progress">
+                @foreach (['Visited the office', 'Signed copy uploaded', 'AI check', 'Verified'] as $i => $stepLabel)
+                    @php
+                        $done = $i < $stage;
+                        $now = $i === $stage && $stage < 4;
+                        $bar = $done ? 'bg-emerald-500' : ($now ? ($docStatus === 'Needs Re-upload' ? 'bg-rose-500' : 'bg-[#2A57B4]') : 'bg-slate-200');
+                    @endphp
+                    <li class="min-w-0" @if ($now) aria-current="step" @endif>
+                        <div class="h-1.5 rounded-full {{ $bar }}" aria-hidden="true"></div>
+                        <p class="mt-1.5 text-[11px] leading-tight sm:text-xs {{ $now ? 'font-semibold text-slate-900' : ($done ? 'text-slate-700' : 'text-slate-500') }}">{{ $stepLabel }}</p>
+                    </li>
+                @endforeach
+            </ol>
 
             {{-- Upload / verification status --}}
             <div class="{{ $card }}">
@@ -135,6 +123,9 @@
                                         ?? document.getElementById('document-preview-canvas');
                                     const visibleEl = (el && el.offsetParent !== null) ? el
                                         : document.getElementById('document-preview-canvas');
+                                    const wrap = document.getElementById('doc-scale-wrap');
+                                    const shrunk = wrap ? wrap.style.transform : '';
+                                    if (wrap) wrap.style.transform = 'none';
                                     try {
                                         if (el && window.html2canvas) {
                                             const canvas = await html2canvas(visibleEl, { backgroundColor: '#ffffff', scale: 1, useCORS: true });
@@ -144,6 +135,7 @@
                                     } catch (e) {
                                         console.warn('Could not capture preview frame', e);
                                     } finally {
+                                        if (wrap) wrap.style.transform = shrunk;
                                         this.capturing = false;
                                         $wire.uploadSupportingFile();
                                     }
@@ -342,13 +334,16 @@
                     @endif
                 </div>
             @endif
-        </div>
-
-        {{-- Transaction info --}}
-        <aside class="h-fit space-y-4 lg:sticky lg:top-6">
             <div class="{{ $card }}">
-                <h3 class="text-sm font-semibold text-slate-900">Transaction info</h3>
-                <dl class="mt-4 space-y-3 text-sm">
+                <h3 class="text-sm font-semibold text-slate-900">Details</h3>
+                <dl class="mt-3 space-y-3 text-sm">
+                    <div>
+                        <dt class="text-xs font-medium text-slate-400">Student</dt>
+                        <dd class="mt-0.5 flex items-center gap-2 font-semibold text-slate-700">
+                            <x-dm.avatar :user="$workspace->user" :name="$studentName" class="h-6 w-6 text-[9px]" />
+                            {{ $studentName ?: 'Unknown student' }} <span class="font-normal text-slate-500">· {{ $workspace->user?->student_number ?: 'No student number' }}</span>
+                        </dd>
+                    </div>
                     <div>
                         <dt class="text-xs font-medium text-slate-400">Created</dt>
                         <dd class="mt-0.5 font-semibold text-slate-700">{{ $workspace->created_at->format('F j, Y g:i A') }}</dd>
@@ -367,7 +362,59 @@
                     @endif
                 </dl>
             </div>
-        </aside>
+        </div>
+
+        {{-- Right: the form as the student filled it in --}}
+        <div class="min-w-0 lg:sticky lg:top-4 lg:self-start">
+            <div class="mb-2 flex items-center justify-between gap-2">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">The form as the student filled it in</h2>
+                    <p class="text-xs text-slate-500">The uploaded photo is checked against this page.</p>
+                </div>
+            </div>
+            {{-- Document preview --}}
+            <div class="rounded-xl bg-slate-200/70 p-2 sm:p-3"
+                x-data="documentPreviewEngine(@js($this->fields), @js($workspace->field_values ?? []))">
+
+                {{-- Mobile: fit to screen with pinch zoom --}}
+                <div
+                    x-data="pinchZoomPreview({ contentWidth: {{ $this->canvas['width'] ?? 800 }}, contentHeight: {{ $this->canvas['height'] ?? 1130 }} })"
+                    x-ref="zoomFrame"
+                    @pointerdown="onPointerDown($event)"
+                    @pointermove="onPointerMove($event)"
+                    @pointerup="onPointerUp($event)"
+                    @pointercancel="onPointerUp($event)"
+                    class="sm:hidden relative touch-none overflow-hidden rounded-lg border border-slate-200 bg-white"
+                    style="height: 65vh; height: 65dvh;">
+                    <div id="document-preview-canvas-mobile"
+                        class="absolute left-0 top-0 origin-top-left"
+                        :style="`transform: translate(${translateX}px, ${translateY}px) scale(${scale}); width: {{ $this->canvas['width'] ?? 800 }}px; height: {{ $this->canvas['height'] ?? 1130 }}px;`">
+                        @include('livewire.student.partials.preview-canvas', ['workspace' => $workspace, 'fields' => $this->fields])
+                    </div>
+                    <div class="absolute bottom-2 right-2 flex items-center gap-1 rounded-lg border border-slate-200 bg-white/95 p-1 shadow-sm">
+                        <button type="button" @click="zoomBy(-0.25)" aria-label="Zoom out" class="flex h-9 w-9 items-center justify-center rounded-md text-slate-600"><i class='bx bx-minus'></i></button>
+                        <span class="px-1 text-[11px] font-semibold text-slate-600" x-text="Math.round(scale*100)+'%'"></span>
+                        <button type="button" @click="zoomBy(0.25)" aria-label="Zoom in" class="flex h-9 w-9 items-center justify-center rounded-md text-slate-600"><i class='bx bx-plus'></i></button>
+                        <button type="button" @click="reset()" class="rounded-md px-2 py-2 text-[11px] font-medium text-slate-500">Reset</button>
+                    </div>
+                </div>
+
+                {{-- Desktop: the page shrunk to the column (un-shrunk for a moment when the upload is captured) --}}
+                <div class="hidden overflow-hidden sm:block"
+                     x-data="{ s: 1, w: {{ $this->canvas['width'] ?? 800 }}, h: {{ $this->canvas['height'] ?? 1130 }} }"
+                     x-init="const fit = () => s = Math.min(1, $el.clientWidth / w); fit(); new ResizeObserver(fit).observe($el)"
+                     :style="`height:${h * s}px`">
+                    <div id="doc-scale-wrap" class="origin-top-left" :style="`transform:scale(${s});width:${w}px`">
+                    <div id="document-preview-canvas"
+                        class="relative mx-auto overflow-visible rounded-lg bg-white shadow-sm ring-1 ring-slate-200"
+                        style="width: {{ $this->canvas['width'] ?? 800 }}px; height: {{ $this->canvas['height'] ?? 1130 }}px; max-width: none;">
+                        @include('livewire.student.partials.preview-canvas', ['workspace' => $workspace, 'fields' => $this->fields])
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     {{-- Replace-photo confirmation --}}

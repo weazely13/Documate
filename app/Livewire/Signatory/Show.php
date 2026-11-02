@@ -19,6 +19,7 @@ use App\Models\SigningRequest;
 use App\Models\TransactionAuditLog;
 use App\Models\CounselorAvailability;
 use App\Services\Workflow\ExternalSigning;
+use App\Workflow\AuditLabels;
 
 /** One signing task. Approving re-checks the signer's password; rejecting needs a reason. */
 class Show extends Component
@@ -270,6 +271,13 @@ class Show extends Component
                     ->orderBy('available_date')->orderBy('start_time')->limit(6)->get()
                 : collect(),
             'kind' => $approval->signer_user_id ? ExternalSigning::kindFor($approval) : null,
+            // Checkpoints: every recorded step of this transaction, newest first (same feed as Issued and Oversight).
+            'audit' => $ws->auditLogs()->with('actor')->get()->map(fn ($log) => [
+                'at' => $log->created_at,
+                'text' => AuditLabels::label($log->action),
+                'who' => $log->actor ? $log->actor->full_name : ($log->meta['signer'] ?? 'System'),
+                'note' => $log->meta['message'] ?? $log->meta['reason'] ?? null,
+            ])->reverse()->values(),
         ])->layout('layouts.app', ['title' => 'Sign document']);
     }
         public function openSend(int $approvalId): void

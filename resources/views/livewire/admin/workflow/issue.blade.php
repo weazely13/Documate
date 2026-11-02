@@ -5,8 +5,23 @@
     $document = $this->document;
     $student = $this->selectedStudent;
     $staffIssued = $document->issuerIsStaff();
-    $backUrl = $staffIssued ? route('signatory.inbox') : route('admin.workflow.index');
-    $backLabel = $staffIssued ? 'Signing inbox' : 'Workflow review';
+    $me = auth()->user();
+    [$backUrl, $backLabel] = match (true) {
+        ! $staffIssued => [route('admin.workflow.index'), 'Workflow review'],
+        $me->isSignatoryAccount() => [route('signatory.home'), 'Home'],
+        default => [route('signatory.inbox'), 'Signing inbox'],
+    };
+
+    // Who the report is issued under: the issuing role when the document names one, else the person's first role.
+    $issuerRole = $staffIssued
+        ? ($me->signatoryAssignments()->current()->with('role')->get()
+            ->sortByDesc(fn ($a) => ($a->role->key ?? null) === $document->issuedByRole())
+            ->first()?->role?->label ?? 'Signatory')
+        : 'Office of the Vice President for Student Development';
+    $kindWord = $staffIssued ? 'report' : 'document';
+    // Formal parts, numbered in the order they appear (some are only there for some documents).
+    $partNo = 0;
+    $part = function () use (&$partNo) { return ['I', 'II', 'III', 'IV', 'V', 'VI'][$partNo++] ?? (string) $partNo; };
 
     // Same field styling as the student transaction form (DESIGN.md: 8px inputs, brand focus ring).
     $box = 'relative mt-1 flex min-w-0 items-center gap-2.5 rounded-lg border border-slate-300 bg-white px-3.5 shadow-sm transition focus-within:border-[#2A57B4] focus-within:ring-[3px] focus-within:ring-[#2A57B4]/20';
@@ -64,35 +79,27 @@
             }
          }"
          @message.window="measure($event)" @resize.window="fit()">
-        <nav aria-label="Breadcrumb">
-            <ol class="flex flex-wrap items-center gap-1 text-sm text-slate-500">
-                <li><a href="{{ $backUrl }}" wire:navigate class="rounded font-medium hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">{{ $backLabel }}</a></li>
-                <li aria-hidden="true"><i class="bx bx-chevron-right text-base text-slate-400"></i></li>
-                <li class="font-medium text-slate-700" aria-current="page">{{ $staffIssued ? 'Issue a report' : 'Issue a document' }}</li>
-            </ol>
-        </nav>
-
-        <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2">
-            <div class="min-w-0 flex-1">
-                <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $staffIssued ? 'Issue a report to a student' : 'Issue a document to a student' }}</h1>
-                <p class="mt-0.5 text-sm text-slate-500">
-                    {{ $document->issueNote() ?? ($staffIssued
-                        ? 'The student is notified right away and can read it from their dashboard.'
-                        : 'You fill it in, it goes straight to the signatory, and the student is notified. Nothing is sent to the student for editing.') }}
-                </p>
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
+        <div class="flex items-center justify-end gap-3">
+                <div class="flex shrink-0 items-center gap-2">
                     <button type="button" @click="$dispatch('open-intro')"
                             class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                             aria-label="Before you start: what to check before issuing" title="Before you start">
                         <i class="bx bx-info-circle text-xl" aria-hidden="true"></i>
                     </button>
-            <button type="button" @click="show()"
-                    class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 xl:hidden [@media(pointer:coarse)]:min-h-11">
-                <i class="bx bx-show text-base text-slate-500" aria-hidden="true"></i> Preview document
-            </button>
-            </div>
+                    <button type="button" @click="show()"
+                            class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 xl:hidden [@media(pointer:coarse)]:h-11"
+                            aria-label="Preview document">
+                        <i class="bx bx-show text-base text-slate-500" aria-hidden="true"></i><span class="hidden sm:inline">Preview</span>
+                    </button>
+                </div>
         </div>
+        <h1 class="sr-only">{{ $staffIssued ? 'Issue a report' : 'Issue a document' }}: {{ $document->name() }}</h1>
+
+        <p class="mt-2 text-sm leading-relaxed text-slate-600">
+            {{ $document->issueNote() ?? ($staffIssued
+                ? 'The student is notified right away and can read it from their dashboard.'
+                : 'You fill it in, it goes straight to the signatory, and the student is notified. Nothing is sent to the student for editing.') }}
+        </p>
 
         <template x-teleport="body">
             <div x-show="open" x-cloak x-transition.opacity
@@ -157,28 +164,9 @@
         </div>
     @endif
 
-    <form wire:submit="issue" novalidate wire:confirm="Issue this document and send it for signing?"
-          class="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
-          x-data @input="$dispatch('doc-changed')" @change="$dispatch('doc-changed')" aria-labelledby="issue-form-title">
-        <h2 id="issue-form-title" class="sr-only">Fill in the report</h2>
-
-        {{-- Before you start: a popup that opens with the page (reopen it from the info button). --}}
-        @include('livewire.workflow._intro-modal', [
-            'storageKey' => 'issue.' . ($staffIssued ? 'staff' : 'office'),
-            'lead' => $staffIssued ? 'Issuing a report to a student.' : 'Issuing a document to a student.',
-            'items' => array_values(array_filter([
-                'Fields marked * are required. Greyed-out fields come from the student\'s account and cannot be typed over.',
-                $document->issuedToSelf() ? null : 'Search for the student by name, email or student number, then pick them from the list.',
-                ($document->issuedBySignatory() || $staffIssued) ? 'Your profile e-signature is applied for you. Add it in your profile first if it is not set.' : null,
-                'The preview shows the printed form as you type. Nothing is saved until you issue it.',
-                'Issuing asks you to confirm the details are accurate and that you are authorized to issue it.',
-            ])),
-            'startLabel' => 'Start the report',
-        ])
-
-        {{-- 1. Document --}}
-        <section class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-doc">
-            <h3 id="sec-doc" class="text-sm font-semibold text-slate-900">Document</h3>
+    {{-- 1. Document --}}
+        <section class="rounded-xl border border-slate-300 bg-white px-4 py-4 shadow-sm sm:px-5" aria-labelledby="sec-doc">
+            <h3 id="sec-doc" class="flex items-baseline gap-2 text-sm font-semibold text-slate-900"><span class="w-7 shrink-0 tabular-nums text-slate-500">{{ $part() }}.</span>{{ $staffIssued ? 'Report' : 'Document' }}</h3>
             @if (count($documents) > 1)
                 <label for="f-type" class="{{ $label }} mt-3">Which document are you issuing? <span class="text-rose-600" aria-hidden="true">*</span></label>
                 <div class="{{ $box }}">
@@ -196,11 +184,31 @@
             @endif
         </section>
 
+    <form wire:submit="issue" novalidate wire:confirm="Certify and issue this {{ $kindWord }}? It is recorded under your name and sent for signing."
+          class="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm"
+          x-data @input="$dispatch('doc-changed')" @change="$dispatch('doc-changed')" aria-labelledby="issue-form-title">
+        <h2 id="issue-form-title" class="sr-only">Fill in the report</h2>
+
+        {{-- Before you start: a popup that opens with the page (reopen it from the info button). --}}
+        @include('livewire.workflow._intro-modal', [
+            'storageKey' => 'issue.' . ($staffIssued ? 'staff' : 'office'),
+            'lead' => $staffIssued ? 'Issuing a report to a student.' : 'Issuing a document to a student.',
+            'items' => array_values(array_filter([
+                'Fields marked * are required. Greyed-out fields come from the student\'s account and cannot be typed over.',
+                $document->issuedToSelf() ? null : 'Search for the student by name, email or student number, then pick them from the list.',
+                ($document->issuedBySignatory() || $staffIssued) ? 'Your profile e-signature is applied for you. Add it in your profile first if it is not set.' : null,
+                'The preview shows the printed form as you type. Nothing is saved until you issue it.',
+                'Issuing asks you to confirm the details are accurate and that you are authorized to issue it.',
+            ])),
+            'startLabel' => 'Start the report',
+        ])
+
+
         {{-- 2. Student --}}
         @unless ($document->issuedToSelf())
             <section class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-student">
-                <h3 id="sec-student" class="text-sm font-semibold text-slate-900">Student information</h3>
-                <p class="{{ $help }}">Pick the student. Their details are copied from their account and printed on the form.</p>
+                <h3 id="sec-student" class="flex items-baseline gap-2 text-sm font-semibold text-slate-900"><span class="w-7 shrink-0 tabular-nums text-slate-500">{{ $part() }}.</span>Student concerned</h3>
+                <p class="{{ $help }} pl-9">Pick the student. Their details are copied from their account and printed on the form.</p>
 
                 <div class="relative mt-3" x-data @keydown.escape="$wire.set('studentSearch', '')">
                     <label for="f-student" class="{{ $label }}">Student <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
@@ -268,8 +276,8 @@
         {{-- 3. Source application (endorsement) --}}
         @if ($document->sourceDocumentType())
             <section class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-source">
-                <h3 id="sec-source" class="text-sm font-semibold text-slate-900">Approved application <span class="text-rose-600" aria-hidden="true">*</span></h3>
-                <p class="{{ $help }}">The schedule on the endorsement is copied from the application you pick.</p>
+                <h3 id="sec-source" class="flex items-baseline gap-2 text-sm font-semibold text-slate-900"><span class="w-7 shrink-0 tabular-nums text-slate-500">{{ $part() }}.</span>Approved application <span class="text-rose-600" aria-hidden="true">*</span></h3>
+                <p class="{{ $help }} pl-9">The schedule on the endorsement is copied from the application you pick.</p>
 
                 @if (! $student)
                     <p class="mt-3 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">Pick a student first.</p>
@@ -311,8 +319,8 @@
 
         {{-- 4. Report details --}}
         <section class="px-4 py-5 sm:px-5" aria-labelledby="sec-details">
-            <h3 id="sec-details" class="text-sm font-semibold text-slate-900">Report details</h3>
-            <p class="{{ $help }}">Answer each item as it should appear on the printed form.</p>
+            <h3 id="sec-details" class="flex items-baseline gap-2 text-sm font-semibold text-slate-900"><span class="w-7 shrink-0 tabular-nums text-slate-500">{{ $part() }}.</span>{{ $staffIssued ? 'Particulars of the report' : 'Details' }}</h3>
+            <p class="{{ $help }} pl-9">State each item exactly as it should appear on the printed {{ $kindWord }}.</p>
 
             @if ($hasPaper)
                 <div class="mt-4" wire:key="paper-{{ $this->type }}">
@@ -422,23 +430,31 @@
 
         {{-- Confirmation and actions --}}
         <div class="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5">
-            <label for="f-confirmed" class="flex cursor-pointer items-start gap-3 rounded-xl border {{ $errors->has('confirmed') ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-slate-50/70' }} px-3.5 py-3 text-sm text-slate-700">
-                <input id="f-confirmed" type="checkbox" wire:model="confirmed" class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]"
-                       aria-required="true" aria-describedby="confirmed-text @error('confirmed') e-confirmed @enderror" @error('confirmed') aria-invalid="true" @enderror>
-                <span id="confirmed-text">
-                    <span class="font-semibold text-slate-900">I confirm.</span>
-                    The details are accurate, I am authorized to issue this {{ $staffIssued ? 'report' : 'document' }}, and the student's personal data is used only for this purpose under the Data Privacy Act of 2012.
-                </span>
-            </label>
+            <div class="overflow-hidden rounded-lg border {{ $errors->has('confirmed') ? 'border-rose-300' : 'border-slate-300' }}">
+                <label for="f-confirmed" class="flex cursor-pointer items-start gap-3 px-3.5 py-3 text-sm text-slate-700 {{ $errors->has('confirmed') ? 'bg-rose-50' : 'bg-white' }}">
+                    <input id="f-confirmed" type="checkbox" wire:model="confirmed" class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]"
+                           aria-required="true" aria-describedby="confirmed-text @error('confirmed') e-confirmed @enderror" @error('confirmed') aria-invalid="true" @enderror>
+                    <span id="confirmed-text">
+                        I certify that the details in this {{ $kindWord }} are true and accurate, that I am authorized to issue it, and that the student's personal data is used only for this purpose under the Data Privacy Act of 2012.
+                    </span>
+                </label>
+            </div>
             @error('confirmed') <p id="e-confirmed" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
-
             <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                 <a href="{{ $backUrl }}" wire:navigate
                    class="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:min-h-9 sm:w-auto sm:py-1.5 [@media(pointer:coarse)]:min-h-11">Cancel and go back</a>
+                @if ($staffIssued)
+                    <button type="button" wire:click="saveDraft" wire:loading.attr="disabled" wire:target="saveDraft"
+                            class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9 sm:w-auto sm:py-1.5 [@media(pointer:coarse)]:min-h-11">
+                        <i class="bx bx-save text-base text-slate-500" aria-hidden="true"></i>
+                        <span wire:loading.remove wire:target="saveDraft">{{ $draftId ? 'Update draft' : 'Save draft' }}</span>
+                        <span wire:loading wire:target="saveDraft">Saving…</span>
+                    </button>
+                @endif
                 <button type="submit" wire:loading.attr="disabled" wire:target="issue"
                         class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-4 py-2 text-center text-sm font-medium leading-snug text-white shadow-sm hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9 sm:w-auto sm:py-1.5 [@media(pointer:coarse)]:min-h-11">
-                    <i class="bx bx-send text-base" aria-hidden="true"></i>
-                    <span wire:loading.remove wire:target="issue">Issue and send for signing</span>
+                    <i class="bx bx-check-shield text-base" aria-hidden="true"></i>
+                    <span wire:loading.remove wire:target="issue">Certify and issue</span>
                     <span wire:loading wire:target="issue">Issuing…</span>
                 </button>
             </div>
@@ -447,7 +463,7 @@
 </div>{{-- left column --}}
 
     {{-- Wide screens: the document beside the form, refreshed from the live answers (nothing is saved). --}}
-    <aside class="hidden rounded-2xl border border-slate-200/70 bg-white p-4 xl:sticky xl:top-0 xl:block xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto"
+    <aside class="hidden rounded-xl border border-slate-300 bg-white p-4 xl:sticky xl:top-0 xl:block xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto"
            aria-label="Document preview"
            x-data="{
                 html: '', busy: false, w: 842, h: 1171, scale: 1, seq: 0,

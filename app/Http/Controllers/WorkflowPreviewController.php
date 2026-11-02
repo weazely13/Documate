@@ -41,7 +41,8 @@ class WorkflowPreviewController extends Controller
 
     private function guard(StudentDocumentWorkspace $ws): void
     {
-        abort_unless($ws->usesWorkflow() && DocumentRegistry::has($ws->document_type), 404);
+        // Without its form's code, a transaction can still be shown from its saved snapshot.
+        abort_unless($ws->usesWorkflow() && (DocumentRegistry::has($ws->document_type) || \App\Services\Workflow\TransactionSnapshot::hasAny($ws)), 404);
         abort_if($ws->workflow_status === TransactionStatus::Draft, 404);
     }
     /** A student's own transaction (or one that lists them), e.g. the document cards when booking a visit. */
@@ -87,9 +88,31 @@ class WorkflowPreviewController extends Controller
             ->header('X-Robots-Tag', 'noindex');
     }
 
+    /** A blank copy of a report the signed-in person may issue (Home > Explore cards). Same cache as blank(). */
+    public function issuable(string $type)
+    {
+        $document = DocumentRegistry::find($type);
+        abort_unless($document && $document->canBeIssuedBy(auth()->user()), 404);
+
+        $html = \Illuminate\Support\Facades\Cache::remember("blank-preview:{$type}", now()->addMinutes(10), fn () => app(DocumentPdf::class)->previewHtml(
+            (new StudentDocumentWorkspace())->forceFill(['document_type' => $type, 'field_values' => []])
+        ));
+
+        return response($html)
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Cache-Control', 'private, max-age=300')
+            ->header('X-Frame-Options', 'SAMEORIGIN')
+            ->header('X-Robots-Tag', 'noindex');
+    }
+
     private function html(StudentDocumentWorkspace $ws)
     {
-        return response(app(DocumentPdf::class)->previewHtml($ws->load('user')))
+        // A completed transaction shows the page saved when it was finished; one whose form's code is gone,
+        // its last saved page. Everything else is drawn live.
+        $saved = \App\Services\Workflow\TransactionSnapshot::savedPage($ws);
+        abort_if($saved === null && ! DocumentRegistry::has($ws->document_type), 404);
+
+        return response($saved ?? app(DocumentPdf::class)->previewHtml($ws->load('user')))
             ->header('Content-Type', 'text/html; charset=UTF-8')
             ->header('Cache-Control', 'private, no-store')
             ->header('X-Frame-Options', 'SAMEORIGIN')

@@ -37,7 +37,7 @@
     $sessionShort = ['morning' => 'Morning · 8–12', 'afternoon' => 'Afternoon · 1–5'];
 @endphp
 
-<div class="mx-auto max-w-6xl space-y-5" @if ($live) wire:poll.5s @endif>
+<div class="mx-auto max-w-6xl space-y-5 pb-28" @if ($live) wire:poll.5s @endif>
 
     {{-- Header --}}
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -56,51 +56,36 @@
         </p>
     @endif
 
-    {{-- Tabs, view and search --}}
-    <div class="flex flex-col gap-3 border-b border-slate-200 sm:flex-row sm:items-end sm:justify-between">
-        <nav class="-mb-px flex gap-6" aria-label="Appointments">
+    {{-- Toolbar: tabs, search and view on one line at every width --}}
+    @php
+        $segS = fn ($on) => 'inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-sm transition-colors sm:px-3 [@media(pointer:coarse)]:min-h-10 ' . $focus . ' '
+            . ($on ? 'bg-white font-medium text-[#24499A] shadow-sm' : 'text-slate-600 hover:text-slate-900');
+    @endphp
+    <div class="relative flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-2 sm:gap-2 sm:p-3">
+        <nav class="inline-flex shrink-0 rounded-lg bg-slate-100 p-1" aria-label="Appointments">
             @foreach (AppointmentsIndex::FILTERS as $key => $label)
                 @php $on = $filter === $key; @endphp
-                <button type="button" wire:click="setFilter('{{ $key }}')" @if ($on) aria-current="page" @endif
-                        class="inline-flex min-h-11 items-center gap-2 border-b-2 px-0.5 text-sm transition-colors {{ $focus }}
-                            {{ $on ? 'border-[#2A57B4] font-medium text-[#1E4090]' : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900' }}">
-                    {{ $label }}
-                    <span class="rounded-full px-2 py-0.5 text-xs tabular-nums {{ $on ? 'bg-[#e2e9f7] text-[#1E4090]' : 'bg-slate-100 text-slate-600' }}">{{ $counts[$key] }}</span>
+                <button type="button" wire:click="setFilter('{{ $key }}')" @if ($on) aria-current="page" @endif class="{{ $segS($on && $viewMode === 'list') }}">
+                    @if ($key === 'past')<span class="sm:hidden">Past</span><span class="hidden sm:inline">{{ $label }}</span>@else{{ $label }}@endif
+                    <span class="rounded-full px-1.5 text-[11px] tabular-nums {{ $on && $viewMode === 'list' ? 'bg-[#e2e9f7] text-[#1E4090]' : 'bg-white/80 text-slate-600' }}">{{ $counts[$key] }}</span>
                 </button>
             @endforeach
         </nav>
-        <div class="flex items-center gap-2 pb-2">
-            @if ($viewMode === 'list')
-                <div class="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
-                    <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" aria-hidden="true"></i>
-                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search purpose or document" aria-label="Search by purpose or document"
-                           class="h-9 w-full rounded-lg border-slate-300 pl-9 pr-3 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm [@media(pointer:coarse)]:h-11">
-                </div>
-            @endif
-            <div class="inline-flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="View">
-                @foreach (['list' => ['bx-list-ul', 'List'], 'calendar' => ['bx-calendar', 'Calendar']] as $key => [$icon, $label])
-                    <button type="button" wire:click="setViewMode('{{ $key }}')" aria-pressed="{{ $viewMode === $key ? 'true' : 'false' }}"
-                            class="inline-flex min-h-8 items-center gap-1.5 rounded-md px-2.5 text-sm transition-colors [@media(pointer:coarse)]:min-h-10 {{ $focus }}
-                                {{ $viewMode === $key ? 'bg-white font-medium text-[#24499A] shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                        <i class="bx {{ $icon }} text-base" aria-hidden="true"></i><span class="max-sm:sr-only">{{ $label }}</span>
-                    </button>
-                @endforeach
-            </div>
+        @if ($viewMode === 'list')
+            <x-dm.toolbar-search class="ml-auto sm:max-w-xs" placeholder="Search purpose or document" label="Search by purpose or document" />
+        @endif
+        <div class="{{ $viewMode === 'list' ? '' : 'ml-auto' }} inline-flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="View">
+            @foreach (['list' => ['bx-list-ul', 'List'], 'calendar' => ['bx-calendar', 'Calendar']] as $key => [$icon, $label])
+                <button type="button" wire:click="setViewMode('{{ $key }}')" aria-pressed="{{ $viewMode === $key ? 'true' : 'false' }}" class="{{ $segS($viewMode === $key) }}" title="{{ $label }}">
+                    <i class="bx {{ $icon }} text-base" aria-hidden="true"></i><span class="max-md:sr-only">{{ $label }}</span>
+                </button>
+            @endforeach
         </div>
     </div>
 
-    @if ($viewMode === 'calendar')
-        <div class="flex items-center gap-1">
-            <button type="button" wire:click="prevMonth" class="{{ $iconBtn }}" aria-label="Previous month"><i class="bx bx-chevron-left text-xl" aria-hidden="true"></i></button>
-            <p class="w-32 text-center text-sm font-medium text-slate-900" aria-live="polite">{{ $monthLabel }}</p>
-            <button type="button" wire:click="nextMonth" class="{{ $iconBtn }}" aria-label="Next month"><i class="bx bx-chevron-right text-xl" aria-hidden="true"></i></button>
-            <button type="button" wire:click="thisMonth" class="{{ $btnBase }} !px-3 text-[#2A57B4] hover:bg-[#f0f4fb]">Today</button>
-        </div>
-    @endif
-
     {{-- ============ List: one row per visit, date first ============ --}}
     @if ($viewMode === 'list')
-        <ul class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="{{ AppointmentsIndex::FILTERS[$filter] }}">
+        <ul class="min-h-[22rem] divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="{{ AppointmentsIndex::FILTERS[$filter] }}">
             @forelse ($this->rows as $a)
                 @php [$sText, $sPill] = $statusFor($a); $queue = $queueFor($a); @endphp
                 <li wire:key="sr-{{ $a->appointment_id }}" class="relative flex items-start gap-3 p-3 transition-colors hover:bg-slate-50 sm:items-center sm:gap-4 sm:p-4">
@@ -158,42 +143,64 @@
         </ul>
     @endif
 
-    {{-- ============ Calendar ============ --}}
+    {{-- ============ Calendar: the dashboard's wall calendar ============ --}}
     @if ($viewMode === 'calendar')
-        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="{{ $monthLabel }}">
-            <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-medium text-slate-500" aria-hidden="true">
-                @foreach (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $wd)
-                    <div class="py-2">{{ $wd }}</div>
+        <div class="cq">
+        <x-dm.wall-calendar :title="$monthName" :subtitle="$monthYear . ' · ' . $monthCount . ' ' . str('visit')->plural($monthCount)"
+                            prev="prevMonth" next="nextMonth" :today="$isThisMonth ? null : 'thisMonth'">
+            <div class="grid grid-cols-7 [&>*:nth-child(7n)]:border-r-0" wire:loading.class="opacity-60" wire:target="prevMonth, nextMonth, thisMonth">
+                @foreach ($this->calendarDays as $cell)
+                    @if (! $cell['inMonth'])
+                        <span wire:key="scal-{{ $cell['date'] }}" class="h-16 border-b border-r border-slate-100 bg-slate-50/70 p-1.5 text-xs text-slate-300 sm:h-24" aria-hidden="true">{{ $cell['day'] }}</span>
+                    @else
+                        @php $n = $cell['items']->count(); @endphp
+                        <div wire:key="scal-{{ $cell['date'] }}"
+                             class="relative flex h-16 min-w-0 flex-col justify-between border-b border-r border-slate-100 p-1.5 sm:h-24
+                                {{ $cell['weekend'] ? 'bg-rose-50/40' : ($n ? 'bg-blue-50' : '') }}">
+                            <span class="flex items-start justify-between">
+                                <span @class([
+                                    'flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums',
+                                    'bg-[#2A57B4] text-white shadow-sm' => $cell['isToday'],
+                                    'text-rose-500' => ! $cell['isToday'] && $cell['weekend'],
+                                    'text-slate-800' => ! $cell['isToday'] && ! $cell['weekend'],
+                                ])>{{ $cell['day'] }}</span>
+                                @if ($cell['items']->contains('status', 'pending'))
+                                    <span class="mt-1 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white" aria-hidden="true"></span>
+                                @endif
+                            </span>
+                            @if ($n)
+                                {{-- Phones: one chip that opens the first visit; wider: a chip per visit --}}
+                                @php $first = $cell['items']->first(); @endphp
+                                <a href="{{ route('student.appointments.show', $first->appointment_id) }}" wire:navigate
+                                   class="truncate rounded bg-[#2A57B4]/10 px-1 text-[10px] font-semibold tabular-nums text-[#1E4090] sm:hidden {{ $focus }}">
+                                    {{ $n }}<span class="sr-only"> {{ str('visit')->plural($n) }} on {{ \Carbon\Carbon::parse($cell['date'])->format('F j') }}</span>
+                                </a>
+                                <span class="hidden min-w-0 flex-col gap-0.5 sm:flex">
+                                    @foreach ($cell['items']->take(2) as $a)
+                                        @php [$sText, $sPill] = $statusFor($a); @endphp
+                                        <a href="{{ route('student.appointments.show', $a->appointment_id) }}" wire:navigate
+                                           class="block truncate rounded px-1 text-[10px] font-semibold ring-1 {{ $sPill }} {{ $focus }}"
+                                           title="{{ $a->purpose }} · {{ $sText }}">
+                                            {{ $a->session === 'morning' ? '8–12' : '1–5' }} · {{ $a->purpose ?: 'Visit' }}
+                                            <span class="sr-only">, {{ $a->appointment_date->format('F j') }}, {{ $sText }}</span>
+                                        </a>
+                                    @endforeach
+                                    @if ($n > 2)<span class="text-[10px] text-slate-500">+{{ $n - 2 }} more</span>@endif
+                                </span>
+                            @elseif ($cell['weekend'])
+                                <span class="text-[10px] font-medium text-rose-400">Closed</span>
+                            @endif
+                        </div>
+                    @endif
                 @endforeach
             </div>
-            <ol class="grid grid-cols-7">
-                @foreach ($this->calendarDays as $cell)
-                    <li wire:key="scal-{{ $cell['date'] }}"
-                        class="min-h-[64px] border-b border-r border-slate-100 p-1.5 sm:min-h-[104px] sm:p-2 [&:nth-child(7n)]:border-r-0
-                            {{ ! $cell['inMonth'] ? 'bg-slate-50/60' : ($cell['weekend'] ? 'bg-[repeating-linear-gradient(135deg,#fafaf9_0_6px,#f5f4f2_6px_12px)]' : 'bg-white') }}">
-                        <span class="flex justify-end">
-                            <span class="grid h-6 min-w-6 place-items-center rounded-full text-xs tabular-nums {{ $cell['isToday'] ? 'bg-[#2A57B4] font-semibold text-white' : ($cell['inMonth'] ? 'text-slate-700' : 'text-slate-400') }}">
-                                {{ $cell['day'] }}
-                            </span>
-                        </span>
-                        @if ($cell['inMonth'])
-                            <span class="mt-1 flex flex-col gap-1">
-                                @foreach ($cell['items'] as $a)
-                                    @php [$sText, $sPill] = $statusFor($a); @endphp
-                                    <a href="{{ route('student.appointments.show', $a->appointment_id) }}" wire:navigate
-                                       class="block truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 {{ $sPill }} {{ $focus }}"
-                                       title="{{ $a->purpose }} · {{ $sText }}">
-                                        <span class="hidden sm:inline">{{ $a->session === 'morning' ? '8–12' : '1–5' }} · </span>{{ $a->purpose ?: 'Visit' }}
-                                        <span class="sr-only">, {{ $a->appointment_date->format('F j') }}, {{ $sText }}</span>
-                                    </a>
-                                @endforeach
-                            </span>
-                        @endif
-                    </li>
-                @endforeach
-            </ol>
-        </section>
-        <p class="text-xs text-slate-500">Weekends are shaded: the office is closed. Select a visit to see its details.</p>
+        </x-dm.wall-calendar>
+        </div>
+        <p class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span> Waiting for approval</span>
+            <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-rose-50 ring-1 ring-rose-200" aria-hidden="true"></span> Office closed</span>
+            <span>Select a visit to see its details.</span>
+        </p>
     @endif
 
     {{-- Withdraw --}}

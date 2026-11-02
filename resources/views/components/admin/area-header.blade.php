@@ -20,27 +20,24 @@
     $current = $section['tabs'][$active];
 @endphp
 
+{{-- Just the tabs (the page title is in the top bar), with any actions at the end of the row. --}}
 <header {{ $attributes->class('mb-6') }}>
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div class="min-w-0">
-            <h1 class="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">{{ $section['title'] }}</h1>
-            <p class="mt-1 text-sm text-gray-500">{{ $current[2] }}</p>
-        </div>
+    <h1 class="sr-only">{{ $section['title'] }}: {{ $current[0] }}</h1>
+    <div class="flex items-end justify-between gap-3 border-b border-gray-200">
+        <nav aria-label="{{ $section['title'] }} sections" class="-mx-4 flex min-w-0 gap-6 overflow-x-auto whitespace-nowrap px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+            @foreach ($section['tabs'] as $key => [$label, $url])
+                <a href="{{ $url }}" wire:navigate
+                   @if ($key === $active) aria-current="page" @endif
+                   class="-mb-px shrink-0 border-b-2 px-1 pb-3 text-sm font-medium transition
+                       {{ $key === $active
+                           ? 'border-[#2A57B4] text-[#2A57B4]'
+                           : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }}">
+                    {{ $label }}
+                </a>
+            @endforeach
+        </nav>
         @isset($actions)
-            <div class="flex shrink-0 flex-wrap items-center gap-2">{{ $actions }}</div>
+            <div class="flex shrink-0 items-center gap-2 pb-2">{{ $actions }}</div>
         @endisset
     </div>
-
-    <nav aria-label="{{ $section['title'] }} sections" class="-mx-4 mt-5 flex gap-6 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-4 sm:mx-0 sm:px-0">
-        @foreach ($section['tabs'] as $key => [$label, $url])
-            <a href="{{ $url }}" wire:navigate
-               @if ($key === $active) aria-current="page" @endif
-               class="-mb-px shrink-0 border-b-2 px-1 pb-3 text-sm font-medium transition
-                   {{ $key === $active
-                       ? 'border-[#2A57B4] text-[#2A57B4]'
-                       : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }}">
-                {{ $label }}
-            </a>
-        @endforeach
-    </nav>
 </header>
