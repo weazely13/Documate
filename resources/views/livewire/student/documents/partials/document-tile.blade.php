@@ -60,13 +60,14 @@
         @if ($next)
             <p class="mt-1.5 line-clamp-2 text-xs leading-snug {{ $nextTone }}">{{ $next }}</p>
         @endif
-        @unless ($closed)
+        {{-- The four steps are the paperless journey; a paper form is handled at the office, so it has none --}}
+        @if ($wf && ! $closed)
             <span class="mt-auto grid grid-cols-4 gap-1 pt-2.5" role="img" aria-label="Step {{ $step }} of 4">
                 @for ($i = 1; $i <= 4; $i++)
                     <span class="h-1 rounded-full {{ $i <= $step ? 'bg-emerald-500' : ($i === $step + 1 && $tone !== 'done' ? ($tone === 'you' ? 'bg-amber-400' : 'bg-[#2A57B4]') : 'bg-slate-200') }}"></span>
                 @endfor
             </span>
-        @endunless
+        @endif
     </div>
 
     @if ($deletable)
