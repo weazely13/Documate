@@ -17,6 +17,7 @@ return [
         [
             'q' => 'Who can use the system?',
             'a' => 'Students, officers, and administrators within the institution can access and utilize the system based on their roles.',
+            'keywords' => ['who can use it', 'who uses DocuMate', 'eligible users'],
         ],
         [
             'q' => 'Is my data secure?',
@@ -24,7 +25,7 @@ return [
         ],
         [
             'q' => 'Which office does DocuMate support?',
-            'a' => 'DocuMate supports the Office of the Vice President for Student Development (VPSD) of Leyte Normal University.',
+            'a' => 'DocuMate is dedicated to the Office of the Vice President for Student Development (VPSD) at Leyte Normal University. Other LNU offices may provide supporting services or information, but VPSD is the office DocuMate is designed to serve.',
         ],
     ],
 
@@ -103,43 +104,53 @@ return [
 
     'Form Processing' => [
         [
-            'q' => 'How do I fill out and submit a document form?',
-            'a' => 'Open New Transaction, choose a document, complete its form fields, and select Save to workspace. Some fields, such as your name, student number, program, and current date, may be filled in automatically. The saved document appears in Documents under In Progress with a pending status.',
-            'keywords' => ['form', 'forms', 'document form', 'request form', 'document request', 'request a document', 'apply for a document', 'application', 'paperwork', 'requirements form', 'submit', 'submission', 'send a request', 'file a request', 'fill out', 'fill in', 'complete', 'accomplish', 'answer the fields', 'enter information', 'encode information', 'start a request', 'start a transaction', 'new transaction', 'choose a document', 'select a template', 'template', 'save', 'save to workspace', 'workspace', 'pending', 'in progress', 'how to request', 'how to apply', 'how to process a form'],
+            'q' => 'How do I complete and submit an online workflow form?',
+            'a' => 'Open New Transaction and choose a form marked Online. Complete its required fields, save a draft if you are not ready to submit, then select Submit to send it to VPSD. Your name, student number, and program details come from your profile; some forms also require a saved e-signature or a photo. Use the form-specific instructions for exact requirements.',
+            'keywords' => ['online form', 'online workflow form', 'workflow request', 'form', 'forms', 'document form', 'request form', 'document request', 'request a document', 'apply for a document', 'application', 'paperwork', 'submit', 'submission', 'send a request', 'file a request', 'fill out', 'fill in', 'complete', 'accomplish', 'enter information', 'start a request', 'start a transaction', 'new transaction', 'choose a document', 'save draft', 'submit to vpsd', 'how to process a form'],
         ],
         [
             'q' => 'What happens after I submit a document form?',
-            'a' => 'After saving the form to your workspace, open the document and set an appointment. Once the appointment is approved, print or download the document, collect its required signatures before the appointment, and bring it to the VPSD office. After the appointment, the secretary records attendance and uploads a photo of the final document; the document then moves to Completed.',
-            'keywords' => ['after submission', 'after submitting', 'after saving my form', 'what happens next', 'next step', 'next steps', 'workflow', 'process flow', 'processing steps', 'document processing', 'form processing', 'review', 'approval', 'appointment', 'schedule', 'sign', 'signature', 'signatory', 'collect signatures', 'print', 'pdf', 'download', 'bring the document', 'VPSD', 'attendance', 'verification', 'upload', 'completed'],
+            'a' => 'The VPSD office reviews an online workflow form. It may be returned to you for corrections, rejected, or accepted for signatory approval. If corrections are requested, follow the note on the transaction, edit the form, and resubmit it. After all required approvals, VPSD completes the transaction and the official PDF becomes available on its transaction page. An appointment is needed only when the office or form instructions require one.',
+            'keywords' => ['after submission', 'after submitting', 'after saving my form', 'what happens next', 'next step', 'next steps', 'workflow', 'process flow', 'processing steps', 'document processing', 'form processing', 'review', 'approval', 'appointment', 'schedule', 'sign', 'signature', 'signatory', 'collect signatures', 'print', 'pdf', 'download', 'bring the document', 'VPSD', 'attendance', 'verification', 'upload', 'completed', 'after i submit', 'what happens after submit'],
         ],
         [
             'q' => 'How can I check the processing status of my form?',
-            'a' => 'Sign in and open Documents to see each request\'s current status. Open a document to view its Activity Timeline, which records updates such as appointment status, PDF generation, photo upload, and completion.',
+            'a' => 'Sign in and open Documents. Online workflow requests appear under Active while they are being processed and under History when finished, rejected, or voided. Open a request to see its current status, any action required from you, pending signatory, and activity timeline.',
             'keywords' => ['status', 'track', 'tracking', 'track my form', 'track my request', 'follow up', 'check progress', 'processing status', 'request status', 'document status', 'form status', 'stage', 'pending', 'in progress', 'completed', 'activity timeline', 'where is my form', 'where is my document', 'what is happening to my request', 'has my form been processed'],
         ],
         [
-            'q' => 'Can I edit a document form after saving it?',
-            'a' => 'Yes. Open the saved document and select Edit Document. After changing the fields, save it again. Date fields that use today\'s date update to the current date when the document is re-saved.',
-            'keywords' => ['edit', 'change', 'update', 'modify', 'correct', 'correction', 'fix a mistake', 'wrong information', 'incorrect details', 'saved form', 'saved document', 're-save', 'resave', 'date field', 'can i revise', 'can i amend'],
+            'q' => 'What do the online transaction statuses mean?',
+            'a' => 'Draft is saved but not submitted. Submitted is waiting for VPSD review. Under Review means VPSD is reviewing the form, or it is in the signatory stage when approvals are listed. Action Required means VPSD asked you to make changes and resubmit. Approved means all required signatories have approved and VPSD must complete final verification. Completed means the official PDF is ready to download. Rejected is closed; Voided means a completed record was withdrawn but retained in the history.',
+            'keywords' => ['draft status', 'submitted status', 'under review status', 'action required status', 'approved status', 'completed status', 'rejected status', 'voided status', 'status meaning', 'what does approved mean', 'what does under review mean', 'what does action required mean', 'what does completed mean', 'transaction stages'],
         ],
         [
-            'q' => 'How do I prepare and submit my completed document for processing?',
-            'a' => 'Submit the form through New Transaction by completing its fields and selecting Save to workspace. Then set an appointment and wait for approval. After approval, download or print the document, obtain the required signatures, and bring the signed copy to the VPSD office on your appointment date.',
-            'keywords' => ['prepare document', 'prepare my form', 'completed document', 'requirements for processing', 'submit for processing', 'send for processing', 'process my request', 'document requirements', 'what to do with the form', 'where to submit', 'where do i bring', 'signed form', 'paper copy', 'hard copy'],
+            'q' => 'Can I edit a document form after saving it?',
+            'a' => 'An online workflow form can be edited while it is a draft. After submission, it is locked unless VPSD returns it with Action Required; then edit the requested information and resubmit it. A paper template workspace can be reopened and edited before you generate its PDF.',
+            'keywords' => ['edit', 'change', 'update', 'modify', 'correct', 'correction', 'fix a mistake', 'wrong information', 'incorrect details', 'saved form', 'saved document', 're-save', 'resave', 'date field', 'can i revise', 'can i amend', 'action required', 'edit after submitting'],
+        ],
+        [
+            'q' => 'How do I complete a paper template in New Transaction?',
+            'a' => 'Choose a form marked Print in New Transaction, fill in the editable fields, and select Save to Workspace to keep your draft. Select Save PDF to generate the completed document. Follow any instructions printed on the form or provided by the responsible office for physical signatures, delivery, or appointments; these steps vary by form.',
+            'keywords' => ['paper template', 'print form', 'form marked print', 'paper form', 'template', 'save to workspace', 'save pdf', 'generate pdf', 'print', 'physical form', 'hard copy', 'completed document', 'paper copy'],
         ],
         [
             'q' => 'What should I do if my form or uploaded document needs correction?',
-            'a' => 'If a saved form needs correction, open it and select Edit Document, then save it again. If the final document photo is not accepted during review, the VPSD secretary can upload a corrected photo. Check the document status or contact the processing office if you need help with a specific request.',
-            'keywords' => ['correction needed', 'needs correction', 'correct my form', 'correct my document', 'rejected upload', 'upload rejected', 'photo rejected', 'reupload', 're-upload', 'replace upload', 'missing information', 'wrong entry', 'error in form', 'form error', 'document error'],
+            'a' => 'For an online workflow request marked Action Required, read the VPSD note, edit the form, and select Resubmit. If the request is Rejected, it is closed; contact VPSD if you need to know whether to start a new request. For a paper template, correct the saved workspace before generating a new PDF.',
+            'keywords' => ['correction needed', 'needs correction', 'correct my form', 'correct my document', 'rejected upload', 'upload rejected', 'photo rejected', 'reupload', 're-upload', 'replace upload', 'missing information', 'wrong entry', 'error in form', 'form error', 'document error', 'action required', 'rejected'],
         ],
         [
             'q' => 'How do I download, print, or get signatures for my document?',
-            'a' => 'After your appointment is approved, use Save PDF on the New Transaction page or View, Export, or Download on the document page. Obtain all required signatures before the appointment and bring the signed document to the VPSD office.',
-            'keywords' => ['download form', 'download document', 'print form', 'print document', 'save pdf', 'export pdf', 'get signatures', 'who signs', 'signature process', 'signatories', 'signed document', 'before appointment'],
+            'a' => 'For an online workflow form, wait until its status is Completed, then download the official PDF from the transaction page. Print it only if a physical copy is required. For a paper template, use Save PDF from its New Transaction workspace; follow the form or office instructions for any physical signatures.',
+            'keywords' => ['download form', 'download document', 'print form', 'print document', 'save pdf', 'export pdf', 'get signatures', 'who signs', 'signature process', 'signatories', 'signed document', 'before appointment', 'official pdf'],
+        ],
+        [
+            'q' => 'How do I book an appointment in DocuMate?',
+            'a' => 'Book from Appointments or from an eligible document page using Set Appointment. Choose a purpose, select a document if the form is related to one, choose an available date and session, then confirm. The request starts as Pending and must be reviewed by the office. An approved appointment shows its queue number; a missed appointment can be reopened to request a new date.',
+            'keywords' => ['book an appointment', 'booking an appointment', 'schedule an appointment', 'request an appointment', 'set appointment', 'appointment process', 'appointment steps', 'choose a date', 'appointment queue', 'reapply appointment'],
         ],
         [
             'q' => 'What happens to my document after my appointment?',
-            'a' => 'After the appointment, the VPSD secretary records attendance and uploads a photo of the final document. The system reviews the uploaded image, and the request moves to Completed after the processing steps are accepted.',
+            'a' => 'Appointment handling depends on the appointment purpose. For an online workflow form, the transaction remains tracked separately in Documents; its completion depends on VPSD review and the required approvals. Do not assume that every form requires an appointment or a photo upload.',
             'keywords' => ['after appointment', 'after my appointment', 'final document', 'upload final copy', 'upload photo', 'scan document', 'digital copy', 'ai review', 'photo verification', 'mark attended', 'attendance recorded', 'when is it completed', 'complete my request'],
         ],
     ],
@@ -152,6 +163,19 @@ return [
         [
             'q' => 'Where can I read the Privacy Policy and Terms?',
             'a' => 'Both are linked in the footer of every page. Select Privacy Policy or Terms & Conditions to open them.',
+        ],
+    ],
+
+    'Campus Services' => [
+        [
+            'q' => 'Who handles student ID renewal, replacement, or reprinting?',
+            'a' => 'Student ID printing is handled by the Business and Income Generation Office (BIGO), under the Auxiliary Services Office. LNU lists Mr. Jovert C. Espino under ID Printing Services. See the [LNU Auxiliary Services Office page](https://www.lnu.edu.ph/auxiliary-services-office/).' . "\n\nTo replace a lost or damaged student ID:\n1. Obtain certification or authorization from OSS or VPSD.\n2. Request a payment slip from the designated office.\n3. Pay the reprinting fee at the University Cashier. The supplied guidance lists PHP 200; confirm the current amount with BIGO before paying.",
+            'keywords' => ['student id renewal', 'renew student id', 'id replacement', 'replace student id', 'lost student id', 'damaged student id', 'id reprinting', 'reprint id', 'id printing', 'who handles id', 'who is in charge of id', 'who is in charge for id renewal', 'id concerns'],
+        ],
+        [
+            'q' => 'How do I request an LNU alumni ID?',
+            'a' => 'The alumni ID guidance shared with DocuMate says to pay the processing fee at the University Cashier, then complete the Alumni ID form with the requested receipt image, white-background photo, and e-signature. The ID may be processed as a PDF or through the IGP Focal Person. The current official [Auxiliary Services Office page](https://www.lnu.edu.ph/auxiliary-services-office/) lists LNU ID services but does not publish the alumni form or fee, so confirm the current steps with Alumni Affairs or BIGO before paying.',
+            'keywords' => ['alumni id', 'alumni identification card', 'request alumni id', 'alumni id form', 'igp focal person'],
         ],
     ],
 
