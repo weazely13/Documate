@@ -1,202 +1,114 @@
-<div class="space-y-6" wire:poll.5s>
-    @php
-        $statusTheme = fn (string $status) => match ($status) {
-            'Cleared' => [
-                'badge' => 'bg-emerald-500/10 text-emerald-700 border-emerald-200/80',
-                'border' => 'border-emerald-200/60',
-                'bg' => 'bg-emerald-50/40',
-                'icon' => 'bx-check-shield',
-                'iconWrap' => 'bg-emerald-500 text-white shadow-emerald-500/25',
-                'word' => 'text-emerald-600',
-                'accent' => 'bg-emerald-500'
-            ],
-            'Pending' => [
-                'badge' => 'bg-amber-500/10 text-amber-700 border-amber-200/80',
-                'border' => 'border-amber-200/60',
-                'bg' => 'bg-amber-50/40',
-                'icon' => 'bx-time-five',
-                'iconWrap' => 'bg-amber-500 text-white shadow-amber-500/25',
-                'word' => 'text-amber-600',
-                'accent' => 'bg-amber-500'
-            ],
-            'Uncleared' => [
-                'badge' => 'bg-rose-500/10 text-rose-700 border-rose-200/80',
-                'border' => 'border-rose-200/60',
-                'bg' => 'bg-rose-50/40',
-                'icon' => 'bx-x-circle',
-                'iconWrap' => 'bg-rose-500 text-white shadow-rose-500/25',
-                'word' => 'text-rose-600',
-                'accent' => 'bg-rose-500'
-            ],
-            default => [
-                'badge' => 'bg-slate-500/10 text-slate-700 border-slate-200',
-                'border' => 'border-slate-200',
-                'bg' => 'bg-slate-50/40',
-                'icon' => 'bx-help-circle',
-                'iconWrap' => 'bg-slate-500 text-white shadow-slate-500/25',
-                'word' => 'text-slate-600',
-                'accent' => 'bg-slate-400'
-            ],
-        };
-        $currentTheme = $statusTheme($currentStatus['status']);
-    @endphp
+@php
+    $theme = fn (?string $status) => match ($status) {
+        'Cleared' => ['c1' => '#064e3b', 'c2' => '#047857', 'c3' => '#10b981', 'tint' => '#d9f3e1', 'ink' => '#047857', 'deep' => '#065f46', 'icon' => 'bx-check-shield',
+                      'means' => 'Nothing is owed for this semester. You are cleared.'],
+        'Pending' => ['c1' => '#78350f', 'c2' => '#b45309', 'c3' => '#f59e0b', 'tint' => '#fef3c7', 'ink' => '#b45309', 'deep' => '#78350f', 'icon' => 'bx-time-five',
+                      'means' => 'Your organization is still checking your records. No action is needed unless the remarks say so.'],
+        'Uncleared' => ['c1' => '#881337', 'c2' => '#be123c', 'c3' => '#f43f5e', 'tint' => '#fde0ec', 'ink' => '#be123c', 'deep' => '#9f1239', 'icon' => 'bx-error-circle',
+                        'means' => 'Something is still due. Settle what the remarks list, then ask your organization to update your status.'],
+        default => ['c1' => '#0d253d', 'c2' => '#1e3f6b', 'c3' => '#475d7a', 'tint' => '#ecebe7', 'ink' => '#66707f', 'deep' => '#273951', 'icon' => 'bx-help-circle',
+                    'means' => 'Your organization has not tagged your clearance for this semester yet.'],
+    };
+    $now = $theme($currentStatus['status']);
+    [$periodYear, $periodTerm] = array_pad(array_map('trim', explode('|', (string) $currentStatus['period_label'], 2)), 2, null);
+    $currentEntry = [
+        'status' => $currentStatus['status'],
+        'semester' => $periodTerm ?? '',
+        'academic_year' => $periodTerm ? $periodYear : '',
+        'tagged_by' => $currentStatus['tagged_by'],
+        'tagged_at' => $history->firstWhere('is_current', true)['tagged_at'] ?? null,
+    ];
 
-    {{-- CURRENT STATUS HERO CARD (Solid line removed) --}}
-    <section class="relative mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border {{ $currentTheme['border'] }} {{ $currentTheme['bg'] }} p-6 shadow-md backdrop-blur-xs transition-all hover:scale-[1.01] sm:p-8">
-        <div class="relative z-10 flex h-full flex-col justify-between space-y-6">
-            {{-- Card Top Header: Academic Icon + Clearance Badge --}}
-            <div class="flex items-start justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-md {{ $currentTheme['iconWrap'] }}">
-                        <i class='bx {{ $currentTheme['icon'] }} text-2xl'></i>
-                    </span>
-                    <div>
-                        <span class="block text-[10px] font-black uppercase tracking-widest text-slate-400">Official Record</span>
-                        <p class="text-xs font-bold text-slate-700 sm:text-sm">{{ $currentStatus['period_label'] }}</p>
-                    </div>
-                </div>
+    $rank = fn ($e) => [(int) substr((string) $e['academic_year'], 0, 4), str_contains(strtolower($e['semester']), 'second') ? 2 : (str_contains(strtolower($e['semester']), 'summer') || str_contains(strtolower($e['semester']), 'mid') ? 3 : 1)];
+    $timeline = $history->sortBy($rank)->values();
+    $counts = collect(['Cleared', 'Pending', 'Uncleared'])->mapWithKeys(fn ($s) => [$s => $timeline->where('status', $s)->count()]);
+    $byYear = $history->groupBy('academic_year');
+@endphp
 
-                <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider shadow-2xs {{ $currentTheme['badge'] }}">
-                    <span class="h-1.5 w-1.5 rounded-full {{ $currentTheme['accent'] }} animate-pulse"></span>
-                    Current Clearance
-                </span>
-            </div>
+<div class="mx-auto max-w-5xl space-y-6 sm:space-y-8" wire:poll.15s>
 
-            {{-- Card Center: Prominent Status Outcome --}}
-            <div>
-                <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Clearance Status</span>
-                <p class="text-3xl font-black tracking-tight sm:text-4xl {{ $currentTheme['word'] }}">
-                    {{ $currentStatus['status_word'] }}
-                </p>
-            </div>
-
-            {{-- Card Footer: Embossed Credit Card Style Field Grid --}}
-            <div class="grid grid-cols-1 gap-3 border-t border-slate-200/60 pt-4 text-xs sm:grid-cols-3 sm:gap-4">
-                <div>
-                    <span class="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Student Holder</span>
-                    <p class="mt-0.5 font-bold tracking-tight text-slate-900">{{ $fullName ?: ($user->first_name ?? 'Student') }}</p>
-                    <p class="text-[10px] font-medium text-slate-500">{{ $user->student_number ?: 'No ID' }} &bull; {{ $formattedYearLevel }}</p>
-                </div>
-                <div>
-                    <span class="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Tagged By</span>
-                    <p class="mt-0.5 font-semibold text-slate-800 truncate">{{ $currentStatus['tagged_by'] ?: '-' }}</p>
-                </div>
-                <div class="sm:text-right">
-                    <span class="block text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Remarks</span>
-                    <p class="mt-0.5 font-medium text-slate-700 truncate" title="{{ $currentStatus['remarks'] }}">{{ $currentStatus['remarks'] ?: '-' }}</p>
-                </div>
-            </div>
-        </div>
+    {{-- ============ THIS SEMESTER ============ --}}
+    <section aria-label="This semester's clearance">
+        @include('livewire.student.partials.clearance-card', ['t' => $now, 'e' => $currentEntry + ['remarks' => $currentStatus['remarks'], 'is_current' => true], 'hero' => true,
+            'holder' => $fullName ?: ($user->first_name ?? 'Student'), 'number' => $user->student_number, 'means' => $now['means']])
     </section>
 
-    {{-- CLEARANCE RECORDS SECTION --}}
-    <div class="space-y-4 pt-2">
-        {{-- Section Header & Filter Controls --}}
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="text-lg font-black tracking-tight text-slate-900 sm:text-xl">Status by Semester</h2>
-                <p class="text-xs font-medium text-slate-500">Live clearance status records.</p>
+    {{-- ============ RECORD AT A GLANCE ============ --}}
+    @if ($timeline->isNotEmpty())
+        <section class="rounded-xl border border-[#e7e5e1] bg-white p-5 sm:p-6">
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                <h2 class="text-[15px] font-semibold text-[#0d253d]">Your clearance record</h2>
+                <p class="text-[13px] text-[#66707f]"><span class="font-semibold tabular-nums text-[#047857]">{{ $counts['Cleared'] }}</span> of <span class="tabular-nums">{{ $timeline->count() }}</span> semesters cleared</p>
             </div>
-
-            {{-- Discrete Top-Right Filter Toolbar --}}
-            <div class="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                <div class="relative">
-                    <select wire:model.live="semesterFilter"
-                            class="appearance-none rounded-lg border border-slate-200/80 bg-slate-50/80 py-1.5 pl-3 pr-7 text-xs font-semibold text-slate-600 transition hover:bg-white focus:border-[#2A57B4] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2A57B4]/10">
-                        <option value="">All Semesters</option>
-                        @foreach($semesterOptions as $sem)
-                            <option value="{{ $sem }}">{{ $sem }}</option>
-                        @endforeach
-                    </select>
-                    <i class='bx bx-chevron-down pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm text-slate-400'></i>
-                </div>
-
-                <div class="relative">
-                    <select wire:model.live="historyStatusFilter"
-                            class="appearance-none rounded-lg border border-slate-200/80 bg-slate-50/80 py-1.5 pl-3 pr-7 text-xs font-semibold text-slate-600 transition hover:bg-white focus:border-[#2A57B4] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2A57B4]/10">
-                        <option value="">All Statuses</option>
-                        @foreach($statusOptions as $statusOption)
-                            <option value="{{ $statusOption }}">{{ $statusOption }}</option>
-                        @endforeach
-                    </select>
-                    <i class='bx bx-chevron-down pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm text-slate-400'></i>
-                </div>
-
-                <div class="relative">
-                    <select wire:model.live="sortBy"
-                            class="appearance-none rounded-lg border border-slate-200/80 bg-slate-50/80 py-1.5 pl-3 pr-7 text-xs font-semibold text-slate-600 transition hover:bg-white focus:border-[#2A57B4] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2A57B4]/10">
-                        <option value="latest">Newest First</option>
-                        <option value="oldest">Oldest First</option>
-                    </select>
-                    <i class='bx bx-chevron-down pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-sm text-slate-400'></i>
-                </div>
-            </div>
-        </div>
-
-        {{-- GRID OF CREDIT CARD STYLE SEMESTER CARDS (Solid line removed) --}}
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            @forelse($history as $entry)
-                @php
-                    $entryTheme = $statusTheme($entry['status']);
-                    $entryIsCurrent = $entry['is_current'] ?? false;
-                @endphp
-                <div class="group relative overflow-hidden rounded-2xl border {{ $entryTheme['border'] }} {{ $entryTheme['bg'] }} p-5 shadow-2xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
-                    <div class="relative z-10 flex h-full flex-col justify-between space-y-4">
-                        {{-- Top Bar: School/Clearance Icon + Term & Badge --}}
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex items-center gap-2.5">
-                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105 {{ $entryTheme['iconWrap'] }}">
-                                    <i class='bx {{ $entryTheme['icon'] }} text-lg'></i>
-                                </span>
-                                <div class="min-w-0">
-                                    <p class="truncate text-sm font-extrabold text-slate-900">{{ $entry['period_label'] }}</p>
-                                    @if($entryIsCurrent)
-                                        <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-[#2A57B4]">
-                                            <span class="h-1 w-1 rounded-full bg-[#2A57B4] animate-pulse"></span>
-                                            Current Term
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                            <span class="shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-2xs {{ $entryTheme['badge'] }}">
-                                {{ $entry['status'] }}
+            <ol class="mt-4 flex items-start gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                @foreach ($timeline as $e)
+                    @php $t = $theme($e['status']); @endphp
+                    <li class="flex min-w-[4.5rem] flex-1 flex-col items-center text-center" title="{{ $e['period_label'] }}: {{ $e['status'] }}">
+                        <div class="flex w-full items-center">
+                            <span class="h-px flex-1 {{ $loop->first ? 'bg-transparent' : 'bg-[#e7e5e1]' }}"></span>
+                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-white {{ $e['is_current'] ? 'ring-2 ring-offset-2' : '' }}" style="background: linear-gradient(135deg, {{ $t['c1'] }}, {{ $t['c3'] }}); --tw-ring-color: {{ $t['ink'] }};">
+                                <i class="bx {{ $t['icon'] }} text-base"></i>
                             </span>
+                            <span class="h-px flex-1 {{ $loop->last ? 'bg-transparent' : 'bg-[#e7e5e1]' }}"></span>
                         </div>
+                        <span class="mt-1.5 text-[11.5px] font-medium leading-tight text-[#273951]">{{ trim(str_ireplace('semester', '', $e['semester'])) }}{{ str_contains(strtolower($e['semester']), 'summer') ? '' : ' sem' }}</span>
+                        <span class="text-[10.5px] tabular-nums text-[#9a978f]">{{ $e['academic_year'] }}</span>
+                    </li>
+                @endforeach
+            </ol>
+        </section>
+    @endif
 
-                        {{-- Card Body: Clearance State Word --}}
-                        <div>
-                            <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">Clearance Outcome</span>
-                            <p class="text-2xl font-black tracking-tight {{ $entryTheme['word'] }}">
-                                {{ $entry['status'] }}
-                            </p>
-                        </div>
-
-                        {{-- Card Bottom: Credit-Card Style Multi-Column Footer --}}
-                        <div class="grid grid-cols-3 gap-2 border-t border-slate-200/50 pt-3 text-xs">
-                            <div class="min-w-0">
-                                <span class="block text-[8px] font-extrabold uppercase tracking-wider text-slate-400">Tagged By</span>
-                                <p class="mt-0.5 truncate font-semibold text-slate-800">{{ $entry['tagged_by'] ?: '-' }}</p>
-                            </div>
-                            <div class="min-w-0">
-                                <span class="block text-[8px] font-extrabold uppercase tracking-wider text-slate-400">Remarks</span>
-                                <p class="mt-0.5 truncate font-medium text-slate-600" title="{{ $entry['remarks'] }}">{{ $entry['remarks'] ?: 'No remarks.' }}</p>
-                            </div>
-                            <div class="min-w-0 text-right">
-                                <span class="block text-[8px] font-extrabold uppercase tracking-wider text-slate-400">Last Updated</span>
-                                <p class="mt-0.5 font-medium text-slate-500">{{ $entry['last_updated'] }}</p>
-                            </div>
-                        </div>
-                    </div>
+    {{-- ============ BY SEMESTER ============ --}}
+    <section>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold tracking-[-0.015em] text-[#0d253d]">By semester</h2>
+                <p class="mt-0.5 text-[13px] text-[#66707f]">Updates here as soon as your organization tags you.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="flex gap-1 overflow-x-auto rounded-lg bg-[#f5f4f2] p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filter by status">
+                    @foreach (['' => ['All', $timeline->count()], 'Cleared' => ['Cleared', $counts['Cleared']], 'Pending' => ['Pending', $counts['Pending']], 'Uncleared' => ['Uncleared', $counts['Uncleared']]] as $value => [$label, $n])
+                        <button type="button" wire:click="$set('historyStatusFilter', '{{ $value }}')" aria-pressed="{{ $historyStatusFilter === $value ? 'true' : 'false' }}"
+                                class="shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-[13px] font-medium transition {{ $historyStatusFilter === $value ? 'bg-white text-[#0d253d] shadow-sm' : 'text-[#66707f] hover:text-[#0d253d]' }}">
+                            {{ $label }} <span class="tabular-nums text-[#9a978f]">{{ $n }}</span>
+                        </button>
+                    @endforeach
                 </div>
-            @empty
-                <div class="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-12 px-4 text-center">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                        <i class='bx bx-book-bookmark text-2xl'></i>
-                    </div>
-                    <p class="mt-3 text-sm font-bold text-slate-700">No clearance records found</p>
-                    <p class="mt-1 text-xs text-slate-400">Try adjusting your filters or search options.</p>
-                </div>
-            @endforelse
+                <button type="button" wire:click="$set('sortBy', '{{ $sortBy === 'oldest' ? 'latest' : 'oldest' }}')"
+                        class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[#e7e5e1] bg-white text-[#4a5568] hover:bg-[#f5f4f2]"
+                        title="{{ $sortBy === 'oldest' ? 'Oldest first' : 'Newest first' }}" aria-label="Sort {{ $sortBy === 'oldest' ? 'newest first' : 'oldest first' }}">
+                    <i class="bx {{ $sortBy === 'oldest' ? 'bx-sort-up' : 'bx-sort-down' }} text-lg"></i>
+                </button>
+            </div>
         </div>
-    </div>
+
+        @forelse ($byYear as $year => $entries)
+            <div class="mt-6 sm:mt-7">
+                <div class="mb-3 flex items-center gap-3">
+                    <h3 class="text-sm font-semibold tabular-nums text-[#273951]">A.Y. {{ $year }}</h3>
+                    <span class="h-px flex-1 bg-[#e7e5e1]"></span>
+                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($entries as $e)
+                        @php $t = $theme($e['status']); @endphp
+                        <article wire:key="sem-{{ $e['semester_id'] ?? $loop->parent->index . '-' . $loop->index }}" class="transition duration-300 hover:-translate-y-1">
+                            @include('livewire.student.partials.clearance-card', ['t' => $t, 'e' => $e, 'hero' => false])
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        @empty
+            <div class="mt-6 flex flex-col items-center rounded-xl border border-dashed border-[#d4d1cb] bg-white px-6 py-14 text-center">
+                <span class="grid h-12 w-12 place-items-center rounded-xl bg-[#f5f4f2] text-[#9a978f]"><i class="bx bx-credit-card-front text-2xl"></i></span>
+                @if ($historyStatusFilter !== '')
+                    <p class="mt-3 font-medium text-[#0d253d]">No {{ strtolower($historyStatusFilter) }} semesters</p>
+                    <button type="button" wire:click="$set('historyStatusFilter', '')" class="mt-2 text-sm font-medium text-[#2a57b4] hover:underline">Show all semesters</button>
+                @else
+                    <p class="mt-3 font-medium text-[#0d253d]">No clearance records yet</p>
+                    <p class="mt-1 max-w-sm text-sm text-[#66707f]">When your organization tags your clearance, each semester appears here.</p>
+                @endif
+            </div>
+        @endforelse
+    </section>
 </div>

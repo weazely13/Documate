@@ -334,32 +334,42 @@
         
 
 
-        @if(!$inactive && $role !== 'Signatory')
-            <div class="chatbot-btn" id="chatbotBtn" data-tooltip="AI Assistant">
-                <i class='bx bx-message-dots'></i>
+        @if(!$inactive)
+            @php
+                $chatRoute = request()->route()?->getName();
+                $chatTip = \App\Support\ChatScreen::tip($chatRoute);
+            @endphp
+            <button type="button" class="chatbot-btn" id="chatbotBtn" aria-label="Open the DocuMate Assistant" aria-controls="chatbotPanel" aria-expanded="false">
+                <i class='bx bxs-bot'></i>
+            </button>
+
+            {{-- On every page: a short tip from the assistant about what to do here --}}
+            <div class="chatbot-tip" role="status" aria-live="polite"
+                 x-data="{
+                    show: false,
+                    key: @js('documate-tip:' . ($chatRoute ?? request()->path())),
+                    close() { this.show = false; sessionStorage.setItem(this.key, '1'); },
+                    help() {
+                        this.close();
+                        const panel = document.getElementById('chatbotPanel');
+                        if (panel && !panel.classList.contains('chatbot-panel-open')) document.getElementById('chatbotBtn')?.click();
+                        setTimeout(() => window.dispatchEvent(new CustomEvent('chatbot-ask', { detail: 'What should I do on this page?' })), 250);
+                    },
+                 }"
+                 x-init="if (!sessionStorage.getItem(key)) { setTimeout(() => { if (!document.querySelector('.chatbot-panel-open')) show = true; }, 1200); setTimeout(() => show = false, 16000); }"
+                 x-on:chatbot-opened.window="show = false"
+                 x-show="show" x-cloak
+                 x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                 x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0 translate-y-1">
+                <button type="button" @click="close()" class="chatbot-tip-close" aria-label="Hide this tip"><i class='bx bx-x'></i></button>
+                <p class="chatbot-tip-title"><i class='bx bx-bot' aria-hidden="true"></i>{{ $chatTip['page'] }}</p>
+                <p class="chatbot-tip-text">{{ $chatTip['text'] }}</p>
+                <button type="button" @click="help()" class="chatbot-tip-action">Show me what to do <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></button>
             </div>
 
-            <div class="chatbot-panel" id="chatbotPanel">
-                <div class="chatbot-header">
-                    <div class="chatbot-header-info">
-                        <div class="chatbot-avatar">
-                            <i class='bx bx-bot'></i>
-                        </div>
-                        <div>
-                            <p class="chatbot-header-title">DocuMate Assistant</p>
-                            <p class="chatbot-header-status">
-                                <span class="chatbot-status-dot"></span>
-                                Online
-                            </p>
-                        </div>
-                    </div>
-                    <button id="closeChatbot" aria-label="Close chat">&times;</button>
-                </div>
-
-                <div class="flex-1 overflow-hidden flex flex-col">
-                    @livewire('chatbot.chat-widget')
-                </div>
-            </div>
+            <section class="chatbot-panel" id="chatbotPanel" role="dialog" aria-label="DocuMate Assistant">
+                @livewire('chatbot.chat-widget')
+            </section>
         @endif
 
     </main>
@@ -451,22 +461,24 @@
         function bindChatbot() {
             const chatbotBtn = document.getElementById('chatbotBtn');
             const chatbotPanel = document.getElementById('chatbotPanel');
-            const closeChatbot = document.getElementById('closeChatbot');
 
-            if (!chatbotBtn || !chatbotPanel || !closeChatbot) {
+            if (!chatbotBtn || !chatbotPanel) {
                 return;
             }
 
             const openPanel = () => {
                 chatbotPanel.classList.add('chatbot-panel-open');
                 chatbotBtn.classList.add('open');
+                chatbotBtn.setAttribute('aria-expanded', 'true');
                 chatbotBtn.querySelector('i').className = 'bx bx-x';
+                window.dispatchEvent(new CustomEvent('chatbot-opened'));
             };
 
             const closePanel = () => {
                 chatbotPanel.classList.remove('chatbot-panel-open');
                 chatbotBtn.classList.remove('open');
-                chatbotBtn.querySelector('i').className = 'bx bx-message-dots';
+                chatbotBtn.setAttribute('aria-expanded', 'false');
+                chatbotBtn.querySelector('i').className = 'bx bxs-bot';
             };
 
             if (chatbotBtn.dataset.bound !== 'true') {
@@ -476,11 +488,48 @@
                 chatbotBtn.dataset.bound = 'true';
             }
 
-            if (closeChatbot.dataset.bound !== 'true') {
-                closeChatbot.addEventListener('click', closePanel);
-                closeChatbot.dataset.bound = 'true';
+            if (!window.__chatbotDocBound) {
+                window.__chatbotDocBound = true;
+                // The close button lives inside the Livewire widget, so listen at the document
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest && e.target.closest('[data-chatbot-close]')) {
+                        const p = document.getElementById('chatbotPanel');
+                        if (p && p.classList.contains('chatbot-panel-open')) document.getElementById('chatbotBtn')?.click();
+                    }
+                });
+                document.addEventListener('keydown', (e) => {
+                    const p = document.getElementById('chatbotPanel');
+                    if (e.key === 'Escape' && p && p.classList.contains('chatbot-panel-open') && p.contains(document.activeElement)) {
+                        document.getElementById('chatbotBtn')?.click();
+                        document.getElementById('chatbotBtn')?.focus();
+                    }
+                });
             }
         }
+
+        /**
+         * What the assistant may know about the page: its address, title, headings, notices and visible text.
+         * Only what is on screen in the main area (never the chat itself, hidden parts, or form inputs' values).
+         */
+        window.documateScreen = function () {
+            const main = document.querySelector('.content');
+            const visible = (el) => !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)) && getComputedStyle(el).visibility !== 'hidden';
+            const dialog = [...document.querySelectorAll('[role="dialog"]:not(#chatbotPanel), [aria-modal="true"]')].filter(visible).pop();
+            const root = dialog || main || document.body;
+            const pick = (sel, n) => [...root.querySelectorAll(sel)].filter(visible).map(el => el.innerText.trim()).filter(Boolean).slice(0, n);
+            const headings = pick('h1, h2, h3', 10);
+            const label = headings[0] || 'This page';
+            // innerText skips hidden parts and never includes what is typed into inputs
+            const text = (root.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 3000);
+            return {
+                path: location.pathname + location.search,
+                title: document.title || '',
+                label,
+                headings,
+                alerts: pick('[role="alert"], [role="status"]', 5),
+                text,
+            };
+        };
 
         function bindTooltips() {
             const tooltip = document.getElementById('tooltip');
@@ -499,6 +548,8 @@
                 if (el.closest('.sidebar:not(.collapsed)')) return;
 
                 tooltip.textContent = el.getAttribute('data-tooltip');
+                tooltip.style.whiteSpace = el.getAttribute('data-tooltip').length > 40 ? 'normal' : 'nowrap';
+                tooltip.style.maxWidth = '16rem';
                 tooltip.style.opacity = '1';
             }, true);
 
@@ -508,8 +559,14 @@
                 const el = event.target.closest('[data-tooltip]');
                 if (!el) return;
 
-                tooltip.style.left = (event.clientX + 12) + 'px';
-                tooltip.style.top = (event.clientY + 12) + 'px';
+                // Keep it on screen: flip to the left/up of the cursor near an edge
+                const pad = 8, gap = 12;
+                const w = tooltip.offsetWidth, h = tooltip.offsetHeight;
+                let x = event.clientX + gap, y = event.clientY + gap;
+                if (x + w > window.innerWidth - pad) x = event.clientX - gap - w;
+                if (y + h > window.innerHeight - pad) y = event.clientY - gap - h;
+                tooltip.style.left = Math.max(pad, Math.min(x, window.innerWidth - w - pad)) + 'px';
+                tooltip.style.top = Math.max(pad, y) + 'px';
             }, true);
 
             document.addEventListener('mouseleave', (event) => {

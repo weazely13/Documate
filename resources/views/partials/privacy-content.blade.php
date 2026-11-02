@@ -1,228 +1,77 @@
-{{--
-    resources/views/partials/privacy-content.blade.php
+{{-- DocuMate Privacy Policy. One source for the landing page, sign in and registration.
+     Keep it true to what the system actually does: update it whenever a feature collects, shares or shows personal data. --}}
+<p class="legal-title">Last updated November 2, 2026</p>
 
-    Same legal text as the landing page's #modal-privacy body.
-    Included by: login.blade.php, register.blade.php, and the landing page
-    (swap the landing page's inline legal-content block for this same
-    @include if you want a single source of truth).
---}}
+<p>This Privacy Policy explains how DocuMate, the student transaction system of the Office of the Vice President for Student Development (VPSD) of Leyte Normal University (LNU), collects, uses, shares, stores and protects personal information. It is written to comply with the Data Privacy Act of 2012 (Republic Act No. 10173), its Implementing Rules and Regulations, and the issuances of the National Privacy Commission.</p>
 
-<style>
-    .legal-content h4 { font-weight: 700; color: #182c44; margin-top: 1.25rem; margin-bottom: .4rem; }
-    .legal-content h4:first-child { margin-top: 0; }
-    .legal-content p { margin-bottom: .6rem; }
-    .legal-content ul { list-style: disc; padding-left: 1.25rem; margin-bottom: .6rem; }
-    .legal-content li { margin-bottom: .25rem; }
-</style>
+<h4>1. Who is responsible</h4>
+<p>Leyte Normal University is the personal information controller for DocuMate. The VPSD office runs the system day to day. Questions and requests go to the contacts in section 13.</p>
 
-<div class="legal-content">
+<h4>2. What we collect</h4>
+<p><strong>Account and profile:</strong> your name, student number, sex, date of birth, mobile number, home address, the personal email you register with (Gmail, Yahoo or Outlook), college, program, year level, section, academic status, organization, profile photo, role, and your password (stored only in a scrambled, one-way form that no one can read).</p>
+<p><strong>Enrollment verification:</strong> photos of your enrollment slip and the details read from them, used to confirm you are enrolled for the current period.</p>
+<p><strong>Transactions:</strong> the forms you fill in and their answers, files you attach, appointment requests and queue numbers, clearance status for each semester, notes from the office, and the history of each request.</p>
+<p><strong>Signatures:</strong> the e-signature image you save in your profile, and for officials, the time and details of each approval. Each approval is sealed so that later changes can be detected.</p>
+<p><strong>Assistant conversations:</strong> the questions you ask the DocuMate Assistant and, if you leave page sharing on, the name and visible text of the page you are on.</p>
+<p><strong>Technical records:</strong> sign-in attempts, the actions you take in the system, your IP address and browser details, kept in an audit trail for security.</p>
 
-    <p>This Privacy Policy explains how VPSD DocuMate collects, uses, stores, protects, and manages personal information processed through the system.</p>
-    <p>VPSD DocuMate is intended to support the centralized filing and transaction workflow of the Office of the Vice President for Student Development (VPSD) of Leyte Normal University (LNU).</p>
-    <p>The system is designed with consideration of the Data Privacy Act of 2012 (Republic Act No. 10173) and its applicable implementing rules, regulations, and guidance.</p>
+<h4>3. Why we use it</h4>
+<ul>
+    <li>To create and secure your account and confirm you are an enrolled LNU student;</li>
+    <li>To fill in your forms, process your requests, route them to the officials who sign, and issue the finished documents;</li>
+    <li>To manage appointments, clearance and the records the VPSD office must keep;</li>
+    <li>To let anyone holding a DocuMate document confirm that it is genuine (section 6);</li>
+    <li>To answer your questions through the DocuMate Assistant;</li>
+    <li>To keep the system secure, investigate problems, and prepare office reports; and</li>
+    <li>To comply with University policies and the law.</li>
+</ul>
+<p>We do not use your information for purposes unrelated to these, and we do not sell it.</p>
 
-    <h4>1. Information We Collect</h4>
-    <p>Depending on the transaction and user's role, VPSD DocuMate may collect and process information such as:</p>
-    <p class="font-semibold text-gray-700">A. Account Information</p>
-    <ul>
-        <li>Full name;</li>
-        <li>Student number or other University identifier;</li>
-        <li>University email address;</li>
-        <li>Contact information;</li>
-        <li>Program, year level, or other academic identification information necessary for the transaction;</li>
-        <li>Account credentials and authentication-related information; and</li>
-        <li>User role or authorization information.</li>
-    </ul>
-    <p class="font-semibold text-gray-700">B. Transaction Information</p>
-    <p>The system may collect information related to a student's transaction, including:</p>
-    <ul>
-        <li>Type of transaction;</li>
-        <li>Transaction details;</li>
-        <li>Appointment date and time;</li>
-        <li>Transaction status;</li>
-        <li>Submission dates;</li>
-        <li>Office or organization involved;</li>
-        <li>Clearance-related information;</li>
-        <li>Verification information; and</li>
-        <li>Other information necessary to process the requested service.</li>
-    </ul>
-    <p class="font-semibold text-gray-700">C. Uploaded Documents</p>
-    <p>Users may upload photographs, scans, forms, and other documents required for a transaction. These documents may contain personal information and may be processed for document verification, record keeping, transaction processing, and related legitimate University purposes.</p>
-    <p class="font-semibold text-gray-700">D. Automatically Generated or Extracted Information</p>
-    <p>The system may use automated technologies, including OCR and/or artificial intelligence-assisted document processing, to extract or classify information from submitted documents. Examples may include:</p>
-    <ul>
-        <li>Names;</li>
-        <li>Dates;</li>
-        <li>Document types;</li>
-        <li>Transaction identifiers;</li>
-        <li>Signatory information;</li>
-        <li>Other text appearing in submitted documents; and</li>
-        <li>Other metadata necessary for document organization.</li>
-    </ul>
-    <p>Automatically extracted information may be reviewed and corrected by authorized personnel.</p>
+<h4>4. Legal basis</h4>
+<p>We process personal information because it is necessary for the University's functions as a public higher education institution and for the services you request (Sections 12 and 13 of the Data Privacy Act), to comply with legal obligations, and, where the law requires it, with your consent. Saving an e-signature is consent to its use on documents you approve; you may replace it at any time.</p>
 
-    <h4>2. How We Use Personal Information</h4>
-    <p>Personal information collected through VPSD DocuMate may be used for purposes such as:</p>
-    <ul>
-        <li>Creating and managing user accounts;</li>
-        <li>Verifying user identity and authorization;</li>
-        <li>Processing student transactions;</li>
-        <li>Managing appointments;</li>
-        <li>Filing and retrieving transaction records;</li>
-        <li>Processing document submissions;</li>
-        <li>Supporting clearance-related processes;</li>
-        <li>Verifying authorized signatories;</li>
-        <li>Monitoring transaction status;</li>
-        <li>Responding to authorized requests;</li>
-        <li>Maintaining accurate University records;</li>
-        <li>Improving system security and reliability;</li>
-        <li>Generating administrative reports and operational information; and</li>
-        <li>Complying with applicable University policies and legal obligations.</li>
-    </ul>
-    <p>Personal information will not be processed for purposes incompatible with the purpose for which it was collected, except where otherwise permitted or required by applicable law.</p>
+<h4>5. Automated and AI-assisted processing</h4>
+<p>DocuMate uses Google's Gemini AI service to read enrollment slips and attached documents, to check signed paper forms against what was typed, and to power the DocuMate Assistant. AI results only help staff. They never approve, reject or decide a transaction by themselves; authorized personnel review them and make the decision. AI can make mistakes, so tell the VPSD office if a result about you looks wrong.</p>
 
-    <h4>3. Legal Basis for Processing</h4>
-    <p>Personal information may be processed where permitted under applicable Philippine data protection laws, including circumstances involving:</p>
-    <ul>
-        <li>Performance of a lawful and legitimate University function;</li>
-        <li>Compliance with a legal obligation;</li>
-        <li>Fulfillment of a contractual or similar lawful obligation, where applicable;</li>
-        <li>Protection of vital interests, where applicable;</li>
-        <li>Consent, when consent is the appropriate legal basis; or</li>
-        <li>Other lawful bases recognized under applicable data protection laws and regulations.</li>
-    </ul>
-    <p>The appropriate legal basis may depend on the specific transaction and processing activity.</p>
+<h4>6. Who can see your information</h4>
+<ul>
+    <li><strong>You</strong>, for your own account and transactions;</li>
+    <li><strong>Authorized VPSD staff and system administrators</strong>, for the work their role requires;</li>
+    <li><strong>The officials who sign</strong> a document, for that document only. Officials outside DocuMate receive a private, time-limited email link to the document they must sign;</li>
+    <li><strong>Officers of your organization</strong>, for your clearance status only; and</li>
+    <li><strong>Anyone holding a finished DocuMate document.</strong> Each issued document carries a QR code, a reference number and a fingerprint. Whoever has these can open its verification page, which shows the document type, your name, your program, year and section, the document's details (except fields marked sensitive, such as reasons), and who signed it and when. This is how schools, offices and employers confirm a document is genuine, so share your documents only with people who need them.</li>
+</ul>
 
-    <h4>4. AI-Assisted Processing</h4>
-    <p>VPSD DocuMate may use artificial intelligence or automated document-processing technologies to assist with document analysis, extraction, classification, or organization.</p>
-    <p>AI processing does not replace authorized University personnel in making official decisions concerning student transactions. Where automated processing produces inaccurate or incomplete information, authorized personnel may review and correct the resulting information.</p>
-    <p>Users should avoid submitting information that is unrelated to the transaction.</p>
+<h4>7. Service providers and transfers outside the Philippines</h4>
+<p>We use these providers to run DocuMate, each only for the stated task and under its own security and data protection commitments:</p>
+<ul>
+    <li><strong>Google (Gemini API)</strong>: AI reading of documents and the DocuMate Assistant;</li>
+    <li><strong>Brevo</strong>: sending account, password and document emails; and</li>
+    <li><strong>Our hosting provider</strong>: storing the system and its database.</li>
+</ul>
+<p>Some of these providers process data on servers outside the Philippines. When they do, the University remains responsible for your information and requires safeguards comparable to Philippine law. Information may also be disclosed when required by law or a lawful order.</p>
 
-    <h4>5. Who May Access Personal Information</h4>
-    <p>Access to personal information is restricted based on the user's role and authorization. Depending on the transaction, authorized access may be provided to:</p>
-    <ul>
-        <li>The student concerned;</li>
-        <li>Authorized VPSD personnel;</li>
-        <li>Authorized system administrators;</li>
-        <li>Authorized University offices or personnel involved in the transaction;</li>
-        <li>Authorized student organization representatives where applicable to clearance-related processes; and</li>
-        <li>Other authorized persons or entities when required or permitted by law.</li>
-    </ul>
-    <p>Access should be limited to information necessary for the person's authorized function.</p>
+<h4>8. How long we keep it</h4>
+<p>Transaction records and issued documents are official University records and are kept as long as University records policy and the law require, so they can still be verified later. Enrollment-slip photos and assistant conversations are kept only as long as needed for verification, support and security. When information is no longer needed, it is securely deleted or anonymized.</p>
 
-    <h4>6. Data Sharing and Disclosure</h4>
-    <p>LNU does not intend to sell personal information collected through VPSD DocuMate. Personal information may be disclosed or made accessible when reasonably necessary for legitimate University functions, including:</p>
-    <ul>
-        <li>Processing a student's requested transaction;</li>
-        <li>Verification by an authorized University office;</li>
-        <li>Clearance processing;</li>
-        <li>System maintenance or technical support by authorized service providers;</li>
-        <li>Compliance with legal or regulatory requirements;</li>
-        <li>Responding to lawful orders or requests from competent authorities; or</li>
-        <li>Other circumstances permitted by applicable law.</li>
-    </ul>
-    <p>Where third-party service providers process information on behalf of the University, appropriate contractual, organizational, and technical safeguards should be applied as required by applicable law and University policy.</p>
+<h4>9. How we protect it</h4>
+<p>We use role-based access, scrambled password storage, private storage for signatures and documents, sealed approvals that reveal tampering, a tamper-evident audit trail, and limits on repeated sign-in and reset attempts. No system is perfectly secure: keep your password private and report anything suspicious right away.</p>
 
-    <h4>7. Data Retention</h4>
-    <p>Personal information and transaction records may be retained for as long as necessary to:</p>
-    <ul>
-        <li>Complete the relevant transaction;</li>
-        <li>Maintain official University records;</li>
-        <li>Support legitimate administrative purposes;</li>
-        <li>Comply with applicable retention requirements;</li>
-        <li>Resolve disputes or inquiries; or</li>
-        <li>Fulfill other legal or institutional obligations.</li>
-    </ul>
-    <p>Retention periods may vary depending on the type of record and applicable University policies. When information is no longer required to be retained, it should be securely deleted, destroyed, anonymized, or otherwise disposed of in accordance with applicable policies and requirements.</p>
+<h4>10. Your rights</h4>
+<p>Under the Data Privacy Act you have the right to be informed, to access your personal information, to object to processing, to have inaccurate information corrected, to have it erased or blocked where the law allows, to data portability, to be indemnified for damages, and to file a complaint with the National Privacy Commission. You can correct most of your details yourself in your Profile. Some records, such as issued documents, cannot be erased while the University must keep them.</p>
 
-    <h4>8. Data Security</h4>
-    <p>Reasonable organizational, physical, and technical measures should be implemented to protect personal information against unauthorized access, alteration, disclosure, loss, destruction, or other unlawful processing. Security measures may include:</p>
-    <ul>
-        <li>User authentication;</li>
-        <li>Role-based access control;</li>
-        <li>Password protection;</li>
-        <li>Restricted access to sensitive records;</li>
-        <li>Secure storage;</li>
-        <li>Access monitoring;</li>
-        <li>System backups;</li>
-        <li>Security updates; and</li>
-        <li>Other appropriate technical and organizational safeguards.</li>
-    </ul>
-    <p>No electronic system can guarantee absolute security. Users should therefore also protect their account credentials and immediately report suspected unauthorized access.</p>
+<h4>11. Reporting a privacy incident</h4>
+<p>If you think your information was accessed, shared, changed or lost without authorization, tell the VPSD office or the Data Protection Officer immediately. The University will investigate and, where required, notify the National Privacy Commission and the people affected.</p>
 
-    <h4>9. User Responsibilities</h4>
-    <p>Users are responsible for:</p>
-    <ul>
-        <li>Providing accurate information;</li>
-        <li>Keeping their account credentials confidential;</li>
-        <li>Using the system only for authorized purposes;</li>
-        <li>Protecting information accessed through the system;</li>
-        <li>Avoiding unauthorized disclosure of student records; and</li>
-        <li>Reporting suspected security or privacy incidents.</li>
-    </ul>
-    <p>Users must not access, copy, modify, distribute, or disclose personal information beyond what their role and authorization permit.</p>
+<h4>12. Cookies</h4>
+<p>DocuMate uses only the cookies it needs to keep you signed in and to protect forms from forgery. It does not use advertising or tracking cookies.</p>
 
-    <h4>10. Data Privacy Rights</h4>
-    <p>Subject to applicable laws, regulations, and legitimate University requirements, individuals may have rights concerning their personal information, including the right to:</p>
-    <ul>
-        <li>Be informed about the processing of their personal information;</li>
-        <li>Access personal information held about them;</li>
-        <li>Request correction of inaccurate or incomplete information;</li>
-        <li>Object to certain forms of processing;</li>
-        <li>Request deletion or blocking where legally applicable;</li>
-        <li>Withdraw consent where processing is based on consent;</li>
-        <li>Request data portability where applicable; and</li>
-        <li>Lodge a complaint regarding the processing of their personal information.</li>
-    </ul>
-    <p>Some rights may be subject to limitations or exceptions provided by law. Requests may be submitted to the appropriate University office or Data Protection Officer.</p>
+<h4>13. Contact</h4>
+<ul>
+    <li><strong>VPSD office:</strong> Administration Building, 2nd Floor, Leyte Normal University, Tacloban City · lnustudentdevelopment@lnu.edu.ph</li>
+    <li><strong>Data Protection Officer:</strong> Atty. Divina Patty B. Sibay, Legal and Data Protection Officer, Leyte Normal University · info@lnu.edu.ph</li>
+    <li><strong>National Privacy Commission:</strong> privacy.gov.ph</li>
+</ul>
 
-    <h4>11. Privacy and Security Incidents</h4>
-    <p>If a user believes that personal information has been accessed, disclosed, altered, lost, or otherwise processed without authorization, the incident should be reported immediately to the appropriate VPSD personnel, system administrator, or University Data Protection Officer.</p>
-    <p>The University may investigate reported incidents and take appropriate measures in accordance with applicable laws, regulations, and University policies.</p>
-
-    <h4>12. Cookies and Technical Information</h4>
-    <p>VPSD DocuMate may use cookies, sessions, logs, and similar technical mechanisms necessary for functions such as:</p>
-    <ul>
-        <li>User authentication;</li>
-        <li>Maintaining active sessions;</li>
-        <li>Security;</li>
-        <li>System functionality;</li>
-        <li>Performance monitoring; and</li>
-        <li>Troubleshooting.</li>
-    </ul>
-    <p>Technical information collected through these mechanisms should only be used for legitimate system and administrative purposes.</p>
-
-    <h4>13. Third-Party Services</h4>
-    <p>Certain system functions may rely on external or third-party technologies, such as hosting services, authentication services, AI services, document-processing services, email services, or other technical infrastructure.</p>
-    <p>Where third-party services process personal information, their use should be subject to appropriate privacy and security safeguards and applicable agreements or requirements. Users should be informed of significant third-party processing where required by applicable law.</p>
-
-    <h4>14. Children's Privacy</h4>
-    <p>VPSD DocuMate is primarily intended for authorized University users. Where personal information relating to minors is processed, additional safeguards and requirements applicable under Philippine law and University policy shall apply.</p>
-
-    <h4>15. Changes to This Privacy Policy</h4>
-    <p>This Privacy Policy may be updated to reflect changes in:</p>
-    <ul>
-        <li>System functionality;</li>
-        <li>University procedures;</li>
-        <li>Data processing activities;</li>
-        <li>Security practices;</li>
-        <li>Applicable laws or regulations; or</li>
-        <li>Privacy requirements.</li>
-    </ul>
-    <p>The latest version should be made available through VPSD DocuMate or an appropriate University channel.</p>
-
-    <h4>16. Contact Information</h4>
-    <p>For privacy-related questions, requests, or concerns, contact:</p>
-    <p>
-        Office: Office of the Vice President for Student Development<br>
-        Institution: Leyte Normal University<br>
-        Email: [Insert Official VPSD Email]<br>
-        Data Protection Officer: [Insert Official DPO Name/Office]<br>
-        DPO Email: [Insert Official DPO Email]
-    </p>
-
-    <h4>17. Acknowledgment</h4>
-    <p>By using VPSD DocuMate, users acknowledge that they have been provided information regarding the collection and processing of their personal information as described in this Privacy Policy.</p>
-    <p>Where consent is required as the legal basis for a particular processing activity, the appropriate consent mechanism shall be provided separately. This Privacy Policy does not remove or limit any rights provided to individuals under applicable Philippine data protection laws.</p>
-
-</div>
+<h4>14. Changes to this policy</h4>
+<p>We will update this policy when DocuMate changes how it handles personal information, and show the new date at the top. Significant changes will be announced in DocuMate.</p>

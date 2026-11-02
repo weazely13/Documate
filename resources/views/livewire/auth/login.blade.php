@@ -1,67 +1,31 @@
-{{--
-    CHANGES MADE ON THIS PAGE:
-    1. Logo font: already set to font-family: 'Gveret Levin', cursive (same as the
-       landing page's wordmark). Make sure the layout this view renders inside also
-       loads the font, e.g. in the shared <head>:
+<div x-data="{ activeModal: null, agreeTerms: false, agreePrivacy: false }" @keydown.escape.window="activeModal = null">
+    <x-auth.shell>
+        <x-slot:aside>
+            <a href="{{ route('document.lookup') }}" class="hidden items-center gap-1.5 text-[13px] font-medium text-[#4a5568] hover:text-[#2a57b4] sm:inline-flex">
+                <i class="bx bx-shield-quarter text-base text-[#2a57b4]" aria-hidden="true"></i> Verify a document
+            </a>
+        </x-slot:aside>
 
-           <link rel="preconnect" href="https://fonts.googleapis.com">
-           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-           <link href="https://fonts.googleapis.com/css2?family=Gveret+Levin&display=swap" rel="stylesheet">
+        <div class="mx-auto w-full max-w-[24rem] lg:mx-0">
+            <h1 class="text-[1.75rem] font-semibold tracking-[-0.025em] text-[#0d253d] sm:text-[2rem]">Sign in</h1>
+            <p class="mt-1.5 text-[15px] text-[#66707f]">Welcome back. Use your student number or the email on your account.</p>
 
-       If that link isn't already in your layout, the browser falls back to a
-       generic cursive font instead of matching the landing page.
-
-    2. "Keep me signed in" checkbox removed.
-
-    3. Footer "Terms" / "Policy" links now open modals (same structure as the
-       landing page's modals) instead of navigating to /terms and /policy.
---}}
-
-<div class="min-h-screen grid grid-cols-1 md:grid-cols-4 bg-white"
-     x-data="{ activeModal: null, agreeTerms: false, agreePrivacy: false }"
-     @keydown.escape.window="activeModal = null">
-
-    <!-- LEFT SIDE -->
-    <div class="md:col-span-3 flex items-center justify-center p-10 bg-white">
-
-        <div class="w-full max-w-md">
-
-            <!-- LOGO -->
-            <div class="flex flex-col items-center gap-2 mb-6">
-                <img src="/images/favicon.png" class="w-14 h-14 object-contain" alt="DocuMate Logo">
-            </div>
-
-            <!-- TITLE -->
-            <h1 class="text-2xl font-semibold tracking-tight text-center mb-1 text-slate-900">
-                Login to your account
-            </h1>
-            <p class="text-sm text-gray-500 text-center mb-6">
-                Welcome back — sign in to continue to DocuMate.
-            </p>
             @if (session('status'))
-                <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+                <div class="mt-5 flex gap-2.5 rounded-lg bg-[#d9f3e1] px-3.5 py-3 text-sm text-[#065f46]" role="status">
+                    <i class="bx bx-check-circle mt-0.5 text-base"></i><span>{{ session('status') }}</span>
+                </div>
             @endif
-            <form wire:submit.prevent="loginUser" class="space-y-4">
 
-                <!-- LOGIN -->
+            <form wire:submit.prevent="loginUser" class="mt-7 space-y-4">
                 <div>
-                    <label class="text-sm font-medium text-gray-700">Student Number or Email <span class="text-red-500">*</span></label>
-
-                    <input
-                        wire:model.live="login"
-                        placeholder="e.g. 202312345 or juan@gmail.com"
-                        class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30
-                        @error('login') border-red-500 @enderror
-                        @if($login && !$errors->has('login')) border-green-500 @endif">
-
-                    @error('login')
-                        <p class="error">{{ $message }}</p>
-                    @enderror
+                    <label for="login" class="text-[13px] font-medium text-[#273951]">Student number or email</label>
+                    <input id="login" wire:model="login" autocomplete="username" autofocus placeholder="e.g. 2100273 or juan@gmail.com"
+                           class="input @error('login') !border-[#be123c] @enderror">
+                    @error('login') <p class="error">{{ $message }}</p> @enderror
                     @if ($canRecover)
-                        <div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+                        <div class="mt-2 rounded-lg bg-[#fef3c7] px-3 py-2.5 text-[13px] text-[#78350f]">
                             Your account was removed, but it can be restored.
-                            <button type="button" wire:click="sendRecovery" wire:loading.attr="disabled" wire:target="sendRecovery"
-                                    class="font-semibold text-[#2A57B4] underline">
+                            <button type="button" wire:click="sendRecovery" wire:loading.attr="disabled" wire:target="sendRecovery" class="font-medium text-[#1e4090] underline">
                                 <span wire:loading.remove wire:target="sendRecovery">Email me a recovery link</span>
                                 <span wire:loading wire:target="sendRecovery">Sending…</span>
                             </button>
@@ -69,189 +33,127 @@
                     @endif
                 </div>
 
-
-                <!-- PASSWORD -->
-                <div x-data="{ show:false }">
-                    <label class="text-sm font-medium text-gray-700">Password <span class="text-red-500">*</span></label>
-
+                <div x-data="{ show: false }">
+                    <div class="flex items-center justify-between">
+                        <label for="password" class="text-[13px] font-medium text-[#273951]">Password</label>
+                        <button type="button" wire:click="openForgot" class="text-[13px] font-medium text-[#2a57b4] hover:underline underline-offset-4">Forgot password?</button>
+                    </div>
                     <div class="relative">
-                        <input
-                            :type="show ? 'text' : 'password'"
-                            wire:model.live="password"
-                            placeholder="Enter your password"
-                            class="input pr-10 focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30
-                            @error('password') border-red-500 @enderror
-                            @if($password && !$errors->has('password')) border-green-500 @endif">
-
-                        <!-- EYE ICON -->
-                        <button type="button"
-                            @click="show = !show"
-                            class="absolute right-3 top-3 text-gray-500 hover:text-[#2A57B4] transition">
-
-                            <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-
-                            <svg x-show="show" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.223-3.592M6.1 6.1A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.043 5.207M15 12a3 3 0 00-3-3m0 0a3 3 0 00-3 3m3-3v6" />
-                            </svg>
-
+                        <input id="password" :type="show ? 'text' : 'password'" wire:model="password" autocomplete="current-password" placeholder="Your password"
+                               class="input pr-11 @error('password') !border-[#be123c] @enderror">
+                        <button type="button" @click="show = !show" class="absolute right-1 top-1.5 grid h-11 w-10 place-items-center text-[#9a978f] hover:text-[#273951]" :aria-label="show ? 'Hide password' : 'Show password'">
+                            <i class="bx text-xl" :class="show ? 'bx-hide' : 'bx-show'" aria-hidden="true"></i>
                         </button>
                     </div>
-
-                    @error('password')
-                        <p class="error">{{ $message }}</p>
-                    @enderror
-                    <div class="mt-1.5 text-right">
-                        <button type="button" wire:click="$set('showForgot', true)" class="text-xs font-medium text-[#2A57B4] hover:underline">
-                            Forgot password?
-                        </button>
-                    </div>
+                    @error('password') <p class="error">{{ $message }}</p> @enderror
                 </div>
 
-                {{-- "Keep me signed in" checkbox removed per request --}}
-
-                <!-- LOGIN BUTTON -->
-                <button
-                    type="submit"
-                    class="w-full h-11 bg-[#2A57B4] hover:bg-[#24499A] active:bg-[#1E4090] text-white font-medium rounded-lg shadow-sm transition-colors">
-                    Sign In
+                <button type="submit" wire:loading.attr="disabled" wire:target="loginUser"
+                        class="!mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#2a57b4] text-[15px] font-medium text-white shadow-[0_6px_16px_-6px_rgba(42,87,180,0.55)] transition hover:bg-[#24499a] active:bg-[#1e4090] disabled:opacity-70">
+                    <i wire:loading wire:target="loginUser" class="bx bx-loader-alt animate-spin"></i>
+                    <span>Sign in</span>
                 </button>
-
             </form>
 
-            <!-- DIVIDER -->
-            <div class="flex items-center my-6">
-                <div class="flex-grow h-px bg-gray-200"></div>
-                <span class="mx-3 text-gray-400 text-sm">or</span>
-                <div class="flex-grow h-px bg-gray-200"></div>
-            </div>
-
-            <!-- REGISTER BUTTON -->
-            <a href="/register"
-               class="flex h-11 w-full items-center justify-center bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-800 font-medium rounded-lg shadow-sm transition-colors">
-                Create an account
-            </a>
-
-            <!-- TERMS -->
-            <p class="mt-6 text-xs text-gray-500 text-center">
-                By signing in you agree to our
-                <button type="button" @click="activeModal = 'terms'" class="text-[#2A57B4] hover:underline font-medium">Terms</button>
-                and
-                <button type="button" @click="activeModal = 'privacy'" class="text-[#2A57B4] hover:underline font-medium">Policy</button>.
+            <p class="mt-6 text-center text-sm text-[#4a5568]">
+                New to DocuMate? <a href="{{ route('register') }}" class="font-medium text-[#2a57b4] hover:underline underline-offset-4">Create a student account</a>
             </p>
 
-        </div>
-    </div>
-
-
-    <!-- RIGHT SIDE IMAGE -->
-    <div class="hidden md:flex md:col-span-1 relative bg-cover bg-center items-end"
-         style="background-image: url('/images/backdrop.jpg');">
-        <div class="absolute inset-0 bg-gradient-to-t from-[#2A57B4]/90 via-[#2A57B4]/40 to-transparent"></div>
-        <div class="relative z-10 p-8 text-white">
-            <p class="text-2xl font-bold leading-snug">
-                Tap, select, access.
-            </p>
-            <p class="text-sm text-white/80 mt-2">
-                Transparent, streamlined student transactions.
+            <p class="mt-8 text-center text-xs leading-relaxed text-[#9a978f]">
+                By signing in you agree to the
+                <button type="button" @click="activeModal = 'terms'" class="font-medium text-[#4a5568] underline decoration-[#d4d1cb] underline-offset-2 hover:text-[#2a57b4]">Terms &amp; Conditions</button>
+                and the
+                <button type="button" @click="activeModal = 'privacy'" class="font-medium text-[#4a5568] underline decoration-[#d4d1cb] underline-offset-2 hover:text-[#2a57b4]">Privacy Policy</button>.
             </p>
         </div>
-    </div>
+    </x-auth.shell>
 
-    <!-- ===== TERMS MODAL ===== -->
-    <div x-show="activeModal === 'terms'" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8" style="display:none;">
-        <div class="absolute inset-0 bg-black/50" @click="activeModal = null"></div>
-        <div class="relative bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[85vh]">
+    {{-- ===== Forgot password ===== --}}
+    @if ($showForgot)
+        <div class="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:px-4" role="dialog" aria-modal="true" aria-labelledby="forgot-title">
+            <div class="absolute inset-0 bg-[#0d253d]/45 backdrop-blur-[2px]" wire:click="closeForgot"></div>
+            <div class="relative max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-6 shadow-2xl sm:rounded-xl sm:p-7">
+                <button type="button" wire:click="closeForgot" class="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg text-[#9a978f] hover:bg-[#f5f4f2] hover:text-[#273951]" aria-label="Close"><i class="bx bx-x text-xl"></i></button>
 
-            <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
-                <div>
-                    <p class="text-[.7rem] uppercase tracking-wider text-[#2A57B4] font-bold">VPSD DocuMate — Leyte Normal University</p>
-                    <h3 class="text-2xl font-semibold tracking-tight text-slate-900 mt-1">Terms & Conditions</h3>
-                    <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
-                </div>
-                <button type="button" @click="activeModal = null" class="text-gray-400 hover:text-gray-700 transition shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
-                    </svg>
-                </button>
-            </div>
+                @if ($forgotStep === 'ask')
+                    <span class="grid h-11 w-11 place-items-center rounded-xl bg-[#dcecfa] text-[#2a57b4]"><i class="bx bx-lock-open-alt text-2xl"></i></span>
+                    <h2 id="forgot-title" class="mt-4 text-xl font-semibold tracking-[-0.015em] text-[#0d253d]">Reset your password</h2>
+                    <p class="mt-1.5 text-sm leading-relaxed text-[#4a5568]">Enter the email on your account and either your last name or your ID number. We'll send the link only to the email saved on your account.</p>
 
-            <div class="px-6 md:px-8 py-5 overflow-y-auto text-sm text-gray-600">
-                {{-- Pull this from the same partial used on the landing page and
-                     register page so all three stay word-for-word identical:
-                     @include('partials.terms-content') --}}
-                @include('partials.terms-content')
-            </div>
+                    <form wire:submit="sendResetLink" class="mt-5 space-y-3.5">
+                        <div>
+                            <label for="resetEmail" class="text-[13px] font-medium text-[#273951]">Email on your account</label>
+                            <input id="resetEmail" type="email" wire:model="resetEmail" autocomplete="email" placeholder="you@gmail.com"
+                                   class="input @error('resetEmail') !border-[#be123c] @enderror">
+                            @error('resetEmail') <p class="error">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="rounded-lg border border-[#e7e5e1] bg-[#fafaf9] p-3.5">
+                            <p class="text-[13px] font-medium text-[#273951]">And one of these</p>
+                            <div class="mt-2 grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                                <div>
+                                    <label for="resetLastName" class="sr-only">Last name</label>
+                                    <input id="resetLastName" wire:model="resetLastName" autocomplete="family-name" placeholder="Last name"
+                                           class="input !mt-0 @error('resetLastName') !border-[#be123c] @enderror">
+                                </div>
+                                <span class="self-center text-center text-xs text-[#9a978f]">or</span>
+                                <div>
+                                    <label for="resetStudentNumber" class="sr-only">Student or ID number</label>
+                                    <input id="resetStudentNumber" wire:model="resetStudentNumber" autocomplete="off" placeholder="Student / ID no."
+                                           class="input !mt-0 @error('resetStudentNumber') !border-[#be123c] @enderror">
+                                </div>
+                            </div>
+                            @error('resetLastName') <p class="error">{{ $message }}</p> @enderror
+                            @error('resetStudentNumber') <p class="error">{{ $message }}</p> @enderror
+                            @if (! $errors->has('resetLastName') && ! $errors->has('resetStudentNumber'))
+                                <p class="mt-1.5 text-xs text-[#9a978f]">Signatories without an ID number can use their last name.</p>
+                            @endif
+                        </div>
+                        <button type="submit" wire:loading.attr="disabled" wire:target="sendResetLink"
+                                class="!mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#2a57b4] text-[15px] font-medium text-white hover:bg-[#24499a] disabled:opacity-70">
+                            <i wire:loading wire:target="sendResetLink" class="bx bx-loader-alt animate-spin"></i> Send reset link
+                        </button>
+                    </form>
+                    <button type="button" wire:click="closeForgot" class="mt-3 flex w-full items-center justify-center gap-1 text-sm font-medium text-[#4a5568] hover:text-[#2a57b4]"><i class="bx bx-left-arrow-alt text-lg"></i> Back to sign in</button>
 
-            <div class="px-6 md:px-8 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <label class="flex items-start gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                    <input type="checkbox" x-model="agreeTerms" class="mt-0.5 w-4 h-4 accent-[#2A57B4] shrink-0">
-                    <span>I have read and agree to the Terms and Conditions.</span>
-                </label>
-                <button type="button" :disabled="!agreeTerms" @click="activeModal = null"
-                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-lg font-medium transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
-                    I Agree
-                </button>
-            </div>
-        </div>
-    </div>
+                @elseif ($forgotStep === 'mismatch')
+                    <span class="grid h-11 w-11 place-items-center rounded-xl bg-[#fef3c7] text-[#b45309]"><i class="bx bx-envelope text-2xl"></i></span>
+                    <h2 id="forgot-title" class="mt-4 text-xl font-semibold tracking-[-0.015em] text-[#0d253d]">That email isn't on your account</h2>
 
-    <!-- ===== PRIVACY MODAL ===== -->
-    <div x-show="activeModal === 'privacy'" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8" style="display:none;">
-        <div class="absolute inset-0 bg-black/50" @click="activeModal = null"></div>
-        <div class="relative bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[85vh]">
+                    @if ($hintEmail)
+                        <p class="mt-1.5 text-sm leading-relaxed text-[#4a5568]">
+                            Your name and ID number match an account, but it doesn't use <span class="font-medium text-[#0d253d]">{{ $resetEmail }}</span>, so nothing was sent there.
+                        </p>
+                        <div class="mt-5 rounded-lg bg-[#f0f4fb] p-4 ring-1 ring-[#d3dcee]">
+                            <p class="text-[13px] text-[#4a5568]">Your account uses</p>
+                            <p class="mt-0.5 break-all font-mono text-base font-semibold tracking-wide text-[#0d253d]">{{ $hintEmail }}</p>
+                            <button type="button" wire:click="sendToHint" wire:loading.attr="disabled" wire:target="sendToHint"
+                                    class="mt-3.5 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#2a57b4] text-sm font-medium text-white hover:bg-[#24499a] disabled:opacity-70">
+                                <i wire:loading wire:target="sendToHint" class="bx bx-loader-alt animate-spin"></i> Send the reset link to this email
+                            </button>
+                        </div>
+                        <p class="mt-3 text-xs leading-relaxed text-[#66707f]">Can't open that inbox anymore? Visit the VPSD office (Administration Building, 2nd Floor) with your school ID to change the email on your account.</p>
+                    @else
+                        <p class="mt-1.5 text-sm leading-relaxed text-[#4a5568]">
+                            No account matches <span class="font-medium text-[#0d253d]">{{ $resetEmail }}</span> with that name, so nothing was sent.
+                            Check the spelling, or use your student / ID number instead and we'll show you which email your account uses.
+                        </p>
+                    @endif
 
-            <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
-                <div>
-                    <p class="text-[.7rem] uppercase tracking-wider text-[#2A57B4] font-bold">VPSD DocuMate — Leyte Normal University</p>
-                    <h3 class="text-2xl font-semibold tracking-tight text-slate-900 mt-1">Privacy Policy</h3>
-                    <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
-                </div>
-                <button type="button" @click="activeModal = null" class="text-gray-400 hover:text-gray-700 transition shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="px-6 md:px-8 py-5 overflow-y-auto text-sm text-gray-600">
-                @include('partials.privacy-content')
-            </div>
-
-            <div class="px-6 md:px-8 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <label class="flex items-start gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                    <input type="checkbox" x-model="agreePrivacy" class="mt-0.5 w-4 h-4 accent-[#2A57B4] shrink-0">
-                    <span>I have read and agree to the Privacy Policy.</span>
-                </label>
-                <button type="button" :disabled="!agreePrivacy" @click="activeModal = null"
-                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-lg font-medium transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
-                    I Agree
-                </button>
-            </div>
-        </div>
-    </div>
-        @if ($showForgot)
-        <div class="fixed inset-0 z-[100] flex items-center justify-center px-4" role="dialog" aria-modal="true">
-            <div class="absolute inset-0 bg-black/50" wire:click="$set('showForgot', false)"></div>
-            <form wire:submit="sendResetLink" class="relative w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
-                <h3 class="text-lg font-semibold tracking-tight text-slate-900">Reset your password</h3>
-                <p class="text-sm text-gray-500">Enter the email on your account and we'll send you a reset link.</p>
-                <div>
-                    <input type="email" wire:model="resetEmail" placeholder="you@gmail.com" autofocus
-                        class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30 @error('resetEmail') border-red-500 @enderror">
                     @error('resetEmail') <p class="error">{{ $message }}</p> @enderror
-                </div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" wire:click="$set('showForgot', false)" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
-                    <button type="submit" class="rounded-lg bg-[#2A57B4] px-5 py-2 text-sm font-medium text-white hover:bg-[#24499A]">Send link</button>
-                </div>
-            </form>
+                    <button type="button" wire:click="$set('forgotStep', 'ask')" class="mt-5 flex w-full items-center justify-center gap-1 text-sm font-medium text-[#4a5568] hover:text-[#2a57b4]"><i class="bx bx-left-arrow-alt text-lg"></i> Change my details</button>
+
+                @else
+                    <span class="grid h-11 w-11 place-items-center rounded-xl bg-[#d9f3e1] text-[#059669]"><i class="bx bx-mail-send text-2xl"></i></span>
+                    <h2 id="forgot-title" class="mt-4 text-xl font-semibold tracking-[-0.015em] text-[#0d253d]">Check your email</h2>
+                    <p class="mt-1.5 text-sm leading-relaxed text-[#4a5568]">
+                        We sent a reset link to <span class="break-all font-mono font-semibold text-[#0d253d]">{{ $sentTo }}</span>, the email on your account.
+                        It works for 60 minutes. Check your spam folder if it isn't there in a minute.
+                    </p>
+                    <button type="button" wire:click="closeForgot" class="mt-6 flex h-11 w-full items-center justify-center rounded-lg bg-[#2a57b4] text-[15px] font-medium text-white hover:bg-[#24499a]">Back to sign in</button>
+                @endif
+            </div>
         </div>
     @endif
 
+    @include('livewire.auth.partials.legal-modals')
 </div>

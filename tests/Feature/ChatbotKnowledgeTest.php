@@ -31,11 +31,11 @@ class ChatbotKnowledgeTest extends TestCase
         ]]);
 
         Livewire::test(ChatWidget::class)
-            ->assertSee('Hello. DocuMate assistant at your service. How may I be at your service?')
+            ->assertSee(ChatWidget::GREETING)
             ->assertDontSee('Hello. How can I assist you with Leyte Normal University or the DocuMate system today?');
 
         $this->assertSame(
-            'Hello. DocuMate assistant at your service. How may I be at your service?',
+            ChatWidget::GREETING,
             session('chatbot.messages.0.content'),
         );
     }

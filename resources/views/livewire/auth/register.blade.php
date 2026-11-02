@@ -27,53 +27,36 @@
 <div x-data="{ showError: false }"
      x-on:validation-error.window="showError = true">
 
-<div class="min-h-screen grid grid-cols-1 md:grid-cols-4 bg-white">
+<x-auth.shell wide image="images/fourcoverstudents.png">
+    <x-slot:aside>
+        <a href="{{ route('login') }}" class="inline-flex items-center gap-1 text-[13px] font-medium text-[#4a5568] hover:text-[#2a57b4]">
+            <i class="bx bx-left-arrow-alt text-lg"></i> Back to sign in
+        </a>
+    </x-slot:aside>
 
-    <!-- LEFT -->
-    <div class="md:col-span-3 flex items-center justify-center p-10 bg-white">
+        <div class="w-full">
+            <h1 class="text-[1.75rem] font-semibold tracking-[-0.025em] text-[#0d253d] sm:text-[2rem]">Create your account</h1>
+            <p class="mt-1.5 text-[15px] text-[#66707f]">Three short steps. Have your current enrollment slip ready for the last one.</p>
 
-        <div class="w-full max-w-3xl">
-
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-3">
-                    <img src="/images/favicon.png" class="w-10 h-10 object-contain" alt="DocuMate Logo">
-                </div>
-
-                <!-- BACK TO SIGN IN -->
-                <a href="/login" class="inline-flex items-center gap-1 text-sm font-medium text-[#2A57B4] hover:underline">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to Sign In
-                </a>
-            </div>
-
-            <h1 class="text-2xl font-semibold tracking-tight text-slate-900 mb-6">
-                Create your account
-            </h1>
-
-            <!-- PROGRESS -->
-            <div class="mb-8">
-                <div class="flex justify-between text-sm mb-2">
-                    <span class="{{ $step >= 1 ? 'text-[#2A57B4] font-semibold' : 'text-gray-400' }}">Personal</span>
-                    <span class="{{ $step >= 2 ? 'text-[#2A57B4] font-semibold' : 'text-gray-400' }}">Academic</span>
-                    <span class="{{ $step >= 3 ? 'text-[#2A57B4] font-semibold' : 'text-gray-400' }}">Account</span>
-                </div>
-
-                <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div class="h-full transition-all duration-300
-                        {{ $step == 1 ? 'w-1/3 bg-[#2A57B4]' : '' }}
-                        {{ $step == 2 ? 'w-2/3 bg-[#2A57B4]' : '' }}
-                        {{ $step == 3 ? 'w-full bg-[#FFBF00]' : '' }}">
-                    </div>
-                </div>
-            </div>
+            {{-- Steps --}}
+            <ol class="mb-8 mt-6 grid grid-cols-3 gap-2" aria-label="Registration steps">
+                @foreach (['Personal', 'Academic', 'Account'] as $i => $label)
+                    @php $n = $i + 1; @endphp
+                    <li class="min-w-0">
+                        <div class="h-1.5 rounded-full {{ $step > $n ? 'bg-[#059669]' : ($step === $n ? 'bg-[#2a57b4]' : 'bg-[#ecebe7]') }}"></div>
+                        <p class="mt-2 flex items-center gap-1.5 truncate text-[13px] {{ $step >= $n ? 'font-medium text-[#0d253d]' : 'text-[#9a978f]' }}" @if ($step === $n) aria-current="step" @endif>
+                            @if ($step > $n)<i class="bx bx-check-circle text-base text-[#059669]"></i>@else<span class="tabular-nums {{ $step === $n ? 'text-[#2a57b4]' : '' }}">{{ $n }}.</span>@endif
+                            {{ $label }}
+                        </p>
+                    </li>
+                @endforeach
+            </ol>
 
             <form wire:submit.prevent="register" class="space-y-4">
 
                 {{-- STEP 1 --}}
                 @if($step == 1)
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
                     <div>
                         <label class="text-sm font-medium text-gray-700">Student Number <span class="text-red-500">*</span></label>
@@ -161,7 +144,7 @@
 
                 {{-- STEP 2 --}}
                 @if($step == 2)
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
                     <div>
                         <label class="text-sm font-medium text-gray-700">College <span class="text-red-500">*</span></label>
@@ -420,23 +403,19 @@
                     </div>
 
                     <!-- TERMS & PRIVACY AGREEMENT (required to enable Register) -->
-                    <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                        <p class="text-sm font-medium text-gray-700 mb-2">Before you register, please review and accept:</p>
-                        <div class="flex flex-wrap gap-4">
-                            <button type="button" @click="activeModal = 'terms'"
-                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#2A57B4] hover:underline">
-                                <span x-show="agreedTerms" class="text-green-600">✔</span>
-                                Terms and Conditions
-                            </button>
-                            <button type="button" @click="activeModal = 'privacy'"
-                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#2A57B4] hover:underline">
-                                <span x-show="agreedPrivacy" class="text-green-600">✔</span>
-                                Privacy Policy
-                            </button>
+                    <div class="rounded-xl border border-[#e7e5e1] bg-[#fafaf9] p-4">
+                        <p class="text-sm font-medium text-[#0d253d]">Read and accept both to register</p>
+                        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                            @foreach (['terms' => ['Terms & Conditions', 'agreedTerms', 'bx-file'], 'privacy' => ['Privacy Policy', 'agreedPrivacy', 'bx-shield-quarter']] as $key => [$label, $flag, $icon])
+                                <button type="button" @click="activeModal = '{{ $key }}'"
+                                        class="flex items-center gap-2.5 rounded-lg border bg-white px-3 py-2.5 text-left text-sm transition"
+                                        :class="{{ $flag }} ? 'border-[#a7e3bd] text-[#065f46]' : 'border-[#d4d1cb] text-[#0d253d] hover:border-[#2a57b4]'">
+                                    <i class="bx text-lg" :class="{{ $flag }} ? 'bx-check-circle text-[#059669]' : '{{ $icon }} text-[#2a57b4]'"></i>
+                                    <span class="flex-1 font-medium">{{ $label }}</span>
+                                    <span class="text-xs" :class="{{ $flag }} ? 'text-[#059669]' : 'text-[#9a978f]'" x-text="{{ $flag }} ? 'Accepted' : 'Read'"></span>
+                                </button>
+                            @endforeach
                         </div>
-                        <p x-show="!agreedTerms || !agreedPrivacy" class="text-xs text-gray-400 mt-2">
-                            You must open and agree to both before you can register.
-                        </p>
                     </div>
 
                     <div class="pt-4">
@@ -450,77 +429,8 @@
                         </button>
                     </div>
 
-                    <!-- ===== TERMS MODAL — same structure as landing page ===== -->
-                    <div x-show="activeModal === 'terms'" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8" style="display:none;">
-                        <div class="absolute inset-0 bg-black/50" @click="activeModal = null"></div>
-                        <div class="relative bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[85vh]">
-
-                            <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
-                                <div>
-                                    <p class="text-[.7rem] uppercase tracking-wider text-[#2A57B4] font-bold">VPSD DocuMate — Leyte Normal University</p>
-                                    <h3 class="text-2xl font-semibold tracking-tight text-slate-900 mt-1">Terms & Conditions</h3>
-                                    <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
-                                </div>
-                                <button type="button" @click="activeModal = null" class="text-gray-400 hover:text-gray-700 transition shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <div class="px-6 md:px-8 py-5 overflow-y-auto text-sm text-gray-600">
-                                @include('partials.terms-content')
-                            </div>
-
-                            <div class="px-6 md:px-8 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                <label class="flex items-start gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                                    <input type="checkbox" x-model="termsBoxChecked" class="mt-0.5 w-4 h-4 accent-[#2A57B4] shrink-0">
-                                    <span>I have read and agree to the Terms and Conditions.</span>
-                                </label>
-                                <button type="button" :disabled="!termsBoxChecked"
-                                    @click="agreedTerms = true; activeModal = null"
-                                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-lg font-medium transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
-                                    I Agree
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ===== PRIVACY MODAL — same structure as landing page ===== -->
-                    <div x-show="activeModal === 'privacy'" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8" style="display:none;">
-                        <div class="absolute inset-0 bg-black/50" @click="activeModal = null"></div>
-                        <div class="relative bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[85vh]">
-
-                            <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
-                                <div>
-                                    <p class="text-[.7rem] uppercase tracking-wider text-[#2A57B4] font-bold">VPSD DocuMate — Leyte Normal University</p>
-                                    <h3 class="text-2xl font-semibold tracking-tight text-slate-900 mt-1">Privacy Policy</h3>
-                                    <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
-                                </div>
-                                <button type="button" @click="activeModal = null" class="text-gray-400 hover:text-gray-700 transition shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <div class="px-6 md:px-8 py-5 overflow-y-auto text-sm text-gray-600">
-                                @include('partials.privacy-content')
-                            </div>
-
-                            <div class="px-6 md:px-8 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                <label class="flex items-start gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                                    <input type="checkbox" x-model="privacyBoxChecked" class="mt-0.5 w-4 h-4 accent-[#2A57B4] shrink-0">
-                                    <span>I have read and agree to the Privacy Policy.</span>
-                                </label>
-                                <button type="button" :disabled="!privacyBoxChecked"
-                                    @click="agreedPrivacy = true; activeModal = null"
-                                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-lg font-medium transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
-                                    I Agree
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <x-legal-dialog name="terms" show="activeModal === 'terms'" check="termsBoxChecked" agree="agreedTerms = true; activeModal = null" />
+                    <x-legal-dialog name="privacy" show="activeModal === 'privacy'" check="privacyBoxChecked" agree="agreedPrivacy = true; activeModal = null" />
 
                 </div>
 
@@ -531,39 +441,22 @@
                 <div class="flex justify-between pt-6">
                     @if($step > 1)
                         <button type="button" wire:click="prevStep"
-                            class="px-5 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg transition">
-                            Back
+                            class="inline-flex h-11 items-center gap-1 rounded-lg border border-[#d4d1cb] bg-white px-4 text-[15px] font-medium text-[#0d253d] hover:bg-[#f5f4f2]">
+                            <i class="bx bx-left-arrow-alt text-lg"></i> Back
                         </button>
                     @endif
 
                     @if($step < 3)
                         <button type="button" wire:click="nextStep"
-                            class="px-5 py-2 bg-[#2A57B4] hover:opacity-90 text-white rounded-lg font-medium transition ml-auto">
-                            Next
+                            class="ml-auto inline-flex h-11 items-center gap-1 rounded-lg bg-[#2a57b4] px-5 text-[15px] font-medium text-white shadow-[0_6px_16px_-6px_rgba(42,87,180,0.55)] hover:bg-[#24499a]">
+                            Next <i class="bx bx-right-arrow-alt text-lg"></i>
                         </button>
                     @endif
                 </div>
 
             </form>
-
         </div>
-    </div>
-
-    <div class="hidden md:flex md:col-span-1 relative bg-cover bg-center items-end"
-         style="background-image: url('/images/backdrop.jpg');">
-        <div class="absolute inset-0 bg-gradient-to-t from-[#2A57B4]/90 via-[#2A57B4]/40 to-transparent"></div>
-        <div class="relative z-10 p-8 text-white">
-            <p class="text-2xl font-bold leading-snug">
-                Join DocuMate.
-            </p>
-            <p class="text-sm text-white/80 mt-2">
-                Set up your account to start filing transactions.
-            </p>
-        </div>
-    </div>
-
-</div>
-
+</x-auth.shell>
 
 <!-- MODAL: incomplete form error -->
 <div x-show="showError"
