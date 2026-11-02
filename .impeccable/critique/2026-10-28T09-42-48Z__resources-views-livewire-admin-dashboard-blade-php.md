@@ -46,7 +46,7 @@ Copy authored for DocuMate; structure is stock SaaS (5 identical panel templates
 - Non-technical staff: numbers don't add up; signature steps vs requests unexplained; jargon; no fix link; help hidden.
 
 ## Minor
-"1 are ongoing transaction"; appointments "this month" follows viewed month, approvals count is all-time; no-semester clearance copy; org list cut at 6; empty-state wording drift; uneven Waiting-to-sign tile; legend repeats tiles; strip label truncation on phone.
+"1 are in progress"; appointments "this month" follows viewed month, approvals count is all-time; no-semester clearance copy; org list cut at 6; empty-state wording drift; uneven Waiting-to-sign tile; legend repeats tiles; strip label truncation on phone.
 
 ## Questions
 - One prioritised "Do next" list instead of four equal sections?
