@@ -78,13 +78,14 @@
                 <span>{{ $next }}</span>
             </p>
         @endif
-        @unless ($closed)
+        {{-- The four steps are the paperless journey; a paper form is handled at the office, so it has none --}}
+        @if ($wf && ! $closed)
             <span class="mt-2 grid max-w-[9rem] grid-cols-4 gap-1" role="img" aria-label="Step {{ $step }} of 4">
                 @for ($i = 1; $i <= 4; $i++)
                     <span class="h-1 rounded-full {{ $i <= $step ? 'bg-emerald-500' : ($i === $step + 1 && $tone !== 'done' ? ($tone === 'you' ? 'bg-amber-400' : 'bg-[#2A57B4]') : 'bg-slate-200') }}"></span>
                 @endfor
             </span>
-        @endunless
+        @endif
         <span class="mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 sm:hidden {{ $pill }}">{{ $label }}</span>
     </div>
 

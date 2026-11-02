@@ -1650,6 +1650,17 @@ body.report-pdf-open .chatbot-tip { display: none; }
   body:has(.chatbot-panel-open) .chatbot-btn { opacity: 0; pointer-events: none; }
 }
 
+/* Mobile: the open sidebar drawer sits on top. The assistant steps out of the way and returns as it was when the drawer closes */
+@media (max-width: 767px) {
+  body:has(.sidebar.mobile-open) .chatbot-btn,
+  body:has(.sidebar.mobile-open) .chatbot-tip,
+  body:has(.sidebar.mobile-open) .chatbot-panel {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chatbot-btn, .chatbot-btn i, .chatbot-panel, .chatbot-row, .chatbot-typing-dot {
     animation: none !important;
