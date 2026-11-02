@@ -42,11 +42,6 @@
                 :class="share ? '!text-[#2a57b4]' : ''">
             <i class='bx' :class="share ? 'bx-show' : 'bx-hide'"></i>
         </button>
-        @unless ($isFresh)
-            <button type="button" wire:click="newChat" wire:confirm="Start a new chat? This conversation will be cleared." class="chatbot-new-btn" aria-label="Start a new chat">
-                <i class='bx bx-plus'></i><span>New chat</span>
-            </button>
-        @endunless
         <button type="button" data-chatbot-close class="chatbot-icon-btn" aria-label="Close the assistant">
             <i class='bx bx-x'></i>
         </button>

@@ -230,20 +230,6 @@ class ChatWidget extends Component
         $this->sendMessage($screen);
     }
 
-    /** Start over: clears the conversation. */
-    public function newChat(): void
-    {
-        session()->forget([$this->sessionKey, $this->screenKey]);
-        $this->messages = [[
-            'role' => 'assistant',
-            'content' => self::GREETING,
-        ]];
-        $this->persist();
-        $this->quickReplies = $this->defaultQuickReplies();
-        $this->isThinking = false;
-        $this->input = '';
-    }
-
     /** @param array $screen what the browser sees: path, title, headings, notices, visible text */
     public function sendMessage(array $screen = []): void
     {

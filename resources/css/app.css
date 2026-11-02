@@ -1329,14 +1329,6 @@ body:has(> .layout) {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .chatbot-icon-btn:hover { background: #f5f4f2; color: #0d253d; }
-.chatbot-new-btn {
-  display: inline-flex; align-items: center; gap: 0.25rem; height: 2rem; flex-shrink: 0;
-  padding: 0 0.6rem 0 0.45rem; border: 1px solid #e7e5e1; border-radius: 8px; background: #fff;
-  color: #273951; font-size: 12.5px; font-weight: 500; cursor: pointer; transition: background-color .15s ease, border-color .15s ease;
-}
-.chatbot-new-btn i { font-size: 1.05rem; color: #2a57b4; }
-.chatbot-new-btn:hover { background: #f0f4fb; border-color: #c9d6f0; }
-.chatbot-new-btn:focus-visible { outline: 2px solid #2a57b4; outline-offset: 1px; }
 .chatbot-icon-btn:focus-visible { outline: 2px solid #2a57b4; outline-offset: 1px; }
 
 /* Conversation */
