@@ -1,326 +1,344 @@
 @extends('layouts.public')
 
-@section('title', 'DocuMate')
+@section('title', 'DocuMate · Student transactions at LNU')
+
+@php
+    $btnPrimary = 'inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-[#2a57b4] px-4 text-sm font-medium sm:h-11 sm:gap-2 sm:px-5 sm:text-[15px] text-white shadow-[0_6px_16px_-6px_rgba(42,87,180,0.55)] transition hover:bg-[#24499a] active:bg-[#1e4090] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2a57b4] focus-visible:ring-offset-2';
+    $btnSecondary = 'inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[#d4d1cb] bg-white px-4 text-sm font-medium sm:h-11 sm:gap-2 sm:px-5 sm:text-[15px] text-[#0d253d] shadow-sm transition hover:bg-[#f5f4f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2a57b4] focus-visible:ring-offset-2';
+    $h2 = 'text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] text-[#0d253d] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]';
+    $lead = 'text-[14.5px] leading-relaxed text-[#4a5568] sm:text-base lg:text-[17px]';
+
+@endphp
 
 @section('content')
 
-    <!-- ================= HERO ================= -->
-    <section class="min-h-screen flex items-center bg-white pt-28 overflow-hidden">
+    {{-- ================= HERO ================= --}}
+    <section class="dm-ledger relative overflow-hidden pt-24 sm:pt-32">
+        <div class="relative mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] items-end gap-6 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-6">
 
-        <div class="w-full grid md:grid-cols-2 items-center">
-
-            <!-- LEFT SIDE -->
-            <div class="px-8 md:px-16 reveal">
-
-                <h1 class="text-6xl md:text-8xl font-semibold tracking-wide text-[#2A57B4] leading-tight" style="font-family: 'Montserrat', sans-serif;">
-                    Tap,
-                    select,
-                    access.
+            <div class="relative z-10 pb-2 lg:pb-24">
+                <h1 class="text-[2.05rem] font-semibold leading-[1.06] tracking-[-0.03em] text-[#0d253d] sm:text-[3.4rem] lg:text-[4.2rem] [text-wrap:balance]">
+                    Request, track and sign student documents
+                    <span class="relative whitespace-nowrap text-[#2a57b4]">in one place<svg class="absolute -bottom-2 left-0 h-3 w-full text-[#2a57b4]/35" viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 80 2, 160 12, 298 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>
                 </h1>
-            
-                <p class="text-lg text-gray-600 my-8 leading-relaxed max-w-lg">
-                    A smarter way to manage student transactions, automate workflows,
-                    and ensure transparent multi-office approvals.
+                <p class="mt-5 max-w-xl sm:mt-7 {{ $lead }}">
+                    DocuMate is the digital desk of the Office of the Vice President for Student Development at Leyte Normal University.
+                    Fill in forms online, book a visit, follow every signature, and download the finished document.
                 </p>
-
-                <div class="flex flex-col sm:mt-20 mb-20 gap-4 items-start">
-
-                    <!-- Login Button -->
-                    <a href="{{ route('login') }}"
-                    class="px-20 py-3 bg-[#2A57B4] text-white rounded-full font-bold hover:opacity-90 hover:scale-[1.03] active:scale-95 transition-all shadow-lg shadow-[#2A57B4]/20">
-                        Sign in
-                    </a>
-
-                    <!-- Sign Up Text Link -->
-                    <a href="{{ route('register') }}"
-                    class="text-sm text-gray-600 hover:text-[#2A57B4] transition">
-                        Don't have an account yet? Sign up here.
-                    </a>
-                    <a href="{{ route('document.lookup') }}"
-                    class="inline-flex items-center gap-2 text-sm font-semibold text-[#2A57B4] hover:underline underline-offset-4 transition">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 3v6c0 4.5-3.2 8.3-8 9-4.8-.7-8-4.5-8-9V6l8-3Z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/>
-                        </svg>
-                        Verify a document
-                    </a>
-
+                <div class="mt-7 grid grid-cols-2 gap-2 sm:mt-9 sm:flex sm:gap-3">
+                    <a href="{{ route('login') }}" class="{{ $btnPrimary }}">Sign in <i class="bx bx-right-arrow-alt text-lg" aria-hidden="true"></i></a>
+                    <a href="{{ route('register') }}" class="{{ $btnSecondary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
                 </div>
-
-            </div>
-
-            <!-- RIGHT SIDE -->
-            <div class="h-full flex items-end reveal reveal-delay-1">
-
-                <img src="{{ asset('images/coverboy.png') }}"
-                    alt="DocuMate Cover"
-                    class="w-full h-full object-cover float-slow">
-
-            </div>
-
-        </div>
-
-    </section>
-
-    <!-- ================= ABOUT ================= -->
-    <section id="about" class="py-24 bg-[#2A57B4] text-white overflow-hidden">
-
-        <!-- Mobile order: ABOUT, DOCU MATE, paragraph. Desktop: title left, ABOUT + paragraph right. -->
-        <div class="max-w-5xl mx-auto px-4 md:px-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 items-center text-center md:text-left">
-
-            <h2 class="order-1 md:order-none md:col-start-2 md:row-start-1 md:self-end md:pl-4 text-3xl font-bold md:mb-0 reveal reveal-delay-1">
-                ABOUT
-            </h2>
-
-            <div class="order-2 md:order-none md:col-start-1 md:row-start-1 md:row-span-2 md:self-center text-center md:text-right md:pr-4 reveal">
-                <h1 class="text-[26vw] md:text-9xl font-bold leading-[0.9] tracking-tight"
-                    style="font-family: 'Montserrat', sans-serif;">
-                    DOCU<br>
-                    MATE
-                </h1>
-            </div>
-
-            <p class="order-3 md:order-none md:col-start-2 md:row-start-2 md:self-start md:pl-4 text-white/90 leading-relaxed text-lg reveal reveal-delay-1">
-                DocuMate is a centralized student transaction system designed to enhance
-                efficiency, transparency, and accountability. It integrates structured
-                workflows, digital records management, and role-based access control
-                to streamline university operations.
-            </p>
-
-        </div>
-
-        <!-- Institution logos -->
-        <div class="max-w-5xl mx-auto px-4 md:px-6 mt-16 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 text-center sm:text-left reveal">
-            <div class="flex items-center gap-5">
-                <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University"
-                    class="size-20 md:size-24 object-contain rounded-full bg-white p-1 shadow-lg">
-                <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services"
-                    class="size-20 md:size-24 object-contain rounded-full bg-white p-1 shadow-lg">
-            </div>
-            <div class="text-white/90 leading-snug">
-                <p class="text-sm uppercase tracking-widest text-white/70">Developed for</p>
-                <p class="text-lg font-semibold">Office of the Vice President for Student Development (OVPSD)</p>
-                <p class="text-lg font-semibold">Office of Student Development and Auxiliary Services</p>
-                <p class="text-base">Leyte Normal University, Tacloban City</p>
-            </div>
-        </div>
-
-    </section>
-
-    <!-- ================= ABOUT THE SYSTEM ================= -->
-    <section id="system" class="py-24 bg-white">
-        <div class="max-w-5xl mx-auto px-6">
-
-            <h1 class="text-3xl font-medium text-[#2A57B4] text-center  max-w-3xl mx-auto mb-12 leading-relaxed reveal">What it does?</h1>
-
-            @php
-                $features = [
-                    ['Student accounts',        'Registration and account management for students.'],
-                    ['Document submission',     'Submit and manage documents and requests online.'],
-                    ['Transaction management',  'Track each transaction from request to completion.'],
-                    ['Centralized records',     'Student records and files kept in one organized place.'],
-                    ['Appointments and requests', 'Schedule and manage appointments and requests.'],
-                    ['Clearance management',    'Handle clearance-related processes digitally.'],
-                    ['Search and retrieval',    'Find the records you need quickly.'],
-                    ['AI-assisted help',        'Document and office assistance for users.'],
-                ];
-            @endphp
-
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
-                @foreach ($features as $i => [$title, $desc])
-                    <div class="bg-white p-6 rounded-2xl border border-gray-200 border-t-4 border-t-[#2A57B4] shadow-sm reveal reveal-delay-{{ ($i % 4) + 1 }}">
-                        <h3 class="font-semibold text-gray-800 mb-1">{{ $title }}</h3>
-                        <p class="text-sm text-gray-600">{{ $desc }}</p>
-                    </div>
-                @endforeach
-            </div>
-
-            <!-- Who uses it -->
-            <div class="text-center reveal">
-                <p class="text-sm font-semibold text-[#2A57B4] mb-3">Who uses it</p>
-                <div class="flex flex-wrap justify-center gap-2">
-                    <span class="px-4 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-full">Students</span>
-                    <span class="px-4 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-full">VPSD Secretary / Admin</span>
-                    <span class="px-4 py-1.5 text-sm bg-cyan-100 text-cyan-700 rounded-full">Authorized VPSD staff</span>
-                    <span class="px-4 py-1.5 text-sm bg-amber-100 text-amber-700 rounded-full">Student organization officers</span>
-                </div>
-            </div>
-
-            <p class="text-center text-gray-500 max-w-2xl mx-auto mt-12 text-sm reveal">
-                DocuMate makes student documents easier to organize and retrieve, reducing the difficulty
-                of traditional manual record keeping.
-            </p>
-        </div>
-    </section>
-
-    <!-- ================= ORGANIZATION CHART ================= -->
-    <section id="orgchart" class="py-24 bg-gray-50">
-        <div class="max-w-5xl mx-auto px-6">
-
-            <h2 class="text-3xl font-medium text-[#2A57B4] text-center reveal">Leyte Normal University</h2>
-            <h1 class="text-4xl md:text-6xl font-semibold text-[#2A57B4] mb-4 text-center reveal">Organization Chart</h1>
-            <p class="text-center text-gray-600 max-w-2xl mx-auto mb-10 reveal">
-                Directory of academic and administrative staffs, organized by office. Expand a section to view its members.
-            </p>
-
-            <!-- DROPDOWN TOGGLE -->
-            <div class="text-center mb-6 reveal">
-                <button id="orgchart-toggle" type="button" aria-expanded="false" aria-controls="orgchart-body"
-                    class="inline-flex items-center gap-2 px-6 py-3 bg-[#2A57B4] text-white rounded-full font-semibold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[#2A57B4]/20">
-                    <span id="orgchart-toggle-label">Show organization chart</span>
-                    <svg id="orgchart-toggle-icon" class="w-4 h-4 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>
-                </button>
-            </div>
-
-            <div id="orgchart-body" class="hidden">
-
-                <!-- TABS -->
-                <div class="flex justify-center gap-6 sm:gap-10 border-b border-gray-200 mb-6">
-                    <button data-orgtab="administrative" class="org-tab active pb-3 text-base sm:text-lg font-semibold text-[#2A57B4]">
-                        Administrative Staffs
-                    </button>
-                    <button data-orgtab="academic" class="org-tab pb-3 text-base sm:text-lg font-semibold text-gray-500">
-                        Academic Staffs
-                    </button>
-                </div>
-
-                <!-- PANELS -->
-                <div id="orgchart-panels" class="org-scroll max-h-[70vh] md:max-h-[640px] overflow-y-auto pr-1 sm:pr-2">
-                    <div data-orgpanel="administrative"></div>
-                    <div data-orgpanel="academic" class="hidden"></div>
-                </div>
-
-            </div>
-
-            <p class="text-center text-xs text-gray-400 mt-6">
-                Source: Leyte Normal University — Academic &amp; Administrative Staffs directory.
-            </p>
-        </div>
-    </section>
-
-    <!-- ================= LOCATION ================= -->
-    <section id="location" class="py-24 bg-white">
-        <div class="max-w-5xl mx-auto px-6">
-
-            <h2 class="text-3xl font-medium text-[#2A57B4] text-center reveal">Visit us</h2>
-            <h1 class="text-5xl md:text-6xl font-semibold text-[#2A57B4] mb-10 text-center reveal">Campus Location</h1>
-
-            <div class="grid md:grid-cols-3 gap-8 items-start">
-
-                <!-- MAP -->
-                <div class="md:col-span-2 rounded-2xl overflow-hidden shadow-lg border border-gray-200 reveal">
-                    <iframe
-                        src="https://maps.google.com/maps?q=Leyte+Normal+University,+Tacloban+City,+Leyte,+Philippines&z=17&output=embed"
-                        class="w-full h-[420px]"
-                        style="border:0"
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade"
-                        title="Campus location map">
-                    </iframe>
-                </div>
-
-                <!-- DETAILS -->
-                <div class="flex flex-col gap-6 reveal reveal-delay-1">
-
-                    <div class="flex items-start gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-[#2A57B4] shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-6.1-7-11a7 7 0 1 1 14 0c0 4.9-7 11-7 11Z"/>
-                            <circle cx="12" cy="10" r="2.5"/>
-                        </svg>
-                        <div>
-                            <p class="font-semibold text-gray-800">Address</p>
-                            <p class="text-sm text-gray-600">P. Paterno St., Brgy. 50, Tacloban City, Leyte, Philippines</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-[#2A57B4] shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 5c0 8.3 6.7 15 15 15h1a1 1 0 0 0 1-1v-2.7a1 1 0 0 0-.8-1L17 14a1 1 0 0 0-1.1.5l-.7 1.4a12 12 0 0 1-5.1-5.1L11.5 10a1 1 0 0 0 .5-1.1L10.7 5.8a1 1 0 0 0-1-.8H7a1 1 0 0 0-1 1Z"/>
-                        </svg>
-                        <div>
-                            <p class="font-semibold text-gray-800">Phone</p>
-                            <p class="text-sm text-gray-600">+63 (53) 832 3205</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-[#2A57B4] shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18v12H3V6Zm0 0 9 7 9-7"/>
-                        </svg>
-                        <div>
-                            <p class="font-semibold text-gray-800">Email</p>
-                            <p class="text-sm text-gray-600">info@lnu.edu.ph</p>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ================= FAQ PREVIEW ================= -->
-    <section id="faqs" class="pt-24 pb-28 bg-white">
-        <div class="max-w-4xl mx-auto px-6">
-
-            <h1 class="text-left text-6xl font-semibold text-[#2A57B4] mb-5 reveal">
-                Frequently asked questions...
-            </h1>
-            <h2 class="text-left text-xl text-gray-600 mb-10 reveal">
-                These are the commonly asked questions about the system, its features, and its security measures. Can't find your question here? Feel free to contact us for more information!
-            </h2>
-
-            @php
-                // First three questions from config/faqs.php
-                $preview = collect(config('faqs'))->flatten(1)->take(3);
-            @endphp
-
-            <div class="space-y-12">
-                @foreach ($preview as $item)
-                    <div class="flex flex-col gap-5 reveal">
-                        <div class="flex justify-end">
-                            <div class="bg-white border border-gray-200 text-[#2A57B4]
-                                        font-semibold px-6 py-4 rounded-3xl rounded-tr-md
-                                        max-w-md text-base shadow-md hover:shadow-lg transition">
-                                {{ $item['q'] }}
-                            </div>
-                        </div>
-                        <div class="flex justify-start">
-                            <div class="bg-[#2A57B4] text-white font-semibold
-                                        px-6 py-4 rounded-3xl rounded-tl-md
-                                        max-w-md text-base shadow-md hover:shadow-lg transition">
-                                {{ $item['a'] }}
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <div class="mt-14 reveal">
-                <a href="{{ route('faqs') }}"
-                   class="inline-block px-10 py-3 bg-[#2A57B4] text-white rounded-full font-bold hover:opacity-90 hover:scale-[1.03] active:scale-95 transition-all shadow-lg shadow-[#2A57B4]/20">
-                    View all FAQs
+                <a href="{{ route('document.lookup') }}" class="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2a57b4] underline-offset-4 hover:underline sm:mt-6 sm:text-sm">
+                    <i class="bx bx-shield-quarter text-base" aria-hidden="true"></i> Verify a DocuMate document
                 </a>
             </div>
+
+            {{-- The students --}}
+            <div class="relative mx-auto h-[18.5rem] w-full max-w-[24rem] sm:h-[30rem] sm:max-w-[30rem] lg:h-[40rem] lg:max-w-none">
+                <div class="absolute bottom-0 left-1/2 aspect-square w-[92%] -translate-x-1/2 translate-y-[18%] rounded-full bg-[#dcecfa]" aria-hidden="true"></div>
+                <div class="absolute bottom-[20%] right-[6%] h-24 w-24 rounded-full bg-[#e6e0f5] sm:h-32 sm:w-32" aria-hidden="true"></div>
+                <img src="{{ asset('images/fourcoverstudents.png') }}" alt="Four LNU students with their phones, laptops and papers"
+                     class="absolute bottom-0 left-1/2 h-full w-auto max-w-none -translate-x-1/2 object-contain object-bottom">
+            </div>
         </div>
     </section>
 
-    <!-- ================= CREATORS (moved to the bottom) ================= -->
-    <section id="creators" class="py-24 bg-gray-50">
-        <div class="max-w-6xl mx-auto px-6 text-center">
+    {{-- ================= WHERE IT'S USED ================= --}}
+    <section id="about" class="border-y border-[#e7e5e1] bg-white">
+        <div class="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 sm:gap-4 sm:px-8 sm:py-6 md:flex-row md:items-center md:justify-between">
+            <div class="flex items-center gap-3">
+                <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" class="h-8 w-8 object-contain sm:h-9 sm:w-9">
+                <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services" class="h-8 w-8 object-contain sm:h-9 sm:w-9">
+                <p class="text-[13px] leading-snug sm:text-sm text-[#4a5568]"><span class="block font-medium text-[#0d253d] sm:inline">Leyte Normal University</span><span class="hidden sm:inline"> · </span>Office of the VP for Student Development, Tacloban City</p>
+            </div>
+            <p class="text-[13px] text-[#66707f] sm:text-sm">Used by students, organization officers, VPSD staff and the officials who sign.</p>
+        </div>
+    </section>
 
-            <h2 class="text-xl md:text-3xl font-medium text-[#2A57B4] reveal">MEET THE TEAM</h2>
-            <h1 class="text-4xl md:text-6xl font-semibold text-[#2A57B4] mb-4 reveal">THE CREATORS</h1>
-            <h2 class="text-base md:text-2xl text-gray-600 px-2 md:px-28 mb-8 reveal">
-                A dedicated team committed to building an efficient, innovative, and user-centered student transaction system.
-            </h2>
-
-            <!-- GROUP PHOTO -->
-            <div class="w-full mb-10 reveal">
-                <img src="{{ asset('images/coverpeople.png') }}"
-                    alt="DocuMate Team"
-                    class="w-full h-auto object-contain">
+    {{-- ================= THE ROUTE (routing slip) ================= --}}
+    <section id="how" class="bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
+        <div class="mx-auto max-w-7xl px-5 sm:px-8">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-end">
+                <h2 class="{{ $h2 }}">Every request travels the same route. Now you can watch it.</h2>
+                <p class="{{ $lead }} lg:pb-1">No more asking at the window whether the Dean has signed. Each step is stamped the moment it happens, and you get an email when it's your turn.</p>
             </div>
 
+            {{-- Desktop: a routing slip --}}
+            <div class="mt-12 hidden overflow-hidden rounded-xl border border-[#d4d1cb] bg-white shadow-[0_24px_48px_-32px_rgba(13,37,61,0.4)] md:block">
+                <div class="flex items-center justify-between border-b-2 border-[#0d253d] px-6 py-3">
+                    <p class="text-sm font-semibold text-[#0d253d]">Routing slip · <span class="font-mono font-normal text-[#4a5568]">VPSD-2026-00143</span></p>
+                    <p class="text-xs text-[#66707f]">Admission Slip</p>
+                </div>
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-[#fafaf9] text-[13px] text-[#66707f]">
+                        <tr>
+                            <th class="w-[22%] px-6 py-2.5 font-medium">Desk</th>
+                            <th class="px-6 py-2.5 font-medium">What happens there</th>
+                            <th class="w-[18%] px-6 py-2.5 font-medium">When</th>
+                            <th class="w-[17%] px-6 py-2.5 font-medium">Stamp</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#ecebe7]">
+                        @foreach ([
+                            ['You', 'Pick the form. Your name, program and section are already filled in from your profile.', 'Nov 1 · 9:14 AM', 'Received', '#2a57b4', '-4deg'],
+                            ['VPSD office', 'Staff check it, helped by an AI reading of anything you attached, or send it back with a note.', 'Nov 1 · 10:02 AM', 'Checked', '#0891b2', '3deg'],
+                            ['Signatories', 'Each official gets an email in turn and signs online, in the order the form needs.', 'Nov 2 · 8:55 AM', 'Signed', '#6d4fc2', '-2deg'],
+                            ['DocuMate', 'The finished document is sealed. Any change after this would break the seal.', 'Nov 2 · 9:03 AM', 'Sealed', '#059669', '4deg'],
+                        ] as [$desk, $what, $when, $stamp, $color, $rot])
+                            <tr>
+                                <td class="px-6 py-5 align-top font-medium text-[#0d253d]">{{ $desk }}</td>
+                                <td class="px-6 py-5 align-top leading-relaxed text-[#4a5568]">{{ $what }}</td>
+                                <td class="px-6 py-5 align-top font-mono text-[12.5px] text-[#4a5568]">{{ $when }}</td>
+                                <td class="px-6 py-4 align-top">
+                                    <span class="dm-rubber inline-block" style="--c: {{ $color }}; transform: rotate({{ $rot }})">{{ $stamp }}</span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Phones: the same route, top to bottom --}}
+            <ol class="mt-8 space-y-2.5 md:hidden">
+                @foreach ([
+                    ['You', 'Pick the form. Your details are already filled in.', 'Received', '#2a57b4'],
+                    ['VPSD office', 'Staff check it, or send it back with a note.', 'Checked', '#0891b2'],
+                    ['Signatories', 'Each official signs online, in order.', 'Signed', '#6d4fc2'],
+                    ['DocuMate', 'The finished document is sealed.', 'Sealed', '#059669'],
+                ] as [$desk, $what, $stamp, $color])
+                    <li class="flex items-start justify-between gap-3 rounded-xl border border-[#e7e5e1] bg-white p-3.5">
+                        <div class="min-w-0">
+                            <p class="text-[15px] font-medium text-[#0d253d]">{{ $desk }}</p>
+                            <p class="mt-0.5 text-[13px] leading-relaxed text-[#4a5568]">{{ $what }}</p>
+                        </div>
+                        <span class="dm-rubber dm-rubber-sm shrink-0" style="--c: {{ $color }}; transform: rotate(-3deg)">{{ $stamp }}</span>
+                    </li>
+                @endforeach
+            </ol>
+        </div>
+    </section>
+
+    {{-- ================= TWO DESKS (file folders) ================= --}}
+    <section id="features" class="bg-white py-14 sm:py-20 lg:py-28">
+        <div class="mx-auto max-w-7xl px-5 sm:px-8">
+            <h2 class="{{ $h2 }} max-w-3xl">One record, two sides of the counter</h2>
+            <p class="mt-5 max-w-2xl {{ $lead }}">Students and the office work on the same document, so what you see is exactly what they see.</p>
+
+            <div class="mt-10 grid sm:mt-14 grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-14 lg:grid-cols-2">
+                {{-- Student folder --}}
+                <article class="dm-folder relative" style="--tab: #dcecfa; --body: #dcecfa;">
+                    <span class="dm-folder-tab">For students and officers</span>
+                    <div class="relative overflow-hidden rounded-b-xl rounded-tr-xl bg-[var(--body)] p-5 sm:p-8">
+                        <div class="relative z-10 sm:max-w-[19rem]">
+                            <h3 class="text-xl font-semibold tracking-[-0.02em] text-[#0d253d] sm:text-2xl">Ask once. Follow it to the end.</h3>
+                            <ul class="mt-4 space-y-2.5 text-sm text-[#273951] sm:mt-5 sm:space-y-3 sm:text-[15px]">
+                                @foreach (['Request permits, slips and clearances online', 'Book a visit and get a queue number', 'See who has signed, and who is next', 'Download the sealed PDF when it is done', 'Check your clearance for the semester'] as $item)
+                                    <li class="flex gap-2.5"><i class="bx bx-check mt-0.5 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{{ $item }}</span></li>
+                                @endforeach
+                            </ul>
+                            <a href="{{ route('register') }}" class="mt-6 inline-flex items-center gap-1 text-sm font-medium sm:mt-7 sm:text-[15px] text-[#1e4090] underline-offset-4 hover:underline">Create your account <i class="bx bx-right-arrow-alt text-lg"></i></a>
+                        </div>
+                        <img src="{{ asset('images/coverstudent.png') }}" alt="A student with his phone and his printed form"
+                             class="absolute -bottom-6 -right-4 hidden h-[105%] w-auto object-contain sm:block">
+                    </div>
+                </article>
+
+                {{-- Office folder --}}
+                <article class="dm-folder relative" style="--tab: #e6e0f5; --body: #e6e0f5;">
+                    <span class="dm-folder-tab">For the VPSD office and signatories</span>
+                    <div class="rounded-b-xl rounded-tr-xl bg-[var(--body)] p-5 sm:p-8">
+                        <h3 class="text-xl font-semibold tracking-[-0.02em] text-[#0d253d] sm:text-2xl">The whole desk, without the stack.</h3>
+                        <p class="mt-3 max-w-md text-sm leading-relaxed text-[#273951] sm:text-[15px]">See what is new, what an AI check flagged, and what has waited too long, then send it for signing in one move.</p>
+                        <div class="mt-6 overflow-hidden rounded-lg border border-white bg-white shadow-[0_18px_36px_-24px_rgba(13,37,61,0.5)]" aria-hidden="true">
+                            <div class="flex items-center justify-between border-b border-[#e7e5e1] px-4 py-2.5">
+                                <span class="text-[13px] font-semibold text-[#0d253d]">To review</span>
+                                <span class="text-[11px] text-[#9f1239]">3 waiting 7+ school days</span>
+                            </div>
+                            @foreach ([
+                                ['Permit to Conduct an In-Campus Activity', 'Looks fine', 'bg-[#d9f3e1] text-[#065f46]'],
+                                ['Disciplinary Action Slip', 'Worth a look', 'bg-[#fef3c7] text-[#78350f]'],
+                                ['Model Student Peer Rating', 'Looks fine', 'bg-[#d9f3e1] text-[#065f46]'],
+                            ] as [$doc, $ai, $tone])
+                                <div class="flex items-center gap-3 border-b border-[#f0eeea] px-4 py-2.5 last:border-0">
+                                    <img src="{{ asset('images/lnulogo.png') }}" alt="" class="h-6 w-6 shrink-0 rounded-full object-contain">
+                                    <span class="min-w-0 flex-1 truncate text-[12.5px] text-[#273951]">{{ $doc }}</span>
+                                    <span class="shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium {{ $tone }}">{{ $ai }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                        <a href="{{ route('login') }}" class="mt-6 inline-flex items-center gap-1 text-sm font-medium sm:mt-7 sm:text-[15px] text-[#4c2f9e] underline-offset-4 hover:underline">Sign in to the office desk <i class="bx bx-right-arrow-alt text-lg"></i></a>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    {{-- ================= ASSISTANT (index cards) ================= --}}
+    <section id="assistant" class="dm-ledger overflow-hidden border-t border-[#e7e5e1] py-14 sm:py-20 lg:py-28">
+        <div class="mx-auto max-w-7xl px-5 sm:px-8">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
+                <h2 class="{{ $h2 }}">Ask before you line up</h2>
+                <p class="{{ $lead }}">The DocuMate Assistant sits on every page. It knows which screen you're on, LNU's offices and buildings, and the Student Handbook, and it tells you when something isn't in its records.</p>
+            </div>
+
+            <div class="mt-8 grid gap-4 sm:mt-14 sm:gap-6 md:grid-cols-3">
+                @foreach ([
+                    ['Where is the Guidance Office?', 'Student Center Building, 1st Floor.', 'From the LNU office directory', '-1.2deg'],
+                    ['What does the handbook say about the uniform?', 'Wear the complete uniform on weekdays, except Wednesday, which is wash day.', 'Student Handbook, p. 38', '0.8deg'],
+                    ['Who is Mr. Juan dela Cruz, my math teacher?', "I don't have him in DocuMate's records. Your department office can help.", 'It says so when it doesn\'t know', '-0.6deg'],
+                ] as [$q, $a, $src, $rot])
+                    <figure class="dm-index-card" style="transform: rotate({{ $rot }})">
+                        <blockquote>
+                            <p class="text-sm font-medium text-[#0d253d] sm:text-[15px]">“{{ $q }}”</p>
+                            <p class="mt-3 flex gap-2 border-t border-[#f3c2c8] pt-3 text-sm leading-relaxed text-[#273951] sm:mt-4 sm:pt-4 sm:text-[15px]"><i class="bx bx-bot mt-0.5 shrink-0 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{{ $a }}</span></p>
+                        </blockquote>
+                        <figcaption class="mt-4 text-xs text-[#66707f]">{{ $src }}</figcaption>
+                    </figure>
+                @endforeach
+            </div>
+            <p class="mt-8 text-center text-[13px] text-[#4a5568] sm:mt-10 sm:text-sm"><a href="{{ route('login') }}" class="font-medium text-[#2a57b4] underline-offset-4 hover:underline">Sign in</a> and look for the robot in the corner of any page.</p>
+        </div>
+    </section>
+
+    {{-- ================= WHAT MAKES IT HOLD UP ================= --}}
+    <section class="bg-[#0d253d] py-14 text-white sm:py-20 lg:py-28">
+        <div class="mx-auto grid max-w-7xl gap-8 px-5 sm:gap-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-20">
+            <div>
+                <h2 class="text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]">A copy anyone can check, years from now</h2>
+                <p class="mt-4 text-[14.5px] leading-relaxed text-[#c3cedd] sm:mt-5 sm:text-base lg:text-[17px]">
+                    Every signature is sealed the moment it is given. If one word of a finished document changed, the seal would no longer match,
+                    and the verify page would say so.
+                </p>
+                <a href="{{ route('document.lookup') }}" class="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-medium sm:mt-8 sm:h-11 sm:px-5 sm:text-[15px] text-[#0d253d] transition hover:bg-[#f0f4fb]">
+                    <i class="bx bx-shield-quarter text-lg text-[#2a57b4]" aria-hidden="true"></i> Verify a document
+                </a>
+            </div>
+            <dl class="grid gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-2">
+                @foreach ([
+                    ['A QR code on every copy', 'Scan it to open the sealed record behind the paper.'],
+                    ['A fingerprint you can type', 'No camera? The reference and fingerprint printed at the bottom work too.'],
+                    ['Withdrawn copies say so', 'If the office voids a document, its page shows it, and points to the corrected one.'],
+                    ['Records that outlast the form', 'Finished documents stay readable even after a form is changed or retired.'],
+                ] as [$t, $d])
+                    <div class="bg-[#0d253d] p-4 sm:p-6">
+                        <dt class="text-sm font-semibold sm:text-[15px]">{{ $t }}</dt>
+                        <dd class="mt-1.5 text-[13px] leading-relaxed text-[#c3cedd] sm:mt-2 sm:text-sm">{{ $d }}</dd>
+                    </div>
+                @endforeach
+            </dl>
+        </div>
+    </section>
+
+    {{-- ================= ORGANIZATION DIRECTORY ================= --}}
+    <section id="orgchart" class="bg-white py-14 sm:py-20 lg:py-28">
+        <div class="mx-auto max-w-7xl px-5 sm:px-8">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
+                <h2 class="{{ $h2 }}">Who's who at Leyte Normal University</h2>
+                <p class="{{ $lead }}">The university's academic and administrative staff, by office. Search for a name or a role, or pick an office.</p>
+            </div>
+
+            <div class="mt-8 overflow-hidden rounded-xl border border-[#e7e5e1] bg-white shadow-[0_24px_48px_-36px_rgba(13,37,61,0.4)] sm:mt-10">
+                {{-- Controls --}}
+                <div class="flex flex-col gap-3 border-b border-[#e7e5e1] bg-[#fafaf9] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                    <div class="grid grid-cols-2 rounded-lg bg-[#ecebe7] p-1 sm:inline-flex" role="tablist" aria-label="Staff group">
+                        <button type="button" role="tab" data-orgtab="administrative" aria-selected="true" class="org-seg rounded-md px-3 py-1.5 text-[13px] font-medium sm:px-3.5 sm:text-sm">Administrative <span data-orgcount="administrative" class="ml-1 tabular-nums text-[#66707f]"></span></button>
+                        <button type="button" role="tab" data-orgtab="academic" aria-selected="false" class="org-seg rounded-md px-3 py-1.5 text-[13px] font-medium sm:px-3.5 sm:text-sm">Academic <span data-orgcount="academic" class="ml-1 tabular-nums text-[#66707f]"></span></button>
+                    </div>
+                    <div class="relative sm:w-80">
+                        <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9a978f]" aria-hidden="true"></i>
+                        <input id="org-search" type="search" placeholder="Search a name, office or role" aria-label="Search the directory"
+                               class="h-10 w-full rounded-lg border-[#d4d1cb] bg-white pl-9 pr-3 text-sm text-[#0d253d] placeholder:text-[#9a978f] focus:border-[#2a57b4] focus:ring-2 focus:ring-[#2a57b4]/15">
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-[17rem_minmax(0,1fr)]">
+                    {{-- Offices --}}
+                    <nav id="org-offices" aria-label="Offices"
+                         class="flex gap-2 overflow-x-auto border-b border-[#e7e5e1] p-3 [scrollbar-width:none] lg:max-h-[42rem] lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:p-3 [&::-webkit-scrollbar]:hidden"></nav>
+                    {{-- People --}}
+                    <div id="org-people" class="org-scroll p-3 sm:p-6 lg:max-h-[42rem] lg:overflow-y-auto" aria-live="polite"></div>
+                </div>
+            </div>
+            <p class="mt-3 text-[11px] text-[#9a978f] sm:mt-4 sm:text-xs">Source: Leyte Normal University, Academic &amp; Administrative Staffs directory. Photos will be added when available.</p>
+        </div>
+    </section>
+
+    {{-- ================= LOCATION ================= --}}
+    <section id="location" class="border-t border-[#e7e5e1] bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
+        <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-8 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
+            <div>
+                <h2 class="{{ $h2 }}">Where to find the VPSD office</h2>
+                <p class="mt-5 {{ $lead }}">Administration Building, 2nd Floor, at the main campus in Tacloban City.</p>
+                <dl class="mt-6 divide-y divide-[#e7e5e1] border-y border-[#e7e5e1] sm:mt-8">
+                    @foreach ([
+                        ['bx-map', 'Address', 'P. Paterno St., Brgy. 50, Tacloban City, Leyte', null],
+                        ['bx-time-five', 'Office hours', 'Monday to Friday, 8:00 AM to 5:00 PM', null],
+                        ['bx-phone', 'Phone', '+63 (53) 832 3205', 'tel:+63538323205'],
+                        ['bx-envelope', 'Email', 'info@lnu.edu.ph', 'mailto:info@lnu.edu.ph'],
+                    ] as [$icon, $label, $value, $href])
+                        <div class="flex items-start gap-3 py-3 sm:gap-4 sm:py-4">
+                            <i class="bx {{ $icon }} mt-0.5 text-lg text-[#2a57b4] sm:text-xl" aria-hidden="true"></i>
+                            <dt class="w-24 shrink-0 text-[13px] text-[#66707f] sm:w-28 sm:text-sm">{{ $label }}</dt>
+                            <dd class="min-w-0 text-sm font-medium text-[#0d253d] sm:text-[15px]">
+                                @if ($href)<a href="{{ $href }}" class="hover:text-[#2a57b4]">{{ $value }}</a>@else{{ $value }}@endif
+                            </dd>
+                        </div>
+                    @endforeach
+                </dl>
+            </div>
+            <div class="overflow-hidden rounded-xl border border-[#e7e5e1] bg-white p-1.5 shadow-[0_24px_48px_-36px_rgba(13,37,61,0.45)]">
+                <iframe src="https://maps.google.com/maps?q=Leyte+Normal+University,+Tacloban+City,+Leyte,+Philippines&z=17&output=embed"
+                        class="h-[240px] w-full rounded-lg sm:h-[360px] lg:h-[440px]" style="border:0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map of Leyte Normal University"></iframe>
+            </div>
+        </div>
+    </section>
+
+    {{-- ================= FAQ PREVIEW ================= --}}
+    <section id="faqs" class="bg-white py-14 sm:py-20 lg:py-28">
+        <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
+            <div>
+                <h2 class="{{ $h2 }}">Questions people ask first</h2>
+                <p class="mt-5 {{ $lead }}">Short answers to the common ones. The full list covers accounts, forms, appointments and privacy.</p>
+                <a href="{{ route('faqs') }}" class="{{ $btnSecondary }} mt-6 sm:mt-8">Browse all FAQs <i class="bx bx-right-arrow-alt text-lg"></i></a>
+            </div>
+            @php $preview = collect(config('faqs'))->flatten(1)->take(5); @endphp
+            <div class="divide-y divide-[#e7e5e1] border-y border-[#e7e5e1]">
+                @foreach ($preview as $item)
+                    <details class="faq-item group py-1" @if ($loop->first) open @endif>
+                        <summary class="flex items-center justify-between gap-4 py-3.5 text-left sm:py-4">
+                            <span class="text-[14.5px] font-medium sm:text-base text-[#0d253d] group-hover:text-[#1e4090]">{{ $item['q'] }}</span>
+                            <i class="bx bx-plus shrink-0 text-xl text-[#66707f] transition-transform duration-300 group-open:rotate-45 group-open:text-[#2a57b4]" aria-hidden="true"></i>
+                        </summary>
+                        <p class="pb-4 pr-6 text-sm leading-relaxed text-[#4a5568] sm:pb-5 sm:pr-8 sm:text-[15px]">{{ strip_tags(preg_replace('/\[([^\]]+)\]\([^)]+\)/', '$1', $item['a'])) }}</p>
+                    </details>
+                @endforeach
+            </div>
+        </div>
+    </section>
+
+    {{-- ================= CLOSING ================= --}}
+    <section class="border-t border-[#e7e5e1] bg-[#fafaf9] px-5 py-14 sm:px-8 sm:py-20 lg:py-24">
+        <div class="mx-auto max-w-4xl text-center">
+            <p class="text-[2.1rem] leading-none text-[#2a57b4] sm:text-[3rem] lg:text-[3.4rem]" style="font-family: 'Gveret Levin', cursive;">Signed, sealed, done.</p>
+            <p class="mx-auto mt-5 max-w-xl {{ $lead }}">Your next form is a few taps away. Most requests never need a trip to the office.</p>
+            <div class="mt-6 grid grid-cols-2 gap-2 sm:mt-8 sm:flex sm:justify-center sm:gap-3">
+                <a href="{{ route('register') }}" class="{{ $btnPrimary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
+                <a href="{{ route('login') }}" class="{{ $btnSecondary }}">Sign in</a>
+            </div>
+        </div>
+    </section>
+
+    {{-- ================= TEAM ================= --}}
+    <section id="creators" class="bg-white py-14 sm:py-20 lg:py-24">
+        <div class="mx-auto max-w-7xl px-5 sm:px-8">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
+                <h2 class="{{ $h2 }}">Made at LNU, by LNU students</h2>
+                <p class="{{ $lead }}">A team of four LNU students built DocuMate to make student transactions simpler for everyone.</p>
+            </div>
+            <div class="mt-8 overflow-hidden rounded-xl bg-[#dcecfa] sm:mt-10">
+                <img src="{{ asset('images/coverpeople.png') }}" alt="The DocuMate team" class="mx-auto h-auto w-full max-w-4xl object-contain">
+            </div>
             @php
                 // Photos live in public/images/pfp1.png ... pfp4.png
                 // TODO: replace each '#' with that person's real profile link.
@@ -365,19 +383,19 @@
             @endphp
 
             <!-- INFINITE HORIZONTAL SCROLL (hover to pause). The set is rendered twice for a seamless loop. -->
-            <div class="marquee">
+            <div class="marquee mt-10">
                 <div class="marquee-track">
                     @foreach ([0, 1] as $copy)
                         <div class="marquee-group" @if ($copy === 1) aria-hidden="true" @endif>
                             @foreach ($creators as $c)
-                                <article class="creator-card w-56 sm:w-64 aspect-[5/7] shrink-0 rounded-2xl bg-white border border-[#2A57B4]/20 shadow-md p-4 sm:p-5 flex flex-col items-center text-center overflow-hidden">
+                                <article class="creator-card w-48 sm:w-64 aspect-[5/7] shrink-0 rounded-xl bg-white border border-[#e7e5e1] shadow-[0_8px_24px_-16px_rgba(13,37,61,0.35)] p-4 sm:p-5 flex flex-col items-center text-center overflow-hidden">
 
                                     <!-- 1. Photo -->
                                     <img src="{{ asset($c['photo']) }}" alt="{{ $c['name'] }}"
-                                         class="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-4 ring-[#2A57B4]/20 shrink-0">
+                                         class="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-4 ring-[#dcecfa] shrink-0">
 
                                     <!-- 2. Name and role -->
-                                    <h3 class="mt-3 font-bold text-[#003399] text-sm sm:text-base leading-tight">{{ $c['name'] }}</h3>
+                                    <h3 class="mt-3 font-semibold text-[#0d253d] text-sm sm:text-base leading-tight">{{ $c['name'] }}</h3>
                                     <p class="text-[11px] sm:text-xs text-[#2A57B4] font-medium">{{ $c['role'] }}</p>
 
                                     <!-- 3. Socials -->
@@ -400,7 +418,7 @@
                                     <!-- 5. Tasks -->
                                     <div class="mt-auto pt-2 flex flex-wrap justify-center gap-1">
                                         @foreach ($c['tasks'] as $task)
-                                            <span class="px-2 py-0.5 text-[10px] bg-[#2A57B4]/10 text-[#2A57B4] rounded-full">{{ $task }}</span>
+                                            <span class="px-2 py-0.5 text-[10px] bg-[#f0f4fb] text-[#2a57b4] rounded-md">{{ $task }}</span>
                                         @endforeach
                                     </div>
                                 </article>
@@ -412,14 +430,13 @@
         </div>
     </section>
 
+
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
-    /* ---------- Organization chart data ---------- */
-    /* Source: Leyte Normal University — Academic & Administrative Staffs directory */
+    /* Source: Leyte Normal University, Academic & Administrative Staffs directory */
     var orgChartData = {
         administrative: [
             { office: "Office of the University President", people: [
@@ -518,124 +535,145 @@ document.addEventListener('DOMContentLoaded', function () {
         ]
     };
 
-    function initials(name) {
-        var stop = ['dr.', 'mr.', 'ms.', 'prof.', 'atty.', 'jr.', 'sr.', 'cpa'];
-        var tokens = name.replace(/,/g, '').split(' ').filter(function (t) {
-            return stop.indexOf(t.toLowerCase()) === -1;
+    /* ---------- Directory: tabs, office filter, search. Everyone gets the LNU seal until photos arrive. ---------- */
+    var LOGO = @json(asset('images/lnulogo.png'));
+    var PER_OFFICE = 6;
+    var state = { tab: 'administrative', office: 'all', q: '', expanded: {} };
+    var officesEl = document.getElementById('org-offices');
+    var peopleEl = document.getElementById('org-people');
+    var searchEl = document.getElementById('org-search');
+
+    function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+    function norm(s) { return String(s || '').toLowerCase(); }
+    function matches(p, office) {
+        if (!state.q) return true;
+        var hay = norm(p.name + ' ' + p.title + ' ' + (p.note || '') + ' ' + office);
+        return state.q.split(/\s+/).every(function (w) { return hay.indexOf(w) !== -1; });
+    }
+    function total(key) { return orgChartData[key].reduce(function (n, o) { return n + o.people.length; }, 0); }
+
+    document.querySelectorAll('[data-orgcount]').forEach(function (el) { el.textContent = total(el.getAttribute('data-orgcount')); });
+
+    function renderOffices() {
+        var groups = orgChartData[state.tab];
+        var btn = function (key, label, count) {
+            var on = state.office === key;
+            return '<button type="button" data-office="' + esc(key) + '" aria-pressed="' + on + '" class="org-office flex shrink-0 items-start justify-between gap-3 rounded-lg px-3 py-2 text-left text-[13.5px] leading-snug transition lg:w-full ' +
+                (on ? 'bg-[#e2e9f7] font-medium text-[#1e4090]' : 'text-[#4a5568] hover:bg-[#f5f4f2]') + '">' +
+                '<span class="whitespace-nowrap lg:whitespace-normal">' + esc(label) + '</span><span class="tabular-nums text-xs ' + (on ? 'text-[#2a57b4]' : 'text-[#9a978f]') + '">' + count + '</span></button>';
+        };
+        officesEl.innerHTML = btn('all', 'All offices', total(state.tab)) +
+            groups.map(function (g, i) { return btn(String(i), g.office.replace(/^Office of the /, ''), g.people.length); }).join('');
+    }
+
+    function renderPeople() {
+        var groups = orgChartData[state.tab];
+        var html = '';
+        var shown = 0;
+        groups.forEach(function (g, i) {
+            if (state.office !== 'all' && state.office !== String(i)) return;
+            var list = g.people.filter(function (p) { return matches(p, g.office); });
+            if (!list.length) return;
+            shown += list.length;
+            var open = state.q || state.office !== 'all' || state.expanded[state.tab + i];
+            var visible = open ? list : list.slice(0, PER_OFFICE);
+            html += '<section class="mb-8 last:mb-0">' +
+                '<div class="mb-3 flex items-baseline justify-between gap-3 border-b border-[#e7e5e1] pb-2">' +
+                    '<h3 class="text-[15px] font-semibold text-[#0d253d]">' + esc(g.office) + '</h3>' +
+                    '<span class="shrink-0 text-xs tabular-nums text-[#9a978f]">' + list.length + (list.length === 1 ? ' person' : ' people') + '</span>' +
+                '</div>' +
+                '<ul class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">' +
+                visible.map(function (p) {
+                    return '<li class="flex items-start gap-3 rounded-lg border border-[#ecebe7] bg-white p-3 transition hover:border-[#d4d1cb]">' +
+                        '<img src="' + LOGO + '" alt="" class="h-10 w-10 shrink-0 rounded-full bg-white object-contain ring-1 ring-[#e7e5e1]">' +
+                        '<div class="min-w-0">' +
+                            '<p class="text-[13.5px] font-semibold leading-snug text-[#0d253d]">' + esc(p.name) + '</p>' +
+                            '<p class="mt-0.5 text-[12.5px] leading-snug text-[#1e4090]">' + esc(p.title) + '</p>' +
+                            (p.note ? '<p class="mt-1 text-xs leading-snug text-[#66707f]">' + esc(p.note) + '</p>' : '') +
+                        '</div></li>';
+                }).join('') + '</ul>' +
+                (!open && list.length > PER_OFFICE
+                    ? '<button type="button" data-expand="' + i + '" class="mt-3 inline-flex items-center gap-1 text-[13px] font-medium text-[#2a57b4] hover:underline underline-offset-4">Show all ' + list.length + ' <i class="bx bx-chevron-down"></i></button>'
+                    : '') +
+                '</section>';
         });
-        var letters = tokens.filter(function (t) { return /^[A-Z]/.test(t); }).map(function (t) { return t[0]; });
-        if (letters.length === 0) return '??';
-        return letters[0] + (letters.length > 1 ? letters[letters.length - 1] : '');
+        peopleEl.innerHTML = shown ? html :
+            '<div class="py-16 text-center"><i class="bx bx-search-alt text-3xl text-[#d4d1cb]"></i><p class="mt-2 text-sm text-[#66707f]">No one matches “' + esc(state.q) + '”. Try a surname or an office.</p></div>';
     }
 
-    function renderOffice(office) {
-        var rows = office.people.map(function (p) {
-            return '' +
-                '<div class="flex items-start gap-3 sm:gap-4 py-3 border-b border-gray-100 last:border-0">' +
-                    '<div class="w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-full bg-gradient-to-br from-[#2A57B4]/10 to-[#FFBF00]/20 border border-[#2A57B4]/20 flex items-center justify-center text-xs sm:text-sm font-bold text-[#2A57B4]">' +
-                        initials(p.name) +
-                    '</div>' +
-                    '<div class="min-w-0">' +
-                        '<p class="font-semibold text-gray-800 text-sm break-words">' + p.name + '</p>' +
-                        '<p class="text-xs text-[#2A57B4]">' + p.title + '</p>' +
-                        (p.note ? '<p class="text-xs text-gray-500 italic mt-0.5">' + p.note + '</p>' : '') +
-                    '</div>' +
-                '</div>';
-        }).join('');
+    function render() { renderOffices(); renderPeople(); }
 
-        return '' +
-            '<details class="office-group bg-white rounded-xl border border-gray-200 mb-3 overflow-hidden">' +
-                '<summary class="flex items-start sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4">' +
-                    '<span class="font-semibold text-gray-800 text-sm sm:text-base">' + office.office + '</span>' +
-                    '<span class="flex items-center gap-2 text-xs text-gray-400 shrink-0 whitespace-nowrap">' +
-                        office.people.length + ' member' + (office.people.length === 1 ? '' : 's') +
-                        '<svg class="chevron w-4 h-4 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>' +
-                    '</span>' +
-                '</summary>' +
-                '<div class="px-4 sm:px-5 pb-3 sm:pb-4">' + rows + '</div>' +
-            '</details>';
-    }
-
-    function renderPanel(key) {
-        var panel = document.querySelector('[data-orgpanel="' + key + '"]');
-        panel.innerHTML = orgChartData[key].map(renderOffice).join('');
-    }
-
-    renderPanel('administrative');
-    renderPanel('academic');
-
-    document.querySelectorAll('[data-orgtab]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var key = btn.getAttribute('data-orgtab');
-
-            document.querySelectorAll('[data-orgtab]').forEach(function (b) {
-                b.classList.remove('active', 'text-[#2A57B4]');
-                b.classList.add('text-gray-500');
-            });
-            btn.classList.add('active', 'text-[#2A57B4]');
-            btn.classList.remove('text-gray-500');
-
-            document.querySelectorAll('[data-orgpanel]').forEach(function (p) {
-                p.classList.toggle('hidden', p.getAttribute('data-orgpanel') !== key);
-            });
+    document.querySelectorAll('[data-orgtab]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            state.tab = b.getAttribute('data-orgtab'); state.office = 'all';
+            document.querySelectorAll('[data-orgtab]').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+            render();
         });
     });
-
-    /* ---------- Organization chart dropdown ---------- */
-    var orgToggle = document.getElementById('orgchart-toggle');
-    var orgBody   = document.getElementById('orgchart-body');
-    var orgLabel  = document.getElementById('orgchart-toggle-label');
-    var orgIcon   = document.getElementById('orgchart-toggle-icon');
-
-    function setOrgOpen(open) {
-        orgBody.classList.toggle('hidden', !open);
-        orgToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        orgLabel.textContent = open ? 'Hide organization chart' : 'Show organization chart';
-        orgIcon.classList.toggle('rotate-180', open);
-    }
-
-    orgToggle.addEventListener('click', function () {
-        setOrgOpen(orgBody.classList.contains('hidden'));
+    officesEl.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-office]'); if (!b) return;
+        state.office = b.getAttribute('data-office'); render();
+        if (window.innerWidth >= 1024) peopleEl.scrollTop = 0;
     });
-
-    // Opening via the header "Organization" link or a #orgchart URL
-    document.querySelectorAll('a[href$="#orgchart"]').forEach(function (a) {
-        a.addEventListener('click', function () { setOrgOpen(true); });
+    peopleEl.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-expand]'); if (!b) return;
+        state.expanded[state.tab + b.getAttribute('data-expand')] = true; renderPeople();
     });
-    if (window.location.hash === '#orgchart') setOrgOpen(true);
+    searchEl.addEventListener('input', function () { state.q = norm(searchEl.value.trim()); renderPeople(); });
+    render();
+
 });
 </script>
 @endpush
 
 @push('head')
 <style>
-    /* ---------- Creators: infinite horizontal scroll ---------- */
-    .marquee {
-        overflow: hidden;
-        padding: .75rem 0 1.25rem;
+
+    /* A rubber stamp on the routing slip */
+    .dm-rubber {
+        display: inline-block; padding: .3rem .6rem; border: 2px solid var(--c); border-radius: 6px;
+        color: var(--c); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+        opacity: .88; mix-blend-mode: multiply;
+        -webkit-mask-image: radial-gradient(circle at 30% 40%, #000 60%, rgba(0,0,0,.75) 100%);
+                mask-image: radial-gradient(circle at 30% 40%, #000 60%, rgba(0,0,0,.75) 100%);
+    }
+
+    .dm-rubber-sm { padding: .2rem .45rem; font-size: 10.5px; letter-spacing: .12em; }
+    @media (max-width: 639px) {
+        .dm-index-card { transform: none !important; padding: 1rem 1.1rem .9rem; }
+        .dm-folder { padding-top: 1.9rem; }
+        .dm-folder-tab { height: 2rem; font-size: 12px; padding: 0 .9rem; }
+    }
+
+    /* File folders: a tab on the top-left edge */
+    .dm-folder { padding-top: 2.1rem; }
+    .dm-folder-tab {
+        position: absolute; top: 0; left: 0; display: inline-flex; align-items: center; height: 2.2rem;
+        padding: 0 1.1rem 0 1rem; border-radius: 10px 14px 0 0; background: var(--tab);
+        font-size: 13px; font-weight: 600; color: #273951;
+    }
+
+    /* Index cards: ruled, with a blue margin rule */
+    .dm-index-card {
+        margin: 0; padding: 1.25rem 1.4rem 1.1rem 1.4rem; border-radius: 4px; background-color: #fff;
+        border-top: 3px solid #2a57b4;
+        box-shadow: 0 20px 36px -24px rgba(13,37,61,.4), 0 1px 2px rgba(13,37,61,.06);
+        transition: transform .3s cubic-bezier(.2,.8,.2,1);
+    }
+    .dm-index-card:hover { transform: rotate(0deg) translateY(-3px) !important; }
+
+    /* Directory tabs */
+    .org-seg { color: #4a5568; }
+    .org-seg[aria-selected="true"] { background: #fff; color: #0d253d; box-shadow: 0 1px 2px rgba(13,37,61,.08); }
+
+    /* Team: infinite horizontal scroll */
+    .marquee { overflow: hidden; padding: .75rem 0 1.25rem;
         -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
-                mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
-    }
-    .marquee-track {
-        display: flex;
-        width: max-content;
-        animation: marquee-scroll 35s linear infinite;
-    }
-    .marquee-group {
-        display: flex;
-        gap: 1.25rem;
-        padding-right: 1.25rem;
-        flex-shrink: 0;
-    }
-    .marquee:hover .marquee-track,
-    .marquee:focus-within .marquee-track { animation-play-state: paused; }
-
-    @keyframes marquee-scroll {
-        from { transform: translateX(0); }
-        to   { transform: translateX(-50%); }
-    }
-
-    /* Reduced motion: no animation, let people swipe/scroll instead */
+                mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent); }
+    .marquee-track { display: flex; width: max-content; animation: marquee-scroll 40s linear infinite; }
+    .marquee-group { display: flex; gap: 1.25rem; padding-right: 1.25rem; flex-shrink: 0; }
+    .marquee:hover .marquee-track, .marquee:focus-within .marquee-track { animation-play-state: paused; }
+    @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     @media (prefers-reduced-motion: reduce) {
         .marquee { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
         .marquee-track { animation: none; }

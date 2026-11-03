@@ -506,16 +506,8 @@
             {{-- Morning | afternoon --}}
             <div class="grid grid-cols-2 gap-2.5 cq-sm:gap-3">
                 @foreach ($cal['sessions'] as $session => $s)
-                    @php $started = $s['now_serving'] !== null; @endphp
-                    <div class="relative isolate overflow-hidden rounded-xl {{ $session === 'morning' ? 'bg-[#dcecfa]' : 'bg-[#e6e0f5]' }} p-3 text-slate-900 cq-sm:p-4">
-                        <i class="bx {{ $session === 'morning' ? 'bx-sun' : 'bx-cloud' }} pointer-events-none absolute -bottom-3 -right-2 -z-10 text-5xl text-slate-900/[0.07] cq-sm:text-6xl" aria-hidden="true"></i>
-                        <div class="flex flex-wrap items-center justify-between gap-1">
-                            <p class="text-xs font-semibold cq-sm:text-sm">{{ ucfirst($session) }}</p>
-                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold cq-sm:px-2.5 cq-sm:text-[11px] {{ $started ? 'bg-white/80 text-emerald-800' : 'bg-white/70 text-slate-600' }}">{{ $started ? 'Serving ' . $s['now_serving'] : 'Not started' }}</span>
-                        </div>
-                        <p class="mt-2 text-xl font-semibold tabular-nums cq-sm:mt-3 cq-sm:text-2xl">{{ $s['attended'] }} <span class="text-xs font-medium text-slate-600 cq-sm:text-sm">of {{ $s['total'] }} seen</span></p>
-                        <span class="mt-2 block h-1.5 overflow-hidden rounded-full bg-slate-900/10" aria-hidden="true"><span class="block h-full rounded-full {{ $session === 'morning' ? 'bg-[#2A57B4]' : 'bg-violet-600' }}" style="width: {{ $pct($s['attended'], $s['total']) }}%"></span></span>
-                    </div>
+                    <x-dm.session-card :session="$session" :value="$s['attended']" :total="$s['total']"
+                        :status="$s['now_serving'] !== null ? 'Serving ' . $s['now_serving'] : 'Not started'" :live="$s['now_serving'] !== null" />
                 @endforeach
             </div>
 
@@ -533,34 +525,9 @@
 
                 {{-- A wall calendar: binder rings, a month header, and a ruled grid of day boxes --}}
                 @php [$calMonthName, $calYear] = array_pad(explode(' ', $cal['month'], 2), 2, ''); @endphp
-                <div class="relative mt-5 pt-3">
-                    {{-- Binder rings --}}
-                    @foreach (['left-[22%]', 'right-[22%]'] as $ringPos)
-                        <span class="absolute top-0 z-10 h-7 w-3 rounded-full bg-gradient-to-b from-slate-200 via-slate-400 to-slate-500 shadow ring-2 ring-white {{ $ringPos }}" aria-hidden="true"></span>
-                    @endforeach
-
-                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
-                        {{-- Month header --}}
-                        <div class="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 pb-3 pt-5 text-slate-900">
-                            <div class="min-w-0">
-                                <p class="text-xl font-semibold leading-none tracking-tight">{{ $calMonthName }}</p>
-                                <p class="mt-1 text-xs text-slate-500">{{ $calYear }} · {{ $cal['monthTotal'] }} {{ Str::plural('booking', $cal['monthTotal']) }}</p>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                @unless ($cal['isCurrent'])
-                                    <button type="button" wire:click="backToToday" class="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">Today</button>
-                                @endunless
-                                <button type="button" wire:click="shiftMonth(-1)" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]" aria-label="Previous month"><i class="bx bx-chevron-left text-xl" aria-hidden="true"></i></button>
-                                <button type="button" wire:click="shiftMonth(1)" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]" aria-label="Next month"><i class="bx bx-chevron-right text-xl" aria-hidden="true"></i></button>
-                            </div>
-                        </div>
-
-                        {{-- Weekday row --}}
-                        <div class="grid grid-cols-7 border-b border-blue-100 bg-blue-50 text-center text-[11px] font-semibold uppercase tracking-wide">
-                            @foreach (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $i => $wd)
-                                <span class="py-1.5 {{ $i === 0 ? 'text-rose-600' : 'text-[#2A57B4]' }}">{{ $wd }}</span>
-                            @endforeach
-                        </div>
+                <x-dm.wall-calendar class="mt-5" :title="$calMonthName"
+                    :subtitle="$calYear . ' · ' . $cal['monthTotal'] . ' ' . Str::plural('booking', $cal['monthTotal'])"
+                    prev="shiftMonth(-1)" next="shiftMonth(1)" :today="$cal['isCurrent'] ? null : 'backToToday'">
 
                         {{-- Day boxes. No @continue in here: skipping out of an @if leaves Livewire's block markers
                              unbalanced and the next month morphs into blank cells. Each box is keyed by its date. --}}
@@ -603,8 +570,7 @@
                                 @endif
                             @endforeach
                         </div>
-                    </div>
-                </div>
+                </x-dm.wall-calendar>
         </div>
     </section>
 </div>

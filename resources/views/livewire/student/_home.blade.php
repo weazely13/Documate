@@ -115,7 +115,7 @@
                                 <span class="block truncate text-sm font-semibold text-slate-900" x-text="r.name"></span>
                                 <span class="block truncate text-xs text-slate-500" x-text="r.description"></span>
                             </span>
-                            <span class="shrink-0 text-[11px] font-medium" :class="r.paper ? 'text-amber-800' : 'text-slate-400'" x-text="r.paper ? 'Print' : 'Online'"></span>
+                            <span class="shrink-0 text-[11px] font-medium tabular-nums" :class="r.paper && ! r.code ? 'text-amber-800' : 'text-slate-500'" x-text="r.code || (r.paper ? 'Print' : 'Online')"></span>
                         </a>
                     </li>
                 </template>
@@ -139,17 +139,17 @@
                     <h2 id="resume-title" class="text-base font-semibold text-slate-900 group-data-[ink=light]/greet:text-white">Pick up where you left off</h2>
                     <a href="{{ route('student.documents.index') }}" wire:navigate class="text-sm font-semibold text-[#2A57B4] hover:text-[#1E4090] group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:hover:text-blue-100">My documents &rarr;</a>
                 </div>
-                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="mt-3 grid grid-cols-2 gap-2.5 sm:gap-3">
                     @foreach ($resume as $doc)
                         <a href="{{ $doc['href'] }}" wire:navigate wire:key="resume-{{ $doc['id'] }}"
-                           class="group flex items-start gap-3 rounded-xl border border-slate-200/70 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm">
+                           class="group flex items-start gap-3 rounded-xl border border-slate-200/70 bg-white p-4 max-sm:flex-col max-sm:items-stretch max-sm:gap-2 max-sm:p-3 transition hover:border-slate-300 hover:shadow-sm">
                             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg {{ $doc['tone'] === 'you' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600' }}">
                                 <i class='bx {{ $doc['label'] === 'Draft' ? 'bx-edit' : 'bx-revision' }} text-lg' aria-hidden="true"></i>
                             </span>
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-sm font-semibold text-slate-900 group-hover:text-[#2A57B4]">{{ $doc['title'] }}</span>
                                 <span class="mt-0.5 line-clamp-2 block text-xs text-slate-500">{{ $doc['next'] }}</span>
-                                <span class="mt-2 flex items-center gap-2 text-xs">
+                                <span class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                                     <span class="rounded-md px-1.5 py-0.5 font-semibold {{ \App\Support\DocumentProgress::TONES[$doc['tone']] }}">{{ $doc['label'] }}</span>
                                     @if ($doc['updated'])<span class="text-slate-400">Edited {{ $doc['updated'] }}</span>@endif
                                 </span>
@@ -172,7 +172,7 @@
                 <a href="{{ route('student.appointments.index') }}" wire:navigate class="text-sm font-semibold text-[#2A57B4] hover:text-[#1E4090] group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:hover:text-blue-100">All appointments &rarr;</a>
             </div>
             @if (! empty($appointments) && $appointments->isNotEmpty())
-                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="mt-3 grid grid-cols-2 gap-2.5 sm:gap-3">
                     @foreach ($appointments as $a)
                         @php
                             [$sText, $sPill] = $a->status === 'approved'
@@ -187,7 +187,7 @@
                             };
                         @endphp
                         <a href="{{ route('student.appointments.show', $a->appointment_id) }}" wire:navigate wire:key="home-appt-{{ $a->appointment_id }}"
-                           class="group flex items-start gap-3 rounded-xl border border-slate-200/70 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
+                           class="group flex items-start gap-3 rounded-xl border border-slate-200/70 bg-white p-4 max-sm:flex-col max-sm:items-stretch max-sm:gap-2 max-sm:p-3 transition hover:border-slate-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
                             <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl {{ $a->appointment_date->isToday() ? 'bg-[#2A57B4] text-white' : 'bg-[#f0f4fb] text-[#1E4090]' }}" aria-hidden="true">
                                 <span class="text-center leading-none">
                                     <span class="block text-[10px] font-medium">{{ $a->appointment_date->format('M') }}</span>
@@ -218,6 +218,11 @@
                 </div>
             @endif
         </section>
+
+        @if (! empty($signing))
+            @include('livewire.signatory._waiting-cards', ['signing' => $signing, 'signingTotal' => $signingTotal])
+            @include('livewire.signatory._role-cards', $signingRoles)
+        @endif
 
         <p class="text-center text-sm text-slate-700 group-data-[ink=light]/greet:text-blue-50">
             Want to see how your requests are going?
@@ -267,7 +272,7 @@
                                     </div>
                                     <div class="p-2.5 sm:flex sm:items-start sm:justify-between sm:gap-2 sm:p-3.5">
                                         <p class="line-clamp-2 text-xs font-semibold leading-snug text-slate-900 group-hover:text-[#2A57B4] sm:text-sm">{{ $item['name'] }}</p>
-                                        <span class="mt-0.5 hidden shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:inline-block {{ $item['paper'] ? 'bg-amber-50 text-amber-800' : 'bg-[#2A57B4]/[0.08] text-[#1E4090]' }}">{{ $item['paper'] ? 'Print' : 'Online' }}</span>
+                                        <span class="mt-0.5 hidden shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:inline-block {{ ($item['issue'] ?? false) ? 'bg-[#e6e0f5] text-violet-800' : ($item['paper'] ? 'bg-amber-50 text-amber-800' : 'bg-[#2A57B4]/[0.08] text-[#1E4090]') }}">{{ ($item['issue'] ?? false) ? 'Issue' : ($item['paper'] ? 'Print' : 'Online') }}</span>
                                     </div>
                                 </a>
 
@@ -280,12 +285,12 @@
                                 </button>
                                 <div x-show="menu === {{ $k }} && ! touch()" x-cloak x-transition.opacity.duration.120ms @click.outside="if (menu === {{ $k }}) menu = null"
                                      class="absolute right-2 top-11 z-30 w-72 max-w-[calc(100vw-2rem)] rounded-xl bg-white p-4 text-left shadow-[0_16px_40px_-12px_rgba(13,37,61,0.35)] ring-1 ring-slate-900/10">
-                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{{ $item['categoryLabel'] }} · {{ $item['paper'] ? 'Print' : 'Online' }}</p>
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{{ $item['categoryLabel'] }} · {{ ($item['issue'] ?? false) ? 'Issued by you' : ($item['paper'] ? 'Print' : 'Online') }}</p>
                                     <p class="mt-1 text-sm font-semibold text-slate-900">{{ $item['name'] }}</p>
                                     <p class="mt-1.5 text-sm leading-relaxed text-slate-600">{{ $item['description'] ?: 'No description yet.' }}</p>
                                     <div class="mt-3 grid gap-2">
                                         <a href="{{ $item['url'] }}" wire:navigate class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-sm font-semibold text-white hover:bg-[#24499A]">
-                                            <i class='bx bx-edit text-base' aria-hidden="true"></i> Start this document
+                                            <i class='bx {{ ($item['issue'] ?? false) ? 'bx-file' : 'bx-edit' }} text-base' aria-hidden="true"></i> {{ ($item['issue'] ?? false) ? 'Issue this report' : 'Start this document' }}
                                         </a>
                                         <button type="button" @click="openPreview({{ $k }})" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                                             <i class='bx bx-show text-base' aria-hidden="true"></i> Preview document
@@ -314,12 +319,12 @@
                 <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300"></div>
                 <template x-if="menu !== null">
                     <div>
-                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400" x-text="items[menu].categoryLabel + ' · ' + (items[menu].paper ? 'Print' : 'Online')"></p>
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400" x-text="items[menu].categoryLabel + ' · ' + (items[menu].issue ? 'Issued by you' : (items[menu].paper ? 'Print' : 'Online'))"></p>
                         <p class="mt-1 text-base font-semibold text-slate-900" x-text="items[menu].name"></p>
                         <p class="mt-1.5 text-sm leading-relaxed text-slate-600" x-text="items[menu].description || 'No description yet.'"></p>
                         <div class="mt-4 grid gap-2">
                             <a :href="items[menu].url" wire:navigate class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-[#2A57B4] px-4 text-sm font-semibold text-white">
-                                <i class='bx bx-edit text-base' aria-hidden="true"></i> Start this document
+                                <i class='bx bx-edit text-base' aria-hidden="true"></i> <span x-text="items[menu].issue ? 'Issue this report' : 'Start this document'">Start this document</span>
                             </a>
                             <button type="button" @click="openPreview(menu)" class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700">
                                 <i class='bx bx-show text-base' aria-hidden="true"></i> Preview document
@@ -344,7 +349,7 @@
                                 <p class="text-xs text-slate-500" x-text="items[preview].paper ? 'Sample of the printed form.' : 'A blank copy of the form. Nothing is saved.'"></p>
                             </div>
                             <div class="flex shrink-0 items-center gap-2">
-                                <a :href="items[preview].url" wire:navigate class="inline-flex items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-sm font-semibold text-white hover:bg-[#24499A]">Start <span class="hidden sm:inline">this document</span></a>
+                                <a :href="items[preview].url" wire:navigate class="inline-flex items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-sm font-semibold text-white hover:bg-[#24499A]"><span x-text="items[preview].issue ? 'Issue' : 'Start'">Start</span> <span class="hidden sm:inline" x-text="items[preview].issue ? 'this report' : 'this document'">this document</span></a>
                                 <button type="button" @click="preview = null" aria-label="Close preview"
                                         class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"><i class="bx bx-x text-2xl" aria-hidden="true"></i></button>
                             </div>

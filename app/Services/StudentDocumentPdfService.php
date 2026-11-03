@@ -348,7 +348,8 @@ class StudentDocumentPdfService
         };
 
         $bold   = $weight === 'bold' || $weight === 'bolder' || (is_numeric($weight) && (int) $weight >= 600);
-        $italic = in_array($style, ['italic', 'oblique'], true);
+        // The template editor stores italic in the weight (Thin / Regular / Bold / Italic).
+        $italic = in_array($style, ['italic', 'oblique'], true) || $weight === 'italic';
 
         return [$group, $bold, $italic];
     }

@@ -227,6 +227,11 @@ class ClearanceMonitoring extends Component
         $records = $filteredRecords->slice(($this->currentPage - 1) * $this->perPage, $this->perPage)->values();
 
         return view('livewire.admin.clearance-monitoring', [
+            // Summary cards: how many students sit in each status this semester (before the status filter),
+            // and the first few of them, shown as small faces beside the number.
+            'statusCounts' => $allRecords->countBy('status')->all(),
+            'statusFaces' => $allRecords->groupBy('status')->map(fn ($g) => $g->take(3)->values())->all(),
+            'allCount' => $allRecords->count(),
             'records' => $records,
             'totalCount' => $filteredRecords->count(),
             'organizations' => Organization::query()

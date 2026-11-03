@@ -89,6 +89,14 @@ class TransactionWorkflow
             ]);
             $this->audit($ws, $student, 'transaction.submitted', $from, TransactionStatus::Submitted);
             \App\Jobs\ReviewTransactionSubmission::start($ws); // AI pre-check for the office
+            // Freeze what was sent (again after a correction), so the record survives later changes to the form's code.
+            DB::afterCommit(function () use ($ws) {
+                try {
+                    app(TransactionSnapshot::class)->capture($ws->fresh(), 'submitted');
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            });
 
             return $ws;
         });
@@ -104,6 +112,14 @@ class TransactionWorkflow
             $from = $this->transition($ws, TransactionStatus::UnderReview, ['workflow_note' => null]);
             $this->audit($ws, $student, 'student.responded', $from, TransactionStatus::UnderReview);
             \App\Jobs\ReviewTransactionSubmission::start($ws); // AI pre-check for the office
+            // Freeze what was sent (again after a correction), so the record survives later changes to the form's code.
+            DB::afterCommit(function () use ($ws) {
+                try {
+                    app(TransactionSnapshot::class)->capture($ws->fresh(), 'submitted');
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            });
 
             return $ws;
         });

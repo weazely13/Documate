@@ -6,15 +6,13 @@ use App\Enums\ApprovalStatus;
 use App\Models\TransactionApproval;
 use App\Models\User;
 use App\Workflow\Documents\DocumentRegistry;
-use Carbon\CarbonInterval;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-/** Signing inbox: open approvals for the roles the user holds today, plus their own history. */
+/** Signing inbox: open approvals for the roles the user holds today, plus their own decisions. Figures live on the Activity summary. */
 class Inbox extends Component
 {
     use WithPagination;
@@ -92,12 +90,11 @@ class Inbox extends Component
         $tab = $this->tab === 'history' ? 'history' : 'waiting';
 
         $waitingTotal = $this->pendingQuery($user)->count();
-        $oldest = $this->pendingQuery($user)->orderBy('opened_at')->first()?->opened_at;
 
         $pending = $this->filtered($this->pendingQuery($user))
             ->with(['workspace.user', 'role'])
             ->orderBy('opened_at', $this->sort === 'newest' ? 'desc' : 'asc')
-            ->paginate(8, pageName: 'waitingPage');
+            ->paginate(20, pageName: 'waitingPage');
 
         $history = $this->filtered(
                 TransactionApproval::where('acted_by', $user->id)
@@ -105,50 +102,22 @@ class Inbox extends Component
             )
             ->when($this->result === 'approved', fn ($q) => $q->where('status', ApprovalStatus::Approved->value))
             ->when($this->result === 'rejected', fn ($q) => $q->where('status', ApprovalStatus::Rejected->value))
-            ->with(['workspace', 'role'])
+            ->with(['workspace.user', 'role'])
             ->orderByDesc('acted_at')
-            ->paginate(10, pageName: 'historyPage');
+            ->paginate(20, pageName: 'historyPage');
 
-        $mine = fn () => TransactionApproval::where('acted_by', $user->id);
-
-        $avgMinutes = $mine()
-            ->whereIn('status', [ApprovalStatus::Approved->value, ApprovalStatus::Rejected->value])
-            ->whereNotNull('opened_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, opened_at, acted_at)) AS m')
-            ->value('m');
-
-        $stats = [
-            'waiting' => $waitingTotal,
-            'oldest_waiting' => $oldest,
-            'signed' => $mine()->where('status', ApprovalStatus::Approved->value)->count(),
-            'rejected' => $mine()->where('status', ApprovalStatus::Rejected->value)->count(),
-            'this_month' => $mine()->where('status', ApprovalStatus::Approved->value)
-                ->where('acted_at', '>=', now()->startOfMonth())->count(),
-            'avg_response' => $avgMinutes !== null
-                ? CarbonInterval::minutes((int) $avgMinutes)->cascade()->forHumans(['parts' => 2, 'short' => true])
-                : null,
-        ];
-
-        $byRole = DB::table('transaction_approvals as a')
-            ->join('signatory_roles as r', 'r.id', '=', 'a.signatory_role_id')
-            ->where('a.acted_by', $user->id)
-            ->where('a.status', ApprovalStatus::Approved->value)
-            ->selectRaw('r.label, COUNT(*) AS signed')
-            ->groupBy('r.label')
-            ->orderByDesc('signed')
-            ->get();
-
-        $docTypes = collect(DocumentRegistry::all())->map(fn ($d) => $d->name())->sort()->all();
-        // Roles this user holds today (same "current" rule the inbox uses), with open work per role.
-        $myRoles = $user->signatoryAssignments()->current()->with('role')->get()
-            ->sortBy(fn ($a) => $a->role->label ?? '')->values();
-
-        $waitingByRole = $this->pendingQuery($user)->toBase()
-            ->selectRaw('signatory_role_id, COUNT(*) AS c')
-            ->groupBy('signatory_role_id')
-            ->pluck('c', 'signatory_role_id');
-
-        return view('livewire.signatory.inbox', compact('pending', 'history', 'stats', 'byRole', 'tab', 'docTypes', 'waitingTotal', 'myRoles', 'waitingByRole'))
+        // Only the document types actually in this tab of the inbox, so the filter never offers an empty list.
+        $typesHere = ($tab === 'history'
+                ? TransactionApproval::where('acted_by', $user->id)->whereIn('status', [ApprovalStatus::Approved->value, ApprovalStatus::Rejected->value])
+                : $this->pendingQuery($user))
+            ->select('workspace_id');
+        $typesHere = \App\Models\StudentDocumentWorkspace::whereIn('workspace_id', $typesHere)
+            ->distinct()->pluck('document_type')->filter()->values()->all();
+        if ($this->docType !== '' && ! in_array($this->docType, $typesHere, true)) {
+            $typesHere[] = $this->docType; // keep a chosen filter visible so it can be cleared
+        }
+        $docTypes = collect($typesHere)->mapWithKeys(fn ($k) => [$k => DocumentRegistry::find($k)?->name() ?? $k])->sort()->all();
+        return view('livewire.signatory.inbox', compact('pending', 'history', 'tab', 'docTypes', 'waitingTotal'))
             ->layout('layouts.app', ['title' => 'Signing Inbox']);
     }
 }

@@ -157,7 +157,7 @@ class AppointmentsIndex extends Component
     {
         $start = Carbon::parse($this->month . '-01')->startOfMonth();
         $from = $start->copy()->startOfWeek(Carbon::SUNDAY);
-        $to = $start->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
+        $to = $start->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY);
         $byDay = $this->all->where('status', '!=', 'retracted')->groupBy(fn ($a) => $a->appointment_date->toDateString());
 
         $days = [];
@@ -180,10 +180,16 @@ class AppointmentsIndex extends Component
     {
         // Poll only while a visit is today, so the "now serving" number stays live.
         $live = $this->all->contains(fn ($a) => $a->status === 'approved' && $a->appointment_date->isToday());
+        $month = Carbon::parse($this->month . '-01');
 
         return view('livewire.student.appointments.appointments-index', [
             'live' => $live,
-            'monthLabel' => Carbon::parse($this->month . '-01')->format('F Y'),
+            'monthLabel' => $month->format('F Y'),
+            'monthName' => $month->format('F'),
+            'monthYear' => $month->format('Y'),
+            'monthCount' => $this->all->where('status', '!=', 'retracted')
+                ->filter(fn ($a) => $a->appointment_date->format('Y-m') === $this->month)->count(),
+            'isThisMonth' => $this->month === now()->format('Y-m'),
             'booked' => session('appointment-booked'),
         ])->layout('layouts.app', ['title' => 'Appointments']);
     }

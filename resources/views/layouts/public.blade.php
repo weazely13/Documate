@@ -15,6 +15,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gveret+Levin&display=swap" rel="stylesheet">
 
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
@@ -45,7 +47,17 @@
         }
 
         /* ---------- Header shadow on scroll ---------- */
-        header.scrolled { box-shadow: 0 4px 20px rgba(0,0,0,.06); backdrop-filter: blur(8px); }
+        header.scrolled { box-shadow: 0 1px 0 #e7e5e1, 0 8px 24px -12px rgba(13,37,61,.12); }
+        ::selection { background: #e2e9f7; color: #0d253d; }
+
+        /* Paper: faint ruled lines with a margin rule, like a ledger (home, FAQs, verify) */
+        .dm-ledger {
+            background-color: #fafaf9;
+            background-image:
+                linear-gradient(to right, transparent 0, transparent calc(3.5rem - 1px), rgba(42,87,180,.10) calc(3.5rem - 1px), rgba(42,87,180,.10) 3.5rem, transparent 3.5rem),
+                repeating-linear-gradient(to bottom, transparent 0, transparent 31px, #eeece8 31px, #eeece8 32px);
+        }
+        @media (max-width: 639px) { .dm-ledger { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, #f0eeea 31px, #f0eeea 32px); } }
 
         /* ---------- Hero float animation ---------- */
         @keyframes floatSlow {
@@ -99,9 +111,9 @@
             content: '';
             position: absolute;
             left: 0; bottom: -6px;
-            width: 0; height: 3px;
+            width: 0; height: 2px;
             border-radius: 2px;
-            background: var(--accent);
+            background: #2A57B4;
             transition: width .3s ease;
         }
         .nav-link.active { color: #2A57B4; }
@@ -116,178 +128,115 @@
     @php
         // [label, href, section id used by the scroll-spy]
         $navLinks = [
-            ['About',        url('/') . '#about',    'about'],
-            ['System',       url('/') . '#system',   'system'],
+            ['How it works', url('/') . '#how',      'how'],
+            ['Features',     url('/') . '#features', 'features'],
             ['Organization', url('/') . '#orgchart', 'orgchart'],
             ['Location',     url('/') . '#location', 'location'],
             ['FAQs',         route('faqs'),          'faqs'],
-            ['Creators',     url('/') . '#creators', 'creators'],
+            ['Team',         url('/') . '#creators', 'creators'],
         ];
     @endphp
 
     <!-- ================= HEADER ================= -->
-    <header id="site-header" class="bg-white/90 fixed w-full z-50 transition-shadow duration-300">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-8 py-4 flex justify-between items-center gap-3 sm:gap-6">
+    <header id="site-header" class="fixed z-50 w-full bg-white/90 backdrop-blur-md transition-shadow duration-300">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-8 sm:py-3.5">
 
-            <!-- Institution logos + Logo + Title -->
-            <a href="{{ url('/') }}" class="flex shrink-0 items-center gap-2 sm:gap-3">
-                <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" class="size-8 sm:size-12 object-contain">
-                <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services" class="size-8 sm:size-12 object-contain">
-                <span class="hidden 2xl:flex flex-col max-w-[11rem] text-xs leading-tight text-gray-500">
-                    <strong class="text-sm text-[#2A57B4]">OVPSD</strong>
-                    Office of the Vice President for Student Development
-                </span>
-                <span class="h-8 sm:h-10 w-px bg-gray-300 sm:mx-1" aria-hidden="true"></span>
-                <img src="{{ asset('images/DocumateLogo.png') }}" alt="DocuMate Logo" class="size-10 sm:size-16 object-contain">
-                <span class="text-2xl sm:text-4xl font-bold tracking-wide text-[#2A57B4]" style="font-family: 'Gveret Levin', cursive;">
-                    DocuMate
-                </span>
+            <a href="{{ url('/') }}" class="flex shrink-0 items-center gap-2 sm:gap-2.5" aria-label="DocuMate home">
+                <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" class="hidden size-9 object-contain sm:block xl:hidden 2xl:block">
+                <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services" class="hidden size-9 object-contain sm:block xl:hidden 2xl:block">
+                <span class="mx-1 hidden h-8 w-px bg-[#e7e5e1] sm:block xl:hidden 2xl:block" aria-hidden="true"></span>
+                <img src="{{ asset('images/DocumateLogo.png') }}" alt="" class="size-9 object-contain sm:size-11">
+                <span class="text-[1.65rem] leading-none text-[#2A57B4] sm:text-[2rem]" style="font-family: 'Gveret Levin', cursive;">DocuMate</span>
             </a>
 
-            <nav class="hidden xl:flex items-center space-x-6 text-sm font-semibold whitespace-nowrap">
+            <nav class="hidden items-center gap-6 whitespace-nowrap text-[15px] font-medium xl:flex 2xl:gap-8" aria-label="Main">
                 @foreach ($navLinks as [$label, $href, $key])
                     <a href="{{ $href }}" data-spy="{{ $key }}"
                         @if (request()->routeIs('faqs') && $key === 'faqs') aria-current="true" @endif
-                        class="nav-link text-gray-700 text-base hover:text-[#2A57B4] transition {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
+                        class="nav-link text-[#4a5568] transition hover:text-[#0d253d] {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
                         {{ $label }}
                     </a>
                 @endforeach
-
-                <a href="{{ route('document.lookup') }}"
-                    class="inline-flex items-center gap-2 px-5 py-2 rounded-full border-2 border-[#2A57B4] text-[#2A57B4] text-base font-semibold hover:bg-[#2A57B4] hover:text-white transition">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 3v6c0 4.5-3.2 8.3-8 9-4.8-.7-8-4.5-8-9V6l8-3Z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/>
-                    </svg>
-                    Verify Document
-                </a>
             </nav>
 
-            <!-- Mobile menu button -->
-            <button id="mobile-menu-btn" class="xl:hidden shrink-0 text-[#2A57B4]" aria-label="Open menu">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-            </button>
+            <div class="hidden shrink-0 items-center gap-2 whitespace-nowrap xl:flex">
+                <a href="{{ route('document.lookup') }}" class="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-[15px] font-medium text-[#273951] transition hover:bg-[#f5f4f2]">
+                    <i class="bx bx-shield-quarter text-lg text-[#2A57B4]" aria-hidden="true"></i> Verify<span class="hidden 2xl:inline">&nbsp;a document</span>
+                </a>
+                <a href="{{ route('login') }}" class="inline-flex h-10 items-center rounded-lg bg-[#2A57B4] px-4 text-[15px] font-medium text-white shadow-sm transition hover:bg-[#24499a]">Sign in</a>
+            </div>
+
+            <div class="flex items-center gap-2 xl:hidden">
+                <a href="{{ route('login') }}" class="inline-flex h-9 items-center rounded-lg bg-[#2A57B4] px-3.5 text-sm font-medium text-white">Sign in</a>
+                <button id="mobile-menu-btn" class="grid h-9 w-9 place-items-center rounded-lg text-[#273951] hover:bg-[#f5f4f2]" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
+                    <i class="bx bx-menu text-2xl" aria-hidden="true"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Mobile menu panel -->
-        <div id="mobile-menu" class="hidden xl:hidden bg-white border-t border-gray-100 px-4 sm:px-8 py-4 flex flex-col gap-4 text-base font-semibold">
-            @foreach ($navLinks as [$label, $href, $key])
-                <a href="{{ $href }}" data-spy="{{ $key }}"
-                    class="nav-link w-fit text-gray-700 hover:text-[#2A57B4] transition {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
-                    {{ $label }}
+        <div id="mobile-menu" class="hidden border-t border-[#e7e5e1] bg-white px-4 pb-5 pt-2 sm:px-8 xl:hidden">
+            <nav class="flex flex-col" aria-label="Main">
+                @foreach ($navLinks as [$label, $href, $key])
+                    <a href="{{ $href }}" data-spy="{{ $key }}"
+                        class="flex items-center justify-between border-b border-[#f0eeea] py-3 text-base font-medium text-[#273951] hover:text-[#2A57B4] {{ request()->routeIs('faqs') && $key === 'faqs' ? 'text-[#2A57B4]' : '' }}">
+                        {{ $label }} <i class="bx bx-chevron-right text-lg text-[#9a978f]" aria-hidden="true"></i>
+                    </a>
+                @endforeach
+            </nav>
+            <div class="mt-4 grid grid-cols-2 gap-2">
+                <a href="{{ route('document.lookup') }}" class="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg border border-[#d4d1cb] text-[15px] font-medium text-[#0d253d]">
+                    <i class="bx bx-shield-quarter text-lg text-[#2A57B4]" aria-hidden="true"></i> Verify
                 </a>
-            @endforeach
-
-            <a href="{{ route('document.lookup') }}"
-                class="mt-2 text-center px-5 py-2.5 rounded-full border-2 border-[#2A57B4] text-[#2A57B4] hover:bg-[#2A57B4] hover:text-white transition">
-                Verify Document
-            </a>
+                <a href="{{ route('register') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-[#d4d1cb] text-[15px] font-medium text-[#0d253d]">Create account</a>
+            </div>
         </div>
     </header>
 
     @yield('content')
 
     <!-- ================= FOOTER ================= -->
-    <footer class="bg-[#2A57B4] text-white py-10">
-        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
-
-            <div class="text-center md:text-left">
-                © {{ date('Y') }} DocuMate. All rights reserved.
+    <footer class="bg-[#0d253d] text-[#c3cedd]">
+        <div class="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <img src="{{ asset('images/DocumateLogo.png') }}" alt="" class="size-10 rounded-lg bg-white object-contain p-0.5">
+                    <span class="text-[1.8rem] leading-none text-white" style="font-family: 'Gveret Levin', cursive;">DocuMate</span>
+                </div>
+                <p class="mt-4 max-w-sm text-sm leading-relaxed">
+                    The student transaction system of the Office of the Vice President for Student Development, Leyte Normal University, Tacloban City.
+                </p>
             </div>
-
-            <div class="flex flex-wrap justify-center md:justify-end items-center gap-4">
-
-                <button type="button" data-modal-open="privacy" class="hover:underline hover:opacity-80">
-                    Privacy Policy
-                </button>
-
-                <button type="button" data-modal-open="terms" class="hover:underline hover:opacity-80">
-                    Terms &amp; Conditions
-                </button>
-
-                <span class="opacity-100">
-                    Ecaldre et al, 2026
-                </span>
-
+            <div>
+                <p class="text-sm font-semibold text-white">Get started</p>
+                <ul class="mt-3 space-y-2 text-sm">
+                    <li><a href="{{ route('login') }}" class="hover:text-white">Sign in</a></li>
+                    <li><a href="{{ route('register') }}" class="hover:text-white">Create a student account</a></li>
+                    <li><a href="{{ route('document.lookup') }}" class="hover:text-white">Verify a document</a></li>
+                </ul>
             </div>
-
+            <div>
+                <p class="text-sm font-semibold text-white">Learn more</p>
+                <ul class="mt-3 space-y-2 text-sm">
+                    <li><a href="{{ route('faqs') }}" class="hover:text-white">FAQs</a></li>
+                    <li><button type="button" data-modal-open="privacy" class="hover:text-white">Privacy Policy</button></li>
+                    <li><button type="button" data-modal-open="terms" class="hover:text-white">Terms &amp; Conditions</button></li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-white/10">
+            <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-5 text-xs sm:flex-row sm:px-8">
+                <p>© {{ date('Y') }} DocuMate. All rights reserved.</p>
+                <p>Ecaldre et al., 2026</p>
+            </div>
         </div>
     </footer>
-    <div class="bg-[#FFBF00] py-1"></div>
+    <div class="h-1 bg-[#FFBF00]" aria-hidden="true"></div>
 
     <!-- ================= MODALS ================= -->
 
-    <!-- PRIVACY POLICY MODAL -->
-    <div id="modal-privacy" class="hidden fixed inset-0 z-[100] flex items-center justify-center px-4 py-8">
-        <div class="modal-overlay absolute inset-0 bg-black/50" data-modal-close></div>
-        <div class="modal-panel relative bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[85vh]">
-
-            <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
-                <div>
-                    <p class="legal-title">VPSD DocuMate — Leyte Normal University</p>
-                    <h3 class="text-2xl font-bold text-[#2A57B4] mt-1">Privacy Policy</h3>
-                    <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
-                </div>
-                <button type="button" data-modal-close aria-label="Close" class="text-gray-400 hover:text-gray-700 transition shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="modal-scroll px-6 md:px-8 py-5 overflow-y-auto text-sm text-gray-600 legal-content">
-                @include('partials.privacy-content')
-            </div>
-
-            <div class="px-6 md:px-8 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <label class="flex items-start gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                    <input type="checkbox" data-agree-checkbox="privacy" class="mt-0.5 w-4 h-4 accent-[#2A57B4] shrink-0">
-                    <span>I have read and agree to the Privacy Policy.</span>
-                </label>
-                <button type="button" data-modal-close data-agree-button="privacy" disabled
-                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-full font-semibold transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
-                    I Agree
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- TERMS & CONDITIONS MODAL -->
-    <div id="modal-terms" class="hidden fixed inset-0 z-[100] flex items-center justify-center px-4 py-8">
-        <div class="modal-overlay absolute inset-0 bg-black/50" data-modal-close></div>
-        <div class="modal-panel relative bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[85vh]">
-
-            <div class="flex items-start justify-between px-6 md:px-8 pt-6 md:pt-8 pb-4 border-b border-gray-100">
-                <div>
-                    <p class="legal-title">VPSD DocuMate — Leyte Normal University</p>
-                    <h3 class="text-2xl font-bold text-[#2A57B4] mt-1">Terms &amp; Conditions</h3>
-                    <p class="text-xs text-gray-400 mt-1">Effective Date: September 28, 2026</p>
-                </div>
-                <button type="button" data-modal-close aria-label="Close" class="text-gray-400 hover:text-gray-700 transition shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="modal-scroll px-6 md:px-8 py-5 overflow-y-auto text-sm text-gray-600 legal-content">
-                @include('partials.terms-content')
-            </div>
-
-            <div class="px-6 md:px-8 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <label class="flex items-start gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                    <input type="checkbox" data-agree-checkbox="terms" class="mt-0.5 w-4 h-4 accent-[#2A57B4] shrink-0">
-                    <span>I have read and agree to the Terms and Conditions.</span>
-                </label>
-                <button type="button" data-modal-close data-agree-button="terms" disabled
-                    class="px-6 py-2 bg-[#2A57B4] text-white rounded-full font-semibold transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:opacity-90">
-                    I Agree
-                </button>
-            </div>
-        </div>
-    </div>
+    <x-legal-dialog name="privacy" mode="vanilla" />
+    <x-legal-dialog name="terms" mode="vanilla" />
 
     <!-- ================= SHARED SCRIPTS ================= -->
     <script>
@@ -302,9 +251,17 @@
         /* ---------- Mobile menu ---------- */
         var menuBtn = document.getElementById('mobile-menu-btn');
         var menu = document.getElementById('mobile-menu');
-        menuBtn.addEventListener('click', function () { menu.classList.toggle('hidden'); });
+        menuBtn.addEventListener('click', function () {
+            var open = menu.classList.toggle('hidden') === false;
+            menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            menuBtn.querySelector('i').className = 'bx ' + (open ? 'bx-x' : 'bx-menu') + ' text-2xl';
+        });
         menu.querySelectorAll('a').forEach(function (a) {
-            a.addEventListener('click', function () { menu.classList.add('hidden'); });
+            a.addEventListener('click', function () {
+                menu.classList.add('hidden');
+                menuBtn.setAttribute('aria-expanded', 'false');
+                menuBtn.querySelector('i').className = 'bx bx-menu text-2xl';
+            });
         });
         /* ---------- Scroll-spy: highlight the nav link of the section in view ---------- */
         var spyLinks = document.querySelectorAll('[data-spy]');

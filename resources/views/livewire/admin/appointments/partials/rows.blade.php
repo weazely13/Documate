@@ -14,7 +14,8 @@
     $cols = 6 + ($selectable ? 1 : 0) + ($mode !== 'queue' ? 1 : 0);
 @endphp
 
-<div class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white cq-md:block"
+{{-- min-h keeps a full working area under the rows, so a short list never sits cramped against the bulk bar or the page end. --}}
+<div class="hidden min-h-[28rem] overflow-hidden rounded-2xl border border-slate-200 bg-white cq-md:block"
      wire:loading.class="opacity-60" wire:target="setPhase, selectDate, step, jumpToday, search, filterDate, filterStatus, gotoPage, nextPage, previousPage">
     <table class="min-w-full text-sm">
         <thead class="border-b border-slate-200 text-xs text-slate-500">
@@ -128,13 +129,15 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="{{ $cols }}" class="px-6 py-14 text-center text-sm text-slate-500">{{ $empty }}</td></tr>
+                <tr><td colspan="{{ $cols }}" class="px-6 py-24 text-center text-sm text-slate-500">
+                    <i class="bx bx-calendar-x mx-auto mb-2 !block text-3xl text-slate-300" aria-hidden="true"></i>{{ $empty }}
+                </td></tr>
             @endforelse
         </tbody>
     </table>
 </div>
 
-<ul class="grid gap-3 cq-sm:grid-cols-2 cq-md:hidden" aria-label="Appointments">
+<ul class="grid min-h-[20rem] content-start gap-3 cq-sm:grid-cols-2 cq-md:hidden" aria-label="Appointments">
     @forelse ($rows as $a)
         @php
             [$sText, $sPill] = $statusFor($a);

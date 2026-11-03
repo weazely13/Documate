@@ -17,6 +17,15 @@ class ManageUsers extends Component
     #[\Livewire\Attributes\Url(as: 'tab', except: 'users')]
     public string $activeTab = 'users';
 
+    /** Accounts section: the accounts list or the verification periods (the two used to be separate pages). */
+    #[\Livewire\Attributes\Url(as: 'view', except: 'accounts')]
+    public string $section = 'accounts';
+
+    public function setSection(string $section): void
+    {
+        $this->section = $section === 'verifications' ? 'verifications' : 'accounts';
+    }
+
     public $search = '';
     public $roleFilter = '';
     public $statusFilter = '';
@@ -43,6 +52,10 @@ class ManageUsers extends Component
     public function mount(): void
     {
         if ($this->activeTab !== 'org-roles') {
+            // Accounts and Verifications are two sidebar items on this one page (?view=verifications).
+            $this->section = request()->query('view') === 'verifications' ? 'verifications' : 'accounts';
+            $this->navKey = $this->section;
+
             return;
         }
 
@@ -293,7 +306,7 @@ class ManageUsers extends Component
 
     public function render()
     {
-        $users = $this->getUsersQuery()->paginate(30);
+        $users = $this->getUsersQuery()->paginate(20);
 
         $roles = Role::orderBy('role_name')->get();
 

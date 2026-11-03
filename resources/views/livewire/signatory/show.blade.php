@@ -54,11 +54,13 @@
         </div>
     @endif
 
-    {{-- Wide screens: the document on the right (sticky), everything to act on at the left. Narrow: stacked, document first. --}}
-    <div class="space-y-4 sm:space-y-5 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] xl:items-start xl:gap-6 xl:space-y-0">
+    {{-- Wide screens: the document (and anything to fill in) on the left; on the right the actions at the top,
+         then the approval chain, then the checkpoints. Narrow: stacked in the same order. --}}
+    <div class="space-y-4 sm:space-y-5 xl:grid xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start xl:gap-6 xl:space-y-0">
 
     {{-- Preview --}}
-    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 xl:sticky xl:top-0 xl:order-2 xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto">
+    <div class="min-w-0 space-y-4 sm:space-y-5">
+    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <p class="text-xs font-medium text-slate-500">You are signing as</p>
         <h3 class="text-sm font-semibold text-slate-900">{{ $approval->role->label ?? 'Account signer' }} <span class="font-normal text-slate-500">({{ $approval->label }})</span></h3>
         <div class="mt-4 border-t border-slate-100 pt-4">@include('livewire.workflow._preview', [
@@ -67,14 +69,7 @@
         ])</div>
     </section>
 
-    <div class="min-w-0 space-y-4 sm:space-y-5 xl:order-1">
 
-    {{-- Approval chain --}}
-    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <h3 class="text-sm font-semibold text-slate-900">Approval chain</h3>
-        <p class="mt-0.5 text-xs text-slate-500">Everyone who signs this document, in order. Your step is highlighted.</p>
-        <div class="mt-3">@include('livewire.workflow._chain', ['approvals' => $approvals])</div>
-    </section>
 
     {{-- Committee members --}}
     @if ($canSend)
@@ -231,10 +226,14 @@
         </section>
     @endif
 
+
+    </div>{{-- left column --}}
+
+    <aside class="min-w-0 space-y-4 sm:space-y-5 xl:sticky xl:top-0 xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto">
     {{-- Primary actions: sticky bottom bar on phones, inline on larger screens --}}
     @if ($canAct)
-        <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(13,37,61,0.06)] backdrop-blur sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
-            <div class="mx-auto max-w-3xl">
+        <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(13,37,61,0.06)] backdrop-blur sm:static sm:z-auto sm:rounded-2xl sm:border sm:bg-white sm:p-4 sm:shadow-sm sm:backdrop-blur-none">
+            <div>
                 @if ($actionBlocked)
                     <p id="action-blocked" class="mb-2 text-xs font-medium text-amber-700">
                         {{ ! $signatureReady ? 'Add your e-signature to enable signing.' : 'Set the counselling schedule to enable signing.' }}
@@ -242,20 +241,28 @@
                 @endif
                 <div class="flex gap-2">
                     <button type="button" wire:click="openModal('reject')"
-                            class="{{ $btn }} flex-1 border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 sm:flex-none">
-                        <i class="bx bx-x-circle text-base" aria-hidden="true"></i> Reject document
+                            class="{{ $btn }} flex-1 border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100">
+                        <i class="bx bx-x-circle text-base" aria-hidden="true"></i> Reject
                     </button>
                     <button type="button" wire:click="openModal('approve')" @disabled($actionBlocked)
                             @if ($actionBlocked) aria-describedby="action-blocked" @endif
-                            class="{{ $btn }} flex-[2] bg-[#2A57B4] text-white hover:bg-[#24499A] sm:flex-none">
+                            class="{{ $btn }} flex-[2] bg-[#2A57B4] text-white hover:bg-[#24499A]">
                         <i class="bx bx-pen text-base" aria-hidden="true"></i> Approve and sign
                     </button>
                 </div>
             </div>
         </div>
     @endif
+    {{-- Approval chain --}}
+    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <h3 class="text-sm font-semibold text-slate-900">Approval chain</h3>
+        <p class="mt-0.5 text-xs text-slate-500">Everyone who signs this document, in order. Your step is highlighted.</p>
+        <div class="mt-3">@include('livewire.workflow._chain', ['approvals' => $approvals])</div>
+    </section>
 
-    </div>{{-- left column --}}
+    {{-- Checkpoints: the transaction's activity, newest first --}}
+    @include('livewire.signatory._activity', ['audit' => $audit, 'prefix' => 'sa', 'title' => 'Checkpoints'])
+    </aside>
     </div>{{-- two columns --}}
 
     {{-- Modal: bottom sheet on phones, centered dialog on larger screens --}}

@@ -15,6 +15,12 @@ class Oversight extends Component
 {
     use WithPagination;
 
+    /** Pseudo-statuses the summary strip filters by. */
+    public const GROUPS = [
+        'open' => ['submitted', 'under_review', 'action_required', 'approved'],
+        'closed' => ['rejected', 'voided'],
+    ];
+
     #[Url(as: 'q', except: '')]
     public string $search = '';
 
@@ -55,7 +61,9 @@ class Oversight extends Component
             ->with('user')
             ->withCount(['approvals', 'approvals as approved_count' => fn ($q) => $q->where('status', 'approved')])
             ->when($this->type !== '', fn ($q) => $q->where('document_type', $this->type))
-            ->when($this->status !== '', fn ($q) => $q->where('workflow_status', $this->status))
+            ->when($this->status !== '', fn ($q) => isset(self::GROUPS[$this->status])
+                ? $q->whereIn('workflow_status', self::GROUPS[$this->status])
+                : $q->where('workflow_status', $this->status))
             ->when($term !== '', fn ($q) => $q->where(fn ($s) => $s
                 ->where('transaction_code', 'like', "%{$term}%")
                 ->orWhereHas('user', fn ($u) => $u
@@ -66,9 +74,9 @@ class Oversight extends Component
 
         $counts = [
             'all' => $this->base()->count(),
-            'open' => $this->base()->whereIn('workflow_status', ['submitted', 'under_review', 'action_required', 'approved'])->count(),
+            'open' => $this->base()->whereIn('workflow_status', self::GROUPS['open'])->count(),
             'completed' => $this->base()->where('workflow_status', 'completed')->count(),
-            'closed' => $this->base()->whereIn('workflow_status', ['rejected', 'voided'])->count(),
+            'closed' => $this->base()->whereIn('workflow_status', self::GROUPS['closed'])->count(),
         ];
 
         return view('livewire.signatory.oversight', [

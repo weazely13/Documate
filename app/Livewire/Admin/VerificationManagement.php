@@ -28,7 +28,7 @@ class VerificationManagement extends Component
     public string $verificationStatusFilter = '';
     public string $accountStatusFilter = '';
     public int $currentPage = 1;
-    public int $perPage = 10;
+    public int $perPage = 20;
 
     // --- History modal ---
     public bool $showHistoryModal = false;

@@ -121,6 +121,47 @@ class ProfilePage extends Component
         session()->flash('profile_saved', 'Signature saved.');
     }
 
+    /** A new photo is saved as soon as it is picked; no need to press Save. */
+    public function updatedPhoto(): void
+    {
+        $this->validateOnly('photo', ['photo' => ['nullable', 'image', 'max:2048']]);
+        if (! $this->photo) {
+            return;
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+        if ($user->profile_picture) {
+            Storage::disk('public')->delete($user->profile_picture);
+        }
+        $user->forceFill(['profile_picture' => $this->photo->store('profile-photos', 'public')])->save();
+
+        $this->profile_picture = $user->profile_picture;
+        $this->reset('photo');
+        session()->flash('profile_saved', 'Photo updated.');
+    }
+
+    public function removePhoto(): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        if ($user->profile_picture) {
+            Storage::disk('public')->delete($user->profile_picture);
+            $user->forceFill(['profile_picture' => null])->save();
+        }
+
+        $this->profile_picture = null;
+        $this->reset('photo');
+        session()->flash('profile_saved', 'Photo removed.');
+    }
+
+    /** Throw away unsaved changes. */
+    public function discard(): void
+    {
+        $this->fillFromUser(Auth::user()->fresh(['role', 'organization', 'program', 'officerRecord']));
+        $this->resetErrorBag();
+    }
+
     public function toggleEdit(): void
     {
         if ($this->editing) {
@@ -156,7 +197,6 @@ class ProfilePage extends Component
             'email' => $emailRules,
             'contact_number' => [$optional, 'regex:/^(09|\+639)\d{9}$/'],
             'address' => ['nullable', 'string', 'max:250'],
-            'photo' => ['nullable', 'image', 'max:2048'],
         ];
 
         // Academic fields only exist for students/officers.
@@ -196,16 +236,6 @@ class ProfilePage extends Component
                 $validated['organization_id'] = $user->organization_id;
             }
         }
-
-        if ($this->photo) {
-            if ($user->profile_picture) {
-                Storage::disk('public')->delete($user->profile_picture);
-            }
-
-            $validated['profile_picture'] = $this->photo->store('profile-photos', 'public');
-        }
-
-        unset($validated['photo']);
 
         $user->fill($validated);
         $user->save();
@@ -287,6 +317,34 @@ class ProfilePage extends Component
         return collect([$program ?: $this->role_name, $yearLabel, $this->section])
             ->filter()
             ->implode(' • ');
+    }
+
+    /** @return array{percent: int, missing: array<int, string>} */
+    public function getCompletenessProperty(): array
+    {
+        $fields = [
+            'Photo' => $this->profile_picture,
+            'Sex' => $this->sex,
+            'Date of birth' => $this->date_of_birth,
+            'Mobile number' => $this->contact_number,
+            'Address' => $this->address,
+        ];
+        if (! $this->isStaffAccount) {
+            $fields += [
+                'Program' => $this->program_id,
+                'Year level' => $this->year_level,
+                'Section' => $this->section,
+                'Academic status' => $this->academic_status,
+            ];
+        }
+        $fields['E-signature'] = Auth::user()->signature_path;
+
+        $missing = array_keys(array_filter($fields, fn ($v) => blank($v)));
+
+        return [
+            'percent' => (int) round(100 * (count($fields) - count($missing)) / count($fields)),
+            'missing' => $missing,
+        ];
     }
 
     public function getPhotoUrlProperty(): ?string

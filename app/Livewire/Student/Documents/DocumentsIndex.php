@@ -27,6 +27,15 @@ class DocumentsIndex extends Component
 
     public string $tab = 'active';
     public string $search = '';
+
+    /** 'list' (rows, like Appointments) or 'grid' (cards with a large preview). Kept in the URL. */
+    #[\Livewire\Attributes\Url(except: 'list')]
+    public string $view = 'list';
+
+    public function setView(string $view): void
+    {
+        $this->view = $view === 'grid' ? 'grid' : 'list';
+    }
     public ?string $deletingId = null;
 
     public function updatedTab(): void
@@ -135,7 +144,7 @@ class DocumentsIndex extends Component
         }
 
         $q = $this->baseQuery()
-            ->with(['template', 'approvals.role'])
+            ->with(['template.currentVersion', 'approvals.role'])
             ->withCount([
                 'approvals',
                 'approvals as approved_count' => fn ($q) => $q->where('status', 'approved'),

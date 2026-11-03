@@ -14,8 +14,7 @@
 <div>
     <x-admin.page-header
         title="Clearance Profile"
-        description="Review this student's clearance history and tag their status per semester."
-        :crumbs="['Admin' => $homeUrl, 'Clearance Monitoring' => route($backRoute), $fullName => null]">
+        description="Review this student's clearance history and tag their status per semester.">
         <x-slot:actions>
             <a href="{{ route($backRoute) }}" wire:navigate
             class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 sm:w-auto sm:py-2">
@@ -71,52 +70,56 @@
         {{-- RIGHT: tagging + history --}}
         <div class="space-y-6 lg:col-span-3">
 
-            <x-admin.section title="Tag clearance" description="Applies to the selected semester.">
-                <form wire:submit.prevent="submitTag" class="space-y-3">
+            {{-- Tag clearance: the page's main action, so it is the highlighted card and the status buttons lead --}}
+            <section class="overflow-hidden rounded-xl border border-[#2A57B4]/30 bg-[#f0f4fb] shadow-sm ring-1 ring-[#2A57B4]/10" aria-labelledby="tag-title">
+                <div class="flex items-center gap-3 border-b border-[#2A57B4]/15 px-4 py-3 sm:px-5">
+                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#2A57B4] text-white"><i class="bx bx-purchase-tag text-lg" aria-hidden="true"></i></span>
+                    <div class="min-w-0">
+                        <h2 id="tag-title" class="text-[15px] font-semibold text-slate-900">Tag clearance</h2>
+                        <p class="text-xs text-slate-600">Pick a status for the semester. The student is notified.</p>
+                    </div>
+                </div>
+                <form wire:submit.prevent="submitTag" class="space-y-4 p-4 sm:p-5">
+                    {{-- Status: three large buttons, each in its own colour once picked --}}
+                    <fieldset>
+                        <legend class="sr-only">Status</legend>
+                        <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                            @foreach ($statuses as $status)
+                                @php $t = $statusTheme($status); $sel = $tagStatus === $status; @endphp
+                                <button type="button" wire:click="$set('tagStatus', '{{ $status }}')" aria-pressed="{{ $sel ? 'true' : 'false' }}"
+                                        class="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-xl border-2 bg-white px-2 py-3 text-sm font-semibold shadow-sm transition focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:min-h-[88px] sm:text-[15px]
+                                            {{ $sel ? $t['badge'] . ' border-current shadow-md' : 'border-white text-slate-700 hover:border-slate-200 hover:shadow' }}">
+                                    <i class='bx {{ $t['icon'] }} text-2xl {{ $t['iconColor'] }}' aria-hidden="true"></i>
+                                    <span class="truncate">{{ $status }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </fieldset>
 
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-gray-600">Semester</label>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto] sm:items-end">
+                        <label class="block">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Semester</span>
                             <select wire:model="tagSemesterId"
-                                    class="w-full rounded-lg border-gray-300 py-2 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] sm:py-1.5 sm:text-sm">
+                                    class="h-9 w-full rounded-lg border-slate-300 bg-white py-0 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm [@media(pointer:coarse)]:h-11">
                                 <option value="">Select semester…</option>
                                 @foreach ($semesters as $semester)
                                     <option value="{{ $semester->id }}" @disabled(! $semester->hasStarted())>{{ \Illuminate\Support\Str::limit($semester->label(), 40) }}{{ $semester->pickerSuffix() }}</option>
                                 @endforeach
                             </select>
-                        </div>
-
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-gray-600">Status</label>
-                            <div class="grid grid-cols-3 gap-1.5">
-                                @foreach ($statuses as $status)
-                                    @php $t = $statusTheme($status); $sel = $tagStatus === $status; @endphp
-                                    <button type="button" wire:click="$set('tagStatus', '{{ $status }}')" aria-pressed="{{ $sel ? 'true' : 'false' }}"
-                                            class="flex items-center justify-center gap-1 rounded-lg border px-2 py-2 text-xs font-medium transition sm:py-1.5
-                                                {{ $sel ? $t['badge'] . ' border-current' : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50' }}">
-                                        <i class='bx {{ $t['icon'] }} text-sm {{ $sel ? $t['iconColor'] : 'text-gray-300' }}'></i>
-                                        <span class="truncate">{{ $status }}</span>
-                                    </button>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <div class="min-w-0 flex-1">
-                            <label class="mb-1 block text-xs font-medium text-gray-600">Remarks <span class="font-normal text-gray-400">(optional)</span></label>
+                        </label>
+                        <label class="block">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Remarks <span class="font-normal text-slate-500">(optional)</span></span>
                             <input type="text" wire:model="tagRemarks" placeholder="Add a note about this tag…"
-                                class="w-full rounded-lg border-gray-300 py-2 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] sm:py-1.5 sm:text-sm">
-                        </div>
-
+                                   class="h-9 w-full rounded-lg border-slate-300 bg-white px-3 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm [@media(pointer:coarse)]:h-11">
+                        </label>
                         <button type="submit" wire:loading.attr="disabled" wire:target="submitTag"
-                                class="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-1.5">
+                                class="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] disabled:opacity-60 sm:w-auto [@media(pointer:coarse)]:min-h-11">
                             <span wire:loading.remove wire:target="submitTag">Submit tag</span>
-                            <span wire:loading wire:target="submitTag" class="flex items-center gap-2"><i class='bx bx-loader-alt animate-spin'></i> Submitting…</span>
+                            <span wire:loading wire:target="submitTag" class="inline-flex items-center gap-1.5"><i class='bx bx-loader-alt animate-spin' aria-hidden="true"></i> Submitting…</span>
                         </button>
                     </div>
                 </form>
-            </x-admin.section>
+            </section>
 
             {{-- History, grouped by semester (current on top) --}}
             <div>

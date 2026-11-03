@@ -43,6 +43,8 @@ return [
         'review_key' => env('GEMINI_REVIEW_API_KEY'), 
         'review_model' => env('GEMINI_REVIEW_MODEL', 'gemini-3.6-flash'),
         'review_fallback_model' => env('GEMINI_REVIEW_FALLBACK_MODEL'),
+        // The chat assistant runs on Gemini with eslip_key (above); only its model is set here
+        'chat_model' => env('GEMINI_CHAT_MODEL', 'gemini-3.5-flash-lite'),
     ],
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),

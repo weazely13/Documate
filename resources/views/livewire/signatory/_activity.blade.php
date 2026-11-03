@@ -4,7 +4,7 @@
     <button type="button" @click="open = !open" :aria-expanded="open"
             class="flex min-h-[56px] w-full items-center justify-between gap-3 p-4 text-left sm:p-5 lg:pointer-events-none">
         <span>
-            <span class="block text-sm font-semibold text-slate-900">Activity</span>
+            <span class="block text-sm font-semibold text-slate-900">{{ $title ?? 'Activity' }}</span>
             <span class="block text-xs text-slate-400">Newest first &middot; {{ count($audit) }} {{ count($audit) === 1 ? 'event' : 'events' }}</span>
         </span>
         <i class='bx bx-chevron-down text-2xl text-slate-400 transition lg:hidden' :class="open && 'rotate-180'"></i>

@@ -35,6 +35,11 @@ class ClearanceTagging extends ClearanceMonitoring
         $records = $filteredRecords->slice(($this->currentPage - 1) * $this->perPage, $this->perPage)->values();
 
         return view('livewire.officer.clearance-tagging', [
+            // Summary cards, as on the admin's Clearance Monitoring.
+            'statusCounts' => $allRecords->countBy('status')->all(),
+            'statusFaces' => $allRecords->groupBy('status')->map(fn ($g) => $g->take(3)->values())->all(),
+            'allCount' => $allRecords->count(),
+            'totalCount' => $filteredRecords->count(),
             'records' => $records,
             'organizations' => $allRecords->pluck('organization')->unique()->sort()->values(),
             'statuses' => collect(ClearanceStatus::STATUSES),

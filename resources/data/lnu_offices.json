@@ -2,7 +2,7 @@
   {
     "name": "Office of the University President",
     "aliases": ["OUP", "president's office", "university president"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -14,7 +14,7 @@
   {
     "name": "Office of the University Board Secretary",
     "aliases": ["board secretary", "board secretary's office", "BOR secretary"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -26,7 +26,7 @@
   {
     "name": "Office of the Vice President for Administration and Finance",
     "aliases": ["OVPAF", "VPAF", "administration and finance"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -38,7 +38,7 @@
   {
     "name": "Office of the Chief Administrative Officer for Administration",
     "aliases": ["CAO Administration", "CAO-Admin", "chief administrative officer"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -50,7 +50,7 @@
   {
     "name": "Office of the Chief Administrative Officer for Finance",
     "aliases": ["CAO Finance", "CAO-Finance", "chief administrative officer finance"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -62,7 +62,7 @@
   {
     "name": "Human Resource Management Office",
     "aliases": ["HRMO", "HR office", "human resources"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -74,7 +74,7 @@
   {
     "name": "IGO Business Affairs Office",
     "aliases": ["IGO", "Business Affairs Office", "Income Generating Office", "business affairs"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -86,7 +86,7 @@
   {
     "name": "Records Office",
     "aliases": ["records office", "records management", "university records"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -98,7 +98,7 @@
   {
     "name": "Admissions Office",
     "aliases": ["admissions", "admission office", "admission"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -110,7 +110,7 @@
   {
     "name": "Budget Office",
     "aliases": ["budget office", "budget management", "budgeting"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -122,7 +122,7 @@
   {
     "name": "Physical Plant Director's Office",
     "aliases": ["physical plant", "PPDO", "facilities office", "physical plant office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -134,7 +134,7 @@
   {
     "name": "Reproduction Office",
     "aliases": ["reproduction", "printing office", "repro office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -146,7 +146,7 @@
   {
     "name": "Internal Audit Office",
     "aliases": ["internal audit", "audit office", "IAO"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -158,7 +158,7 @@
   {
     "name": "Cashier's Office",
     "aliases": ["cashier", "cash management", "cash office", "payments"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor - Facade",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -170,7 +170,7 @@
   {
     "name": "Accounting Office",
     "aliases": ["accounting", "accounting office", "university accounting"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor - Facade",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -182,7 +182,7 @@
   {
     "name": "Registrar's Office",
     "aliases": ["registrar", "registrar office", "student records"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor - Facade",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -194,7 +194,7 @@
   {
     "name": "Supply Office",
     "aliases": ["supply office", "supplies", "property office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor - Parking",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -206,7 +206,7 @@
   {
     "name": "Commission on Audit",
     "aliases": ["COA", "COA office", "state auditors"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor - Parking",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -218,7 +218,7 @@
   {
     "name": "Bids and Awards Office",
     "aliases": ["BAC", "Bids and Awards Committee", "bids and awards"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor - Parking",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -230,7 +230,7 @@
   {
     "name": "Planning and Development Office",
     "aliases": ["planning office", "planning and development", "development office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "1st Floor - Parking",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -242,7 +242,7 @@
   {
     "name": "Office of the Vice President for Academic Services",
     "aliases": ["OVPAS", "VPAS", "academic services"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -254,7 +254,7 @@
   {
     "name": "Institutional and External Linkages Office",
     "aliases": ["Institutional Linkages", "External Linkages", "linkages office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -266,7 +266,7 @@
   {
     "name": "Office of the Vice President for Student Development",
     "aliases": ["OVPSD", "VPSD", "student development"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -278,7 +278,7 @@
   {
     "name": "Office of the Dean of Graduate School",
     "aliases": ["Graduate School", "graduate school office", "GS office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -290,7 +290,7 @@
   {
     "name": "Office of the Vice President for Research, Innovation, and Extension",
     "aliases": ["OVPREI", "VPRIEI", "research innovation extension"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -302,7 +302,7 @@
   {
     "name": "Community Extension Services Office",
     "aliases": ["CESO", "extension office", "community extension"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -314,7 +314,7 @@
   {
     "name": "Center for Teacher Education Research Technologies and Innovation",
     "aliases": ["CTERTI", "teacher education research center", "teacher research center"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -326,7 +326,7 @@
   {
     "name": "Public Affairs Marketing Communications Office",
     "aliases": ["PAMCO", "public affairs", "marketing communications", "communications office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Administration Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -338,7 +338,7 @@
   {
     "name": "IT Support Office",
     "aliases": ["IT office", "IT support", "information technology", "technical support"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "IT Building Extension",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -350,7 +350,7 @@
   {
     "name": "Guidance Office",
     "aliases": ["Guidance and Testing Office", "guidance", "counseling office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Student Center Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -362,7 +362,7 @@
   {
     "name": "Scholarship Office",
     "aliases": ["Scholarship and Financial Assistance Office", "scholarship", "financial assistance"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Student Center Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -374,7 +374,7 @@
   {
     "name": "Testing Office",
     "aliases": ["testing", "testing center", "testing office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Student Center Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -386,7 +386,7 @@
   {
     "name": "SSC and SOAD Director's Office",
     "aliases": ["SSC", "SOAD", "student organizations", "student council"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Student Center Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -398,7 +398,7 @@
   {
     "name": "Office of the Sports Director",
     "aliases": ["sports office", "athletics", "sports development"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Student Center Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -410,7 +410,7 @@
   {
     "name": "Office of the Gender and Development Director",
     "aliases": ["GAD", "GAD office", "Gender and Development"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Brillo Hall",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -422,7 +422,7 @@
   {
     "name": "Office of the Research Ethics Director",
     "aliases": ["Research Ethics Office", "REO", "research ethics"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Brillo Hall",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -434,7 +434,7 @@
   {
     "name": "LNU Clinic",
     "aliases": ["clinic", "medical clinic", "health clinic", "medical services"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Obdulia Ronda Cinco Building",
     "floor": "1st Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -446,7 +446,7 @@
   {
     "name": "Dental Clinic",
     "aliases": ["dental office", "dentist", "dental services"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Obdulia Ronda Cinco Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -458,7 +458,7 @@
   {
     "name": "Sentro ng Wika at Kultura",
     "aliases": ["SWK", "language and culture center", "language center"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Obdulia Ronda Cinco Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -470,7 +470,7 @@
   {
     "name": "NSTP Office",
     "aliases": ["NSTP", "National Service Training Program", "NSTP office"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Humanities Building",
     "floor": "3rd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",
@@ -482,7 +482,7 @@
   {
     "name": "Center for Continuing Education and Lifelong Learning",
     "aliases": ["C-CELL", "CCELL", "continuing education", "lifelong learning"],
-    "campus": "Independecia Campus",
+    "campus": "Independencia Campus",
     "building": "Center for Teaching Excellence Building",
     "floor": "2nd Floor",
     "hours": "8:00 AM - 5:00 PM, Mon-Fri",

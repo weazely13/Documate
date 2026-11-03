@@ -183,14 +183,7 @@
 </table>
 
 
-<div class="foot">
-    <div class="foot-qr">@if ($qr)<img alt="QR code for verifying this document" src="{{ $qr }}" width="52" height="52">@elseif ($preview ?? false)<span class="ph-qr" style="width:52px;height:52px;">QR code<br>on issue</span>@endif</div>
-    <div class="foot-k">Verify this document</div>
-    <div class="foot-t">Scan the QR code, or go to <strong>{{ $lookup }}</strong> and enter:</div>
-    <div class="foot-r">Reference &nbsp;<span class="foot-v mono">@if ($code){{ $code }}@else<span class="ph-text">assigned on submit</span>@endif</span></div>
-    <div class="foot-f">Fingerprint &nbsp;<span class="foot-v mono">@if ($fingerprint){{ $fingerprint }}@elseif ($preview ?? false)<span class="ph-text">assigned when issued</span>@else-@endif</span></div>
-    <div class="foot-form">{{ $formCode }}</div>
-</div>
+@include('pdf._verify-footer')
 
 @if ($preview ?? false)
     <div class="watermark">PREVIEW{{ $issuedAt ? '' : ' · NOT YET ISSUED' }}</div>

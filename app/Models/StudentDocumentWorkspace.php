@@ -42,6 +42,7 @@ class StudentDocumentWorkspace extends Model
 
     protected $casts = [
         'field_values' => 'array',
+        'snapshot' => 'array',
         'last_generated_at' => 'datetime',
         'appointment_date' => 'date',
         'completed_at' => 'datetime',
@@ -98,7 +99,8 @@ class StudentDocumentWorkspace extends Model
 
     public function template()
     {
-        return $this->belongsTo(\App\Models\Template::class, 'template_id', 'template_id');
+        // A deleted template is still this transaction's form.
+        return $this->belongsTo(\App\Models\Template::class, 'template_id', 'template_id')->withTrashed();
     }
 
     /** The document's readable name, for paperless forms and paper templates alike. */

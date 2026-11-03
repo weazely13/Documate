@@ -45,6 +45,14 @@ final class StudentAdvisementForm extends WorkflowDocument
         return true;
     }
 
+    /** Staff only: a student or student officer who also holds a signing role may not issue it. */
+    public function isIssuerRole(\App\Models\User $user): bool
+    {
+        $user->loadMissing('role');
+
+        return ! in_array($user->role?->role_name, ['Student', 'Officer'], true) && parent::isIssuerRole($user);
+    }
+
     public function fields(): array
     {
         return [

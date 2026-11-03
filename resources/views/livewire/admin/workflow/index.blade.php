@@ -75,9 +75,9 @@
 
     // Queue cards: Notion tints from DESIGN.md's work folders. [key, label, tint, accent text, icon, hint].
     $cards = [
-        ['attention', 'To review', 'bg-sky-50', 'text-[#1E4090]', 'bx-time-five', 'Awaiting administrator review'],
-        ['signing', 'In signing', 'bg-violet-50', 'text-violet-700', 'bx-pen', 'Pending signatory action'],
-        ['action_required', 'For revision', 'bg-amber-50', 'text-amber-800', 'bx-hourglass', 'Returned to the student for required changes'],
+        ['attention', 'To review', 'bg-[#dcecfa]', 'text-[#1E4090]', 'bx-time-five', 'Waiting for the office'],
+        ['signing', 'In signing', 'bg-[#e6e0f5]', 'text-violet-700', 'bx-pen', 'Out with signatories'],
+        ['action_required', 'Waiting on student', 'bg-[#fef3c7]', 'text-amber-800', 'bx-hourglass', 'Sent back for changes'],
     ];
 
     $legend = [
@@ -121,7 +121,7 @@
         </div>
     </div>
 
-    {{-- Queue cards: count, what it is, who has waited longest --}}
+    {{-- Queue cards: each in its DESIGN.md work tint, the count with the faces of who waits longest beside it --}}
     <nav class="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Queues">
         @foreach ($cards as [$key, $label, $tint, $accent, $icon, $hint])
             @php
@@ -131,28 +131,28 @@
             @endphp
             <button type="button" wire:click="openQueue('{{ $key }}')" wire:key="card-{{ $key }}"
                     @if ($current) aria-current="page" @endif
-                    class="flex min-h-[104px] flex-col rounded-2xl border bg-white p-3.5 text-left sm:min-h-[132px] sm:p-4 transition-colors {{ $focus }}
-                        {{ $current ? 'border-[#2A57B4] shadow-[0_0_0_1px_#2A57B4]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60' }}">
-                <span class="flex items-start justify-between gap-2">
-                    <span class="grid h-8 min-w-8 place-items-center rounded-lg px-1.5 text-sm font-semibold tabular-nums {{ $tint }} {{ $accent }}">{{ $counts[$key] }}</span>
-                    <i class="bx {{ $icon }} text-xl text-slate-400" aria-hidden="true"></i>
+                    class="relative isolate flex flex-col overflow-hidden rounded-2xl border p-3.5 text-left transition sm:p-4 {{ $tint }} {{ $focus }}
+                        {{ $current ? 'border-[#2A57B4] shadow-[0_0_0_1px_#2A57B4]' : 'border-transparent hover:brightness-[0.98]' }}">
+                <i class="bx {{ $icon }} pointer-events-none absolute -bottom-3 -right-2 -z-10 text-6xl text-slate-900/[0.07]" aria-hidden="true"></i>
+                <span class="flex items-center gap-2.5">
+                    <span class="text-2xl font-semibold leading-none tracking-[-0.02em] tabular-nums text-slate-900">{{ $counts[$key] }}</span>
+                    <span class="flex -space-x-1.5" aria-hidden="true">
+                        @foreach ($faces[$key]->take(3) as $f)
+                            <span class="relative grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-white text-[9px] font-semibold tracking-tight text-[#1E4090] ring-2 ring-white/90">
+                                {{ $initialsFor($f) }}
+                                @if ($avatarFor($f))
+                                    <img src="{{ $avatarFor($f) }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">
+                                @endif
+                            </span>
+                        @endforeach
+                    </span>
                 </span>
-                <span class="mt-2.5 block text-sm font-semibold leading-tight text-slate-900 sm:mt-3 sm:text-[15px]">{{ $label }}</span>
-                <span class="mt-0.5 block truncate text-xs text-slate-500">
+                <span class="mt-2 block text-sm font-semibold leading-tight text-slate-900 sm:text-[15px]">{{ $label }}</span>
+                <span class="mt-0.5 block truncate text-xs text-slate-600">
                     @if ($late)
                         <span class="font-medium text-red-700">{{ $late }} overdue</span> ·
                     @endif
                     {{ $oldest?->submitted_at ? 'Oldest ' . $oldest->submitted_at->format('M j, Y') : $hint }}
-                </span>
-                <span class="mt-auto hidden -space-x-1.5 pt-3 sm:flex" aria-hidden="true">
-                    @foreach ($faces[$key] as $f)
-                        <span class="relative grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-[#e2e9f7] text-[10px] font-semibold text-[#1E4090] ring-2 ring-white">
-                            {{ $initialsFor($f) }}
-                            @if ($avatarFor($f))
-                                <img src="{{ $avatarFor($f) }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">
-                            @endif
-                        </span>
-                    @endforeach
                 </span>
             </button>
         @endforeach
@@ -160,24 +160,24 @@
         {{-- The AI's shortlist: the review queue, narrowed to what it wants a person to look at --}}
         <button type="button" wire:click="showFlagged" wire:key="card-flagged"
                 @if ($viewingFlagged) aria-current="page" @endif
-                class="flex min-h-[104px] flex-col rounded-2xl border bg-white p-3.5 text-left sm:min-h-[132px] sm:p-4 transition-colors {{ $focus }}
-                    {{ $viewingFlagged ? 'border-[#2A57B4] shadow-[0_0_0_1px_#2A57B4]' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60' }}">
-            <span class="flex items-start justify-between gap-2">
-                <span class="grid h-8 min-w-8 place-items-center rounded-lg bg-rose-50 px-1.5 text-sm font-semibold tabular-nums text-rose-800">{{ $flaggedCount }}</span>
-                <i class="bx bx-bot text-xl text-slate-400" aria-hidden="true"></i>
+                class="relative isolate flex flex-col overflow-hidden rounded-2xl border bg-[#fde0ec] p-3.5 text-left transition sm:p-4 {{ $focus }}
+                    {{ $viewingFlagged ? 'border-[#2A57B4] shadow-[0_0_0_1px_#2A57B4]' : 'border-transparent hover:brightness-[0.98]' }}">
+            <i class="bx bx-bot pointer-events-none absolute -bottom-3 -right-2 -z-10 text-6xl text-slate-900/[0.07]" aria-hidden="true"></i>
+            <span class="flex items-center gap-2.5">
+                <span class="text-2xl font-semibold leading-none tracking-[-0.02em] tabular-nums text-slate-900">{{ $flaggedCount }}</span>
+                <span class="flex -space-x-1.5" aria-hidden="true">
+                    @foreach ($flaggedFaces->take(3) as $f)
+                        <span class="relative grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-white text-[9px] font-semibold tracking-tight text-rose-800 ring-2 ring-white/90">
+                            {{ $initialsFor($f) }}
+                            @if ($avatarFor($f))
+                                <img src="{{ $avatarFor($f) }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">
+                            @endif
+                        </span>
+                    @endforeach
+                </span>
             </span>
-            <span class="mt-2.5 block text-sm font-semibold leading-tight text-slate-900 sm:mt-3 sm:text-[15px]">Flagged by AI</span>
-            <span class="mt-0.5 block truncate text-xs text-slate-500">{{ $flaggedCount ? 'In To review, worth a closer look' : 'Nothing flagged in To review' }}</span>
-            <span class="mt-auto hidden -space-x-1.5 pt-3 sm:flex" aria-hidden="true">
-                @foreach ($flaggedFaces as $f)
-                    <span class="relative grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-rose-50 text-[10px] font-semibold text-rose-800 ring-2 ring-white">
-                        {{ $initialsFor($f) }}
-                        @if ($avatarFor($f))
-                            <img src="{{ $avatarFor($f) }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">
-                        @endif
-                    </span>
-                @endforeach
-            </span>
+            <span class="mt-2 block text-sm font-semibold leading-tight text-slate-900 sm:text-[15px]">Flagged by AI</span>
+            <span class="mt-0.5 block truncate text-xs text-slate-600">{{ $flaggedCount ? 'In To review, worth a closer look' : 'Nothing flagged in To review' }}</span>
         </button>
     </nav>
 

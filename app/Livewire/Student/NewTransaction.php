@@ -275,6 +275,7 @@ class NewTransaction extends Component
             'name' => $d->name(),
             'description' => $d->description(),
             'paper' => false,
+            'code' => $d->formCode(),
             'url' => route('student.transactions.new', ['type' => $d->key(), 'from' => 'new']),
             'preview' => route('student.forms.preview', $d->key()),
         ])->merge(collect($this->filteredTemplates)->map(fn ($t) => [
@@ -319,7 +320,24 @@ class NewTransaction extends Component
             'resume' => $this->unfinished((int) $user->id),
             'appointments' => $this->upcomingAppointments((int) $user->id),
             'slides' => $this->busySlides(),
+            ...$this->signingQueue($user),
         ])->layout('layouts.app', ['title' => 'Home']);
+    }
+
+    /** For a student who also holds a signing role: what waits for their signature (Home, under appointments). */
+    private function signingQueue(\App\Models\User $user): array
+    {
+        if (! $user->isSignatory()) {
+            return ['signing' => null, 'signingTotal' => 0, 'signingRoles' => null];
+        }
+        $pending = \App\Models\TransactionApproval::assignableTo($user)
+            ->whereHas('workspace', fn ($q) => $q->where('user_id', '!=', $user->id));
+
+        return [
+            'signing' => (clone $pending)->with(['workspace.user', 'role'])->orderBy('opened_at')->limit(4)->get(),
+            'signingTotal' => (clone $pending)->count(),
+            'signingRoles' => \App\Support\SigningRoles::for($user),
+        ];
     }
 
     /** The student's next visits for Home (soonest first), with the live "now serving" number for today's. */
@@ -435,7 +453,30 @@ class NewTransaction extends Component
             'paper' => $i['paper'],
             'url' => $i['url'],
             'preview' => $i['preview'] ?? null,
-        ]))->values()->all();
+            'code' => $i['code'] ?? null,
+            'issue' => false,
+        ]))->concat($this->issuableItems())->values()->all();
+    }
+
+    /**
+     * Reports this student may issue because they also hold a signing role (e.g. an officer who is an adviser's
+     * delegate). They sit in their own Explore category and open the Issue page instead of a new transaction.
+     */
+    private function issuableItems(): array
+    {
+        return collect(Auth::user()->issuableDocuments())
+            ->map(fn ($d) => [
+                'name' => $d->name(),
+                'description' => (string) $d->description(),
+                'category' => 'issue',
+                'categoryLabel' => 'Reports you can issue',
+                'paper' => false,
+                'url' => route('signatory.issue', ['doc' => $d->key()]),
+                'preview' => route('signatory.forms.preview', $d->key()),
+                'code' => $d->formCode(),
+                'issue' => true,
+            ])
+            ->sortBy('name')->values()->all();
     }
 
     /** Drafts and documents sent back for changes: the ones only the student can move. */
@@ -532,7 +573,11 @@ class NewTransaction extends Component
             $fieldRules = [$field['required'] ? 'required' : 'nullable'];
 
             if ($field['type'] === 'number') {
-                $fieldRules[] = 'numeric';
+                // Digits only: no letters, signs, spaces or decimal points.
+                $fieldRules[] = 'regex:/^[0-9]+$/';
+                if (!empty($field['max_length'])) {
+                    $fieldRules[] = 'max:' . $field['max_length'];
+                }
             } elseif ($field['type'] === 'date') {
                 $fieldRules[] = 'date';
             } else {
@@ -561,6 +606,7 @@ class NewTransaction extends Component
             $messages[$base . '.required'] = $field['label'] . ' is required.';
             $messages[$base . '.date'] = $field['label'] . ' must be a valid date.';
             $messages[$base . '.numeric'] = $field['label'] . ' must be a number.';
+            $messages[$base . '.regex'] = $field['label'] . ' can only contain numbers (0-9).';
         }
 
         return $messages;
@@ -580,8 +626,8 @@ class NewTransaction extends Component
             ->get();
 
         $this->templates = $templates->map(function (Template $template) {
-            $description = $template->currentVersion?->instructions?->pluck('description')->filter()->implode(' ');
-            $description = trim(Str::limit($description ?: ('Prefilled form for ' . $template->name . '.'), 120));
+            // What the form is for (set in the template editor), not its fill-in instructions.
+            $description = trim(Str::limit($template->description ?: 'Paper form: fill it in, print it and bring it to the VPSD office.', 120));
 
             $lastUpdated = $template->currentVersion?->updated_at ?? $template->updated_at;
 
@@ -632,6 +678,7 @@ class NewTransaction extends Component
         $this->selectedTemplate = [
             'template_id' => $template->template_id,
             'name' => $template->name,
+            'description' => $template->description,
             'image_url' => Storage::disk('public')->url($template->currentVersion->image_path),
             'document_size' => $template->currentVersion->document_size,
             'orientation' => $template->currentVersion->orientation,
@@ -650,37 +697,7 @@ class NewTransaction extends Component
         // typing in one box changed the other. We now guarantee uniqueness by
         // falling back to a name suffixed with the field's own (always unique)
         // database id whenever a slug has already been used on this template.
-        $this->fields = $template->currentVersion->fields->map(function ($field) {
-        $name = $field->name ? Str::slug($field->name, '_') : ('field_' . $field->field_id);
-
-        return [
-                'id' => (string) $field->field_id,
-                'name' => $name,
-                'label' => $field->label,
-                'group_name' => $field->group_name,
-                'type' => $field->field_type === 'paragraph' ? 'paragraph' : $field->data_type,
-                'source_type' => $field->source_type,
-                'system_key' => $field->system_key,
-                'required' => (bool) $field->required,
-                'date_mode' => $field->date_mode ?? 'current',
-                'placeholder' => $field->placeholder,
-                'max_length' => $field->max_length,
-                'max_lines' => $field->max_lines,
-                'x' => (float) $field->x_position,
-                'y' => (float) $field->y_position,
-                'width' => (float) $field->width,
-                'height' => (float) $field->height,
-                'font_family' => $field->font_family,
-                'font_weight' => $field->font_weight,
-                'font_style'  => $field->font_style ?? 'normal',
-                'font_size' => (float) $field->font_size,
-                'text_color' => $field->text_color,
-                'alignment' => $field->alignment,
-                'line_height' => (float) ($field->line_height ?? 1.3),
-                'letter_spacing' => (float) ($field->letter_spacing ?? 0),
-                'text_case' => $field->text_case ?? 'none',
-            ];
-        })->values()->all();
+        $this->fields = self::fieldsFor($template->currentVersion->fields);
 
         $this->formValues = [];
         foreach ($this->fields as $field) {
@@ -868,6 +885,51 @@ class NewTransaction extends Component
     {
         return app(\App\Services\SystemValueResolver::class)->resolve(Auth::user(), $key);
     }
+    /**
+     * A template's fields as the student form uses them (also the admin's student preview).
+     * IMPORTANT: field "name" is derived from the label via Str::slug(); see selectTemplate().
+     */
+    public static function fieldsFor($fields): array
+    {
+        return collect($fields)->map(function ($field) {
+        $name = $field->name ? Str::slug($field->name, '_') : ('field_' . $field->field_id);
+
+        return [
+                'id' => (string) $field->field_id,
+                'name' => $name,
+                'label' => $field->label,
+                'group_name' => $field->group_name,
+                'type' => $field->field_type === 'paragraph' ? 'paragraph' : $field->data_type,
+                'source_type' => $field->source_type,
+                'system_key' => $field->system_key,
+                'required' => (bool) $field->required,
+                'date_mode' => $field->date_mode ?? 'current',
+                'placeholder' => $field->placeholder,
+                'max_length' => $field->max_length,
+                'max_lines' => $field->max_lines,
+                'x' => (float) $field->x_position,
+                'y' => (float) $field->y_position,
+                'width' => (float) $field->width,
+                'height' => (float) $field->height,
+                'font_family' => $field->font_family,
+                'font_weight' => $field->font_weight,
+                'font_style'  => $field->font_style ?? 'normal',
+                'font_size' => (float) $field->font_size,
+                'text_color' => $field->text_color,
+                'alignment' => $field->alignment,
+                'line_height' => (float) ($field->line_height ?? 1.3),
+                'letter_spacing' => (float) ($field->letter_spacing ?? 0),
+                'text_case' => $field->text_case ?? 'none',
+            ];
+        })->values()->all();
+    }
+
+    /** The page in px at 96 DPI (also the admin's student preview). */
+    public static function canvasFor($version): array
+    {
+        return (new static())->canvasDimensions($version);
+    }
+
     private function canvasDimensions($version): array
     {
         $orientation = $version->orientation ?? 'portrait';

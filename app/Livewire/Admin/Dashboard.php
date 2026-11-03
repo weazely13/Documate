@@ -411,6 +411,57 @@ class Dashboard extends Component
         ];
     }
 
+    /**
+     * The dashboard's live figures, compact, for the chat assistant (admins only; the assistant checks the role).
+     * Same definitions as the page: "overdue" is 7+ school days waiting; clearance counts active students.
+     */
+    public function chatbotSummary(): array
+    {
+        $semester = Semester::current();
+        $work = $this->workload();
+        $tx = $this->transactions($work);
+        $sig = $this->signatories();
+        $clearance = $this->clearance($semester);
+        $insights = $this->insights();
+        $todayAppointments = Appointment::query()->whereDate('appointment_date', today())->whereIn('status', ['approved', 'pending'])->count();
+
+        return [
+            'as_of' => now()->format('Y-m-d H:i'),
+            'period_days' => $this->range,
+            'headline' => [
+                'requests_to_review' => $work['to_review'],
+                'requests_overdue_7_school_days' => $work['overdue'],
+                'ready_to_finish' => $work['ready'],
+                'waiting_for_signatures' => $work['signing'],
+                'signatures_overdue_7_school_days' => $work['signing_late'],
+                'appointment_requests_to_approve' => $work['appointment_requests'],
+                'appointments_today' => $todayAppointments,
+            ],
+            'open_transactions_by_stage' => collect($tx['stages'])->mapWithKeys(fn ($s) => [$s[0] => $s[1]])->all(),
+            'last_period' => [
+                'submitted' => $tx['submitted']['total'] ?? null,
+                'completed' => $tx['completed']['total'] ?? null,
+                'rejected_or_voided' => $tx['closed'],
+                'completion_rate_percent' => $tx['rate'],
+                'median_turnaround_hours' => $tx['turnaround'] !== null ? round($tx['turnaround'], 1) : null,
+                'signatures_given' => $sig['signed']['total'] ?? null,
+                'returned_by_signatories' => $sig['returned'],
+            ],
+            'longest_waiting_signatures' => collect($sig['longest'])->take(5)
+                ->map(fn ($l) => collect($l)->only(['document', 'student', 'days', 'since'])->all())->values()->all(),
+            'signing_roles_without_a_signer' => $sig['unassigned'],
+            'clearance' => [
+                'semester' => $semester?->label(),
+                'active_students' => $clearance['total'],
+                'cleared' => $clearance['Cleared'],
+                'pending' => $clearance['Pending'],
+                'uncleared' => $clearance['Uncleared'],
+                'not_tagged' => $clearance['not_tagged'],
+            ],
+            'most_requested_documents' => collect($insights['byType'])->take(5)->values()->all(),
+        ];
+    }
+
     public function render()
     {
         $semester = Semester::current();

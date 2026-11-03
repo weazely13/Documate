@@ -106,15 +106,8 @@
          }"
          @message.window="measure($event)"
          @resize.window="fit()">
-        <nav aria-label="Breadcrumb">
-            <ol class="flex flex-wrap items-center gap-1 text-sm text-slate-500">
-                <li><a href="{{ $back['url'] }}" wire:navigate class="rounded font-medium hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">{{ $back['label'] }}</a></li>
-                <li aria-hidden="true"><i class="bx bx-chevron-right text-base text-slate-400"></i></li>
-                <li class="min-w-0 truncate font-medium text-slate-700" aria-current="page">{{ $ws ? ($ws->transaction_code ?: 'Draft') : 'New transaction' }}</li>
-            </ol>
-        </nav>
 
-        <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2">
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2">
             <div class="min-w-0 flex-1">
                 <h1 class="break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $document->name() }}</h1>
                 <p class="mt-0.5 text-sm text-slate-500">

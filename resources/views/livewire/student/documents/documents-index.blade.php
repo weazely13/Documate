@@ -1,82 +1,112 @@
-<div class="mx-auto max-w-3xl space-y-5 sm:space-y-6 sm:px-4 sm:py-2">
+@php
+    $focus = 'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30';
+    $btnBase = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium transition-colors disabled:opacity-50 [@media(pointer:coarse)]:min-h-11 ' . $focus;
+    $btnPrimary = $btnBase . ' bg-[#2A57B4] text-white shadow-sm hover:bg-[#24499A]';
+    $btnSecondary = $btnBase . ' border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50';
+    $segS = fn ($on) => 'inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-sm transition-colors sm:px-3 [@media(pointer:coarse)]:min-h-10 ' . $focus . ' '
+        . ($on ? 'bg-white font-medium text-[#24499A] shadow-sm' : 'text-slate-600 hover:text-slate-900');
+    $short = ['active' => 'Active', 'issued' => 'Issued', 'history' => 'History'];
+@endphp
+
+{{-- My documents, laid out like the student's Appointments: header, a one-line toolbar card, then one list card. --}}
+<div class="mx-auto max-w-6xl space-y-5 pb-28">
 
     {{-- Header --}}
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <h2 class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">My documents</h2>
+        <div class="min-w-0">
+            <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">My documents</h1>
             <p class="mt-0.5 text-sm text-slate-500">Everything you have started, and anything the office sent you.</p>
         </div>
-        <a href="{{ route('student.home') }}" wire:navigate
-           class="inline-flex items-center justify-center rounded-xl bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24499A]">
-            New transaction
+        <a href="{{ route('student.home') }}" wire:navigate class="{{ $btnPrimary }} shrink-0">
+            <i class="bx bx-plus text-base" aria-hidden="true"></i> New transaction
         </a>
     </div>
 
-    {{-- Tabs + search --}}
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <nav class="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 sm:inline-grid sm:self-start" aria-label="Documents">
+    {{-- Toolbar: tabs and search on one line at every width --}}
+    <div class="relative flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-2 sm:gap-2 sm:p-3">
+        <nav class="inline-flex shrink-0 rounded-lg bg-slate-100 p-1" aria-label="Documents">
             @foreach ($tabs as $key => $label)
-                @php $count = $this->counts[$key] ?? 0; @endphp
-                <button type="button" wire:click="$set('tab', '{{ $key }}')" wire:key="tab-{{ $key }}"
-                        @if ($tab === $key) aria-current="page" @endif
-                        class="flex flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-2 text-[13px] leading-tight transition sm:flex-row sm:gap-2 sm:px-4 sm:text-sm
-                            {{ $tab === $key ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'font-medium text-slate-600 hover:text-slate-900' }}">
-                    <span class="whitespace-nowrap">{{ $label }}</span>
-                    <span class="text-xs tabular-nums {{ $tab === $key ? 'text-[#2A57B4]' : ($key === 'issued' && $count ? 'font-semibold text-amber-700' : 'text-slate-500') }}">{{ $count }}</span>
+                @php $on = $tab === $key; $count = $this->counts[$key] ?? 0; @endphp
+                <button type="button" wire:click="$set('tab', '{{ $key }}')" wire:key="tab-{{ $key }}" @if ($on) aria-current="page" @endif class="{{ $segS($on) }}">
+                    <span class="sm:hidden">{{ $short[$key] }}</span><span class="hidden sm:inline">{{ $label }}</span>
+                    <span class="rounded-full px-1.5 text-[11px] tabular-nums {{ $on ? 'bg-[#e2e9f7] text-[#1E4090]' : ($key === 'issued' && $count ? 'bg-amber-100 text-amber-800' : 'bg-white/80 text-slate-600') }}">{{ $count }}</span>
                 </button>
             @endforeach
         </nav>
-
-        <div class="relative sm:w-64">
-            <i class='bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
-            <input type="search" wire:model.live.debounce.400ms="search" placeholder="Search your documents" aria-label="Search your documents"
-                   class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-base text-slate-700 placeholder-slate-400 focus:border-[#2A57B4] focus:outline-none focus:ring-1 focus:ring-[#2A57B4] sm:text-sm" />
+        <x-dm.toolbar-search class="ml-auto sm:max-w-xs" placeholder="Search your documents" label="Search your documents" />
+        {{-- Phones: one button that flips the layout; wider: both choices --}}
+        <button type="button" wire:click="setView('{{ $view === 'grid' ? 'list' : 'grid' }}')"
+                class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 sm:hidden [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 {{ $focus }}"
+                aria-label="{{ $view === 'grid' ? 'Show as a list' : 'Show as a grid' }}">
+            <i class="bx {{ $view === 'grid' ? 'bx-list-ul' : 'bx-grid-alt' }} text-lg" aria-hidden="true"></i>
+        </button>
+        <div class="hidden shrink-0 rounded-lg bg-slate-100 p-1 sm:inline-flex" role="group" aria-label="Layout">
+            @foreach (['list' => ['bx-list-ul', 'List'], 'grid' => ['bx-grid-alt', 'Grid']] as $v => [$icon, $vLabel])
+                <button type="button" wire:click="setView('{{ $v }}')" aria-pressed="{{ $view === $v ? 'true' : 'false' }}" title="{{ $vLabel }} view" class="{{ $segS($view === $v) }}">
+                    <i class="bx {{ $icon }} text-base" aria-hidden="true"></i><span class="max-md:sr-only">{{ $vLabel }}</span>
+                </button>
+            @endforeach
         </div>
     </div>
 
-    {{-- Cards --}}
-    <div class="space-y-3">
+    @if ($view === 'grid')
+        {{-- Grid: a card per document with its full A4 page, two across on phones and tablets, four on desktop --}}
+        @if ($workspaces->isNotEmpty())
+            <ul class="grid min-h-[22rem] grid-cols-2 content-start gap-3 sm:gap-4 lg:grid-cols-4" aria-label="{{ $tabs[$tab] }}"
+                wire:loading.class="opacity-60" wire:target="tab, search">
+                @foreach ($workspaces as $workspace)
+                    @include('livewire.student.documents.partials.document-tile', [
+                        'workspace' => $workspace,
+                        'issuer' => \App\Support\Issuers::label($issuers[$workspace->workspace_id] ?? null),
+                    ])
+                @endforeach
+            </ul>
+        @else
+            <p class="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center text-sm text-slate-500">
+                {{ trim($search) !== '' ? 'No documents match "' . $search . '". Try another word.' : 'Nothing here yet.' }}
+            </p>
+        @endif
+    @else
+    {{-- List: one row per document, the most recent first --}}
+    <ul class="min-h-[22rem] divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="{{ $tabs[$tab] }}"
+        wire:loading.class="opacity-60" wire:target="tab, search">
         @forelse ($workspaces as $workspace)
-            <div wire:key="doc-{{ $workspace->workspace_id }}">
-                @include('livewire.student.documents.partials.document-card', [
-                    'workspace' => $workspace,
-                    'issuer' => \App\Support\Issuers::label($issuers[$workspace->workspace_id] ?? null),
-                ])
-            </div>
+            @include('livewire.student.documents.partials.document-card', [
+                'workspace' => $workspace,
+                'issuer' => \App\Support\Issuers::label($issuers[$workspace->workspace_id] ?? null),
+            ])
         @empty
-            <div class="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+            <li class="px-6 py-14 text-center text-sm text-slate-500">
+                <i class="bx {{ trim($search) !== '' ? 'bx-search-alt' : 'bx-folder' }} mx-auto mb-2 !block text-3xl text-slate-300" aria-hidden="true"></i>
                 @if (trim($search) !== '')
-                    <p class="text-sm font-medium text-slate-700">No documents match "{{ $search }}"</p>
+                    No documents match "{{ $search }}". Try another word.
                 @elseif ($tab === 'active')
-                    <p class="text-sm font-medium text-slate-700">Nothing in progress</p>
-                    <p class="mt-1 text-sm text-slate-500">
-                        <a href="{{ route('student.home') }}" wire:navigate class="font-semibold text-[#2A57B4] hover:underline">Start a new transaction</a>
-                        and it will show up here.
-                    </p>
+                    Nothing in progress.
+                    <a href="{{ route('student.home') }}" wire:navigate class="ml-1 font-medium text-[#2A57B4] hover:underline">Start a new transaction</a>
                 @elseif ($tab === 'issued')
-                    <p class="text-sm font-medium text-slate-700">Nothing issued to you</p>
-                    <p class="mt-1 text-sm text-slate-500">Slips, advisements and other documents the VPSD office or a signatory issues to you show up here.</p>
+                    Nothing issued to you. Slips, advisements and other documents the VPSD office or a signatory issues to you show up here.
                 @else
-                    <p class="text-sm font-medium text-slate-700">No finished documents yet</p>
-                    <p class="mt-1 text-sm text-slate-500">Completed, rejected and voided documents are kept here.</p>
+                    No finished documents yet. Completed, rejected and voided documents are kept here.
                 @endif
-            </div>
+            </li>
         @endforelse
-    </div>
+    </ul>
 
-    {{-- Delete confirmation --}}
-    <template x-teleport="body">
-        <div x-show="$wire.deletingId" x-cloak
-            class="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style="background: rgba(13,37,61, 0.45); backdrop-filter: blur(2px);">
-            <div class="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-xl">
-                <h3 class="text-center text-base font-semibold text-slate-900">Delete this document?</h3>
-                <p class="mt-1 text-center text-sm text-slate-500">This can't be undone. Any booked appointment for it is cancelled.</p>
-                <div class="mt-5 flex gap-2">
-                    <button type="button" wire:click="cancelDelete" class="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
-                    <button type="button" wire:click="deleteWorkspace" class="flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">Delete</button>
+    @endif
+
+    {{-- Delete (print forms only) --}}
+    @if ($deletingId)
+        <div class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4"
+             wire:keydown.escape="cancelDelete" wire:click.self="cancelDelete"
+             role="alertdialog" aria-modal="true" aria-labelledby="del-title" aria-describedby="del-lead">
+            <div class="w-full max-w-sm rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6" x-data x-init="$nextTick(() => $refs.keep.focus())">
+                <h2 id="del-title" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">Delete this document?</h2>
+                <p id="del-lead" class="mt-1 text-sm text-slate-500">This can't be undone. Any booked appointment for it is cancelled.</p>
+                <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button type="button" x-ref="keep" wire:click="cancelDelete" class="{{ $btnSecondary }}">Keep it</button>
+                    <button type="button" wire:click="deleteWorkspace" wire:loading.attr="disabled" class="{{ $btnBase }} bg-rose-600 text-white shadow-sm hover:bg-rose-700">Delete</button>
                 </div>
             </div>
         </div>
-    </template>
+    @endif
 </div>

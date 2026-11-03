@@ -45,8 +45,15 @@ class Issued extends Component
 
     public function setFolder(string $key): void
     {
-        $this->folder = ($key === '' || DocumentRegistry::has($key)) ? $key : '';
+        $this->folder = ($key === '' || $key === 'drafts' || DocumentRegistry::has($key)) ? $key : '';
         $this->resetPage();
+    }
+
+    /** Deletes one of this person's saved drafts. */
+    public function deleteDraft(int $id): void
+    {
+        \App\Models\IssueDraft::where('issuer_id', Auth::id())->whereKey($id)->delete();
+        $this->dispatch('toast', type: 'success', title: 'Draft deleted', message: 'The unfinished report was removed.');
     }
 
     public function setView(string $view): void
@@ -81,7 +88,7 @@ class Issued extends Component
         $rows = $this->base()
             ->with('user')
             ->withCount(['approvals', 'approvals as approved_count' => fn ($q) => $q->where('status', 'approved')])
-            ->when($this->folder !== '', fn ($q) => $q->where('document_type', $this->folder))
+            ->when(! in_array($this->folder, ['', 'drafts'], true), fn ($q) => $q->where('document_type', $this->folder))
             ->when($this->status !== '', fn ($q) => $q->where('workflow_status', $this->status))
             ->when($term !== '', fn ($q) => $q->where(fn ($s) => $s
                 ->where('transaction_code', 'like', "%{$term}%")
@@ -89,7 +96,7 @@ class Issued extends Component
                     ->whereRaw("CONCAT_WS(' ', first_name, last_name) like ?", ["%{$term}%"])
                     ->orWhere('student_number', 'like', "%{$term}%"))))
             ->orderBy('submitted_at', $this->sort === 'oldest' ? 'asc' : 'desc')
-            ->paginate($this->view === 'grid' ? 12 : 15);
+            ->paginate(20);
 
         $stats = [
             'total' => (int) $folders->sum(),
@@ -100,6 +107,7 @@ class Issued extends Component
 
         return view('livewire.signatory.issued', [
             'rows' => $rows,
+            'drafts' => \App\Models\IssueDraft::where('issuer_id', Auth::id())->with('student')->latest('updated_at')->get(),
             'folders' => $folders,
             'stats' => $stats,
             'statuses' => collect(TransactionStatus::cases())

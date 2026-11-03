@@ -1,29 +1,35 @@
 @php
-    $input = 'rounded-lg border-gray-300 text-base shadow-sm cq-sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]';
+    $focus = 'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30';
+    $input = 'rounded-lg border-slate-300 bg-white text-base shadow-sm cq-sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20';
     $formInput = 'mt-1 w-full ' . $input;
-    $label = 'block text-xs font-medium text-gray-600';
-    $card = 'rounded-2xl border border-gray-200/70 bg-white shadow-sm';
-    $thead = 'bg-gray-50 text-xs font-medium text-gray-500';
-    $primaryBtn = 'rounded-lg bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60';
-    $secondaryBtn = 'rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50';
-    $error = 'mt-1 text-xs text-red-600';
+    $label = 'block text-sm font-medium text-slate-700';
+    $card = 'rounded-xl border border-slate-200 bg-white shadow-sm';
+    $thead = 'border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500';
+    $primaryBtn = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] disabled:opacity-60 [@media(pointer:coarse)]:min-h-11 ' . $focus;
+    $secondaryBtn = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 [@media(pointer:coarse)]:min-h-11 ' . $focus;
+    $error = 'mt-1 text-sm text-rose-700';
 
     // Toolbar: a count on the left, the section's main action on the right.
     $toolbar = 'flex items-center justify-between gap-3';
-    $addBtn = 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#2A57B4] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700';
+    $addBtn = 'inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#24499A] [@media(pointer:coarse)]:min-h-11 ' . $focus;
 
     // Filters: search, then every dropdown on a single row that scrolls sideways when narrow.
-    $filterBar = $card . ' flex flex-col gap-2 p-2.5 cq-md:flex-row cq-md:items-center';
-    $filterSearch = 'w-full rounded-full border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-base focus:border-[#2A57B4] focus:ring-[#2A57B4] cq-sm:text-sm';
-    $filterRow = 'flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
-    $pill = 'shrink-0 rounded-full border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-xs font-medium text-gray-700 focus:border-[#2A57B4] focus:ring-[#2A57B4]';
-    $clearBtn = 'shrink-0 rounded-full px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800';
+    $filterBar = 'relative z-10 flex items-center gap-2 rounded-t-xl border border-slate-200 bg-white p-3 shadow-sm';
+    // The table card right under a filter bar joins it into one card.
+    $joined = '!mt-0 rounded-t-none border-t-0';
+    $filterSearch = 'h-9 w-full rounded-lg border-slate-300 bg-white py-0 pl-9 pr-3 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 cq-sm:text-sm [@media(pointer:coarse)]:h-11';
+    $filterRow = 'flex shrink-0 items-center gap-1.5 sm:gap-2';
+    $pill = 'h-9 shrink-0 rounded-lg border-slate-300 bg-white py-0 pl-3 pr-8 text-sm text-slate-700 shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 [@media(pointer:coarse)]:h-11';
+    // Phones: each filter is a 36px icon with the native dropdown laid over it; from sm up, a normal dropdown.
+    $pickWrap = 'relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 sm:block sm:h-auto sm:w-auto sm:border-0 sm:bg-transparent max-sm:[@media(pointer:coarse)]:h-11 max-sm:[@media(pointer:coarse)]:w-11';
+    $pickField = 'absolute inset-0 h-full w-full cursor-pointer opacity-0 sm:static sm:h-9 sm:w-auto sm:max-w-[200px] sm:opacity-100 sm:[@media(pointer:coarse)]:h-11 rounded-lg border-slate-300 bg-white py-0 pl-3 pr-8 text-sm text-slate-700 shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20';
+    $clearBtn = 'inline-flex h-9 shrink-0 items-center rounded-lg px-3 text-sm font-medium text-[#2A57B4] hover:bg-[#f0f4fb] ' . $focus;
 
     // Tables show once the section is wide enough; below that each row becomes a stacked card.
     $wideTable = 'hidden overflow-x-auto cq-md:block';
-    $narrowList = 'divide-y divide-gray-100 cq-md:hidden';
-    $rowBtn = 'rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200';
-    $rowBtnDanger = 'rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100';
+    $narrowList = 'divide-y divide-slate-100 cq-md:hidden';
+    $rowBtn = 'inline-flex min-h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 [@media(pointer:coarse)]:min-h-11 ' . $focus;
+    $rowBtnDanger = 'inline-flex min-h-8 items-center rounded-lg px-3 text-xs font-medium text-rose-700 hover:bg-rose-50 [@media(pointer:coarse)]:min-h-11 ' . $focus;
 @endphp
 
 {{-- The Users and Accounts Manager sidebar (around this component) picks the panel and signatory section.
@@ -35,34 +41,49 @@
             <x-admin.alert :message="session('org_message')" />
 
             <div class="{{ $toolbar }}">
-                <p class="text-sm text-gray-500">{{ $organizations->total() }} {{ Str::plural('organization', $organizations->total()) }}</p>
+                <p class="text-sm text-slate-500">{{ $organizations->total() }} {{ Str::plural('organization', $organizations->total()) }}</p>
                 <button type="button" wire:click="openForm('org')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Add organization</button>
             </div>
 
             <div class="{{ $filterBar }}">
-                <div class="relative min-w-0 cq-md:flex-1">
-                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' aria-hidden="true"></i>
+                <div class="relative min-w-0 flex-1 sm:max-w-sm">
+                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
                     <input type="search" wire:model.live.debounce.300ms="filterOrgSearch" placeholder="Search organizations" aria-label="Search organizations" class="{{ $filterSearch }}">
                 </div>
                 <div class="{{ $filterRow }}">
-                    <select wire:model.live="filterOrgCollege" aria-label="College" class="{{ $pill }}">
+                    <label class="{{ $pickWrap }}" title="College">
+                        <i class="bx bx-buildings text-lg sm:!hidden" aria-hidden="true"></i>
+                        @if (filled($filterOrgCollege))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                        <span class="sr-only">College</span>
+                        <select wire:model.live="filterOrgCollege" class="{{ $pickField }}">
                         <option value="">All colleges</option>
                         @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
                     </select>
-                    <select wire:model.live="filterOrgProgram" aria-label="Program" class="{{ $pill }} max-w-[180px]">
+                    </label>
+                    <label class="{{ $pickWrap }}" title="Program">
+                        <i class="bx bx-book-bookmark text-lg sm:!hidden" aria-hidden="true"></i>
+                        @if (filled($filterOrgProgram))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                        <span class="sr-only">Program</span>
+                        <select wire:model.live="filterOrgProgram" class="{{ $pickField }} max-w-[180px]">
                         <option value="">All programs</option>
                         @foreach ($filterPrograms as $p) <option value="{{ $p->id }}">{{ $p->name }}</option> @endforeach
                     </select>
-                    <select wire:model.live="filterOrgStatus" aria-label="Status" class="{{ $pill }}">
+                    </label>
+                    <label class="{{ $pickWrap }}" title="Status">
+                        <i class="bx bx-toggle-left text-lg sm:!hidden" aria-hidden="true"></i>
+                        @if (filled($filterOrgStatus))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                        <span class="sr-only">Status</span>
+                        <select wire:model.live="filterOrgStatus" class="{{ $pickField }}">
                         <option value="">Any status</option>
                         <option value="1">Active</option>
                         <option value="0">Inactive</option>
                     </select>
-                    <button type="button" wire:click="clearFilters('org')" class="{{ $clearBtn }}">Clear</button>
+                    </label>
+                    <button type="button" wire:click="clearFilters(\'org\')" class="{{ $clearBtn }}" title="Clear filters"><i class="bx bx-reset text-lg sm:!hidden" aria-hidden="true"></i><span class="max-sm:sr-only">Clear</span></button>
                 </div>
             </div>
 
-            <div class="{{ $card }} overflow-hidden">
+            <div class="{{ $card }} {{ $joined }} overflow-hidden">
                 <div class="{{ $wideTable }}">
                     <table class="w-full text-sm">
                         <thead class="{{ $thead }}">
@@ -75,20 +96,20 @@
                                 <th class="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-slate-100">
                             @forelse ($organizations as $org)
                                 <tr wire:key="org-{{ $org->id }}">
-                                    <td class="max-w-[220px] px-4 py-3 font-medium text-gray-900">
+                                    <td class="max-w-[220px] px-4 py-3 font-medium text-slate-900">
                                         <div class="truncate" title="{{ $org->name }}">{{ $org->name }}</div>
                                         @if ($org->year_level)
                                             <span class="rounded-full bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-600">
                                                 {{ $org->year_level }}{{ ['', 'st', 'nd', 'rd', 'th'][$org->year_level] ?? 'th' }} year
                                             </span>
                                         @elseif (! ($org->is_academic ?? true))
-                                            <span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">Non-academic</span>
+                                            <span class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">Non-academic</span>
                                         @endif
                                     </td>
-                                    <td class="hidden max-w-[240px] px-4 py-3 text-gray-600 cq-lg:table-cell">
+                                    <td class="hidden max-w-[240px] px-4 py-3 text-slate-600 cq-lg:table-cell">
                                         @forelse ($org->programs->take(2) as $prog)
                                             <div class="truncate text-xs" title="{{ $prog->name }}">
                                                 <span class="rounded bg-blue-50 px-1 py-0.5 text-[10px] text-[#2A57B4]">{{ $prog->college->code ?? '—' }}</span>
@@ -96,24 +117,24 @@
                                             </div>
                                         @empty
                                             @if ($org->year_level)
-                                                <span class="text-xs text-gray-400">By year level</span>
+                                                <span class="text-xs text-slate-400">By year level</span>
                                             @elseif (! ($org->is_academic ?? true))
-                                                <span class="text-xs text-gray-400">None needed</span>
+                                                <span class="text-xs text-slate-400">None needed</span>
                                             @else
                                                 <span class="text-xs text-amber-600">Unassigned</span>
                                             @endif
                                         @endforelse
                                         @if ($org->programs->count() > 2)
-                                            <span class="text-[10px] text-gray-400" title="{{ $org->programs->skip(2)->pluck('name')->implode(', ') }}">
+                                            <span class="text-[10px] text-slate-400" title="{{ $org->programs->skip(2)->pluck('name')->implode(', ') }}">
                                                 +{{ $org->programs->count() - 2 }} more
                                             </span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-center text-gray-600">{{ $org->members_count }}</td>
-                                    <td class="px-4 py-3 text-center text-gray-600">{{ $org->officers_count }}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $org->members_count }}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $org->officers_count }}</td>
                                     <td class="px-4 py-3">
                                         <button wire:click="toggleOrganizationActive({{ $org->id }})"
-                                            class="rounded-full px-2 py-1 text-xs {{ $org->is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500' }}">
+                                            class="rounded-full px-2 py-1 text-xs {{ $org->is_active ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500' }}">
                                             {{ $org->is_active ? 'Active' : 'Inactive' }}
                                         </button>
                                     </td>
@@ -123,7 +144,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="px-4 py-10 text-center text-gray-400">No organizations match your filters.</td></tr>
+                                <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">No organizations match your filters.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -141,12 +162,12 @@
                         <li wire:key="org-m-{{ $org->id }}" class="px-4 py-3.5">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="truncate font-semibold text-gray-900">{{ $org->name }}</p>
-                                    <p class="truncate text-xs {{ $org->programs->isEmpty() && ($org->is_academic ?? true) && ! $org->year_level ? 'text-amber-600' : 'text-gray-500' }}">{{ $orgPrograms }}</p>
-                                    <p class="text-xs text-gray-400">{{ $org->members_count }} members · {{ $org->officers_count }} officers</p>
+                                    <p class="truncate font-semibold text-slate-900">{{ $org->name }}</p>
+                                    <p class="truncate text-xs {{ $org->programs->isEmpty() && ($org->is_academic ?? true) && ! $org->year_level ? 'text-amber-600' : 'text-slate-500' }}">{{ $orgPrograms }}</p>
+                                    <p class="text-xs text-slate-400">{{ $org->members_count }} members · {{ $org->officers_count }} officers</p>
                                 </div>
                                 <button wire:click="toggleOrganizationActive({{ $org->id }})"
-                                    class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium {{ $org->is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500' }}">
+                                    class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium {{ $org->is_active ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500' }}">
                                     {{ $org->is_active ? 'Active' : 'Inactive' }}
                                 </button>
                             </div>
@@ -156,11 +177,11 @@
                             </div>
                         </li>
                     @empty
-                        <li class="px-4 py-10 text-center text-sm text-gray-400">No organizations match your filters.</li>
+                        <li class="px-4 py-10 text-center text-sm text-slate-400">No organizations match your filters.</li>
                     @endforelse
                 </ul>
                 @if ($organizations->hasPages())
-                    <div class="border-t border-gray-100 px-4 py-3">{{ $organizations->links() }}</div>
+                    <div class="border-t border-slate-100 px-4 py-3">{{ $organizations->links() }}</div>
                 @endif
             </div>
 
@@ -182,7 +203,7 @@
                                 <option value="3">3rd year (Junior)</option>
                                 <option value="4">4th year (Senior)</option>
                             </select>
-                            <p class="mt-1 text-[11px] text-gray-400">
+                            <p class="mt-1 text-[11px] text-slate-400">
                                 Matched to students by their year level only. It has no programs and is never picked in a student's profile.
                             </p>
                             @error('orgYearLevel') <p class="{{ $error }}">{{ $message }}</p> @enderror
@@ -193,10 +214,10 @@
                                 This is a year level organization, so it is automatically non-academic and needs no programs.
                             </div>
                         @else
-                            <label class="flex items-start gap-2 text-sm text-gray-700">
-                                <input type="checkbox" wire:model.live="orgIsAcademic" class="mt-0.5 rounded border-gray-300 text-[#2A57B4]">
+                            <label class="flex items-start gap-2 text-sm text-slate-700">
+                                <input type="checkbox" wire:model.live="orgIsAcademic" class="mt-0.5 rounded border-slate-300 text-[#2A57B4]">
                                 <span>Academic organization (tied to programs).<br>
-                                <span class="text-xs text-gray-400">Untick for non-academic. No programs needed, and its adviser signs by emailed link.</span></span>
+                                <span class="text-xs text-slate-400">Untick for non-academic. No programs needed, and its adviser signs by emailed link.</span></span>
                             </label>
                         @endif
 
@@ -205,10 +226,10 @@
                                 <div class="flex items-center justify-between">
                                     <label class="{{ $label }}">
                                         Programs
-                                        <span class="font-normal text-gray-400">({{ count($orgProgramIds) }} selected)</span>
+                                        <span class="font-normal text-slate-400">({{ count($orgProgramIds) }} selected)</span>
                                     </label>
                                     @if (count($orgProgramIds))
-                                        <button type="button" wire:click="clearPrograms" class="text-[11px] text-gray-500 hover:text-red-600">Clear all</button>
+                                        <button type="button" wire:click="clearPrograms" class="text-[11px] text-slate-500 hover:text-red-600">Clear all</button>
                                     @endif
                                 </div>
 
@@ -221,7 +242,7 @@
                                                     <strong>{{ $sp->college->code ?? '—' }}</strong> {{ $sp->name }}
                                                 </span>
                                                 <button type="button" wire:click="removeProgram({{ $sp->id }})"
-                                                        class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                                        class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-red-600"
                                                         title="Remove" aria-label="Remove {{ $sp->name }}">×</button>
                                             </span>
                                         @endforeach
@@ -248,25 +269,25 @@
                                     </button>
                                 </div>
 
-                                <div class="mt-1.5 max-h-64 space-y-2 overflow-y-auto rounded-md border border-gray-300 p-2">
+                                <div class="mt-1.5 max-h-64 space-y-2 overflow-y-auto rounded-md border border-slate-300 p-2">
                                     @php $grouped = $this->pickerPrograms->groupBy(fn ($p) => $p->college->code ?? 'No college'); @endphp
 
                                     @forelse ($grouped as $code => $items)
                                         <div wire:key="grp-{{ $code }}">
                                             <p class="sticky top-0 bg-white text-[11px] font-semibold text-[#2A57B4]">
-                                                {{ $code }} <span class="font-normal text-gray-400">({{ $items->count() }})</span>
+                                                {{ $code }} <span class="font-normal text-slate-400">({{ $items->count() }})</span>
                                             </p>
                                             @foreach ($items as $p)
                                                 @php $takenBy = $takenPrograms[$p->id] ?? null; @endphp
                                                 <label wire:key="prog-opt-{{ $p->id }}"
-                                                    class="flex items-start gap-2 py-1.5 text-sm cq-sm:py-0.5 {{ $takenBy ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-gray-700' }}">
+                                                    class="flex items-start gap-2 py-1.5 text-sm cq-sm:py-0.5 {{ $takenBy ? 'cursor-not-allowed text-slate-400' : 'cursor-pointer text-slate-700' }}">
                                                     <input type="checkbox" wire:model.live="orgProgramIds" value="{{ $p->id }}"
                                                         @disabled($takenBy)
-                                                        class="mt-0.5 rounded border-gray-300 text-[#2A57B4] focus:ring-[#2A57B4] disabled:bg-gray-100">
+                                                        class="mt-0.5 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4] disabled:bg-slate-100">
                                                     <span>
                                                         {{ $p->name }}
                                                         @unless ($p->is_active)
-                                                            <span class="text-[10px] text-gray-400">(inactive)</span>
+                                                            <span class="text-[10px] text-slate-400">(inactive)</span>
                                                         @endunless
                                                         @if ($takenBy)
                                                             <span class="block text-[10px] text-amber-600">Already used by {{ Str::limit($takenBy, 30) }}</span>
@@ -276,7 +297,7 @@
                                             @endforeach
                                         </div>
                                     @empty
-                                        <p class="py-3 text-center text-xs text-gray-400">No programs match.</p>
+                                        <p class="py-3 text-center text-xs text-slate-400">No programs match.</p>
                                     @endforelse
                                 </div>
 
@@ -303,30 +324,40 @@
             <x-admin.alert :message="session('program_message')" />
 
             <div class="{{ $toolbar }}">
-                <p class="text-sm text-gray-500">{{ $programs->total() }} {{ Str::plural('program', $programs->total()) }}</p>
+                <p class="text-sm text-slate-500">{{ $programs->total() }} {{ Str::plural('program', $programs->total()) }}</p>
                 <button type="button" wire:click="openForm('program')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Add program</button>
             </div>
 
             <div class="{{ $filterBar }}">
-                <div class="relative min-w-0 cq-md:flex-1">
-                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' aria-hidden="true"></i>
+                <div class="relative min-w-0 flex-1 sm:max-w-sm">
+                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
                     <input type="search" wire:model.live.debounce.300ms="filterProgSearch" placeholder="Search programs" aria-label="Search programs" class="{{ $filterSearch }}">
                 </div>
                 <div class="{{ $filterRow }}">
-                    <select wire:model.live="filterProgCollege" aria-label="College" class="{{ $pill }}">
+                    <label class="{{ $pickWrap }}" title="College">
+                        <i class="bx bx-buildings text-lg sm:!hidden" aria-hidden="true"></i>
+                        @if (filled($filterProgCollege))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                        <span class="sr-only">College</span>
+                        <select wire:model.live="filterProgCollege" class="{{ $pickField }}">
                         <option value="">All colleges</option>
                         @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
                     </select>
-                    <select wire:model.live="filterProgStatus" aria-label="Status" class="{{ $pill }}">
+                    </label>
+                    <label class="{{ $pickWrap }}" title="Status">
+                        <i class="bx bx-toggle-left text-lg sm:!hidden" aria-hidden="true"></i>
+                        @if (filled($filterProgStatus))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                        <span class="sr-only">Status</span>
+                        <select wire:model.live="filterProgStatus" class="{{ $pickField }}">
                         <option value="">Any status</option>
                         <option value="1">Active</option>
                         <option value="0">Inactive</option>
                     </select>
-                    <button type="button" wire:click="clearFilters('prog')" class="{{ $clearBtn }}">Clear</button>
+                    </label>
+                    <button type="button" wire:click="clearFilters(\'prog\')" class="{{ $clearBtn }}" title="Clear filters"><i class="bx bx-reset text-lg sm:!hidden" aria-hidden="true"></i><span class="max-sm:sr-only">Clear</span></button>
                 </div>
             </div>
 
-            <div class="{{ $card }} overflow-hidden">
+            <div class="{{ $card }} {{ $joined }} overflow-hidden">
                 <div class="{{ $wideTable }}">
                     <table class="w-full text-sm">
                         <thead class="{{ $thead }}">
@@ -339,10 +370,10 @@
                                 <th class="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-slate-100">
                             @forelse ($programs as $program)
                                 <tr wire:key="prog-{{ $program->id }}">
-                                    <td class="max-w-[260px] px-4 py-3 font-medium text-gray-900">
+                                    <td class="max-w-[260px] px-4 py-3 font-medium text-slate-900">
                                         <div class="truncate" title="{{ $program->name }}">{{ $program->name }}</div>
                                     </td>
                                     <td class="px-4 py-3">
@@ -352,11 +383,11 @@
                                             <span class="text-xs text-amber-600">Unassigned</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-center text-gray-600">{{ $program->organizations_count }}</td>
-                                    <td class="px-4 py-3 text-center text-gray-600">{{ $program->students_count }}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $program->organizations_count }}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $program->students_count }}</td>
                                     <td class="px-4 py-3">
                                         <button wire:click="toggleProgramActive({{ $program->id }})"
-                                            class="rounded-full px-2 py-1 text-xs {{ $program->is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500' }}">
+                                            class="rounded-full px-2 py-1 text-xs {{ $program->is_active ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500' }}">
                                             {{ $program->is_active ? 'Active' : 'Inactive' }}
                                         </button>
                                     </td>
@@ -366,7 +397,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="px-4 py-10 text-center text-gray-400">No programs match your filters.</td></tr>
+                                <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">No programs match your filters.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -376,18 +407,18 @@
                         <li wire:key="prog-m-{{ $program->id }}" class="px-4 py-3.5">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="font-semibold text-gray-900">{{ $program->name }}</p>
-                                    <p class="mt-0.5 text-xs text-gray-500">
+                                    <p class="font-semibold text-slate-900">{{ $program->name }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-500">
                                         @if ($program->college)
                                             <span class="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] text-[#2A57B4]">{{ $program->college->code }}</span>
                                         @else
                                             <span class="text-amber-600">No college</span>
                                         @endif
-                                        <span class="text-gray-400">· {{ $program->organizations_count }} orgs · {{ $program->students_count }} students</span>
+                                        <span class="text-slate-400">· {{ $program->organizations_count }} orgs · {{ $program->students_count }} students</span>
                                     </p>
                                 </div>
                                 <button wire:click="toggleProgramActive({{ $program->id }})"
-                                    class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium {{ $program->is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500' }}">
+                                    class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium {{ $program->is_active ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500' }}">
                                     {{ $program->is_active ? 'Active' : 'Inactive' }}
                                 </button>
                             </div>
@@ -397,11 +428,11 @@
                             </div>
                         </li>
                     @empty
-                        <li class="px-4 py-10 text-center text-sm text-gray-400">No programs match your filters.</li>
+                        <li class="px-4 py-10 text-center text-sm text-slate-400">No programs match your filters.</li>
                     @endforelse
                 </ul>
                 @if ($programs->hasPages())
-                    <div class="border-t border-gray-100 px-4 py-3">{{ $programs->links() }}</div>
+                    <div class="border-t border-slate-100 px-4 py-3">{{ $programs->links() }}</div>
                 @endif
             </div>
 
@@ -438,7 +469,7 @@
             <x-admin.alert :message="session('position_message')" />
 
             <div class="{{ $toolbar }}">
-                <p class="text-sm text-gray-500">{{ $positions->count() }} {{ Str::plural('position', $positions->count()) }}</p>
+                <p class="text-sm text-slate-500">{{ $positions->count() }} {{ Str::plural('position', $positions->count()) }}</p>
                 <button type="button" wire:click="openForm('position')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Add position</button>
             </div>
 
@@ -452,28 +483,28 @@
                             <th class="px-4 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @forelse ($positions as $position)
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse ($positionsPaged as $position)
                             <tr wire:key="pos-{{ $position->id }}">
-                                <td class="px-4 py-3 font-medium text-gray-900">{{ $position->title }}</td>
-                                <td class="px-4 py-3 text-center text-gray-600">{{ $position->officers_count }}</td>
+                                <td class="px-4 py-3 font-medium text-slate-900">{{ $position->title }}</td>
+                                <td class="px-4 py-3 text-center text-slate-600">{{ $position->officers_count }}</td>
                                 <td class="space-x-2 whitespace-nowrap px-4 py-3 text-right">
                                     <button wire:click="editPosition({{ $position->id }})" class="px-1.5 py-2 text-xs font-medium text-blue-600 hover:underline">Edit</button>
                                     <button wire:click="deletePosition({{ $position->id }})" wire:confirm="Remove this position?" class="px-1.5 py-2 text-xs font-medium text-red-600 hover:underline">Delete</button>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-4 py-8 text-center text-gray-400">No positions yet.</td></tr>
+                            <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">No positions yet.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
                 </div>
                 <ul class="{{ $narrowList }}">
-                    @forelse ($positions as $position)
+                    @forelse ($positionsPaged as $position)
                         <li wire:key="pos-m-{{ $position->id }}" class="flex items-center justify-between gap-3 px-4 py-3.5">
                             <div class="min-w-0">
-                                <p class="truncate font-semibold text-gray-900">{{ $position->title }}</p>
-                                <p class="text-xs text-gray-400">Held by {{ $position->officers_count }} {{ Str::plural('officer', $position->officers_count) }}</p>
+                                <p class="truncate font-semibold text-slate-900">{{ $position->title }}</p>
+                                <p class="text-xs text-slate-400">Held by {{ $position->officers_count }} {{ Str::plural('officer', $position->officers_count) }}</p>
                             </div>
                             <div class="flex shrink-0 gap-2">
                                 <button wire:click="editPosition({{ $position->id }})" class="{{ $rowBtn }}">Edit</button>
@@ -481,9 +512,12 @@
                             </div>
                         </li>
                     @empty
-                        <li class="px-4 py-8 text-center text-sm text-gray-400">No positions yet.</li>
+                        <li class="px-4 py-8 text-center text-sm text-slate-400">No positions yet.</li>
                     @endforelse
                 </ul>
+                @if ($positionsPaged->hasPages())
+                    <div class="border-t border-slate-100 px-4 py-3">{{ $positionsPaged->links() }}</div>
+                @endif
             </div>
 
             @if ($form === 'position')
@@ -507,33 +541,48 @@
             <x-admin.alert :message="session('assign_message')" />
 
             <div class="{{ $toolbar }}">
-                <p class="text-sm text-gray-500">{{ $officers->total() }} {{ Str::plural('officer', $officers->total()) }}</p>
+                <p class="text-sm text-slate-500">{{ $officers->total() }} {{ Str::plural('officer', $officers->total()) }}</p>
                 <button type="button" wire:click="openForm('officer')" class="{{ $addBtn }}"><i class='bx bx-user-plus text-lg' aria-hidden="true"></i>Assign officer</button>
             </div>
 
             <div class="{{ $filterBar }}">
-                <div class="relative min-w-0 cq-md:flex-1">
-                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' aria-hidden="true"></i>
+                <div class="relative min-w-0 flex-1 sm:max-w-sm">
+                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
                     <input type="search" wire:model.live.debounce.300ms="filterOffSearch" placeholder="Search name or student number" aria-label="Search officers" class="{{ $filterSearch }}">
                 </div>
                 <div class="{{ $filterRow }}">
-                    <select wire:model.live="filterOffCollege" aria-label="College" class="{{ $pill }}">
+                    <label class="{{ $pickWrap }}" title="College">
+                        <i class="bx bx-buildings text-lg sm:!hidden" aria-hidden="true"></i>
+                        @if (filled($filterOffCollege))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                        <span class="sr-only">College</span>
+                        <select wire:model.live="filterOffCollege" class="{{ $pickField }}">
                         <option value="">All colleges</option>
                         @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
                     </select>
-                    <select wire:model.live="filterOffOrg" aria-label="Organization" class="{{ $pill }} max-w-[180px]">
+                    </label>
+                    <label class="{{ $pickWrap }}" title="Organization">
+                        <i class="bx bx-group text-lg sm:!hidden" aria-hidden="true"></i>
+                        @if (filled($filterOffOrg))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                        <span class="sr-only">Organization</span>
+                        <select wire:model.live="filterOffOrg" class="{{ $pickField }} max-w-[180px]">
                         <option value="">All organizations</option>
                         @foreach ($filterOrgs as $o) <option value="{{ $o->id }}">{{ Str::limit($o->name, 30) }}</option> @endforeach
                     </select>
-                    <select wire:model.live="filterOffPosition" aria-label="Position" class="{{ $pill }}">
+                    </label>
+                    <label class="{{ $pickWrap }}" title="Position">
+                        <i class="bx bx-medal text-lg sm:!hidden" aria-hidden="true"></i>
+                        @if (filled($filterOffPosition))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                        <span class="sr-only">Position</span>
+                        <select wire:model.live="filterOffPosition" class="{{ $pickField }}">
                         <option value="">All positions</option>
                         @foreach ($positions as $p) <option value="{{ $p->id }}">{{ $p->title }}</option> @endforeach
                     </select>
-                    <button type="button" wire:click="clearFilters('off')" class="{{ $clearBtn }}">Clear</button>
+                    </label>
+                    <button type="button" wire:click="clearFilters(\'off\')" class="{{ $clearBtn }}" title="Clear filters"><i class="bx bx-reset text-lg sm:!hidden" aria-hidden="true"></i><span class="max-sm:sr-only">Clear</span></button>
                 </div>
             </div>
 
-            <div class="{{ $card }} overflow-hidden">
+            <div class="{{ $card }} {{ $joined }} overflow-hidden">
                 <div class="{{ $wideTable }}">
                     <table class="w-full text-sm">
                         <thead class="{{ $thead }}">
@@ -544,17 +593,17 @@
                                 <th class="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-slate-100">
                             @forelse ($officers as $officer)
                                 @php $studentName = ($officer->user->full_name ?? ''); @endphp
                                 <tr wire:key="off-{{ $officer->id }}">
                                     <td class="max-w-[200px] px-4 py-3">
-                                        <div class="truncate font-medium text-gray-900" title="{{ $studentName }}">{{ $studentName }}</div>
-                                        <div class="text-xs text-gray-400">{{ $officer->user->student_number ?? '' }}</div>
+                                        <div class="truncate font-medium text-slate-900" title="{{ $studentName }}">{{ $studentName }}</div>
+                                        <div class="text-xs text-slate-400">{{ $officer->user->student_number ?? '' }}</div>
                                     </td>
-                                    <td class="max-w-[220px] px-4 py-3 text-gray-600">
+                                    <td class="max-w-[220px] px-4 py-3 text-slate-600">
                                         <div class="truncate" title="{{ $officer->organization->name ?? '—' }}">{{ $officer->organization->name ?? '—' }}</div>
-                                        <div class="truncate text-xs text-gray-400">{{ $officer->organization->programs->pluck('name')->implode(', ') }}</div>
+                                        <div class="truncate text-xs text-slate-400">{{ $officer->organization->programs->pluck('name')->implode(', ') }}</div>
                                     </td>
                                     <td class="px-4 py-3">
                                         <span class="whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-600">{{ $officer->position->title ?? '—' }}</span>
@@ -564,7 +613,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="4" class="px-4 py-10 text-center text-gray-400">No officers match your filters.</td></tr>
+                                <tr><td colspan="4" class="px-4 py-10 text-center text-slate-400">No officers match your filters.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -574,9 +623,9 @@
                         <li wire:key="off-m-{{ $officer->id }}" class="px-4 py-3.5">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="truncate font-semibold text-gray-900">{{ ($officer->user->full_name ?? '') }}</p>
-                                    <p class="text-xs text-gray-400">{{ $officer->user->student_number ?? '' }}</p>
-                                    <p class="mt-0.5 truncate text-xs text-gray-600">{{ $officer->organization->name ?? '—' }}</p>
+                                    <p class="truncate font-semibold text-slate-900">{{ ($officer->user->full_name ?? '') }}</p>
+                                    <p class="text-xs text-slate-400">{{ $officer->user->student_number ?? '' }}</p>
+                                    <p class="mt-0.5 truncate text-xs text-slate-600">{{ $officer->organization->name ?? '—' }}</p>
                                 </div>
                                 <span class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-600">{{ $officer->position->title ?? '—' }}</span>
                             </div>
@@ -585,11 +634,11 @@
                             </div>
                         </li>
                     @empty
-                        <li class="px-4 py-10 text-center text-sm text-gray-400">No officers match your filters.</li>
+                        <li class="px-4 py-10 text-center text-sm text-slate-400">No officers match your filters.</li>
                     @endforelse
                 </ul>
                 @if ($officers->hasPages())
-                    <div class="border-t border-gray-100 px-4 py-3">{{ $officers->links() }}</div>
+                    <div class="border-t border-slate-100 px-4 py-3">{{ $officers->links() }}</div>
                 @endif
             </div>
 
@@ -624,26 +673,26 @@
                                 <div class="mt-1 flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
                                     <span class="truncate">
                                         {{ $selectedStudent->full_name }}
-                                        <span class="text-xs text-gray-500">({{ $selectedStudent->student_number }})</span>
+                                        <span class="text-xs text-slate-500">({{ $selectedStudent->student_number }})</span>
                                     </span>
-                                    <button type="button" wire:click="$set('selectedStudentId', null)" class="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-800">Change</button>
+                                    <button type="button" wire:click="$set('selectedStudentId', null)" class="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-800">Change</button>
                                 </div>
                             @else
                                 <input type="text" wire:model.live.debounce.300ms="studentSearch"
                                     @disabled(! $assignOrganizationId)
                                     placeholder="{{ $assignOrganizationId ? 'Search by name or student number' : 'Select an organization first' }}"
-                                    class="{{ $formInput }} disabled:bg-gray-100">
+                                    class="{{ $formInput }} disabled:bg-slate-100">
 
                                 @if ($assignOrganizationId && strlen($studentSearch) >= 2)
-                                    <div class="mt-1 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+                                    <div class="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white">
                                         @forelse ($this->studentResults as $student)
                                             <button type="button" wire:click="selectStudent({{ $student->id }})" wire:key="stu-{{ $student->id }}"
-                                                class="flex w-full items-center gap-1 px-3 py-2.5 text-left text-sm hover:bg-gray-50">
+                                                class="flex w-full items-center gap-1 px-3 py-2.5 text-left text-sm hover:bg-slate-50">
                                                 <span class="truncate">{{ $student->full_name }}</span>
-                                                <span class="shrink-0 text-xs text-gray-400">({{ $student->student_number }})</span>
+                                                <span class="shrink-0 text-xs text-slate-400">({{ $student->student_number }})</span>
                                             </button>
                                         @empty
-                                            <div class="px-3 py-2 text-sm text-gray-400">No eligible students found.</div>
+                                            <div class="px-3 py-2 text-sm text-slate-400">No eligible students found.</div>
                                         @endforelse
                                     </div>
                                 @endif
@@ -712,7 +761,7 @@
                 <div x-show="tab === 'people'" x-cloak class="space-y-4">
 
                     <div class="{{ $toolbar }}">
-                        <p class="text-sm text-gray-500">{{ $signatoryAssignments->total() }} {{ Str::plural('assignment', $signatoryAssignments->total()) }}</p>
+                        <p class="text-sm text-slate-500">{{ $signatoryAssignments->total() }} {{ Str::plural('assignment', $signatoryAssignments->total()) }}</p>
                         <button type="button" wire:click="openForm('signatory')" class="{{ $addBtn }}"><i class='bx bx-user-plus text-lg' aria-hidden="true"></i>Add a person</button>
                     </div>
 
@@ -721,19 +770,19 @@
                         <button type="button" @click="coverage = !coverage" :aria-expanded="coverage"
                                 class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
                             <span class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                                <span class="font-semibold text-gray-900">Role coverage</span>
-                                <span class="text-gray-500">{{ $activeRoles->count() - $rolesWithoutHolder->count() }} of {{ $activeRoles->count() }} roles have a signer</span>
+                                <span class="font-semibold text-slate-900">Role coverage</span>
+                                <span class="text-slate-500">{{ $activeRoles->count() - $rolesWithoutHolder->count() }} of {{ $activeRoles->count() }} roles have a signer</span>
                                 @if ($rolesWithoutHolder->isNotEmpty())
                                     <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $rolesWithoutHolder->count() }} need a signer</span>
                                 @endif
                             </span>
-                            <svg class="h-4 w-4 shrink-0 text-gray-400 transition-transform" :class="coverage ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
+                            <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform" :class="coverage ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
                         </button>
 
-                        <div x-show="coverage" x-cloak class="space-y-4 border-t border-gray-100 px-4 py-4">
+                        <div x-show="coverage" x-cloak class="space-y-4 border-t border-slate-100 px-4 py-4">
                             @if ($rolesWithoutHolder->isNotEmpty())
                                 <div>
-                                    <p class="mb-2 text-xs font-medium text-gray-500">Needs a signer. Select a role to assign someone.</p>
+                                    <p class="mb-2 text-xs font-medium text-slate-500">Needs a signer. Select a role to assign someone.</p>
                                     <div class="flex flex-wrap gap-2">
                                         @foreach ($rolesWithoutHolder as $r)
                                             <button type="button" wire:key="need-{{ $r->id }}"
@@ -750,14 +799,14 @@
                             @php $coveredRoles = $activeRoles->reject(fn ($r) => ($sigHolderCounts[$r->id] ?? 0) === 0); @endphp
                             @if ($coveredRoles->isNotEmpty())
                                 <div>
-                                    <p class="mb-2 text-xs font-medium text-gray-500">Has a signer. Select a role to filter the table.</p>
+                                    <p class="mb-2 text-xs font-medium text-slate-500">Has a signer. Select a role to filter the table.</p>
                                     <div class="flex flex-wrap gap-2">
                                         @foreach ($coveredRoles as $r)
                                             <button type="button" wire:key="cov-{{ $r->id }}"
                                                     wire:click="$set('filterSigRole', '{{ $r->id }}')"
                                                     @click="coverage = false"
                                                     title="{{ $scopeText($r->scope) }}"
-                                                    class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                                                    class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
                                                 {{ $r->label }}
                                                 <span class="rounded-full bg-emerald-50 px-1.5 text-[11px] font-semibold text-emerald-700">{{ $sigHolderCounts[$r->id] }}</span>
                                             </button>
@@ -767,33 +816,43 @@
                             @endif
 
                             @if ($activeRoles->isEmpty())
-                                <p class="text-sm text-gray-500">No roles yet. Open <strong>Roles</strong> to create the first one.</p>
+                                <p class="text-sm text-slate-500">No roles yet. Open <strong>Roles</strong> to create the first one.</p>
                             @endif
                         </div>
                     </div>
 
                     <div class="{{ $filterBar }}">
-                        <div class="relative min-w-0 cq-md:flex-1">
-                            <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' aria-hidden="true"></i>
+                        <div class="relative min-w-0 flex-1 sm:max-w-sm">
+                            <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
                             <input type="search" wire:model.live.debounce.300ms="filterSigSearch" placeholder="Search name or email" aria-label="Search signatories" class="{{ $filterSearch }}">
                         </div>
                         <div class="{{ $filterRow }}">
-                            <select wire:model.live="filterSigRole" aria-label="Role" class="{{ $pill }} max-w-[180px]">
+                            <label class="{{ $pickWrap }}" title="Role">
+                                <i class="bx bx-shield-quarter text-lg sm:!hidden" aria-hidden="true"></i>
+                                @if (filled($filterSigRole))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                                <span class="sr-only">Role</span>
+                                <select wire:model.live="filterSigRole" class="{{ $pickField }} max-w-[180px]">
                                 <option value="">All roles</option>
                                 @foreach ($signatoryRoles as $r) <option value="{{ $r->id }}">{{ $r->label }}</option> @endforeach
                             </select>
-                            <select wire:model.live="filterSigStatus" aria-label="Status" class="{{ $pill }}">
+                            </label>
+                            <label class="{{ $pickWrap }}" title="Status">
+                                <i class="bx bx-toggle-left text-lg sm:!hidden" aria-hidden="true"></i>
+                                @if (filled($filterSigStatus))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
+                                <span class="sr-only">Status</span>
+                                <select wire:model.live="filterSigStatus" class="{{ $pickField }}">
                                 <option value="">Any status</option>
                                 <option value="current">Can sign now</option>
                                 <option value="upcoming">Starts later</option>
                                 <option value="expired">Expired</option>
                                 <option value="inactive">Ended</option>
                             </select>
-                            <button type="button" wire:click="clearFilters('sig')" class="{{ $clearBtn }}">Clear</button>
+                            </label>
+                            <button type="button" wire:click="clearFilters(\'sig\')" class="{{ $clearBtn }}" title="Clear filters"><i class="bx bx-reset text-lg sm:!hidden" aria-hidden="true"></i><span class="max-sm:sr-only">Clear</span></button>
                         </div>
                     </div>
 
-                    <div class="{{ $card }} overflow-hidden">
+                    <div class="{{ $card }} {{ $joined }} overflow-hidden">
                         <div class="{{ $wideTable }}">
                             <table class="w-full text-sm">
                                 <thead class="{{ $thead }}">
@@ -805,14 +864,14 @@
                                         <th class="px-4 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-100">
+                                <tbody class="divide-y divide-slate-100">
                                     @forelse ($signatoryAssignments as $assignment)
                                         @php
                                             $isUpcoming = $assignment->is_active && $assignment->active_from && $assignment->active_from->gt($today);
                                             $isExpired = $assignment->is_active && $assignment->active_until && $assignment->active_until->lt($today);
 
                                             [$statusLabel, $statusClass] = match (true) {
-                                                ! $assignment->is_active => ['Ended', 'bg-gray-100 text-gray-500'],
+                                                ! $assignment->is_active => ['Ended', 'bg-slate-100 text-slate-500'],
                                                 $isUpcoming => ['Starts ' . $assignment->active_from->format('M j'), 'bg-blue-50 text-blue-600'],
                                                 $isExpired => ['Expired', 'bg-amber-50 text-amber-700'],
                                                 default => ['Can sign now', 'bg-emerald-50 text-emerald-700'],
@@ -821,24 +880,24 @@
                                             $personName = ($assignment->user->full_name ?? '') ?: ('User #' . $assignment->user_id);
                                             $initials = strtoupper(substr($assignment->user->first_name ?? '?', 0, 1) . substr($assignment->user->last_name ?? '', 0, 1));
                                         @endphp
-                                        <tr wire:key="sigassign-{{ $assignment->id }}" class="{{ $assignment->is_active && ! $isExpired ? '' : 'bg-gray-50/60 text-gray-500' }}">
+                                        <tr wire:key="sigassign-{{ $assignment->id }}" class="{{ $assignment->is_active && ! $isExpired ? '' : 'bg-slate-50/60 text-slate-500' }}">
                                             <td class="px-4 py-3">
                                                 <div class="flex items-center gap-3">
-                                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2A57B4]/10 text-xs font-bold text-[#2A57B4]">{{ $initials }}</span>
+                                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e2e9f7] text-xs font-semibold text-[#1E4090]">{{ $initials }}</span>
                                                     <div class="min-w-0 max-w-[200px]">
-                                                        <div class="truncate font-semibold text-gray-900" title="{{ $personName }}">{{ $personName }}</div>
-                                                        <div class="truncate text-xs text-gray-400">{{ $assignment->user->email ?? '' }}</div>
+                                                        <div class="truncate font-semibold text-slate-900" title="{{ $personName }}">{{ $personName }}</div>
+                                                        <div class="truncate text-xs text-slate-400">{{ $assignment->user->email ?? '' }}</div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3">
-                                                <div class="font-medium text-gray-800">{{ $assignment->role->label ?? '-' }}</div>
+                                                <div class="font-medium text-slate-800">{{ $assignment->role->label ?? '-' }}</div>
                                                 @if ($assignment->scope_name)
-                                                    <div class="text-[11px] text-gray-400">for {{ $assignment->scope_name }}</div>
+                                                    <div class="text-[11px] text-slate-400">for {{ $assignment->scope_name }}</div>
                                                 @endif
-                                                <div class="text-[11px] text-gray-400 cq-lg:hidden">{{ $assignment->active_from?->format('M j, Y') ?? 'Now' }} &rarr; {{ $assignment->active_until?->format('M j, Y') ?? 'Ongoing' }}</div>
+                                                <div class="text-[11px] text-slate-400 cq-lg:hidden">{{ $assignment->active_from?->format('M j, Y') ?? 'Now' }} &rarr; {{ $assignment->active_until?->format('M j, Y') ?? 'Ongoing' }}</div>
                                             </td>
-                                            <td class="hidden whitespace-nowrap px-4 py-3 text-xs text-gray-500 cq-lg:table-cell">
+                                            <td class="hidden whitespace-nowrap px-4 py-3 text-xs text-slate-500 cq-lg:table-cell">
                                                 @if (! $assignment->active_from && ! $assignment->active_until)
                                                     No end date
                                                 @else
@@ -859,14 +918,14 @@
                                                 @endif
                                                 <button wire:click="deleteSignatoryAssignment({{ $assignment->id }})"
                                                         wire:confirm="Permanently delete this record? Use Stop instead if you only want them to stop signing."
-                                                        class="ml-1 px-1.5 py-1 text-xs text-gray-400 hover:text-red-600" title="Delete record" aria-label="Delete record">
+                                                        class="ml-1 px-1.5 py-1 text-xs text-slate-400 hover:text-red-600" title="Delete record" aria-label="Delete record">
                                                     <i class='bx bx-trash'></i>
                                                 </button>
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="px-4 py-12 text-center text-sm text-gray-400">
+                                            <td colspan="5" class="px-4 py-12 text-center text-sm text-slate-400">
                                                 No one matches. Try clearing the filters, or use <strong>Add a person</strong>.
                                             </td>
                                         </tr>
@@ -880,7 +939,7 @@
                                     $isUpcoming = $assignment->is_active && $assignment->active_from && $assignment->active_from->gt($today);
                                     $isExpired = $assignment->is_active && $assignment->active_until && $assignment->active_until->lt($today);
                                     [$statusLabel, $statusClass] = match (true) {
-                                        ! $assignment->is_active => ['Ended', 'bg-gray-100 text-gray-500'],
+                                        ! $assignment->is_active => ['Ended', 'bg-slate-100 text-slate-500'],
                                         $isUpcoming => ['Starts ' . $assignment->active_from->format('M j'), 'bg-blue-50 text-blue-600'],
                                         $isExpired => ['Expired', 'bg-amber-50 text-amber-700'],
                                         default => ['Can sign now', 'bg-emerald-50 text-emerald-700'],
@@ -888,30 +947,30 @@
                                     $personName = ($assignment->user->full_name ?? '') ?: ('User #' . $assignment->user_id);
                                     $initials = strtoupper(substr($assignment->user->first_name ?? '?', 0, 1) . substr($assignment->user->last_name ?? '', 0, 1));
                                 @endphp
-                                <li wire:key="sigassign-m-{{ $assignment->id }}" class="px-4 py-3.5 {{ $assignment->is_active && ! $isExpired ? '' : 'bg-gray-50/60' }}">
+                                <li wire:key="sigassign-m-{{ $assignment->id }}" class="px-4 py-3.5 {{ $assignment->is_active && ! $isExpired ? '' : 'bg-slate-50/60' }}">
                                     <div class="flex items-start gap-3">
-                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2A57B4]/10 text-xs font-bold text-[#2A57B4]">{{ $initials }}</span>
+                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e2e9f7] text-xs font-semibold text-[#1E4090]">{{ $initials }}</span>
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-start justify-between gap-2">
-                                                <p class="min-w-0 truncate font-semibold text-gray-900">{{ $personName }}</p>
+                                                <p class="min-w-0 truncate font-semibold text-slate-900">{{ $personName }}</p>
                                                 <span class="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $statusClass }}">{{ $statusLabel }}</span>
                                             </div>
-                                            <p class="truncate text-xs text-gray-400">{{ $assignment->user->email ?? '' }}</p>
-                                            <p class="mt-1 text-sm font-medium text-gray-800">
+                                            <p class="truncate text-xs text-slate-400">{{ $assignment->user->email ?? '' }}</p>
+                                            <p class="mt-1 text-sm font-medium text-slate-800">
                                                 {{ $assignment->role->label ?? '-' }}
-                                                @if ($assignment->scope_name)<span class="text-xs font-normal text-gray-400">for {{ $assignment->scope_name }}</span>@endif
+                                                @if ($assignment->scope_name)<span class="text-xs font-normal text-slate-400">for {{ $assignment->scope_name }}</span>@endif
                                             </p>
-                                            <p class="text-[11px] text-gray-400">{{ $assignment->active_from?->format('M j, Y') ?? 'Now' }} &rarr; {{ $assignment->active_until?->format('M j, Y') ?? 'Ongoing' }}</p>
+                                            <p class="text-[11px] text-slate-400">{{ $assignment->active_from?->format('M j, Y') ?? 'Now' }} &rarr; {{ $assignment->active_until?->format('M j, Y') ?? 'Ongoing' }}</p>
                                         </div>
                                     </div>
                                     <div class="mt-2.5 flex justify-end gap-2">
                                         @if ($assignment->is_active)
                                             <button wire:click="endSignatoryAssignment({{ $assignment->id }})"
                                                     wire:confirm="Stop this person from signing as {{ $assignment->role->label ?? 'this role' }}?"
-                                                    class="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100">Stop</button>
+                                                    class="inline-flex min-h-8 items-center rounded-lg px-3 text-xs font-medium text-amber-800 hover:bg-amber-50">Stop</button>
                                         @else
                                             <button wire:click="reactivateSignatoryAssignment({{ $assignment->id }})"
-                                                    class="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Restore</button>
+                                                    class="inline-flex min-h-8 items-center rounded-lg px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50">Restore</button>
                                         @endif
                                         <button wire:click="deleteSignatoryAssignment({{ $assignment->id }})"
                                                 wire:confirm="Permanently delete this record? Use Stop instead if you only want them to stop signing."
@@ -919,11 +978,11 @@
                                     </div>
                                 </li>
                             @empty
-                                <li class="px-4 py-12 text-center text-sm text-gray-400">No one matches. Try clearing the filters, or use <strong>Add a person</strong>.</li>
+                                <li class="px-4 py-12 text-center text-sm text-slate-400">No one matches. Try clearing the filters, or use <strong>Add a person</strong>.</li>
                             @endforelse
                         </ul>
                         @if ($signatoryAssignments->hasPages())
-                            <div class="border-t border-gray-100 px-4 py-3">{{ $signatoryAssignments->links() }}</div>
+                            <div class="border-t border-slate-100 px-4 py-3">{{ $signatoryAssignments->links() }}</div>
                         @endif
                     </div>
                 </div>
@@ -931,49 +990,52 @@
                 {{-- ===== ROLES ===== --}}
                 <div x-show="tab === 'roles'" x-cloak class="space-y-4">
                     <div class="{{ $toolbar }}">
-                        <p class="min-w-0 text-sm text-gray-500">Documents ask for roles, never for named people.</p>
+                        <p class="min-w-0 text-sm text-slate-500">Documents ask for roles, never for named people.</p>
                         <button type="button" wire:click="openForm('role')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Create role</button>
                     </div>
 
                     <div class="{{ $card }} overflow-hidden">
-                        <div class="divide-y divide-gray-100">
-                            @forelse ($signatoryRoles as $r)
+                        <div class="divide-y divide-slate-100">
+                            @forelse ($rolesPaged as $r)
                                 @php $n = $sigHolderCounts[$r->id] ?? 0; @endphp
                                 <div wire:key="sigrole-{{ $r->id }}"
                                     class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 {{ $r->is_active ? '' : 'opacity-60' }}">
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">
-                                            <p class="truncate text-sm font-semibold text-gray-900">{{ $r->label }}</p>
+                                            <p class="truncate text-sm font-semibold text-slate-900">{{ $r->label }}</p>
                                             <span class="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-[#2A57B4]">{{ $scopeText($r->scope) }}</span>
                                         </div>
-                                        <p class="font-mono text-[11px] text-gray-400">{{ $r->key }}</p>
+                                        <p class="font-mono text-[11px] text-slate-400">{{ $r->key }}</p>
                                         <p class="mt-0.5 text-[11px] font-medium {{ $n > 0 ? 'text-emerald-600' : 'text-amber-600' }}">
                                             {{ $n > 0 ? $n . ' ' . Str::plural('person', $n) . ' can sign' : 'Nobody assigned yet' }}
                                         </p>
                                     </div>
                                     <div class="flex shrink-0 items-center gap-2">
                                         <button wire:click="toggleSignatoryRoleActive({{ $r->id }})"
-                                                class="rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $r->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500' }}"
+                                                class="rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $r->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }}"
                                                 title="Click to turn {{ $r->is_active ? 'off' : 'on' }}">
                                             {{ $r->is_active ? 'On' : 'Off' }}
                                         </button>
                                         <button wire:click="editSignatoryRole({{ $r->id }})" class="text-xs font-semibold text-blue-600 hover:underline">Edit</button>
-                                        <button wire:click="deleteSignatoryRole({{ $r->id }})" wire:confirm="Delete this role?" class="text-xs text-gray-400 hover:text-red-600" title="Delete" aria-label="Delete role">
+                                        <button wire:click="deleteSignatoryRole({{ $r->id }})" wire:confirm="Delete this role?" class="text-xs text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete role">
                                             <i class='bx bx-trash'></i>
                                         </button>
                                     </div>
                                 </div>
                             @empty
-                                <p class="px-4 py-10 text-center text-sm text-gray-400">No roles yet. Use <strong>Create role</strong> to add the first one.</p>
+                                <p class="px-4 py-10 text-center text-sm text-slate-400">No roles yet. Use <strong>Create role</strong> to add the first one.</p>
                             @endforelse
                         </div>
+                @if ($rolesPaged->hasPages())
+                    <div class="border-t border-slate-100 px-4 py-3">{{ $rolesPaged->links() }}</div>
+                @endif
                     </div>
                 </div>
 
                 {{-- ===== INVITATIONS ===== --}}
                 <div x-show="tab === 'invites'" x-cloak class="space-y-4">
                     <div class="{{ $toolbar }}">
-                        <p class="min-w-0 text-sm text-gray-500">Resend the link if it expired or they lost it.</p>
+                        <p class="min-w-0 text-sm text-slate-500">Resend the link if it expired or they lost it.</p>
                         <button type="button" wire:click="openForm('signatory', null, 'invite')" class="{{ $addBtn }}"><i class='bx bx-envelope text-lg' aria-hidden="true"></i>Invite someone</button>
                     </div>
 
@@ -987,13 +1049,13 @@
                                         <th class="px-4 py-3 text-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    @forelse ($invitations as $inv)
+                                <tbody class="divide-y divide-slate-100">
+                                    @forelse ($invitationsPaged as $inv)
                                         @php
                                             [$text, $cls] = match (true) {
                                                 (bool) $inv->used_at => ['Account ready', 'bg-emerald-50 text-emerald-700'],
                                                 (bool) $inv->declined_at => ['Declined', 'bg-rose-50 text-rose-700'],
-                                                (bool) $inv->cancelled_at => ['Cancelled', 'bg-gray-100 text-gray-500'],
+                                                (bool) $inv->cancelled_at => ['Cancelled', 'bg-slate-100 text-slate-500'],
                                                 $inv->expires_at && $inv->expires_at->isPast() => ['Link expired', 'bg-amber-50 text-amber-700'],
                                                 default => ['Waiting for them', 'bg-blue-50 text-blue-600'],
                                             };
@@ -1002,15 +1064,15 @@
                                         @endphp
                                         <tr wire:key="inv-{{ $inv->id }}">
                                             <td class="px-4 py-3">
-                                                <div class="font-semibold text-gray-900">{{ ($inv->user->full_name ?? '') }}</div>
-                                                <div class="text-xs text-gray-400">{{ $inv->user->email ?? '' }}</div>
+                                                <div class="font-semibold text-slate-900">{{ ($inv->user->full_name ?? '') }}</div>
+                                                <div class="text-xs text-slate-400">{{ $inv->user->email ?? '' }}</div>
                                             </td>
                                             <td class="px-4 py-3"><span class="whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $cls }}">{{ $text }}</span></td>
                                             <td class="whitespace-nowrap px-4 py-3 text-right">
                                                 @unless ($inv->used_at)
                                                     <button wire:click="resendInvitation({{ $inv->user_id }})"
                                                             wire:confirm="Email a new setup link? Older links stop working."
-                                                            class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-[#2A57B4] hover:bg-blue-50">
+                                                            class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-[#2A57B4] hover:bg-blue-50">
                                                         {{ $closed ? 'Invite again' : 'Resend link' }}
                                                     </button>
                                                 @endunless
@@ -1024,18 +1086,18 @@
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="3" class="px-4 py-12 text-center text-sm text-gray-400">No invitations yet.</td></tr>
+                                        <tr><td colspan="3" class="px-4 py-12 text-center text-sm text-slate-400">No invitations yet.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
                         <ul class="{{ $narrowList }}">
-                            @forelse ($invitations as $inv)
+                            @forelse ($invitationsPaged as $inv)
                                 @php
                                     [$text, $cls] = match (true) {
                                         (bool) $inv->used_at => ['Account ready', 'bg-emerald-50 text-emerald-700'],
                                         (bool) $inv->declined_at => ['Declined', 'bg-rose-50 text-rose-700'],
-                                        (bool) $inv->cancelled_at => ['Cancelled', 'bg-gray-100 text-gray-500'],
+                                        (bool) $inv->cancelled_at => ['Cancelled', 'bg-slate-100 text-slate-500'],
                                         $inv->expires_at && $inv->expires_at->isPast() => ['Link expired', 'bg-amber-50 text-amber-700'],
                                         default => ['Waiting for them', 'bg-blue-50 text-blue-600'],
                                     };
@@ -1045,8 +1107,8 @@
                                 <li wire:key="inv-m-{{ $inv->id }}" class="px-4 py-3.5">
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="min-w-0">
-                                            <p class="truncate font-semibold text-gray-900">{{ ($inv->user->full_name ?? '') }}</p>
-                                            <p class="truncate text-xs text-gray-400">{{ $inv->user->email ?? '' }}</p>
+                                            <p class="truncate font-semibold text-slate-900">{{ ($inv->user->full_name ?? '') }}</p>
+                                            <p class="truncate text-xs text-slate-400">{{ $inv->user->email ?? '' }}</p>
                                         </div>
                                         <span class="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $cls }}">{{ $text }}</span>
                                     </div>
@@ -1064,9 +1126,12 @@
                                     @endif
                                 </li>
                             @empty
-                                <li class="px-4 py-12 text-center text-sm text-gray-400">No invitations yet.</li>
+                                <li class="px-4 py-12 text-center text-sm text-slate-400">No invitations yet.</li>
                             @endforelse
                         </ul>
+                @if ($invitationsPaged->hasPages())
+                    <div class="border-t border-slate-100 px-4 py-3">{{ $invitationsPaged->links() }}</div>
+                @endif
                     </div>
                 </div>
             </div>
@@ -1085,7 +1150,7 @@
                         <div>
                             <label class="{{ $label }}">Code</label>
                             <input type="text" wire:model="sigRoleKey" placeholder="guidance_counselor" class="{{ $formInput }} font-mono">
-                            <p class="mt-1 text-[11px] text-gray-400">Lowercase letters, numbers and underscores. Forms use this code.</p>
+                            <p class="mt-1 text-[11px] text-slate-400">Lowercase letters, numbers and underscores. Forms use this code.</p>
                             @error('sigRoleKey') <p class="{{ $error }}">{{ $message }}</p> @enderror
                         </div>
                         <div>
@@ -1096,7 +1161,7 @@
                                 <option value="program">Each program has its own</option>
                                 <option value="college">Each college has its own</option>
                             </select>
-                            <p class="mt-1 text-[11px] text-gray-400">
+                            <p class="mt-1 text-[11px] text-slate-400">
                                 @if ($sigRoleScope === 'none')
                                     Anyone holding this role can sign for any student. Best for the VP or Guidance Counselor.
                                 @else
@@ -1123,15 +1188,15 @@
                 <x-admin.form-modal title="Add a person" subtitle="Give an existing account a signing role, or invite someone new."
                     :state="'{ addMode: ' . Js::from($sigAddMode) . ' }'">
                     <div class="space-y-5">
-                        <div class="flex w-full rounded-lg bg-gray-100 p-1">
+                        <div class="flex w-full rounded-lg bg-slate-100 p-1">
                             <button type="button" @click="addMode = 'existing'"
                                     class="flex-1 rounded-md px-3 py-2 text-xs font-semibold transition sm:text-sm"
-                                    :class="addMode === 'existing' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'">
+                                    :class="addMode === 'existing' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
                                 Has an account
                             </button>
                             <button type="button" @click="addMode = 'invite'"
                                     class="flex-1 rounded-md px-3 py-2 text-xs font-semibold transition sm:text-sm"
-                                    :class="addMode === 'invite' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'">
+                                    :class="addMode === 'invite' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
                                 New person (invite)
                             </button>
                         </div>
@@ -1139,39 +1204,39 @@
                         {{-- Existing account --}}
                         <div x-show="addMode === 'existing'" class="space-y-5">
                             <div>
-                                <p class="mb-1.5 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                <p class="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-900">
                                     <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A57B4] text-[11px] text-white">1</span> Who?
                                 </p>
                                 @if ($sigSelectedUser)
                                     <div class="flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm">
                                         <span class="min-w-0 truncate">
-                                            <strong class="text-gray-900">{{ $sigSelectedUser->full_name }}</strong>
+                                            <strong class="text-slate-900">{{ $sigSelectedUser->full_name }}</strong>
                                             @if ($sigSelectedUser->student_number)
-                                                <span class="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{{ $sigSelectedUser->student_number }}</span>
+                                                <span class="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-slate-600">{{ $sigSelectedUser->student_number }}</span>
                                             @endif
-                                            <span class="text-xs text-gray-500">{{ $sigSelectedUser->email }}</span>
+                                            <span class="text-xs text-slate-500">{{ $sigSelectedUser->email }}</span>
                                         </span>
-                                        <button type="button" wire:click="$set('sigSelectedUserId', null)" class="shrink-0 text-xs font-semibold text-gray-500 hover:text-gray-800">Change</button>
+                                        <button type="button" wire:click="$set('sigSelectedUserId', null)" class="shrink-0 text-xs font-semibold text-slate-500 hover:text-slate-800">Change</button>
                                     </div>
                                 @else
                                     <input type="text" wire:model.live.debounce.300ms="sigUserSearch"
                                         placeholder="Search by name, student number or email"
                                         class="{{ $input }} w-full">
                                     @if (strlen(trim($sigUserSearch)) >= 2)
-                                        <div class="mt-1 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+                                        <div class="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white">
                                             @forelse ($this->sigUserResults as $u)
                                                 <button type="button" wire:click="selectSigUser({{ $u->id }})" wire:key="siguser-{{ $u->id }}"
-                                                        class="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm hover:bg-gray-50">
+                                                        class="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm hover:bg-slate-50">
                                                     <span class="min-w-0">
-                                                        <span class="block truncate font-medium text-gray-900">{{ $u->full_name }}</span>
-                                                        <span class="block truncate text-xs text-gray-400">{{ $u->email }}</span>
+                                                        <span class="block truncate font-medium text-slate-900">{{ $u->full_name }}</span>
+                                                        <span class="block truncate text-xs text-slate-400">{{ $u->email }}</span>
                                                     </span>
                                                     @if ($u->student_number)
-                                                        <span class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{{ $u->student_number }}</span>
+                                                        <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">{{ $u->student_number }}</span>
                                                     @endif
                                                 </button>
                                             @empty
-                                                <p class="px-3.5 py-2 text-sm text-gray-400">No one found. Use "New person" if they have no account yet.</p>
+                                                <p class="px-3.5 py-2 text-sm text-slate-400">No one found. Use "New person" if they have no account yet.</p>
                                             @endforelse
                                         </div>
                                     @endif
@@ -1180,7 +1245,7 @@
                             </div>
 
                             <div>
-                                <p class="mb-1.5 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                <p class="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-900">
                                     <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#2A57B4] text-[11px] text-white">2</span> Signs as
                                 </p>
                                 <select wire:model.live="sigRoleId" class="{{ $input }} w-full">
@@ -1205,8 +1270,8 @@
                                 @endif
                             </div>
 
-                            <details class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
-                                <summary class="cursor-pointer font-semibold text-gray-700">Limit to certain dates (optional)</summary>
+                            <details class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                                <summary class="cursor-pointer font-semibold text-slate-700">Limit to certain dates (optional)</summary>
                                 <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <div>
                                         <label class="{{ $label }}">Starts</label>
@@ -1218,7 +1283,7 @@
                                         @error('sigActiveUntil') <p class="{{ $error }} font-medium">{{ $message }}</p> @enderror
                                     </div>
                                 </div>
-                                <p class="mt-2 text-xs text-gray-400">Leave blank to start right away with no end date.</p>
+                                <p class="mt-2 text-xs text-slate-400">Leave blank to start right away with no end date.</p>
                             </details>
                         </div>
 
@@ -1285,8 +1350,8 @@
                                 </div>
                             @endif
 
-                            <details class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
-                                <summary class="cursor-pointer font-semibold text-gray-700">Limit to certain dates (optional)</summary>
+                            <details class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                                <summary class="cursor-pointer font-semibold text-slate-700">Limit to certain dates (optional)</summary>
                                 <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <div>
                                         <label class="{{ $label }}">Starts</label>

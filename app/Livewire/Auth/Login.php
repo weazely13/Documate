@@ -21,9 +21,17 @@ class Login extends Component
     public $password = '';
     public $remember = false;
 
-    // Forgot password
+    // Forgot password: 'ask' -> ('mismatch' -> hint) -> 'sent'
     public bool $showForgot = false;
+    public string $forgotStep = 'ask';
     public string $resetEmail = '';
+    public string $resetStudentNumber = '';
+    public string $resetLastName = '';
+    public string $hintStudentNumber = '';
+    public ?string $hintEmail = null;    // masked email of the account found by student number
+    public ?string $sentTo = null;       // masked email the link went to
+    #[Locked]
+    public ?int $hintUserId = null;
 
     // Removed-account recovery
     public bool $canRecover = false;
@@ -107,7 +115,7 @@ class Login extends Component
                 ]);
             }
 
-            return $this->redirect(route('signatory.inbox'), navigate: true);
+            return $this->redirect(route('signatory.home'), navigate: true);
         }
 
         if ($user->account_status !== 'active') {
@@ -117,35 +125,168 @@ class Login extends Component
         return $this->redirect('/student/home', navigate: true);
     }
 
+    /** "kh*****a@gmail.com": enough to recognise your own address, not enough to read someone else's. */
     protected function maskEmail(string $email): string
     {
         [$name, $domain] = array_pad(explode('@', $email, 2), 2, '');
+        $len = mb_strlen($name);
+        $show = $len <= 3 ? 1 : 2;
 
-        return Str::substr($name, 0, 1) . str_repeat('*', max(2, strlen($name) - 1)) . '@' . $domain;
+        return mb_substr($name, 0, $show) . str_repeat('*', max(3, $len - $show - 1)) . ($len > 3 ? mb_substr($name, -1) : '') . '@' . $domain;
     }
 
     // ---------- Forgot password ----------
+    // The link only ever goes to the email saved on the account. Typing an email that isn't on any account
+    // opens a pop-up instead; a student number then shows a masked hint of the right address.
+
+    public function openForgot(): void
+    {
+        $this->resetErrorBag();
+        $this->reset('resetEmail', 'resetStudentNumber', 'resetLastName', 'hintStudentNumber', 'hintEmail', 'hintUserId', 'sentTo');
+        $this->forgotStep = 'ask';
+        $entry = trim((string) $this->login);
+        if (filter_var($entry, FILTER_VALIDATE_EMAIL)) {
+            $this->resetEmail = $entry;
+        } elseif (preg_match('/^\d{5,}$/', $entry)) {
+            $this->resetStudentNumber = $entry;
+        }
+        $this->showForgot = true;
+    }
+
+    public function closeForgot(): void
+    {
+        $this->showForgot = false;
+        $this->forgotStep = 'ask';
+        $this->resetErrorBag();
+    }
+
+    /**
+     * The email plus ONE of: the last name, or the student / ID number (signatories may have no number).
+     * Whatever is given must belong to the same account, and the link only ever goes to that account's email.
+     */
     public function sendResetLink(): void
     {
-        $this->validate(['resetEmail' => ['required', 'email']], [], ['resetEmail' => 'email']);
+        $this->validate([
+            'resetEmail' => ['required', 'email', 'max:255'],
+            'resetLastName' => ['nullable', 'string', 'max:120', 'required_without:resetStudentNumber'],
+            'resetStudentNumber' => ['nullable', 'string', 'max:40'],
+        ], [
+            'resetLastName.required_without' => 'Enter your last name or your student / ID number.',
+        ], ['resetLastName' => 'last name', 'resetEmail' => 'email', 'resetStudentNumber' => 'student or ID number']);
 
-        $key = 'pw-reset:' . request()->ip();
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $this->addError('resetEmail', 'Too many attempts. Please try again in a few minutes.');
+        if (! $this->throttle('pw-reset:' . request()->ip(), 6, 'resetEmail')) {
             return;
         }
-        RateLimiter::hit($key, 300);
 
-        try {
-            // Soft-deleted users are skipped by the broker automatically.
-            Password::sendResetLink(['email' => strtolower(trim($this->resetEmail))]);
-        } catch (\Throwable $e) {
-            report($e);
+        $email = Str::lower(trim($this->resetEmail));
+        $number = trim($this->resetStudentNumber);
+        $name = trim($this->resetLastName);
+
+        // With an ID number: that account, checked against the name too if one was typed
+        if ($number !== '') {
+            $user = User::where('student_number', $number)->first();
+            if (! $user || ($name !== '' && ! $this->nameMatches($user, $name))) {
+                Audit::record('password_reset_mismatch', 'Authentication', "Password reset refused for ID \"{$number}\": no matching account", actor: null);
+                $this->addError('resetStudentNumber', $name !== ''
+                    ? 'That name and ID number don\'t belong to the same account. Check both.'
+                    : 'No account uses that student / ID number.');
+
+                return;
+            }
+
+            if (Str::lower((string) $user->email) === $email) {
+                $this->deliverReset($user);
+
+                return;
+            }
+
+            // Right account, wrong email: show the account's email, masked
+            Audit::record('password_reset_mismatch', 'Authentication', 'Password reset asked with an email that is not on the account', $user, actor: null);
+            $this->hintEmail = $this->maskEmail($user->email);
+            $this->hintUserId = $user->id;
+            $this->forgotStep = 'mismatch';
+
+            return;
         }
 
-        // Same message whether or not the email exists.
-        session()->flash('status', 'If that email belongs to an account, a password reset link has been sent.');
-        $this->reset('resetEmail', 'showForgot');
+        // With a name only: the account with this email must carry that name
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+        if ($user && $this->nameMatches($user, $name)) {
+            $this->deliverReset($user);
+
+            return;
+        }
+
+        Audit::record('password_reset_mismatch', 'Authentication', "Password reset refused for \"{$email}\": no account with that email and name", actor: null);
+        $this->hintEmail = null;
+        $this->hintUserId = null;
+        $this->forgotStep = 'mismatch';
+    }
+
+    /** From the pop-up: send to the account's own email, found by the matching student number and name. */
+    public function sendToHint(): void
+    {
+        $user = $this->hintUserId ? User::find($this->hintUserId) : null;
+        if (! $user) {
+            $this->forgotStep = 'ask';
+
+            return;
+        }
+
+        if (! $this->throttle('pw-reset:' . request()->ip(), 6, 'resetEmail')) {
+            return;
+        }
+
+        $this->deliverReset($user);
+    }
+
+    /** "Dela Cruz", "dela  cruz", "DELA-CRUZ" and "Juan Dela Cruz" all match the last name Dela Cruz. */
+    private function nameMatches(User $user, string $typed): bool
+    {
+        $norm = fn ($v) => preg_replace('/[^a-z]/', '', Str::lower(Str::ascii((string) $v)));
+        $typed = $norm($typed);
+        $last = $norm($user->last_name);
+
+        return $typed !== '' && $last !== '' && in_array($typed, [
+            $last,
+            $norm($user->first_name . $user->last_name),
+            $norm($user->first_name . $user->middle_name . $user->last_name),
+        ], true);
+    }
+
+    private function deliverReset(User $user): void
+    {
+        try {
+            $status = Password::sendResetLink(['email' => $user->email]);
+        } catch (\Throwable $e) {
+            report($e);
+            $this->addError('resetEmail', 'The reset email could not be sent right now. Please try again in a few minutes.');
+
+            return;
+        }
+
+        if ($status === Password::RESET_THROTTLED) {
+            $this->addError('resetEmail', 'A reset link was sent to this account a moment ago. Check your inbox (and spam), or try again in a minute.');
+
+            return;
+        }
+
+        Audit::record('password_reset_sent', 'Authentication', 'Password reset link sent to the account email', $user, actor: null);
+        $this->sentTo = $this->maskEmail($user->email);
+        $this->forgotStep = 'sent';
+        $this->reset('hintStudentNumber', 'hintUserId', 'hintEmail');
+    }
+
+    private function throttle(string $key, int $max, string $field): bool
+    {
+        if (RateLimiter::tooManyAttempts($key, $max)) {
+            $this->addError($field, 'Too many attempts. Try again in ' . RateLimiter::availableIn($key) . ' seconds.');
+
+            return false;
+        }
+        RateLimiter::hit($key, 600);
+
+        return true;
     }
 
     // ---------- Recover a removed account ----------
