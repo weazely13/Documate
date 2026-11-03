@@ -160,8 +160,8 @@
             </section>
         @else
             <p class="text-center text-sm text-slate-700 group-data-[ink=light]/greet:text-blue-50">
-                Nothing unfinished. Search above, or
-                <button type="button" @click="setTab('explore')" class="font-semibold text-[#2A57B4] hover:text-[#1E4090] group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:underline">explore every document</button>.
+                No unfinished transactions. Do you want to
+                <button type="button" @click="setTab('explore')" class="font-semibold text-[#2A57B4] hover:text-[#1E4090] group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:underline">explore every document</button>?
             </p>
         @endif
 

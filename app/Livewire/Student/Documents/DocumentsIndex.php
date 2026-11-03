@@ -23,7 +23,7 @@ class DocumentsIndex extends Component
     /** Paperless statuses that are finished. Paper-based rows use `status = completed`. */
     private const FINISHED = ['completed', 'rejected', 'voided'];
 
-    public const TABS = ['active' => 'Active', 'issued' => 'Issued to you', 'history' => 'History'];
+    public const TABS = ['active' => 'In progress', 'issued' => 'Issued to you', 'history' => 'History'];
 
     public string $tab = 'active';
     public string $search = '';
