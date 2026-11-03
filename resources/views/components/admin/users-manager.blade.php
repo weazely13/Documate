@@ -15,11 +15,11 @@
 
     $groups = [
         'Accounts' => [
-            'accounts' => ['Accounts', route('admin.users'), 'bx-user', 'Find, review and remove student, officer, signatory and admin accounts.'],
+            'accounts' => ['Accounts', route('admin.users'), 'bx-user', 'Oversee user access, account information, organizations, and signatory roles.'],
             'verifications' => ['Verifications', route('admin.users', ['view' => 'verifications']), 'bx-id-card', 'Open a verification period and see who has verified their account.'],
         ],
         'School calendar' => [
-            'semesters' => ['Semesters', route('admin.semesters'), 'bx-calendar-alt', 'Each semester runs between a start and an end date. The one that contains today becomes current by itself.'],
+            'semesters' => ['Semesters', route('admin.semesters'), 'bx-calendar-alt', 'Add a start and end date to each semester to enable automatic identification of the current semester.'],
         ],
         'Organizations' => [
             'organizations' => ['Organizations', $org('organizations'), 'bx-buildings', 'Create organizations and link them to programs or a year level.'],

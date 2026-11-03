@@ -147,7 +147,7 @@
                 <div class="flex flex-col-reverse gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3 sm:flex-row sm:justify-end sm:rounded-b-2xl">
                     <button type="button" wire:click="closeCreate" class="{{ $btnSecondary }}">Cancel</button>
                     <button type="submit" wire:loading.attr="disabled" wire:target="createSemester" class="{{ $btnPrimary }}">
-                        <i class='bx bx-plus text-base' aria-hidden="true"></i> Create semester
+                        <i class='bx bx-plus text-base' aria-hidden="true"></i> New semester
                     </button>
                 </div>
             </form>

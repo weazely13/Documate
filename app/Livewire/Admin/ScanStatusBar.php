@@ -201,8 +201,8 @@ class ScanStatusBar extends Component
                 },
                 'status' => match ($a->ai_flag) {
                     'pending' => 'Checking the request…',
-                    'clean' => 'Looks fine',
-                    'flagged' => 'Worth a look',
+                    'clean' => 'Requires further review',
+                    'flagged' => 'Requires further review',
                     default => 'Check failed',
                 },
                 'who' => $a->user?->full_name ?? 'Unknown student',
