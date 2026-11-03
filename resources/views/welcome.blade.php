@@ -156,9 +156,9 @@
                                 <span class="text-[11px] text-[#9f1239]">3 waiting 7+ school days</span>
                             </div>
                             @foreach ([
-                                ['Permit to Conduct an In-Campus Activity', 'No issues detected', 'bg-[#d9f3e1] text-[#065f46]'],
-                                ['Disciplinary Action Slip', 'Requires further review', 'bg-[#fef3c7] text-[#78350f]'],
-                                ['Model Student Peer Rating', 'No issues detected', 'bg-[#d9f3e1] text-[#065f46]'],
+                                ['Permit to Conduct an In-Campus Activity', 'No issues', 'bg-[#d9f3e1] text-[#065f46]'],
+                                ['Disciplinary Action Slip', 'Requires checking', 'bg-[#fef3c7] text-[#78350f]'],
+                                ['Model Student Peer Rating', 'No issues', 'bg-[#d9f3e1] text-[#065f46]'],
                             ] as [$doc, $ai, $tone])
                                 <div class="flex items-center gap-3 border-b border-[#f0eeea] px-4 py-2.5 last:border-0">
                                     <img src="{{ asset('images/lnulogo.png') }}" alt="" class="h-6 w-6 shrink-0 rounded-full object-contain">

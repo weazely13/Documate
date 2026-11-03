@@ -16,21 +16,21 @@
     $groups = [
         'Accounts' => [
             'accounts' => ['Accounts', route('admin.users'), 'bx-user', 'Oversee user access, account information, organizations, and signatory roles.'],
-            'verifications' => ['Verifications', route('admin.users', ['view' => 'verifications']), 'bx-id-card', 'Open a verification period and see who has verified their account.'],
+            'verifications' => ['Verifications', route('admin.users', ['view' => 'verifications']), 'bx-id-card', 'Open an account verification period and monitor student verification status.'],
         ],
         'School calendar' => [
             'semesters' => ['Semesters', route('admin.semesters'), 'bx-calendar-alt', 'Add a start and end date to each semester to enable automatic identification of the current semester.'],
         ],
         'Organizations' => [
-            'organizations' => ['Organizations', $org('organizations'), 'bx-buildings', 'Create organizations and link them to programs or a year level.'],
-            'programs' => ['Programs', $org('programs'), 'bx-book-bookmark', 'Degree programs and the college each one belongs to.'],
-            'positions' => ['Officer positions', $org('positions'), 'bx-medal', 'Titles an officer can hold, such as President or Auditor.'],
-            'officers' => ['Officers', $org('officers'), 'bx-user-check', 'Make eligible students officers of their organization.'],
+            'organizations' => ['Organizations', $org('organizations'), 'bx-buildings', 'Add academic organizations and their associated programs.'],
+            'programs' => ['Programs', $org('programs'), 'bx-book-bookmark', 'Add degree programs and their corresponding colleges.'],
+            'positions' => ['Officer positions', $org('positions'), 'bx-medal', 'Define the positions officers can hold within their organization.'],
+            'officers' => ['Officers', $org('officers'), 'bx-user-check', 'Assign eligible students to officer positions within their respective organizations.'],
         ],
         'Signatories' => [
-            'sig-people' => ['Who can sign', $org('signatories', 'people'), 'bx-pen', 'Everyone who can sign documents, and in which role.'],
-            'sig-roles' => ['Signing roles', $org('signatories', 'roles'), 'bx-shield-quarter', 'The signing roles documents can ask for.'],
-            'sig-invites' => ['Invitations', $org('signatories', 'invites'), 'bx-envelope', 'Invitations sent to people who do not have an account yet.'],
+            'sig-people' => ['Signatories', $org('signatories', 'people'), 'bx-pen', 'Manage individuals authorized to sign documents and their assigned roles.'],
+            'sig-roles' => ['Signatory roles', $org('signatories', 'roles'), 'bx-shield-quarter', 'Manage the roles required for document signing.'],
+            'sig-invites' => ['Invitations', $org('signatories', 'invites'), 'bx-envelope', 'Manage invitations for individuals to become authorized signatories.'],
         ],
     ];
 
@@ -46,8 +46,8 @@
 
     {{-- Page title --}}
     <header class="border-b border-slate-200 pb-4">
-        <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 cq-sm:text-2xl">Users and accounts</h1>
-        <p class="mt-0.5 text-sm text-slate-500">Accounts, organizations and who can sign.</p>
+        <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 cq-sm:text-2xl">Users and Accounts</h1>
+        <p class="mt-0.5 text-sm text-slate-500">Manage user accounts, programs, organizations, and authorized roles.</p>
     </header>
 
     <div class="mt-5 flex flex-col gap-5 cq-lg:flex-row cq-lg:items-start cq-lg:gap-10">
@@ -72,8 +72,8 @@
                          x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full"
                          class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[85dvh] max-w-lg flex-col rounded-t-2xl bg-white shadow-2xl">
                         <div class="flex justify-center pb-1 pt-3" aria-hidden="true"><span class="h-1 w-10 rounded-full bg-slate-300"></span></div>
-                        <p class="border-b border-slate-200 px-5 pb-3 pt-1 text-[15px] font-semibold text-slate-900">Users and accounts</p>
-                        <nav aria-label="Users and accounts" class="min-h-0 flex-1 overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
+                        <p class="border-b border-slate-200 px-5 pb-3 pt-1 text-[15px] font-semibold text-slate-900">Users and Accounts</p>
+                        <nav aria-label="Users and Accounts" class="min-h-0 flex-1 overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
                             @foreach ($groups as $group => $groupItems)
                                 <p class="px-2.5 pb-1 pt-3 text-xs font-medium text-slate-500">{{ $group }}</p>
                                 @foreach ($groupItems as $key => [$label, $url, $icon])

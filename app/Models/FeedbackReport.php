@@ -33,7 +33,7 @@ class FeedbackReport extends Model
             'transaction' => 'Transactions & documents',
             'appointment' => 'Appointments',
             'account' => 'Account & sign-in',
-            'other' => 'Something else',
+            'other' => 'Others',
         ],
     ];
 

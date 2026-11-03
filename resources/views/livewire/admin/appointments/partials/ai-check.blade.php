@@ -13,8 +13,8 @@
         $flag === 'review_failed' => ['Check failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200'],
         $flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200'],
         $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        $flag === 'flagged' => ['Requires further review', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        default => ['No issues detected', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
+        $flag === 'flagged' => ['Requires checking', 'bg-amber-50 text-amber-800 ring-amber-200'],
+        default => ['No issues', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
     };
     $bar = match (true) {
         $risk === null => 'bg-slate-300',

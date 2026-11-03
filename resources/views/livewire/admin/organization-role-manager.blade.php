@@ -732,7 +732,7 @@
             @endphp
 
             {{-- The section comes from the sidebar (?sig=). Jumps inside the page (e.g. "Review roles")
-                 keep the URL and the sidebar highlight in step. "Add a person" is a modal, not a section. --}}
+                 keep the URL and the sidebar highlight in step. "Add a signatory" is a modal, not a section. --}}
             <div x-data="{ tab: @js($sigTab), coverage: false }"
                  x-init="$watch('tab', v => {
                      const url = new URL(window.location);
@@ -749,8 +749,8 @@
                 @if ($rolesWithoutHolder->isNotEmpty())
                     <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
                         <span>
-                            <strong>{{ $rolesWithoutHolder->count() }} {{ Str::plural('role', $rolesWithoutHolder->count()) }} without a signer.</strong>
-                            Documents that need them cannot be sent for signing.
+                            <strong>{{ $rolesWithoutHolder->count() }} {{ Str::plural('role', $rolesWithoutHolder->count()) }} without a signatory role.</strong>
+                            Documents requiring these roles cannot be sent for signing.
                         </span>
                         <button type="button" @click="tab = 'people'; coverage = true"
                                 class="text-xs font-semibold text-amber-800 underline hover:text-amber-950">Review roles</button>
@@ -762,7 +762,7 @@
 
                     <div class="{{ $toolbar }}">
                         <p class="text-sm text-slate-500">{{ $signatoryAssignments->total() }} {{ Str::plural('assignment', $signatoryAssignments->total()) }}</p>
-                        <button type="button" wire:click="openForm('signatory')" class="{{ $addBtn }}"><i class='bx bx-user-plus text-lg' aria-hidden="true"></i>Add a person</button>
+                        <button type="button" wire:click="openForm('signatory')" class="{{ $addBtn }}"><i class='bx bx-user-plus text-lg' aria-hidden="true"></i>Add a signatory</button>
                     </div>
 
                     {{-- Role coverage: collapsed by default so the table is visible straight away --}}
@@ -771,9 +771,9 @@
                                 class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
                             <span class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                                 <span class="font-semibold text-slate-900">Role coverage</span>
-                                <span class="text-slate-500">{{ $activeRoles->count() - $rolesWithoutHolder->count() }} of {{ $activeRoles->count() }} roles have a signer</span>
+                                <span class="text-slate-500">{{ $activeRoles->count() - $rolesWithoutHolder->count() }} of {{ $activeRoles->count() }} roles have assigned signatory</span>
                                 @if ($rolesWithoutHolder->isNotEmpty())
-                                    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $rolesWithoutHolder->count() }} need a signer</span>
+                                    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $rolesWithoutHolder->count() }} roles need a signatory</span>
                                 @endif
                             </span>
                             <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform" :class="coverage ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
@@ -782,7 +782,7 @@
                         <div x-show="coverage" x-cloak class="space-y-4 border-t border-slate-100 px-4 py-4">
                             @if ($rolesWithoutHolder->isNotEmpty())
                                 <div>
-                                    <p class="mb-2 text-xs font-medium text-slate-500">Needs a signer. Select a role to assign someone.</p>
+                                    <p class="mb-2 text-xs font-medium text-slate-500"> No signatory assigned. Select a role and assign an authorized signatory.</p>
                                     <div class="flex flex-wrap gap-2">
                                         @foreach ($rolesWithoutHolder as $r)
                                             <button type="button" wire:key="need-{{ $r->id }}"
@@ -799,7 +799,7 @@
                             @php $coveredRoles = $activeRoles->reject(fn ($r) => ($sigHolderCounts[$r->id] ?? 0) === 0); @endphp
                             @if ($coveredRoles->isNotEmpty())
                                 <div>
-                                    <p class="mb-2 text-xs font-medium text-slate-500">Has a signer. Select a role to filter the table.</p>
+                                    <p class="mb-2 text-xs font-medium text-slate-500">Signatories Assigned. Filter the table by role.</p>
                                     <div class="flex flex-wrap gap-2">
                                         @foreach ($coveredRoles as $r)
                                             <button type="button" wire:key="cov-{{ $r->id }}"
@@ -926,7 +926,7 @@
                                     @empty
                                         <tr>
                                             <td colspan="5" class="px-4 py-12 text-center text-sm text-slate-400">
-                                                No one matches. Try clearing the filters, or use <strong>Add a person</strong>.
+                                                No signatory found. Try clearing the filters, or <strong>Add a signatory</strong>.
                                             </td>
                                         </tr>
                                     @endforelse
@@ -978,7 +978,7 @@
                                     </div>
                                 </li>
                             @empty
-                                <li class="px-4 py-12 text-center text-sm text-slate-400">No one matches. Try clearing the filters, or use <strong>Add a person</strong>.</li>
+                                <li class="px-4 py-12 text-center text-sm text-slate-400">No one matches. Try clearing the filters, or use <strong>Add a signatory</strong>.</li>
                             @endforelse
                         </ul>
                         @if ($signatoryAssignments->hasPages())
@@ -990,7 +990,7 @@
                 {{-- ===== ROLES ===== --}}
                 <div x-show="tab === 'roles'" x-cloak class="space-y-4">
                     <div class="{{ $toolbar }}">
-                        <p class="min-w-0 text-sm text-slate-500">Documents ask for roles, never for named people.</p>
+                        <!-- <p class="min-w-0 text-sm text-slate-500">Documents ask for roles, never for named people.</p> -->
                         <button type="button" wire:click="openForm('role')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Create role</button>
                     </div>
 
@@ -1035,7 +1035,7 @@
                 {{-- ===== INVITATIONS ===== --}}
                 <div x-show="tab === 'invites'" x-cloak class="space-y-4">
                     <div class="{{ $toolbar }}">
-                        <p class="min-w-0 text-sm text-slate-500">Resend the link if it expired or they lost it.</p>
+                        <p class="min-w-0 text-sm text-slate-500">Send a new invitation link if the previous one has expired.</p>
                         <button type="button" wire:click="openForm('signatory', null, 'invite')" class="{{ $addBtn }}"><i class='bx bx-envelope text-lg' aria-hidden="true"></i>Invite someone</button>
                     </div>
 
@@ -1185,7 +1185,7 @@
 
             {{-- ===== ADD A PERSON MODAL ===== --}}
             @if ($form === 'signatory')
-                <x-admin.form-modal title="Add a person" subtitle="Give an existing account a signing role, or invite someone new."
+                <x-admin.form-modal title="Add a signatory" subtitle="Give an existing account a signing role, or invite someone new."
                     :state="'{ addMode: ' . Js::from($sigAddMode) . ' }'">
                     <div class="space-y-5">
                         <div class="flex w-full rounded-lg bg-slate-100 p-1">

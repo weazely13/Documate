@@ -53,8 +53,8 @@ class Index extends Component
     /** AI filter: key => label. */
     public const AI_FILTERS = [
         '' => 'All',
-        'flagged' => 'Requires further review',
-        'clean' => 'No issues detected',
+        'flagged' => 'Requires checking',
+        'clean' => 'No issues',
         'unchecked' => 'Not checked',
     ];
 

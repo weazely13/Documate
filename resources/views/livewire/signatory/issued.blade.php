@@ -34,7 +34,7 @@
         </div>
         <a href="{{ route('signatory.issue') }}" wire:navigate
            class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3.5 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] {{ $focus }} [@media(pointer:coarse)]:min-h-11">
-            <i class="bx bx-file text-base" aria-hidden="true"></i> Issue a report
+            <i class="bx bx-file text-base" aria-hidden="true"></i> Issue a Document
         </a>
     </div>
 

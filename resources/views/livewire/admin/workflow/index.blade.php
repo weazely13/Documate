@@ -44,8 +44,8 @@
             $row->ai_flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200', null],
             $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200', null],
             $rec === 'request_changes' => ['Suggests changes', 'bg-amber-50 text-amber-800 ring-amber-200', null],
-            $row->ai_flag === 'flagged' => ['Requires further review', 'bg-amber-50 text-amber-800 ring-amber-200', null],
-            default => ['No issues detected', 'bg-emerald-50 text-emerald-800 ring-emerald-200', null],
+            $row->ai_flag === 'flagged' => ['Requires checking', 'bg-amber-50 text-amber-800 ring-amber-200', null],
+            default => ['No issues', 'bg-emerald-50 text-emerald-800 ring-emerald-200', null],
         };
     };
 
@@ -75,9 +75,9 @@
 
     // Queue cards: Notion tints from DESIGN.md's work folders. [key, label, tint, accent text, icon, hint].
     $cards = [
-        ['attention', 'To review', 'bg-[#dcecfa]', 'text-[#1E4090]', 'bx-time-five', 'Waiting for the office'],
-        ['signing', 'In signing', 'bg-[#e6e0f5]', 'text-violet-700', 'bx-pen', 'Out with signatories'],
-        ['action_required', 'Waiting on student', 'bg-[#fef3c7]', 'text-amber-800', 'bx-hourglass', 'Sent back for changes'],
+        ['attention', 'To review', 'bg-[#dcecfa]', 'text-[#1E4090]', 'bx-time-five', 'Awaiting admin review'],
+        ['signing', 'In signing', 'bg-[#e6e0f5]', 'text-violet-700', 'bx-pen', 'Pending signatory action'],
+        ['action_required', 'For revision', 'bg-[#fef3c7]', 'text-amber-800', 'bx-hourglass', 'Sent back for changes'],
     ];
 
     $legend = [
