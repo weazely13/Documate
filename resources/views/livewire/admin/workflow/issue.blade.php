@@ -93,7 +93,7 @@
                     </button>
                 </div>
         </div>
-        <h1 class="sr-only">{{ $staffIssued ? 'Issue a report' : 'Issue a document' }}: {{ $document->name() }}</h1>
+        <h1 class="sr-only">{{ $staffIssued ? 'Issue a document' : 'Issue a document' }}: {{ $document->name() }}</h1>
 
         <p class="mt-2 text-sm leading-relaxed text-slate-600">
             {{ $document->issueNote() ?? ($staffIssued

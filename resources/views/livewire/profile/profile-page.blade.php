@@ -151,7 +151,7 @@
                             <p class="mt-0.5 text-sm text-[#66707f]">{{ $this->academicLine }}</p>
                             <div class="mt-3 flex flex-wrap gap-2">
                                 <label for="photo-upload" class="{{ $btnPrimary }} cursor-pointer">
-                                    <i class="bx bx-upload text-base" aria-hidden="true"></i> Upload new
+                                    <i class="bx bx-upload text-base" aria-hidden="true"></i> Upload
                                 </label>
                                 @if ($profile_picture)
                                     <button type="button" wire:click="removePhoto" wire:confirm="Remove your profile photo?" class="{{ $btnSecondary }}">Remove photo</button>

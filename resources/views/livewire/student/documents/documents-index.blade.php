@@ -5,7 +5,7 @@
     $btnSecondary = $btnBase . ' border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50';
     $segS = fn ($on) => 'inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-sm transition-colors sm:px-3 [@media(pointer:coarse)]:min-h-10 ' . $focus . ' '
         . ($on ? 'bg-white font-medium text-[#24499A] shadow-sm' : 'text-slate-600 hover:text-slate-900');
-    $short = ['active' => 'Active', 'issued' => 'Issued', 'history' => 'History'];
+    $short = ['active' => 'In progress', 'issued' => 'Issued', 'history' => 'History'];
 @endphp
 
 {{-- My documents, laid out like the student's Appointments: header, a one-line toolbar card, then one list card. --}}
@@ -15,7 +15,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0">
             <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">My documents</h1>
-            <p class="mt-0.5 text-sm text-slate-500">Everything you have started, and anything the office sent you.</p>
+            <p class="mt-0.5 text-sm text-slate-500">View all transactions you have initiated and documents issued to you.</p>
         </div>
         <a href="{{ route('student.home') }}" wire:navigate class="{{ $btnPrimary }} shrink-0">
             <i class="bx bx-plus text-base" aria-hidden="true"></i> New transaction

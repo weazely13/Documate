@@ -222,8 +222,8 @@ The admin dashboard's headline figures sit in **folders**, a nod to the document
 
 | Folder | Front / back | Accent |
 |---|---|---|
-| Requests to review | sky `#dcecfa` / `#bcd5f2` | brand blue |
-| Waiting for signatures | lavender `#e6e0f5` / `#d3c9ef` | violet-600 |
+| To review | sky `#dcecfa` / `#bcd5f2` | brand blue |
+| In signing | lavender `#e6e0f5` / `#d3c9ef` | violet-600 |
 | Students cleared | mint `#d9f3e1` / `#b6e3c5` | emerald-600 |
 | Appointment requests | yellow `#fef3c7` / `#f3df93` | amber |
 
