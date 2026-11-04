@@ -28,10 +28,6 @@
                 <div class="mt-7 grid grid-cols-2 gap-2 sm:mt-9 sm:flex sm:gap-3">
                     <a href="{{ route('register') }}" class="{{ $btnSecondary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
                 </div>
-                <i class="bx bx-shield-quarter text-base" aria-hidden="true"></i>
-                <a href="{{ route('document.lookup') }}" class="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2a57b4] underline-offset-4 hover:underline sm:mt-6 sm:text-sm">
-                    Verify a DocuMate document
-                </a>
             </div>
 
             {{-- The students --}}
@@ -137,7 +133,6 @@
                                     <li class="flex gap-2.5"><i class="bx bx-check mt-0.5 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{{ $item }}</span></li>
                                 @endforeach
                             </ul>
-                            <a href="{{ route('register') }}" class="mt-6 inline-flex items-center gap-1 text-sm font-medium sm:mt-7 sm:text-[15px] text-[#1e4090] underline-offset-4 hover:underline">Create your account <i class="bx bx-right-arrow-alt text-lg"></i></a>
                         </div>
                         <img src="{{ asset('images/coverstudent.png') }}" alt="A student with his phone and his printed form"
                              class="absolute -bottom-6 -right-4 hidden h-[105%] w-auto object-contain sm:block">
@@ -167,7 +162,6 @@
                                 </div>
                             @endforeach
                         </div>
-                        <a href="{{ route('login') }}" class="mt-6 inline-flex items-center gap-1 text-sm font-medium sm:mt-7 sm:text-[15px] text-[#4c2f9e] underline-offset-4 hover:underline">Sign in to the office desk <i class="bx bx-right-arrow-alt text-lg"></i></a>
                     </div>
                 </article>
             </div>
@@ -324,7 +318,6 @@
             <p class="mx-auto mt-5 max-w-xl {{ $lead }}">Your next form is a few taps away. Most requests never need a trip to the office.</p>
             <div class="mt-6 grid grid-cols-2 gap-2 sm:mt-8 sm:flex sm:justify-center sm:gap-3">
                 <a href="{{ route('register') }}" class="{{ $btnPrimary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
-                <a href="{{ route('login') }}" class="{{ $btnSecondary }}">Sign in</a>
             </div>
         </div>
     </section>
