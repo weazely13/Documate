@@ -1765,3 +1765,9 @@ body.wf-panel-open .chatbot-panel {
   body.wf-panel-open .chatbot-panel { right: calc(420px + 3rem); }
   body.wf-panel-open .chatbot-panel { max-width: calc(100vw - 420px - 4.5rem); }
 }
+
+/* Verify document link hover behavior */
+a[href*="document.lookup"]:hover span.group-hover,
+a[href*="document.lookup"]:hover .group-hover {
+    text-decoration: underline;
+}

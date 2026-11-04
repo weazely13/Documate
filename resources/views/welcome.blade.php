@@ -26,12 +26,8 @@
                     Fill in forms online, book a visit, follow every signature, and download the finished document.
                 </p>
                 <div class="mt-7 grid grid-cols-2 gap-2 sm:mt-9 sm:flex sm:gap-3">
-                    <a href="{{ route('login') }}" class="{{ $btnPrimary }}">Sign in <i class="bx bx-right-arrow-alt text-lg" aria-hidden="true"></i></a>
                     <a href="{{ route('register') }}" class="{{ $btnSecondary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
                 </div>
-                <a href="{{ route('document.lookup') }}" class="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2a57b4] underline-offset-4 hover:underline sm:mt-6 sm:text-sm">
-                    <i class="bx bx-shield-quarter text-base" aria-hidden="true"></i> Verify a DocuMate document
-                </a>
             </div>
 
             {{-- The students --}}
@@ -45,7 +41,7 @@
     </section>
 
     {{-- ================= WHERE IT'S USED ================= --}}
-    <section id="about" class="border-y border-[#e7e5e1] bg-white">
+    <section id="about" class="bg-white">
         <div class="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 sm:gap-4 sm:px-8 sm:py-6 md:flex-row md:items-center md:justify-between">
             <div class="flex items-center gap-3">
                 <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" class="h-8 w-8 object-contain sm:h-9 sm:w-9">
@@ -137,7 +133,6 @@
                                     <li class="flex gap-2.5"><i class="bx bx-check mt-0.5 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{{ $item }}</span></li>
                                 @endforeach
                             </ul>
-                            <a href="{{ route('register') }}" class="mt-6 inline-flex items-center gap-1 text-sm font-medium sm:mt-7 sm:text-[15px] text-[#1e4090] underline-offset-4 hover:underline">Create your account <i class="bx bx-right-arrow-alt text-lg"></i></a>
                         </div>
                         <img src="{{ asset('images/coverstudent.png') }}" alt="A student with his phone and his printed form"
                              class="absolute -bottom-6 -right-4 hidden h-[105%] w-auto object-contain sm:block">
@@ -167,7 +162,6 @@
                                 </div>
                             @endforeach
                         </div>
-                        <a href="{{ route('login') }}" class="mt-6 inline-flex items-center gap-1 text-sm font-medium sm:mt-7 sm:text-[15px] text-[#4c2f9e] underline-offset-4 hover:underline">Sign in to the office desk <i class="bx bx-right-arrow-alt text-lg"></i></a>
                     </div>
                 </article>
             </div>
@@ -175,7 +169,7 @@
     </section>
 
     {{-- ================= ASSISTANT (index cards) ================= --}}
-    <section id="assistant" class="dm-ledger overflow-hidden border-t border-[#e7e5e1] py-14 sm:py-20 lg:py-28">
+    <section id="assistant" class="dm-ledger overflow-hidden border-t py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
                 <h2 class="{{ $h2 }}">Ask before you line up</h2>
@@ -265,7 +259,7 @@
     </section>
 
     {{-- ================= LOCATION ================= --}}
-    <section id="location" class="border-t border-[#e7e5e1] bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
+    <section id="location" class="bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
         <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-8 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
             <div>
                 <h2 class="{{ $h2 }}">Where to find the VPSD office</h2>
@@ -318,13 +312,12 @@
     </section>
 
     {{-- ================= CLOSING ================= --}}
-    <section class="border-t border-[#e7e5e1] bg-[#fafaf9] px-5 py-14 sm:px-8 sm:py-20 lg:py-24">
+    <section class="bg-[#fafaf9] px-5 py-14 sm:px-8 sm:py-20 lg:py-24">
         <div class="mx-auto max-w-4xl text-center">
             <p class="text-[2.1rem] leading-none text-[#2a57b4] sm:text-[3rem] lg:text-[3.4rem]" style="font-family: 'Gveret Levin', cursive;">Signed, sealed, done.</p>
             <p class="mx-auto mt-5 max-w-xl {{ $lead }}">Your next form is a few taps away. Most requests never need a trip to the office.</p>
             <div class="mt-6 grid grid-cols-2 gap-2 sm:mt-8 sm:flex sm:justify-center sm:gap-3">
                 <a href="{{ route('register') }}" class="{{ $btnPrimary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
-                <a href="{{ route('login') }}" class="{{ $btnSecondary }}">Sign in</a>
             </div>
         </div>
     </section>
@@ -418,7 +411,7 @@
                                     <!-- 5. Tasks -->
                                     <div class="mt-auto pt-2 flex flex-wrap justify-center gap-1">
                                         @foreach ($c['tasks'] as $task)
-                                            <span class="px-2 py-0.5 text-[10px] bg-[#f0f4fb] text-[#2a57b4] rounded-md">{{ $task }}</span>
+                                            <span class="px-2` py-0.5 text-[10px] bg-[#f0f4fb] text-[#2a57b4] rounded-md">{{ $task }}</span>
                                         @endforeach
                                     </div>
                                 </article>
