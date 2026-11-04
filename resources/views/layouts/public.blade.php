@@ -164,9 +164,6 @@
         <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-20 sm:px-8">
 
             <a href="{{ url('/') }}" class="flex shrink-0 items-center gap-2 sm:gap-2.5" aria-label="DocuMate home">
-                <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" class="hidden size-9 object-contain sm:block xl:hidden 2xl:block">
-                <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services" class="hidden size-9 object-contain sm:block xl:hidden 2xl:block">
-                <span class="mx-1 hidden h-8 w-px bg-[#e7e5e1] sm:block xl:hidden 2xl:block" aria-hidden="true"></span>
                 <img src="{{ asset('images/DocumateLogo.png') }}" alt="" class="size-9 object-contain sm:size-11">
                 <span class="text-[1.65rem] leading-none text-[#2A57B4] sm:text-[2rem]" style="font-family: 'Gveret Levin', cursive;">DocuMate</span>
             </a>
