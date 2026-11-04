@@ -124,7 +124,7 @@ class Dashboard extends Component
                 'title' => $doc->noticeTitle($values),
                 'text' => $doc->noticeLine($values),
                 'url' => route('student.transactions.show', $notice->workspace_id),
-                'action' => 'Open',
+                'action' => 'Pending',
             ];
         }
 

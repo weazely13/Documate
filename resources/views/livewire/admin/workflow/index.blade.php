@@ -101,7 +101,7 @@
                 {{ $viewingFlagged ? 'Flagged by AI' : $tabs[$tab] }}
             </h1>
             <p class="mt-0.5 text-sm text-slate-500">
-                Select a transaction to check it and decide here. Finished ones are in
+                 Select a transaction to review and take the appropriate action. Completed transactions are in
                 <a href="{{ route('admin.transactions.index') }}" wire:navigate class="rounded font-medium text-[#2A57B4] hover:underline {{ $focus }}">Transaction Records</a>.
             </p>
         </div>

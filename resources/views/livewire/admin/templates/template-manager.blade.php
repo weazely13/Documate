@@ -1,5 +1,5 @@
 {{-- Admin › Templates & Uploads › Templates: the paper forms, like a design tool's home.
-     Start a form from a paper size (or a PDF), then browse every form as a page thumbnail. --}}
+     Create form template from a paper size (or a PDF), then browse every form as a page thumbnail. --}}
 @php
     $focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]/40 focus-visible:ring-offset-1';
     $input = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-0 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-[#2A57B4] focus:outline-none focus:ring-2 focus:ring-[#2A57B4]/15 [@media(pointer:coarse)]:h-11';
@@ -21,12 +21,12 @@
         <p class="mb-4 rounded-lg bg-[#d9f3e1] px-4 py-2.5 text-sm text-[#1f6b3a]" role="status">{{ session('message') }}</p>
     @endif
 
-    {{-- ===== Start a form ===== --}}
+    {{-- ===== Create form template===== --}}
     <section class="mb-8 rounded-2xl bg-gradient-to-br from-[#e6f0fc] via-[#eee9f9] to-[#fdeef4] p-4 sm:p-6" aria-labelledby="start-h">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
             <div>
-                <h2 id="start-h" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">Start a form</h2>
-                <p class="text-sm text-slate-600">Pick the paper, add the form as an image or a PDF, then place the blanks students fill in.</p>
+                <h2 id="start-h" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">Create form template</h2>
+                <p class="text-sm text-slate-600">Upload the new form template as an image or PDF, then add the required fields students need to complete.</p>
             </div>
             <p class="text-xs text-slate-500">{{ $totalCount }} {{ Str::plural('template', $totalCount) }} · {{ $publicCount }} public</p>
         </div>
@@ -96,8 +96,8 @@
     @if ($templates->isEmpty())
         <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-16 text-center">
             <i class="bx bx-layout text-4xl text-slate-300" aria-hidden="true"></i>
-            <p class="mt-2 text-sm font-medium text-slate-700">{{ $totalCount ? 'No template matches.' : 'No templates yet.' }}</p>
-            <p class="text-sm text-slate-500">{{ $totalCount ? 'Try another search or category.' : 'Start a form above.' }}</p>
+            <p class="mt-2 text-sm font-medium text-slate-700">{{ $totalCount ? 'No template matches.' : 'No form templates created yet.' }}</p>
+            <p class="text-sm text-slate-500">{{ $totalCount ? 'Try another search or category.' : 'Create your first form template.' }}</p>
         </div>
     @else
         <ul class="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -227,7 +227,7 @@
                 <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                     <div>
                         <h2 id="new-tpl-h" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">New template</h2>
-                        <p class="text-sm text-slate-500">Add the form, name it, and you'll go straight to the editor.</p>
+                        <p class="text-sm text-slate-500">Add the form and its required fields and proceed to the form editor.</p>
                     </div>
                     <button type="button" wire:click="closeCreate" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 {{ $focus }}" aria-label="Close"><i class="bx bx-x text-2xl"></i></button>
                 </div>
@@ -260,8 +260,8 @@
                                 <template x-if="!preview">
                                     <span class="flex flex-col items-center">
                                         <span class="grid h-12 w-12 place-items-center rounded-xl bg-[#dcecfa] text-[#2A57B4]"><i class="bx bx-cloud-upload text-2xl"></i></span>
-                                        <span class="mt-3 text-sm font-semibold text-slate-900">Drop the form here, or click to choose</span>
-                                        <span class="mt-1 text-xs text-slate-500">PDF, PNG or JPG. A PDF page is turned into an image for you.</span>
+                                        <span class="mt-3 text-sm font-semibold text-slate-900">Drag your file here or select one from your device.</span>
+                                        <span class="mt-1 text-xs text-slate-500">PDF, PNG or JPG. A PDF page is converted into an image for you.</span>
                                     </span>
                                 </template>
                                 <span x-show="preview" class="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#2A57B4]"><i class="bx bx-refresh"></i>Choose another file</span>
@@ -282,7 +282,7 @@
                         <label class="block">
                             <span class="mb-1 block text-sm font-medium text-slate-700">Category</span>
                             <select wire:model="category" class="{{ $input }} @error('category') !border-rose-400 @enderror">
-                                <option value="">Choose where students find it…</option>
+                                <option value="">Select the form category…</option>
                                 @foreach ($allCategories as $c)
                                     <option value="{{ $c->value }}">{{ $c->label() }}</option>
                                 @endforeach
@@ -294,7 +294,7 @@
                             <span class="mb-1 block text-sm font-medium text-slate-700">About this form <span class="font-normal text-slate-400">(optional)</span></span>
                             <textarea wire:model="description" rows="2" maxlength="300" placeholder="e.g. Permission from a parent or guardian for an off-campus activity."
                                       class="{{ str_replace('h-9 ', '', $input) }} resize-none py-2"></textarea>
-                            <span class="mt-1 block text-xs text-slate-500">Students see this under the form's name when they pick a form.</span>
+                            <span class="mt-1 block text-xs text-slate-500">Add a brief description that is visible below the form name when selecting a form.</span>
                         </label>
 
                         <div>
@@ -310,7 +310,7 @@
                                     <i class="bx bx-ruler text-sm" aria-hidden="true"></i> {{ $custom_width }} × {{ $custom_height }} cm, taken from the file. Pick a size above to change it.
                                 </p>
                             @else
-                                <p class="mt-1 text-xs text-slate-500">Set for you from the file: a PDF page's size, or the shape of an image.</p>
+                                <p class="mt-1 text-xs text-slate-500">Automatically set based on the uploaded file: the PDF page size or the image dimensions.</p>
                             @endif
                         </div>
 
@@ -325,7 +325,7 @@
                                 @endforeach
                             </div>
                         </div>
-                        <p class="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500">For a sharp printout use a clear scan, 200 DPI or more. From a PDF, the paper size is set from the page.</p>
+                        <p class="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500"> For optimal print quality, upload a clear scan at 200 DPI or higher. For PDF files, the page size is automatically set.</p>
                     </div>
                 </div>
 
