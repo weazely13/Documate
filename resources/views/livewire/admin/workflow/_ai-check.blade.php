@@ -19,8 +19,8 @@
         $flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200'],
         $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200'],
         $rec === 'request_changes' => ['Suggests changes', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        $flag === 'flagged' => ['Worth a look', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        default => ['Looks fine', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
+        $flag === 'flagged' => ['Requires checking', 'bg-amber-50 text-amber-800 ring-amber-200'],
+        default => ['No issues', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
     };
 
     $riskBar = match (true) {

@@ -1,11 +1,11 @@
 @php
     $theme = fn (?string $status) => match ($status) {
         'Cleared' => ['c1' => '#064e3b', 'c2' => '#047857', 'c3' => '#10b981', 'tint' => '#d9f3e1', 'ink' => '#047857', 'deep' => '#065f46', 'icon' => 'bx-check-shield',
-                      'means' => 'Nothing is owed for this semester. You are cleared.'],
+                      'means' => 'All requirements are fulfilled. You are cleared.'],
         'Pending' => ['c1' => '#78350f', 'c2' => '#b45309', 'c3' => '#f59e0b', 'tint' => '#fef3c7', 'ink' => '#b45309', 'deep' => '#78350f', 'icon' => 'bx-time-five',
-                      'means' => 'Your organization is still checking your records. No action is needed unless the remarks say so.'],
+                      'means' => 'Your organization is still verifying your records. No action is needed unless the remarks say so.'],
         'Uncleared' => ['c1' => '#881337', 'c2' => '#be123c', 'c3' => '#f43f5e', 'tint' => '#fde0ec', 'ink' => '#be123c', 'deep' => '#9f1239', 'icon' => 'bx-error-circle',
-                        'means' => 'Something is still due. Settle what the remarks list, then ask your organization to update your status.'],
+                        'means' => 'Requirements are not fulfilled. Settle what is due, then ask your organization to update your status.'],
         default => ['c1' => '#0d253d', 'c2' => '#1e3f6b', 'c3' => '#475d7a', 'tint' => '#ecebe7', 'ink' => '#66707f', 'deep' => '#273951', 'icon' => 'bx-help-circle',
                     'means' => 'Your organization has not tagged your clearance for this semester yet.'],
     };
@@ -64,7 +64,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold tracking-[-0.015em] text-[#0d253d]">By semester</h2>
-                <p class="mt-0.5 text-[13px] text-[#66707f]">Updates here as soon as your organization tags you.</p>
+                <p class="mt-0.5 text-[13px] text-[#66707f]">Clearance status updates once your organization tags you.</p>
             </div>
             <div class="flex items-center gap-2">
                 <div class="flex gap-1 overflow-x-auto rounded-lg bg-[#f5f4f2] p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filter by status">

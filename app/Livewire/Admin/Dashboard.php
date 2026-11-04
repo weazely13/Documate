@@ -268,12 +268,12 @@ class Dashboard extends Component
         // Colours follow the page-wide code (cyan = on the office's desk, violet = signatories, amber = student,
         // green = ready) and pass the dataviz palette checks; paper forms are the neutral "other" slice.
         $stages = [
-            ['With the office', $work['to_review'], '#0891b2', 'Staff need to review these'],
-            ['With signatories', $work['signing'], '#9061f9', 'Waiting for officials to sign'],
-            ['With the student', ReviewQueue::query('action_required')->count(), '#d97706', 'Sent back to the student to fix'],
+            ['Awaiting admin review', $work['to_review'], '#0891b2', 'Staff need to review these'],
+            ['Pending signatory action', $work['signing'], '#9061f9', 'Waiting for officials to sign'],
+            ['Sent back to the student for changes', ReviewQueue::query('action_required')->count(), '#d97706', 'Returned to the student for required changes'],
             ['Ready to finish', $work['ready'], '#0e9f6e', 'Fully signed, just needs completing'],
             // Paper forms count as open until missed (two weeks without a visit), as in Transaction Records.
-            ['Paper forms', StudentDocumentWorkspace::query()->whereNull('workflow_status')->where('status', '!=', 'completed')
+            ['Paper-based forms', StudentDocumentWorkspace::query()->whereNull('workflow_status')->where('status', '!=', 'completed')
                 ->where('created_at', '>=', now()->subDays(14))->count(), '#64748b', 'Printed forms awaiting a visit or upload'],
         ];
 

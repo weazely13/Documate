@@ -283,7 +283,7 @@
                                         <span class="mt-4 grid grid-cols-3 divide-x divide-slate-200 rounded-lg border border-slate-200">
                                             <span class="px-2 py-2 text-center"><span class="block text-lg font-semibold tabular-nums text-slate-900">{{ $docTotal }}</span><span class="block text-[11px] text-slate-500">{{ Str::plural('document', $docTotal) }}</span></span>
                                             <span class="px-2 py-2 text-center"><span class="block text-lg font-semibold tabular-nums text-[#1f6b3a]">{{ $s['completed_count'] }}</span><span class="block text-[11px] text-slate-500">completed</span></span>
-                                            <span class="px-2 py-2 text-center"><span class="block text-lg font-semibold tabular-nums text-[#1E4090]">{{ $s['open_count'] }}</span><span class="block text-[11px] text-slate-500">still open</span></span>
+                                            <span class="px-2 py-2 text-center"><span class="block text-lg font-semibold tabular-nums text-[#1E4090]">{{ $s['open_count'] }}</span><span class="block text-[11px] text-slate-500">in progress</span></span>
                                         </span>
 
                                         <span class="mt-3 block" role="img" aria-label="{{ $donePct }}% completed">
@@ -316,7 +316,7 @@
                         <dl class="grid w-full grid-cols-3 gap-2 text-center sm:w-auto">
                             <div class="rounded-lg bg-[#f2f5fb] px-4 py-2"><dt class="text-[11px] text-slate-500">Documents</dt><dd class="text-lg font-semibold tabular-nums text-slate-900">{{ $s['forms']->count() }}</dd></div>
                             <div class="rounded-lg bg-[#d9f3e1] px-4 py-2"><dt class="text-[11px] text-slate-600">Completed</dt><dd class="text-lg font-semibold tabular-nums text-[#1f6b3a]">{{ $s['completed_count'] }}</dd></div>
-                            <div class="rounded-lg bg-[#dcecfa] px-4 py-2"><dt class="text-[11px] text-slate-600">Still open</dt><dd class="text-lg font-semibold tabular-nums text-[#1E4090]">{{ $s['open_count'] }}</dd></div>
+                            <div class="rounded-lg bg-[#dcecfa] px-4 py-2"><dt class="text-[11px] text-slate-600">In progress</dt><dd class="text-lg font-semibold tabular-nums text-[#1E4090]">{{ $s['open_count'] }}</dd></div>
                         </dl>
                     </div>
                 </div>

@@ -25,15 +25,15 @@
 
     // Headline cards: [label, number, pill, icon, Audit Trail gradient, bar %, bar fill, explanation, link label, url]
     $heroes = [
-        ['Requests to review', number_format($work['to_review']),
+        ['To review', number_format($work['to_review']),
             $work['overdue'] ? $work['overdue'] . ' overdue' : 'none overdue', 'bx-file-find',
             'blue', $pct($work['overdue'], $work['to_review']),
-            $work['overdue'] . ' of ' . $work['to_review'] . ' have waited 7+ school days · ' . $work['ready'] . ' more are fully signed and ready to finish',
+            $work['overdue'] . ' of ' . $work['to_review'] . ' have waited for 7+ school days · ' . $work['ready'] . ' more are ready to finish',
             'Open Workflow Review', route('admin.workflow.index')],
-        ['Waiting for signatures', number_format($work['signing']),
+        ['In signing', number_format($work['signing']),
             $work['signing_late'] ? $work['signing_late'] . ' overdue' : 'on time', 'bx-edit',
             'indigo', $pct($signedTotal, $signedTotal + $sig['pending']),
-            $signedTotal . ' signatures given in ' . $range . ' days · ' . $sig['pending'] . ' still to be given',
+            $signedTotal . ' signatures in the last ' . $range . ' days · ' . $sig['pending'] . ' pending signature',
             'Requests in signing', route('admin.workflow.index', ['tab' => 'signing'])],
         ['Students cleared', $clearedPct . '%',
             $clearance['not_tagged'] . ' not tagged', 'bx-check-shield',
@@ -188,7 +188,7 @@
                                         </div>
                                         <div class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-6 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] text-slate-800 shadow-lg group-hover:block">
                                             <p class="font-semibold text-[#1E4090]">{{ $doc['label'] }}</p>
-                                            <p>{{ $doc['completed'] }} completed · {{ $doc['open'] }} still open</p>
+                                            <p>{{ $doc['completed'] }} completed · {{ $doc['open'] }} in progress</p>
                                         </div>
                                     </div>
                                 @endforeach
@@ -215,10 +215,10 @@
             {{-- Who has the open requests --}}
             <div class="{{ $card }} flex flex-col">
                 <div class="{{ $cardHead }}">
-                    <h3 class="{{ $cardTitle }}"><i class="bx bx-transfer hidden cq-sm:inline" aria-hidden="true"></i>Who has the open requests</h3>
+                    <h3 class="{{ $cardTitle }}"><i class="bx bx-transfer hidden cq-sm:inline" aria-hidden="true"></i>Ongoing student transactions</h3>
                     <a href="{{ route('admin.transactions.index') }}" wire:navigate class="{{ $link }}">All records <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
                 </div>
-                <p class="mt-1 text-xs text-slate-600 cq-sm:text-sm"><span class="font-semibold text-slate-900">{{ number_format($tx['open']) }}</span> still open<span class="hidden cq-sm:inline">. This is where each one is waiting.</span></p>
+                <p class="mt-1 text-xs text-slate-600 cq-sm:text-sm"><span class="font-semibold text-slate-900">{{ number_format($tx['open']) }}</span> transaction in progress<span class="hidden cq-sm:inline">. View the current status of each request.</span></p>
                 <ul class="mt-2.5 grid grid-cols-2 gap-1.5 cq-sm:mt-4 cq-sm:grid-cols-1 cq-sm:gap-3 cq-lg:grid-cols-2">
                     @foreach ($tx['stages'] as $i => [$label, $count, $color, $meaning])
                         <li class="rounded-lg border border-slate-200 p-2 cq-sm:p-3.5">
@@ -248,10 +248,10 @@
         $ringC = 2 * M_PI * $ringR;
         // [status, count, meaning, icon, icon colours, bar colour, slice colour]
         $statusRows = [
-            ['Cleared', $clearance['Cleared'], 'Met every requirement', 'bx-check', 'bg-emerald-50 text-emerald-600', 'bg-emerald-500', '#10b981'],
-            ['Pending', $clearance['Pending'], 'Still being checked', 'bx-time-five', 'bg-amber-50 text-amber-600', 'bg-amber-400', '#fbbf24'],
-            ['Uncleared', $clearance['Uncleared'], 'Something left to settle', 'bx-x', 'bg-rose-50 text-rose-600', 'bg-rose-500', '#f43f5e'],
-            ['Not tagged', $clearance['not_tagged'], 'Not checked yet', 'bx-minus', 'bg-slate-100 text-slate-500', 'bg-slate-300', '#d4d1cb'],
+            ['Cleared', $clearance['Cleared'], 'Requirements are fulfilled', 'bx-check', 'bg-emerald-50 text-emerald-600', 'bg-emerald-500', '#10b981'],
+            ['Pending', $clearance['Pending'], 'Awaiting clearance verification', 'bx-time-five', 'bg-amber-50 text-amber-600', 'bg-amber-400', '#fbbf24'],
+            ['Uncleared', $clearance['Uncleared'], 'Requirements are incomplete', 'bx-x', 'bg-rose-50 text-rose-600', 'bg-rose-500', '#f43f5e'],
+            ['Not tagged', $clearance['not_tagged'], 'No status assigned', 'bx-minus', 'bg-slate-100 text-slate-500', 'bg-slate-300', '#d4d1cb'],
         ];
         // Donut slices, clockwise from twelve o'clock, with a hairline of white between neighbours.
         $slices = [];
@@ -383,7 +383,7 @@
         <div class="{{ $pair }}">
             <div class="{{ $card }} flex flex-col">
                 <div class="{{ $cardHead }}">
-                    <h3 class="{{ $cardTitle }}"><i class="bx bx-pen hidden cq-sm:inline" aria-hidden="true"></i>By role</h3>
+                    <h3 class="{{ $cardTitle }}"><i class="bx bx-pen hidden cq-sm:inline" aria-hidden="true"></i>Signatories</h3>
                     <a href="{{ route('admin.workflow.index', ['tab' => 'signing']) }}" wire:navigate class="{{ $link }}">In signing <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
                 </div>
                 <div class="mt-1.5 flex flex-wrap gap-1">
@@ -436,11 +436,11 @@
                 <div class="{{ $cardHead }}">
                     <h3 class="{{ $cardTitle }}"><i class="bx bx-hourglass hidden cq-sm:inline" aria-hidden="true"></i>Waiting the longest</h3>
                     <div class="flex shrink-0 items-center gap-2">
-                        <span class="{{ $badge }} shrink-0 whitespace-nowrap !px-2 !text-[10px] cq-sm:!px-2.5 cq-sm:!text-xs {{ $tone['amber'] }}">{{ $sig['pending'] }} pending</span>
-                        <a href="{{ route('admin.workflow.index', ['tab' => 'signing']) }}" wire:navigate class="inline-flex items-center gap-0.5 whitespace-nowrap text-xs font-semibold text-[#2A57B4] hover:underline" title="See every waiting signature in Workflow Review">Workflow Review<i class="bx bx-chevron-right text-base" aria-hidden="true"></i></a>
+                        <span class="{{ $badge }} shrink-0 whitespace-nowrap !px-2 !text-[10px] cq-sm:!px-2.5 cq-sm:!text-xs {{ $tone['amber'] }}">{{ $sig['pending'] }} waiting</span>
+                        <a href="{{ route('admin.workflow.index', ['tab' => 'signing']) }}" wire:navigate class="inline-flex items-center gap-0.5 whitespace-nowrap text-xs font-semibold text-[#2A57B4] hover:underline" title="See every waiting signature in Workflow Review">Show all<i class="bx bx-chevron-right text-base" aria-hidden="true"></i></a>
                     </div>
                 </div>
-                <p class="mt-1 hidden text-xs text-slate-500 cq-sm:block">Who to remind first, counted in school days.</p>
+                <p class="mt-1 hidden text-xs text-slate-500 cq-sm:block"></p>
                 @if ($sig['longest'])
                     <ul class="mt-2 space-y-2 cq-sm:mt-3 cq-sm:space-y-2.5">
                         @foreach (array_slice($sig['longest'], 0, 4) as $l)

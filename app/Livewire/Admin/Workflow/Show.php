@@ -286,7 +286,7 @@ class Show extends Component
             $status === 'rejected' => ['Rejected', 'font-medium text-rose-700', 'bx-x-circle text-rose-600'],
             $status === 'voided' => ['Voided', 'text-slate-700', 'bx-block text-slate-500'],
             $status === 'approved' => ['Ready to finish', 'font-medium text-emerald-700', 'bx-check-circle text-emerald-600'],
-            $status === 'action_required' => ['Waiting on student', 'text-slate-700', 'bx-hourglass text-amber-600'],
+            $status === 'action_required' => ['For revision', 'text-slate-700', 'bx-hourglass text-amber-600'],
             $status === 'under_review' && $approvals->isNotEmpty() => ['Signed ' . $signed . ' of ' . $approvals->count(), 'text-slate-700', 'bx-pen text-violet-600'],
             $status === 'under_review' => ['Under review', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],
             default => ['New', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],

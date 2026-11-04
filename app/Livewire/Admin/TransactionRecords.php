@@ -87,8 +87,8 @@ class TransactionRecords extends Component
     protected array $mainTabs = ['transactions', 'logbooks'];
 
     public const RESULTS = [
-        'all' => 'All results',
-        'open' => 'Still open',
+        'all' => 'All transactions',
+        'open' => 'In progress',
         'completed' => 'Completed',
         'closed' => 'Rejected, voided or missed',
     ];
@@ -428,7 +428,7 @@ class TransactionRecords extends Component
                 TransactionStatus::Completed => 'Completed',
                 TransactionStatus::Rejected => 'Rejected',
                 TransactionStatus::Voided => 'Voided',
-                TransactionStatus::ActionRequired => 'Waiting on Student',
+                TransactionStatus::ActionRequired => 'For revision',
                 default => 'In Review',
             };
         }

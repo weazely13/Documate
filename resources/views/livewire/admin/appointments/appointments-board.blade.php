@@ -32,8 +32,8 @@
             $a->ai_flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200', false],
             $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200', false],
             ! $fits => ['Purpose mismatch', 'bg-amber-50 text-amber-800 ring-amber-200', false],
-            $a->ai_flag === 'flagged' => ['Worth a look', 'bg-amber-50 text-amber-800 ring-amber-200', false],
-            default => ['Looks fine', 'bg-emerald-50 text-emerald-800 ring-emerald-200', false],
+            $a->ai_flag === 'flagged' => ['Requires further review', 'bg-amber-50 text-amber-800 ring-amber-200', false],
+            default => ['No issues detected', 'bg-emerald-50 text-emerald-800 ring-emerald-200', false],
         };
     };
 
@@ -68,7 +68,7 @@
     <div class="flex items-end justify-between gap-3">
         <div class="min-w-0">
             <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">Appointments</h1>
-            <p class="mt-0.5 hidden text-sm text-slate-500 sm:block">See who is coming, set the office's hours, review requests and run the queue.</p>
+            <p class="mt-0.5 hidden text-sm text-slate-500 sm:block">Manage appointment requests, office hours, and the appointment queue.</p>
         </div>
         <button type="button" wire:click="toggleEditingHours" aria-pressed="{{ $editingHours ? 'true' : 'false' }}"
                 class="{{ $editingHours ? $btnPrimary : $btnSecondary }} shrink-0 max-sm:!px-3">

@@ -367,7 +367,7 @@ class Reports extends Component
         return match ($this->tab) {
             'organizations' => ['Summarize this report', 'Which organizations file the fewest forms?', 'Which organizations have the most uncleared members?'],
             'clearance' => ['Summarize clearance progress', 'Which organizations need follow-up?', 'How does this compare with last semester?'],
-            default => ['Summarize this report', 'Which forms are returned most often?', 'How does this period compare with the one before?'],
+            default => ['Summarize this report', 'What form is requested most often?'],
         };
     }
 

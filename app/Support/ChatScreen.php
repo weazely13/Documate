@@ -82,7 +82,7 @@ class ChatScreen
         'admin.dashboard' => ['Dashboard', 'The VPSD office overview: requests to review, signatures, clearance, appointments and trends.', [
             'Open a card to go to that queue.',
         ]],
-        'admin.workflow.index' => ['Workflow Review', 'Online transactions waiting for the office: To review, In signing, Waiting on student, and those flagged by the AI check.', [
+        'admin.workflow.index' => ['Workflow Review', 'Online transactions awaiting admin review: To review, In signing, Waiting on student, and those flagged by the AI check.', [
             'Open a row to check it, then send it for signing, ask for changes or reject it.',
             'Tick rows to run the AI check on several at once.',
         ]],
@@ -133,7 +133,7 @@ class ChatScreen
         'signatory.home' => ['Signing home', 'Documents waiting for your signature and the roles you sign for.', []],
         'signatory.inbox' => ['Signing inbox', 'Documents waiting for your signature, and your past decisions.', ['Open one to read it and sign or decline.']],
         'signatory.show' => ['Sign a document', 'Reading a document before signing it.', ['Check it, then sign, or decline with a reason.']],
-        'signatory.issue' => ['Issue a report', 'Issuing a document for a student.', []],
+        'signatory.issue' => ['Issue a Document', 'Issuing a document for a student.', []],
         'signatory.issued' => ['Issued documents', 'Documents you issued, with their status.', []],
         'signatory.oversight' => ['All documents', 'Every document in signing (oversight).', []],
     ];

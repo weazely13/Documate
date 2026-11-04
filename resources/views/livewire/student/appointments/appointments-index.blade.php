@@ -134,7 +134,7 @@
                 </li>
             @empty
                 <li class="px-6 py-14 text-center text-sm text-slate-500">
-                    {{ trim($search) !== '' ? 'No match. Try another word.' : ($filter === 'past' ? 'No past visits yet.' : 'No upcoming visits.') }}
+                    {{ trim($search) !== '' ? 'No record match your search.' : ($filter === 'past' ? 'No past visits yet.' : 'No upcoming visits.') }}
                     @if ($filter !== 'past' && trim($search) === '')
                         <a href="{{ route('student.appointments.new') }}" wire:navigate class="ml-1 font-medium text-[#2A57B4] hover:underline">Book an appointment</a>
                     @endif

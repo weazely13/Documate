@@ -10,7 +10,7 @@
 <div class="mx-auto max-w-7xl">
 
     <x-admin.page-header title="Feedback & Issues"
-        description="What students, officers and signatories have told the office about DocuMate. Reply, keep private notes, and resolve." />
+        description="View feedback and concerns submitted by the users. Respond and resolve." />
 
     {{-- Summary --}}
     @php

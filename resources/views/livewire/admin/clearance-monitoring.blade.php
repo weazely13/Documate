@@ -30,10 +30,10 @@
     {{-- Summary cards: each status in its work tint, the count with a few of its students beside it. Selecting one filters the list. --}}
     @php
         $summaryCards = [
-            [\App\Livewire\Admin\ClearanceMonitoring::STATUS_NOT_TAGGED, 'Not tagged', 'bg-[#f5f4f2]', 'bx-circle', 'No status yet this semester'],
-            ['Pending', 'Pending', 'bg-[#fef3c7]', 'bx-time-five', 'Waiting on a requirement'],
-            ['Cleared', 'Cleared', 'bg-[#d9f3e1]', 'bx-check-shield', 'Nothing owed'],
-            ['Uncleared', 'Uncleared', 'bg-[#fde0ec]', 'bx-x-circle', 'Requirements still due'],
+            [\App\Livewire\Admin\ClearanceMonitoring::STATUS_NOT_TAGGED, 'Not tagged', 'bg-[#f5f4f2]', 'bx-circle', 'No status assigned'],
+            ['Pending', 'Pending', 'bg-[#fef3c7]', 'bx-time-five', 'Awaiting clearance verification'],
+            ['Cleared', 'Cleared', 'bg-[#d9f3e1]', 'bx-check-shield', 'Requirements are fulfilled'],
+            ['Uncleared', 'Uncleared', 'bg-[#fde0ec]', 'bx-x-circle', 'Requirements are incomplete'],
         ];
     @endphp
     <nav class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Clearance status">
