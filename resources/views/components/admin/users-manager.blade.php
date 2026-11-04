@@ -19,7 +19,7 @@
             'verifications' => ['Verifications', route('admin.users', ['view' => 'verifications']), 'bx-id-card', 'Open an account verification period and monitor student verification status.'],
         ],
         'School calendar' => [
-            'semesters' => ['Semesters', route('admin.semesters'), 'bx-calendar-alt', 'Add a start and end date to each semester to enable automatic identification of the current semester.'],
+            'semesters' => ['Semesters', route('admin.semesters'), 'bx-calendar-alt', 'Set the start and end dates for the semester. The system automatically identifies the current semester based on the set dates.'],
         ],
         'Organizations' => [
             'organizations' => ['Organizations', $org('organizations'), 'bx-buildings', 'Add academic organizations and their associated programs.'],

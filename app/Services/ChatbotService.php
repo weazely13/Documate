@@ -1837,7 +1837,7 @@ HYMN
                 ['label' => 'Profile', 'route' => 'profile', 'description' => 'View and update your account profile.', 'keywords' => 'account settings'],
             ],
             'officer' => [
-                ['label' => 'Home', 'route' => 'student.home', 'description' => 'Find and start a form.', 'keywords' => 'home start'],
+                ['label' => 'Home', 'route' => 'student.home', 'description' => 'Find and create form template.', 'keywords' => 'home start'],
                 ['label' => 'New Transaction', 'route' => 'student.new-transaction', 'description' => 'Start a document request.', 'keywords' => 'request document form'],
                 ['label' => 'Activity Summary', 'route' => 'student.dashboard', 'description' => 'See your account activity.', 'keywords' => 'dashboard overview activity analytics'],
                 ['label' => 'Appointments', 'route' => 'student.appointments.index', 'description' => 'View and manage appointments.', 'keywords' => 'booking schedule queue'],
@@ -1848,7 +1848,7 @@ HYMN
                 ['label' => 'Handbook', 'route' => 'handbook', 'description' => 'Read the LNU Student Handbook.', 'keywords' => 'policy rules student'],
             ],
             default => [
-                ['label' => 'Home', 'route' => 'student.home', 'description' => 'Find and start a form.', 'keywords' => 'home start'],
+                ['label' => 'Home', 'route' => 'student.home', 'description' => 'Find and create form template.', 'keywords' => 'home start'],
                 ['label' => 'New Transaction', 'route' => 'student.new-transaction', 'description' => 'Start a document request.', 'keywords' => 'request document form'],
                 ['label' => 'Activity Summary', 'route' => 'student.dashboard', 'description' => 'See your account activity and progress.', 'keywords' => 'dashboard overview activity analytics'],
                 ['label' => 'Appointments', 'route' => 'student.appointments.index', 'description' => 'View or book appointments.', 'keywords' => 'booking schedule queue'],
