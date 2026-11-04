@@ -100,21 +100,43 @@
         }
         .org-tab.active::after { width: 100%; }
 
-        /* ---------- Custom scrollbars ---------- */
-        .org-scroll::-webkit-scrollbar,
-        .modal-scroll::-webkit-scrollbar { width: 6px; }
-        .org-scroll::-webkit-scrollbar-thumb,
-        .modal-scroll::-webkit-scrollbar-thumb { background: rgba(42,87,180,.3); border-radius: 10px; }
-        /* ---------- Active nav link (scroll-spy) ---------- */
-        .nav-link { position: relative; }
+        /* ---------- Full-height header link hover & active styles ---------- */
+        .nav-link {
+            position: relative;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 1rem;
+            border-radius: 0 !important; /* Explicitly forces sharp/square corners */
+        }
+        
+        /* Yellow bottom light bar on hover */
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 0%;
+            height: 3px;
+            background: var(--accent);
+            transition: width .25s ease;
+            z-index: 2;
+        }
+        .nav-link:hover::before {
+            width: 100%;
+        }
+
+        /* Underline/Highlight line for active state */
         .nav-link::after {
             content: '';
             position: absolute;
-            left: 0; bottom: -6px;
-            width: 0; height: 2px;
-            border-radius: 2px;
+            left: 0; 
+            bottom: 0; 
+            width: 0; 
+            height: 3px;
             background: #2A57B4;
             transition: width .3s ease;
+            z-index: 1;
         }
         .nav-link.active { color: #2A57B4; }
         .nav-link.active::after { width: 100%; }
@@ -139,7 +161,7 @@
 
     <!-- ================= HEADER ================= -->
     <header id="site-header" class="fixed z-50 w-full bg-white/90 backdrop-blur-md transition-shadow duration-300">
-        <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-8 sm:py-3.5">
+        <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-20 sm:px-8">
 
             <a href="{{ url('/') }}" class="flex shrink-0 items-center gap-2 sm:gap-2.5" aria-label="DocuMate home">
                 <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" class="hidden size-9 object-contain sm:block xl:hidden 2xl:block">
@@ -149,11 +171,12 @@
                 <span class="text-[1.65rem] leading-none text-[#2A57B4] sm:text-[2rem]" style="font-family: 'Gveret Levin', cursive;">DocuMate</span>
             </a>
 
-            <nav class="hidden items-center gap-6 whitespace-nowrap text-[15px] font-medium xl:flex 2xl:gap-8" aria-label="Main">
+            <!-- Nav container matches the full height of the header row -->
+            <nav class="hidden items-center h-full gap-0 whitespace-nowrap text-[15px] font-medium xl:flex" aria-label="Main">
                 @foreach ($navLinks as [$label, $href, $key])
                     <a href="{{ $href }}" data-spy="{{ $key }}"
                         @if (request()->routeIs('faqs') && $key === 'faqs') aria-current="true" @endif
-                        class="nav-link text-[#4a5568] transition hover:text-[#0d253d] {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
+                        class="nav-link rounded-none text-[#4a5568] transition hover:text-[#0d253d] hover:bg-[#edf2f7] {{ request()->routeIs('faqs') && $key === 'faqs' ? 'active' : '' }}">
                         {{ $label }}
                     </a>
                 @endforeach
@@ -274,7 +297,6 @@
             .map(function (id) { return document.getElementById(id); })
             .filter(Boolean);
 
-        // Only runs on pages that actually contain the sections (so the FAQs page keeps its server-side highlight)
         if (spySections.length) {
             var updateSpy = function () {
                 var offset = header.offsetHeight + 40;
@@ -284,7 +306,6 @@
                     if (s.getBoundingClientRect().top <= offset) current = s.id;
                 });
 
-                // At the very bottom, always highlight the last section
                 if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
                     current = spySections[spySections.length - 1].id;
                 }
