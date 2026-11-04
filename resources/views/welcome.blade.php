@@ -8,6 +8,10 @@
     $h2 = 'text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] text-[#0d253d] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]';
     $lead = 'text-[14.5px] leading-relaxed text-[#4a5568] sm:text-base lg:text-[17px]';
 
+    // Helper for styled DocuMate instances matching the custom font family while keeping original color
+    $styledDocuMate = '<span style="font-family: \'Gveret Levin\', cursive;" class="text-[#2a57b4]">DocuMate</span>';
+    // Helper for headings/sentences font styling (preserving their original colors)
+    $customHeadingStyle = 'font-family: \'Gveret Levin\', cursive;';
 @endphp
 
 @section('content')
@@ -18,11 +22,11 @@
 
             <div class="relative z-10 pb-2 lg:pb-24">
                 <h1 class="text-[2.05rem] font-semibold leading-[1.06] tracking-[-0.03em] text-[#0d253d] sm:text-[3.4rem] lg:text-[4.2rem] [text-wrap:balance]">
-                    Request, track and sign student documents
-                    <span class="relative whitespace-nowrap text-[#2a57b4]">in one place<svg class="absolute -bottom-2 left-0 h-3 w-full text-[#2a57b4]/35" viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 80 2, 160 12, 298 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>
+                    <span style="{{ $customHeadingStyle }}">Request, track and sign student documents</span>
+                    <span class="relative whitespace-nowrap text-[#2a57b4]"><span style="{{ $customHeadingStyle }}">All in One Place</span><svg class="absolute -bottom-2 left-0 h-3 w-full text-[#2a57b4]/35" viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 80 2, 160 12, 298 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>
                 </h1>
                 <p class="mt-5 max-w-xl sm:mt-7 {{ $lead }}">
-                    DocuMate is the digital desk of the Office of the Vice President for Student Development at Leyte Normal University.
+                    <span style="font-family: 'Gveret Levin', cursive; " class="text-[#2a57b4]">DocuMate</span> is the digital desk of the Office of the Vice President for Student Development at Leyte Normal University.
                     Fill in forms online, book a visit, follow every signature, and download the finished document.
                 </p>
                 <div class="mt-7 grid grid-cols-2 gap-2 sm:mt-9 sm:flex sm:gap-3">
@@ -56,7 +60,7 @@
     <section id="how" class="bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-end">
-                <h2 class="{{ $h2 }}">Every request travels the same route. Now you can watch it.</h2>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Every request travels the same route. Now you can watch it.</span></h2>
                 <p class="{{ $lead }} lg:pb-1">No more asking at the window whether the Dean has signed. Each step is stamped the moment it happens, and you get an email when it's your turn.</p>
             </div>
 
@@ -83,7 +87,7 @@
                             ['DocuMate', 'The finished document is sealed. Any change after this would break the seal.', 'Nov 2 · 9:03 AM', 'Sealed', '#059669', '4deg'],
                         ] as [$desk, $what, $when, $stamp, $color, $rot])
                             <tr>
-                                <td class="px-6 py-5 align-top font-medium text-[#0d253d]">{{ $desk }}</td>
+                                <td class="px-6 py-5 align-top font-medium text-[#0d253d]">{!! $desk !!}</td>
                                 <td class="px-6 py-5 align-top leading-relaxed text-[#4a5568]">{{ $what }}</td>
                                 <td class="px-6 py-5 align-top font-mono text-[12.5px] text-[#4a5568]">{{ $when }}</td>
                                 <td class="px-6 py-4 align-top">
@@ -105,7 +109,7 @@
                 ] as [$desk, $what, $stamp, $color])
                     <li class="flex items-start justify-between gap-3 rounded-xl border border-[#e7e5e1] bg-white p-3.5">
                         <div class="min-w-0">
-                            <p class="text-[15px] font-medium text-[#0d253d]">{{ $desk }}</p>
+                            <p class="text-[15px] font-medium text-[#0d253d]">{!! $desk !!}</p>
                             <p class="mt-0.5 text-[13px] leading-relaxed text-[#4a5568]">{{ $what }}</p>
                         </div>
                         <span class="dm-rubber dm-rubber-sm shrink-0" style="--c: {{ $color }}; transform: rotate(-3deg)">{{ $stamp }}</span>
@@ -118,7 +122,7 @@
     {{-- ================= TWO DESKS (file folders) ================= --}}
     <section id="features" class="bg-white py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
-            <h2 class="{{ $h2 }} max-w-3xl">One record, two sides of the counter</h2>
+            <h2 class="{{ $h2 }} max-w-3xl"><span style="{{ $customHeadingStyle }}">One record, two sides of the counter</span></h2>
             <p class="mt-5 max-w-2xl {{ $lead }}">Students and the office work on the same document, so what you see is exactly what they see.</p>
 
             <div class="mt-10 grid sm:mt-14 grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-14 lg:grid-cols-2">
@@ -172,8 +176,8 @@
     <section id="assistant" class="dm-ledger overflow-hidden border-t py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
-                <h2 class="{{ $h2 }}">Ask before you line up</h2>
-                <p class="{{ $lead }}">The DocuMate Assistant sits on every page. It knows which screen you're on, LNU's offices and buildings, and the Student Handbook, and it tells you when something isn't in its records.</p>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Ask before you line up</span></h2>
+                <p class="{{ $lead }}">The <span style="font-family: 'Gveret Levin', cursive;" class="text-[#2a57b4]">DocuMate</span> Assistant sits on every page. It knows which screen you're on, LNU's offices and buildings, and the Student Handbook, and it tells you when something isn't in its records.</p>
             </div>
 
             <div class="mt-8 grid gap-4 sm:mt-14 sm:gap-6 md:grid-cols-3">
@@ -185,13 +189,13 @@
                     <figure class="dm-index-card" style="transform: rotate({{ $rot }})">
                         <blockquote>
                             <p class="text-sm font-medium text-[#0d253d] sm:text-[15px]">“{{ $q }}”</p>
-                            <p class="mt-3 flex gap-2 border-t border-[#f3c2c8] pt-3 text-sm leading-relaxed text-[#273951] sm:mt-4 sm:pt-4 sm:text-[15px]"><i class="bx bx-bot mt-0.5 shrink-0 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{{ $a }}</span></p>
+                            <p class="mt-3 flex gap-2 border-t border-[#f3c2c8] pt-3 text-sm leading-relaxed text-[#273951] sm:mt-4 sm:pt-4 sm:text-[15px]"><i class="bx bx-bot mt-0.5 shrink-0 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{!! $a !!}</span></p>
                         </blockquote>
                         <figcaption class="mt-4 text-xs text-[#66707f]">{{ $src }}</figcaption>
                     </figure>
                 @endforeach
             </div>
-            <p class="mt-8 text-center text-[13px] text-[#4a5568] sm:mt-10 sm:text-sm"><a href="{{ route('login') }}" class="font-medium text-[#2a57b4] underline-offset-4 hover:underline">Sign in</a> and look for the robot in the corner of any page.</p>
+            <p class="mt-8 text-center text-[13px] text-[#4a5568] sm:mt-10 sm:text-sm"><a href="{{ route('register') }}" class="font-medium text-[#2a57b4] underline-offset-4 hover:underline">Sign up</a> and look for the robot in the corner of any page.</p>
         </div>
     </section>
 
@@ -199,7 +203,7 @@
     <section class="bg-[#0d253d] py-14 text-white sm:py-20 lg:py-28">
         <div class="mx-auto grid max-w-7xl gap-8 px-5 sm:gap-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-20">
             <div>
-                <h2 class="text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]">A copy anyone can check, years from now</h2>
+                <h2 class="text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]"><span style="{{ $customHeadingStyle }}">A copy anyone can check, years from now</span></h2>
                 <p class="mt-4 text-[14.5px] leading-relaxed text-[#c3cedd] sm:mt-5 sm:text-base lg:text-[17px]">
                     Every signature is sealed the moment it is given. If one word of a finished document changed, the seal would no longer match,
                     and the verify page would say so.
@@ -228,7 +232,7 @@
     <section id="orgchart" class="bg-white py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
-                <h2 class="{{ $h2 }}">Who's who at Leyte Normal University</h2>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Who's who at Leyte Normal University</span></h2>
                 <p class="{{ $lead }}">The university's academic and administrative staff, by office. Search for a name or a role, or pick an office.</p>
             </div>
 
@@ -262,7 +266,7 @@
     <section id="location" class="bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
         <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-8 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
             <div>
-                <h2 class="{{ $h2 }}">Where to find the VPSD office</h2>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Where to find the VPSD office</span></h2>
                 <p class="mt-5 {{ $lead }}">Administration Building, 2nd Floor, at the main campus in Tacloban City.</p>
                 <dl class="mt-6 divide-y divide-[#e7e5e1] border-y border-[#e7e5e1] sm:mt-8">
                     @foreach ([
@@ -292,7 +296,7 @@
     <section id="faqs" class="bg-white py-14 sm:py-20 lg:py-28">
         <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
             <div>
-                <h2 class="{{ $h2 }}">Questions people ask first</h2>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Questions people ask first</span></h2>
                 <p class="mt-5 {{ $lead }}">Short answers to the common ones. The full list covers accounts, forms, appointments and privacy.</p>
                 <a href="{{ route('faqs') }}" class="{{ $btnSecondary }} mt-6 sm:mt-8">Browse all FAQs <i class="bx bx-right-arrow-alt text-lg"></i></a>
             </div>
@@ -326,8 +330,8 @@
     <section id="creators" class="bg-white py-14 sm:py-20 lg:py-24">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
-                <h2 class="{{ $h2 }}">Made at LNU, by LNU students</h2>
-                <p class="{{ $lead }}">A team of four LNU students built DocuMate to make student transactions simpler for everyone.</p>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Made at LNU, by LNU students</span></h2>
+                <p class="{{ $lead }}">A team of four LNU students built <span style="font-family: 'Gveret Levin', cursive;" class="text-[#2a57b4]">DocuMate</span> to make student transactions simpler for everyone.</p>
             </div>
             <div class="mt-8 overflow-hidden rounded-xl bg-[#dcecfa] sm:mt-10">
                 <img src="{{ asset('images/coverpeople.png') }}" alt="The DocuMate team" class="mx-auto h-auto w-full max-w-4xl object-contain">
@@ -411,7 +415,7 @@
                                     <!-- 5. Tasks -->
                                     <div class="mt-auto pt-2 flex flex-wrap justify-center gap-1">
                                         @foreach ($c['tasks'] as $task)
-                                            <span class="px-2` py-0.5 text-[10px] bg-[#f0f4fb] text-[#2a57b4] rounded-md">{{ $task }}</span>
+                                            <span class="px-2 py-0.5 text-[10px] bg-[#f0f4fb] text-[#2a57b4] rounded-md">{{ $task }}</span>
                                         @endforeach
                                     </div>
                                 </article>
@@ -620,6 +624,7 @@ document.addEventListener('DOMContentLoaded', function () {
 @endpush
 
 @push('head')
+<link href="https://fonts.googleapis.com/css2?family=Gveret+Levin&display=swap" rel="stylesheet">
 <style>
 
     /* A rubber stamp on the routing slip */
