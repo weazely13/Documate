@@ -562,7 +562,7 @@
                                    placeholder="Search by name or student number" class="{{ $bare }}"
                                    aria-describedby="h-nominee @error('nomineeId') e-nominee @enderror" @error('nomineeId') aria-invalid="true" @enderror>
                         </div>
-                        <p id="h-nominee" class="{{ $help }}">Type at least 2 letters, then pick the student from the list.</p>
+                        <p id="h-nominee" class="{{ $help }}">Type at least 2 letters, then search for the student from the list.</p>
 
                         @if (strlen($nomineeSearch) >= 2)
                             <div class="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg" role="list" aria-label="Matching students">

@@ -15,8 +15,8 @@
     {{-- Summary --}}
     @php
         $tiles = [
-            ['New', $stats['new'], 'bx-envelope', 'from-[#2A57B4] to-[#3b6fd8]', 'waiting for a first look'],
-            ['Open issues', $stats['open_issues'], 'bx-error-circle', 'from-rose-500 to-rose-400', 'reported problems not yet resolved'],
+            ['New', $stats['new'], 'bx-envelope', 'from-[#2A57B4] to-[#3b6fd8]', 'waiting for initial look'],
+            ['Pending concerns', $stats['open_issues'], 'bx-error-circle', 'from-rose-500 to-rose-400', 'reported issues not yet resolved'],
             ['Resolved', $stats['resolved_30'], 'bx-check-double', 'from-emerald-500 to-emerald-400', 'in the last 30 days'],
         ];
     @endphp

@@ -157,7 +157,7 @@
                                     <button type="button" wire:click="removePhoto" wire:confirm="Remove your profile photo?" class="{{ $btnSecondary }}">Remove photo</button>
                                 @endif
                             </div>
-                            <p class="mt-2 text-xs text-[#66707f]">JPG, PNG or WebP, up to 2 MB. It saves as soon as you pick it.</p>
+                            <p class="mt-2 text-xs text-[#66707f]">Upload JPG, PNG, or WebP, maximum of 2 MB. Saved automatically once image is selected.</p>
                             <input id="photo-upload" type="file" wire:model="photo" accept="image/png,image/jpeg,image/webp" class="sr-only">
                             @error('photo') <p class="{{ $err }}"><i class="bx bx-error-circle"></i>{{ $message }}</p> @enderror
                         </div>
@@ -353,7 +353,7 @@
             {{-- ---------- PASSWORD ---------- --}}
             <div x-show="tab === 'password'" x-cloak class="p-4 sm:p-6">
                 <h2 class="text-[15px] font-semibold text-[#0d253d]">Change password</h2>
-                <p class="mt-1 text-sm text-[#66707f]">Use at least 8 characters. You'll stay signed in on this device.</p>
+                <p class="mt-1 text-sm text-[#66707f]">Password requires at least 8 characters. You will remain logged in on this device.</p>
 
                 <form wire:submit="updatePassword" class="mt-5 max-w-md space-y-4">
                     @foreach ([
@@ -426,7 +426,7 @@
                                     @pointerdown.prevent="start($event)" @pointermove.prevent="move($event)"
                                     @pointerup="end()" @pointerleave="end()"></canvas>
                             <div x-show="!has" class="pointer-events-none absolute inset-x-6 bottom-[22%] border-b border-[#d4d1cb]"></div>
-                            <p x-show="!has" class="pointer-events-none absolute inset-x-0 top-1/3 text-center text-sm text-[#9a978f]">Sign here with your finger, stylus or mouse</p>
+                            <p x-show="!has" class="pointer-events-none absolute inset-x-0 top-1/3 text-center text-sm text-[#9a978f]">Sign here</p>
                         </div>
                     </div>
                 </div>

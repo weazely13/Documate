@@ -17,7 +17,7 @@ class FeedbackInbox extends Component
     public const PER_PAGE = 15;
 
     public const TABS = [
-        'open' => 'Open',
+        'open' => 'Pending',
         'resolved' => 'Resolved',
         'closed' => 'Closed',
         'all' => 'All',

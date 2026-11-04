@@ -55,7 +55,7 @@ class ModelStudentRatingBySignatory extends WorkflowDocument
 
     public function issueNote(): ?string
     {
-        return 'Pick the student and choose the rating. You appear as the rater, signed with your profile signature. The student is not notified. The VPSD office then does the final verification.';
+        return 'Search for the student and choose the rating. You appear as the rater, signed with your digital signature. The student is not notified. The VPSD office then does the final verification.';
     }
 
     public function issuedMessage(array $values): string
