@@ -267,7 +267,9 @@
 
     {{-- Modal: bottom sheet on phones, centered dialog on larger screens --}}
     @if ($modal)
-        <div class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm sm:items-center sm:p-4"
+        {{-- In <body>, so the backdrop covers the whole screen, the top bar included --}}
+        @teleport('body')
+        <div class="fixed inset-0 z-[100] flex h-[100dvh] items-end justify-center bg-slate-900/50 backdrop-blur-sm sm:items-center sm:p-4"
              wire:keydown.escape="closeModal" wire:click.self="closeModal" role="dialog" aria-modal="true" aria-labelledby="sign-modal-title">
             <div class="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl sm:p-6"
                  x-data x-init="$nextTick(() => ($el.querySelector('select, textarea, input:not([type=hidden]):not([type=radio])') || $el.querySelector('button'))?.focus())"
@@ -286,7 +288,7 @@
                         @if ($signatureReady)
                             <p class="mt-4 text-xs font-medium text-slate-500">Digitally signed by</p>
                             <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}" alt="Your saved e-signature" class="mt-1 h-16 rounded-lg border border-slate-100 bg-white p-1">
-                            <p class="mt-1 border-b border-slate-300 pb-0.5 text-sm font-semibold text-slate-900">{{ auth()->user()->full_name }}</p>
+                            <p class="mt-1 border-b border-slate-300 pb-0.5 text-sm font-semibold text-slate-900">{{ \App\Services\Workflow\FormSupport::systemValue(auth()->user(), 'signing_name') }}</p>
                         @endif
                     @else
                         <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -295,8 +297,9 @@
                     @endif
 
                     @if ($document->signerRecordsInspection())
-                        <label for="inspection-remarks" class="mt-4 block text-sm font-medium text-slate-700">Inspection remarks <span class="text-slate-500">(optional)</span></label>
-                        <textarea id="inspection-remarks" wire:model="inspectionRemarks" rows="3" maxlength="300" placeholder="e.g. Haircut done. Cleared." class="{{ $field }}"></textarea>
+                        @php $inspRole = $approval->role?->key; @endphp
+                        <label for="inspection-remarks" class="mt-4 block text-sm font-medium text-slate-700">{{ $document->inspectionLabel($inspRole) }} <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+                        <textarea id="inspection-remarks" wire:model="inspectionRemarks" rows="3" maxlength="300" required aria-required="true" placeholder="{{ $document->inspectionPlaceholder($inspRole) }}" class="{{ $field }}"></textarea>
                         @error('inspectionRemarks') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
                     @endif
 
@@ -344,5 +347,6 @@
                 @endif
             </div>
         </div>
+        @endteleport
     @endif
 </div>

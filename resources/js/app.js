@@ -4,9 +4,11 @@ import { lnuHandbook } from './lnu-handbook';
 import './insights';
 import './pdf-to-image';
 import templateEditor from './template-editor';
+import dmTour from './tour';
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('templateEditor', templateEditor);
+    Alpine.data('dmTour', dmTour);
 });
 
 document.addEventListener('livewire:navigating', () => {

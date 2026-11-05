@@ -534,6 +534,7 @@ class TransactionWorkflow
                 'document' => $doc->name(),
             ]);
             $ws = $this->acceptForSigning($ws, $issuer);
+            \App\Jobs\ReviewTransactionSubmission::start($ws); // AI check, as on a student's submission
 
             if ($slot = $doc->appointment($answers)) {
                 $this->bookAppointment($ws, $slot);
@@ -607,10 +608,15 @@ class TransactionWorkflow
                 throw new WorkflowException('Set the counselling date and time before signing.');
             }
         
-            if ($doc->signerRecordsInspection()) {
+            $inspectionKeys = $doc->signerRecordsInspection() ? $doc->inspectionKeys($approval->role?->key) : null;
+            if ($inspectionKeys) {
+                $remarks = trim(mb_substr((string) ($extra['inspection_remarks'] ?? ''), 0, 300));
+                if ($remarks === '') {
+                    throw new WorkflowException('Enter your ' . strtolower($doc->inspectionLabel($approval->role?->key)) . ' before signing.');
+                }
                 $values = $ws->field_values ?? [];
-                $values['inspection_remarks'] = trim(mb_substr((string) ($extra['inspection_remarks'] ?? ''), 0, 300)) ?: null;
-                $values['inspection_date'] = today()->toDateString();
+                $values[$inspectionKeys['remarks']] = $remarks;
+                $values[$inspectionKeys['date']] = today()->toDateString();
                 $ws->forceFill(['field_values' => $values])->save();
                 $approval->unsetRelation('workspace'); // so the seal is computed from the saved remarks
             }
@@ -648,7 +654,8 @@ class TransactionWorkflow
                 'acted_at' => now(),
             ] + ($response !== null ? ['response' => $response] : []))->save();
 
-            if ($doc->signerRecordsInspection()) {
+            // Only the VPSD inspection is the booked visit; another signer's remarks (e.g. the doctor's) are not.
+            if ($inspectionKeys && $inspectionKeys['remarks'] === 'inspection_remarks') {
                 Appointment::where('workspace_id', $ws->workspace_id)->where('status', 'approved')->get()
                     ->each(function ($a) use ($signer) {
                         $a->update(['status' => 'attended']);
@@ -1207,7 +1214,7 @@ class TransactionWorkflow
         }
 
         return [
-            'reporter_name' => FormSupport::systemValue($issuer, 'formatted_full_name'),
+            'reporter_name' => FormSupport::systemValue($issuer, 'signing_name'),
             'reporter_role' => $roles,
             'reporter_user_id' => $issuer->id,
             'reporter_signature_path' => $sig,

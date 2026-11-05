@@ -319,7 +319,6 @@ class NewTransaction extends Component
             'formItems' => $this->formItems(),
             'resume' => $this->unfinished((int) $user->id),
             'appointments' => $this->upcomingAppointments((int) $user->id),
-            'slides' => $this->busySlides(),
             ...$this->signingQueue($user),
         ])->layout('layouts.app', ['title' => 'Home']);
     }
@@ -356,79 +355,6 @@ class NewTransaction extends Component
 
         return $list->each(fn ($a) => $a->setAttribute('now_serving',
             $a->status === 'approved' && $a->appointment_date->isToday() ? $serving?->{'now_serving_' . $a->session} : null));
-    }
-
-    /**
-     * When the VPSD office is busiest, from appointments: every booking from the last 90 days through the
-     * next 30 (rejected and withdrawn ones never brought anyone in, so they are left out). Appointments are
-     * booked by session, so "time of day" means each weekday's morning and afternoon.
-     *
-     * @return array<int, array{0: string, 1: array}> slides for partials.dash.header
-     */
-    private function busySlides(): array
-    {
-        $names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        $short = ['Su', 'M', 'Tu', 'W', 'Th', 'F', 'Sa'];
-        $sessions = ['morning' => 'AM', 'afternoon' => 'PM'];
-
-        $rows = \App\Models\Appointment::query()
-            ->whereBetween('appointment_date', [today()->subDays(90)->toDateString(), today()->addDays(30)->toDateString()])
-            ->whereNotIn('status', ['rejected', 'retracted'])
-            ->get(['appointment_date', 'session']);
-
-        $byDay = array_fill(0, 7, 0);
-        $bySlot = [];
-        foreach ($rows as $r) {
-            $d = $r->appointment_date->dayOfWeek;
-            $byDay[$d]++;
-            $session = isset($sessions[$r->session]) ? $r->session : 'morning';
-            $bySlot[$d][$session] = ($bySlot[$d][$session] ?? 0) + 1;
-        }
-
-        $note = 'Appointments at the VPSD office, the last 90 days and the next 30.';
-
-        // Busiest days: Monday first, the office's week.
-        $order = [1, 2, 3, 4, 5, 6, 0];
-        $dayBars = array_map(fn ($d) => ['label' => $short[$d], 'name' => $names[$d] . 's', 'n' => $byDay[$d]], $order);
-        $topDay = $rows->isNotEmpty() ? array_search(max($byDay), $byDay, true) : null;
-
-        // Busiest times: each open weekday's morning and afternoon (weekends only if anyone booked them).
-        $slotBars = [];
-        foreach ($order as $d) {
-            if (in_array($d, [0, 6], true) && ! $byDay[$d]) {
-                continue;
-            }
-            foreach ($sessions as $key => $ampm) {
-                $slotBars[] = [
-                    'label' => $short[$d], 'sub' => $ampm,
-                    'name' => $names[$d] . ' ' . ($key === 'morning' ? 'mornings' : 'afternoons'),
-                    'n' => $bySlot[$d][$key] ?? 0,
-                ];
-            }
-        }
-        $ranked = collect($slotBars)->filter(fn ($b) => ! in_array(mb_substr($b['name'], 0, 3), ['Sun', 'Sat'], true))->sortBy('n');
-        $busiest = collect($slotBars)->sortByDesc('n')->first();
-        $quietest = $ranked->first();
-
-        return [
-            ['livewire.student._sky-chart', [
-                'title' => 'Busiest days',
-                'note' => $note,
-                'bars' => $dayBars,
-                'caption' => $topDay !== null
-                    ? 'Busiest: <strong>' . e($names[$topDay]) . 's</strong>, ' . $byDay[$topDay] . ' ' . \Illuminate\Support\Str::plural('appointment', $byDay[$topDay])
-                    : null,
-            ]],
-            ['livewire.student._sky-chart', [
-                'title' => 'Busiest times of day',
-                'note' => $note,
-                'bars' => $slotBars,
-                'caption' => $busiest && $busiest['n']
-                    ? 'Busiest: <strong>' . e($busiest['name']) . '</strong>'
-                        . ($quietest && $quietest['name'] !== $busiest['name'] ? ' &middot; Quietest: <strong>' . e($quietest['name']) . '</strong>' : '')
-                    : null,
-            ]],
-        ];
     }
 
     /**
@@ -871,15 +797,8 @@ class NewTransaction extends Component
             return trim($yearLevel);
         }
 
-        $suffix = match (true) {
-            $number % 100 >= 11 && $number % 100 <= 13 => 'th',
-            $number % 10 === 1 => 'st',
-            $number % 10 === 2 => 'nd',
-            $number % 10 === 3 => 'rd',
-            default => 'th',
-        };
-
-        return $number . $suffix;
+        // Forms print the bare number (4-AI45), not 4th.
+        return (string) $number;
     }
     private function resolveSystemValue(string $key): string
     {

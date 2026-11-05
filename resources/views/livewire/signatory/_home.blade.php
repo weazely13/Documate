@@ -38,15 +38,24 @@
         openCard(k) { if (this.touch()) { this.menu = k; } else { Livewire.navigate(this.items[k].url); } },
         openPreview(k) { this.menu = null; this.preview = k; },
      }"
-     @keydown.escape.window="menu = null; preview = null">
+     @keydown.escape.window="menu = null; preview = null"
+     {{-- The Home tour switches tabs and opens a sample preview as it explains them --}}
+     @tour-page.window="const d = $event.detail; if (d.tab) setTab(d.tab);
+        if (d.preview === null) preview = null;
+        else if (d.preview !== undefined) {
+            {{-- the sample: the first online form on the page (a print form has no online steps to show) --}}
+            const ks = [...document.querySelectorAll('[data-tour=explore-card]')].map(e => +e.dataset.k);
+            openPreview(ks.find(k => ! items[k].paper) ?? ks[0] ?? 0);
+        }"
+     @tour-ended.window="preview = null; menu = null">
 
     {{-- ===== First screen: greeting, then the view switch and the search ===== --}}
     <div class="flex min-h-[calc(50dvh-95px)] flex-col justify-end text-center">
         {!! $hero !!}
 
-        <div class="mt-3 flex justify-center gap-2 pb-3" role="tablist" aria-label="Home view">
+        <div class="mt-3 flex justify-center gap-2 pb-3" role="tablist" aria-label="Home view" data-tour="tabs">
             @foreach (['overview' => ['Overview', 'bx-home-smile'], 'explore' => ['Explore', 'bx-compass']] as $key => [$label, $icon])
-                <button type="button" role="tab" @click="setTab('{{ $key }}')" :aria-selected="(tab === '{{ $key }}').toString()"
+                <button type="button" role="tab" data-tour="tab-{{ $key }}" @click="setTab('{{ $key }}')" :aria-selected="(tab === '{{ $key }}').toString()"
                         class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-sm transition-colors {{ $focus }} [@media(pointer:coarse)]:min-h-[36px] [@media(pointer:coarse)]:px-3.5"
                         :class="tab === '{{ $key }}'
                             ? 'border-[#2A57B4]/40 bg-[#2A57B4]/10 text-[#1E4090] group-data-[ink=light]/greet:border-white/60 group-data-[ink=light]/greet:bg-white/20 group-data-[ink=light]/greet:text-white'
@@ -59,7 +68,7 @@
 
     {{-- ===== Search the reports this person may issue ===== --}}
     @if ($canIssue)
-        <div class="relative z-20 mx-auto max-w-2xl" @click.outside="open = false" @keydown.escape="open = false">
+        <div class="relative z-20 mx-auto max-w-2xl" @click.outside="open = false" @keydown.escape="open = false" data-tour="search">
             <div class="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_12px_32px_-12px_rgba(13,37,61,0.28)]">
                 <label for="report-search" class="sr-only">Search the reports you can issue</label>
                 <div class="relative">
@@ -136,7 +145,7 @@
     @endunless
 
     {{-- ===== Overview: one small card per signing role ===== --}}
-    <div x-show="tab === 'overview'" class="mt-10 space-y-8 pb-16">
+    <div x-show="tab === 'overview'" class="mt-[38dvh] space-y-8 pb-16 sm:mt-[22dvh]">
         {{-- Pick up where you left off: reports saved as drafts on the Issue page --}}
         @if ($drafts->isNotEmpty())
             <section class="mx-auto max-w-5xl text-left" aria-labelledby="resume-title">
@@ -163,13 +172,13 @@
             </section>
         @endif
 
-        @include('livewire.signatory._waiting-cards', ['signingTotal' => $waiting, 'width' => 'max-w-5xl'])
+        <div data-tour="waiting">@include('livewire.signatory._waiting-cards', ['signingTotal' => $waiting, 'width' => 'max-w-5xl'])</div>
 
-        @include('livewire.signatory._role-cards', ['width' => 'max-w-5xl'])
+        <div data-tour="roles">@include('livewire.signatory._role-cards', ['width' => 'max-w-5xl'])</div>
     </div>
 
     {{-- ===== Explore: the reports they may issue, with a preview of each (the student Explore's layout) ===== --}}
-    <section x-show="tab === 'explore'" x-cloak class="mt-10 pb-40 text-left sm:pb-52" aria-labelledby="explore-title">
+    <section x-show="tab === 'explore'" x-cloak class="mt-10 pb-40 text-left sm:pb-52" aria-labelledby="explore-title" data-tour="explore">
         <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 id="explore-title" class="text-xl font-semibold tracking-tight {{ $onSky }}">Reports you can issue</h2>
             <p class="text-sm text-slate-700 group-data-[ink=light]/greet:text-blue-50" aria-live="polite">
@@ -191,20 +200,21 @@
                                     sm:mx-0 sm:grid-flow-row sm:grid-cols-4 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0">
                             @foreach ($reports as $k => $item)
                                 @continue($item['category'] !== $c['key'])
-                                <div wire:key="explore-{{ $item['key'] }}" x-show="matches(items[{{ $k }}])" class="group relative min-w-0 snap-start">
+                                <div data-tour="explore-card" data-k="{{ $k }}" wire:key="explore-{{ $item['key'] }}" x-show="matches(items[{{ $k }}])" class="group relative min-w-0 snap-start">
                                     <a href="{{ $item['url'] }}" @click.prevent="openCard({{ $k }})"
-                                       class="block overflow-hidden rounded-lg border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] motion-reduce:hover:translate-y-0 sm:rounded-2xl">
-                                        {{-- Preview: the top of the report as it prints, blank. Loads once the card is on screen. --}}
-                                        <div class="relative aspect-[3/4] overflow-hidden border-b border-slate-100 bg-[#e7e5e1] sm:aspect-auto sm:h-48" aria-hidden="true"
+                                       class="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] motion-reduce:hover:translate-y-0">
+                                        {{-- Preview: the whole page as it prints, blank (same card as My documents). Loads once the card is on screen. --}}
+                                        <div class="relative aspect-[842/1171] overflow-hidden border-b border-slate-200 bg-white" aria-hidden="true"
                                              x-data="{ s: 0.2, src: '' }" x-init="const fit = () => s = $el.clientWidth / 842; fit(); new ResizeObserver(fit).observe($el)"
                                              x-intersect.once.margin.200px="src = @js($item['preview'])">
                                             <iframe :src="src || false" tabindex="-1" title=""
-                                                    class="pointer-events-none absolute left-0 top-0 origin-top-left border-0 bg-[#e7e5e1]"
+                                                    class="pointer-events-none absolute left-0 top-0 origin-top-left border-0 bg-white"
                                                     :style="`width: 842px; height: 1171px; transform: scale(${s})`" style="width: 842px; height: 1171px; transform: scale(0.2)"></iframe>
+                                            <span class="absolute left-2 top-2 inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-800 shadow-sm ring-1 ring-violet-200">Issue</span>
                                         </div>
-                                        <div class="p-2.5 sm:flex sm:items-start sm:justify-between sm:gap-2 sm:p-3.5">
-                                            <p class="line-clamp-2 text-xs font-semibold leading-snug text-slate-900 group-hover:text-[#2A57B4] sm:text-sm">{{ $item['name'] }}</p>
-                                            <span class="mt-0.5 hidden shrink-0 rounded-full bg-[#e6e0f5] px-2 py-0.5 text-[11px] font-semibold text-violet-800 sm:inline-block">Issue</span>
+                                        <div class="flex flex-1 flex-col p-3 sm:p-3.5">
+                                            <p class="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-[#2A57B4]">{{ $item['name'] }}</p>
+                                            <p class="mt-0.5 truncate text-xs text-slate-500">{{ ($item['code'] ?? '') ?: $item['categoryLabel'] }}</p>
                                         </div>
                                     </a>
 
@@ -275,7 +285,7 @@
     <template x-teleport="body">
         <div x-show="preview !== null" x-cloak x-transition.opacity class="fixed inset-0 z-[95] flex flex-col bg-slate-900/60 sm:p-6"
              role="dialog" aria-modal="true" aria-labelledby="explore-preview-title" @click.self="preview = null">
-            <div class="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-2xl">
+            <div class="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-2xl" data-tour="sample-preview">
                 <template x-if="preview !== null">
                     <div class="flex h-full flex-col">
                         <div class="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
@@ -284,7 +294,7 @@
                                 <p class="text-xs text-slate-500">A blank copy of the report. Nothing is saved.</p>
                             </div>
                             <div class="flex shrink-0 items-center gap-2">
-                                <a :href="items[preview].url" wire:navigate class="inline-flex items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-sm font-semibold text-white hover:bg-[#24499A]">Issue <span class="hidden sm:inline">this report</span></a>
+                                <a :href="items[preview].url" wire:navigate data-tour="sample-start" class="inline-flex items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-sm font-semibold text-white hover:bg-[#24499A]">Issue <span class="hidden sm:inline">this report</span></a>
                                 <button type="button" @click="preview = null" aria-label="Close preview"
                                         class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"><i class="bx bx-x text-2xl" aria-hidden="true"></i></button>
                             </div>

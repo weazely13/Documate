@@ -20,10 +20,7 @@
 
 {{-- All documents: the VPSD's read-only view of every transaction in DocuMate. --}}
 <div class="mx-auto max-w-6xl space-y-4 pb-24" wire:poll.60s>
-    <div class="min-w-0">
-        <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">All documents</h1>
-        <p class="mt-0.5 flex items-center gap-1.5 text-sm text-slate-500"><i class="bx bx-lock-alt text-base" aria-hidden="true"></i>Every transaction in DocuMate. This view is read-only.</p>
-    </div>
+    <h1 class="sr-only">All documents (read-only)</h1>
 
     <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4">
         @foreach ($strip as [$label, $value, $filter, $tint, $icon])

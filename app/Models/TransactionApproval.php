@@ -42,7 +42,7 @@ class TransactionApproval extends Model
                // Internal signers: the name comes from their account. External signers typed it themselves.
                 if ($a->signer_type !== 'external') {
                     $signer = User::find($a->acted_by);
-                    $a->signer_name = $signer ? FormSupport::systemValue($signer, 'formatted_full_name') : '';
+                    $a->signer_name = $signer ? FormSupport::systemValue($signer, 'signing_name') : '';
                 }
                 $a->content_hash = Seal::contentHash($a->workspace);
 

@@ -133,6 +133,16 @@ class DocumentShow extends Component
             ->first();
     }
 
+    /** The student already brought the paper form in; the office still has to upload its photo. */
+    #[Computed]
+    public function visitCompleted(): bool
+    {
+        return $this->workspace->appointments()
+            ->whereNotIn('status', ['retracted'])
+            ->latest()
+            ->value('status') === 'attended';
+    }
+
     #[Computed]
     public function supportingFileUrl(): ?string
     {

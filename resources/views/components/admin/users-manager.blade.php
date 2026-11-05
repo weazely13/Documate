@@ -44,13 +44,9 @@
      @users-manager-nav.window="active = $event.detail"
      @keydown.escape.window="sheet = false">
 
-    {{-- Page title --}}
-    <header class="border-b border-slate-200 pb-4">
-        <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 cq-sm:text-2xl">Users and Accounts</h1>
-        <p class="mt-0.5 text-sm text-slate-500">Manage user accounts, programs, organizations, and authorized roles.</p>
-    </header>
+    <h1 class="sr-only">Users and Accounts</h1>
 
-    <div class="mt-5 flex flex-col gap-5 cq-lg:flex-row cq-lg:items-start cq-lg:gap-10">
+    <div class="flex flex-col gap-5 cq-lg:flex-row cq-lg:items-start cq-lg:gap-10">
 
         {{-- ============ MENU ============ --}}
         <aside class="w-full shrink-0 cq-lg:sticky cq-lg:top-4 cq-lg:w-52">

@@ -134,12 +134,35 @@ final class StudentAdvisementForm extends WorkflowDocument
         return null;
     }
 
-    /** Only the haircut advisement needs a VPSD inspection. */
+    /** The haircut advisement needs a VPSD inspection; seeing the doctor needs the University Doctor's remarks. */
     public function chain(array $values = []): array
     {
-        return empty($values['advise_haircut'])
-            ? []
-            : [['role' => 'vpsd', 'label' => 'Inspected']];
+        $steps = [];
+        if (! empty($values['advise_haircut'])) {
+            $steps[] = ['role' => 'vpsd', 'label' => 'Inspected'];
+        }
+        if (! empty($values['advise_doctor'])) {
+            $steps[] = ['role' => 'university_doctor', 'label' => 'Seen by the University Doctor'];
+        }
+
+        return $steps;
+    }
+
+    public function inspectionKeys(?string $roleKey): array
+    {
+        return $roleKey === 'university_doctor'
+            ? ['remarks' => 'doctor_remarks', 'date' => 'doctor_seen_date']
+            : parent::inspectionKeys($roleKey);
+    }
+
+    public function inspectionLabel(?string $roleKey): string
+    {
+        return $roleKey === 'university_doctor' ? "Doctor's remarks" : 'Inspection remarks';
+    }
+
+    public function inspectionPlaceholder(?string $roleKey): string
+    {
+        return $roleKey === 'university_doctor' ? 'e.g. Student was examined. Fit to attend classes.' : parent::inspectionPlaceholder($roleKey);
     }
 
     public function signerRecordsInspection(): bool
@@ -149,7 +172,7 @@ final class StudentAdvisementForm extends WorkflowDocument
 
     public function signingNote(): ?string
     {
-        return 'Inspect the student first, then record your remarks in the signing box. Signing marks the inspection as done.';
+        return 'See or inspect the student first, then record your remarks in the signing box (required). Signing marks your step as done.';
     }
 
     public function appointment(array $values): ?array

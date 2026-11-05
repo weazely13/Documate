@@ -94,32 +94,7 @@
 
 <div class="mx-auto max-w-[1440px] space-y-5" @if ($polling) wire:poll.5s @endif>
 
-    {{-- Header: the queue you are looking at, search, and the one primary action --}}
-    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div class="min-w-0">
-            <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">
-                {{ $viewingFlagged ? 'Flagged by AI' : $tabs[$tab] }}
-            </h1>
-            <p class="mt-0.5 text-sm text-slate-500">
-                Select a transaction to review and take the appropriate action. Completed transactions are in
-                <a href="{{ route('admin.transactions.index') }}" wire:navigate class="rounded font-medium text-[#2A57B4] hover:underline {{ $focus }}">Transaction Records</a>.
-            </p>
-        </div>
-
-        <div class="flex items-center gap-2">
-            <div class="relative min-w-0 flex-1 md:w-72 md:flex-none">
-                <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" aria-hidden="true"></i>
-                <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, code or document"
-                       aria-label="Search by name, student number, code or document type"
-                       class="h-9 w-full pl-9 pr-3 [@media(pointer:coarse)]:h-11 {{ $field }}">
-            </div>
-            <a href="{{ route('admin.workflow.issue') }}" wire:navigate class="{{ $btnPrimary }} shrink-0">
-                <i class="bx bx-plus text-base" aria-hidden="true"></i>
-                <span class="sm:hidden">Issue</span>
-                <span class="hidden sm:inline">Issue a document</span>
-            </a>
-        </div>
-    </div>
+    <h1 class="sr-only">{{ $viewingFlagged ? 'Flagged by AI' : $tabs[$tab] }}</h1>
 
     {{-- Queue cards: each in its DESIGN.md work tint, the count with the faces of who waits longest beside it --}}
     <nav class="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Queues">
@@ -202,6 +177,21 @@
     <div class="{{ $panel ? '2xl:grid 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:items-start 2xl:gap-5' : '' }}">
 
         <div class="cq min-w-0 space-y-3">
+            {{-- Search and the one primary action, over the list --}}
+            <div class="flex items-center gap-2">
+                <div class="relative min-w-0 flex-1">
+                    <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" aria-hidden="true"></i>
+                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, code or document"
+                           aria-label="Search by name, student number, code or document type"
+                           class="h-9 w-full pl-9 pr-3 [@media(pointer:coarse)]:h-11 {{ $field }}">
+                </div>
+                <a href="{{ route('admin.workflow.issue') }}" wire:navigate class="{{ $btnPrimary }} shrink-0" title="Issue a document">
+                    <i class="bx bx-plus text-base" aria-hidden="true"></i>
+                    <span class="sm:hidden">Issue</span>
+                    <span class="hidden sm:inline">Issue a document</span>
+                </a>
+            </div>
+
             {{-- View bar: AI filter, sort, legend, bulk AI check --}}
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="-mx-4 flex min-w-0 items-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] max-sm:w-[calc(100%+2rem)] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
@@ -220,10 +210,11 @@
 
                 <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                     @if ($uncheckedInTab > 0)
-                        <button type="button" wire:click="checkUnchecked" wire:loading.attr="disabled" wire:target="checkUnchecked" class="{{ $btnSecondary }} shrink-0 !px-3">
+                        <button type="button" wire:click="checkUnchecked" wire:loading.attr="disabled" wire:target="checkUnchecked" class="{{ $btnSecondary }} shrink-0 !px-3"
+                                title="{{ $uncheckedInTab }} {{ Str::plural('document', $uncheckedInTab) }} in this list {{ $uncheckedInTab === 1 ? 'has' : 'have' }} not been checked by the AI yet. Click to check {{ $uncheckedInTab === 1 ? 'it' : 'them' }} now.">
                             <i class="bx bx-bot text-base text-[#2A57B4]" aria-hidden="true"></i>
-                            <span class="sm:hidden">Check {{ $uncheckedInTab }}<span class="sr-only"> not checked</span></span>
-                            <span class="hidden sm:inline">Check {{ $uncheckedInTab }} not checked</span>
+                            <span class="sm:hidden">Run AI check ({{ $uncheckedInTab }})</span>
+                            <span class="hidden sm:inline">Run AI check on {{ $uncheckedInTab }} {{ Str::plural('document', $uncheckedInTab) }}</span>
                         </button>
                     @endif
 

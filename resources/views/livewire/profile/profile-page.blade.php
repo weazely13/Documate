@@ -52,6 +52,12 @@
         <p class="mt-1 text-sm text-[#66707f]">Your details fill in your forms automatically, so keep them current.</p>
     </div>
 
+    @if (session('status'))
+        <p role="status" class="mb-5 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <i class="bx bx-check-circle mt-0.5 text-base text-emerald-600" aria-hidden="true"></i>{{ session('status') }}
+        </p>
+    @endif
+
     @if ($errorTab)
         <div wire:key="error-tab-{{ md5(json_encode($errors->keys())) }}" x-init="go(@js($errorTab))" class="hidden"></div>
     @endif
@@ -61,7 +67,7 @@
         {{-- ============ SETTINGS MENU ============ --}}
         <aside class="min-w-0 lg:sticky lg:top-4 lg:self-start">
             {{-- Phones and tablets: a scrolling tab strip --}}
-            <nav class="-mx-4 overflow-x-auto border-b border-[#e7e5e1] px-4 [scrollbar-width:none] md:-mx-6 md:px-6 lg:hidden [&::-webkit-scrollbar]:hidden" aria-label="Settings sections">
+            <nav class="-mx-4 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b border-[#e7e5e1] px-4 [scrollbar-width:none] md:-mx-6 md:px-6 lg:hidden [&::-webkit-scrollbar]:hidden" aria-label="Settings sections">
                 <div class="flex gap-1" role="tablist">
                     @foreach ($tabs as $key => [$name, $icon])
                         <button type="button" role="tab" @click="go('{{ $key }}')" :aria-selected="(tab === '{{ $key }}').toString()"
@@ -129,7 +135,8 @@
                 {{-- ---------- PROFILE ---------- --}}
                 <div x-show="tab === 'profile'" class="p-4 sm:p-6">
                     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-                        <div class="relative h-24 w-24 shrink-0 sm:h-28 sm:w-28">
+                        {{-- Tapping the photo picks a new one --}}
+                        <label for="photo-upload" class="relative block h-24 w-24 shrink-0 cursor-pointer sm:h-28 sm:w-28" title="Change your photo">
                             <div class="h-full w-full overflow-hidden rounded-full bg-[#dcecfa] ring-4 ring-white shadow-[0_6px_16px_-6px_rgba(13,37,61,0.3)]">
                                 @if ($this->photoUrl)
                                     <img src="{{ $this->photoUrl }}" class="h-full w-full object-cover" alt="{{ $this->fullName }}">
@@ -137,27 +144,24 @@
                                     <span class="grid h-full w-full place-items-center text-3xl font-semibold text-[#2a57b4]">{{ $this->initials }}</span>
                                 @endif
                             </div>
-                            <label for="photo-upload" class="absolute bottom-0.5 right-0.5 grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-[#2a57b4] text-white ring-[3px] ring-white transition hover:bg-[#24499a]" title="Upload a new photo">
+                            <span class="absolute bottom-0.5 right-0.5 grid h-9 w-9 place-items-center rounded-full bg-[#2a57b4] text-white ring-[3px] ring-white transition hover:bg-[#24499a]">
                                 <i class="bx bx-camera text-lg" aria-hidden="true"></i>
-                                <span class="sr-only">Upload a new photo</span>
-                            </label>
+                                <span class="sr-only">Change your photo</span>
+                            </span>
                             <div wire:loading.flex wire:target="photo,removePhoto" class="absolute inset-0 items-center justify-center rounded-full bg-[#0d253d]/45">
                                 <i class="bx bx-loader-alt animate-spin text-2xl text-white" aria-hidden="true"></i>
                             </div>
-                        </div>
+                        </label>
 
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-lg font-semibold tracking-[-0.012em] text-[#0d253d]">{{ $this->fullName }}</p>
                             <p class="mt-0.5 text-sm text-[#66707f]">{{ $this->academicLine }}</p>
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                <label for="photo-upload" class="{{ $btnPrimary }} cursor-pointer">
-                                    <i class="bx bx-upload text-base" aria-hidden="true"></i> Upload
-                                </label>
-                                @if ($profile_picture)
+                            @if ($profile_picture)
+                                <div class="mt-3 flex flex-wrap gap-2">
                                     <button type="button" wire:click="removePhoto" wire:confirm="Remove your profile photo?" class="{{ $btnSecondary }}">Remove photo</button>
-                                @endif
-                            </div>
-                            <p class="mt-2 text-xs text-[#66707f]">Upload JPG, PNG, or WebP, maximum of 2 MB. Saved automatically once image is selected.</p>
+                                </div>
+                            @endif
+                            <p class="mt-2 text-xs text-[#66707f]">Tap your photo to change it. JPG, PNG, or WebP, maximum of 2 MB. Saved automatically once an image is selected.</p>
                             <input id="photo-upload" type="file" wire:model="photo" accept="image/png,image/jpeg,image/webp" class="sr-only">
                             @error('photo') <p class="{{ $err }}"><i class="bx bx-error-circle"></i>{{ $message }}</p> @enderror
                         </div>
@@ -167,6 +171,21 @@
 
                     <h2 class="text-[15px] font-semibold text-[#0d253d]">Personal details</h2>
                     <div class="mt-4 grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+                        @unless ($isStudentSide)
+                            {{-- Printed with the signature on forms and PDFs: "Dr. Maria Santos, PhD" --}}
+                            <div>
+                                <label for="honorific" class="{{ $label }}">Honorifics</label>
+                                <x-dm.honorific-input id="honorific" model="honorific" class="{{ $input }}" />
+                                <p class="mt-1 text-xs text-[#66707f]">Pick one or type your own, e.g. Dr., Prof., Engr.</p>
+                                @error('honorific') <p class="{{ $err }}"><i class="bx bx-error-circle"></i>{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="post_nominals" class="{{ $label }}">Post nominals</label>
+                                <x-dm.honorific-input id="post_nominals" model="post_nominals" kind="post" class="{{ $input }}" />
+                                <p class="mt-1 text-xs text-[#66707f]">Degrees or licenses after your name, e.g. PhD, LPT. Separate several with commas.</p>
+                                @error('post_nominals') <p class="{{ $err }}"><i class="bx bx-error-circle"></i>{{ $message }}</p> @enderror
+                            </div>
+                        @endunless
                         <div>
                             <label for="first_name" class="{{ $label }}">First name {!! $req !!}</label>
                             <input wire:model="first_name" id="first_name" type="text" autocomplete="given-name" class="{{ $input }}">

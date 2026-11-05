@@ -57,6 +57,13 @@
                 </div>
             </section>
 
+            @if (in_array($ws->workflow_status?->value, ['submitted', 'under_review', 'action_required', 'approved'], true) || $ws->ai_flag)
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    @include('livewire.admin.workflow._ai-check', ['ws' => $ws, 'run' => 'runAiCheck',
+                        'canRun' => in_array($ws->workflow_status?->value, ['submitted', 'under_review', 'action_required', 'approved'], true)])
+                </div>
+            @endif
+
             @if ($approvals->isNotEmpty())
                 <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <h3 class="text-sm font-semibold text-slate-900">Signatures</h3>

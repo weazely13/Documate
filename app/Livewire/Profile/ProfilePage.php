@@ -26,6 +26,8 @@ class ProfilePage extends Component
     public string $student_number = '';
 
     // Personal Information
+    public string $honorific = '';
+    public string $post_nominals = '';
     public string $first_name = '';
     public string $middle_name = '';
     public string $last_name = '';
@@ -199,6 +201,12 @@ class ProfilePage extends Component
             'address' => ['nullable', 'string', 'max:250'],
         ];
 
+        // Staff sign documents: their honorific and post-nominals are printed with the signature.
+        if ($this->isStaffAccount) {
+            $rules['honorific'] = \App\Support\Honorifics::rules();
+            $rules['post_nominals'] = array_replace(\App\Support\Honorifics::rules(), [2 => 'max:60']);
+        }
+
         // Academic fields only exist for students/officers.
         if (! $this->isStaffAccount) {
             $rules['college_id'] = ['required', 'exists:colleges,id'];
@@ -218,7 +226,7 @@ class ProfilePage extends Component
         $validated['email'] = strtolower($validated['email']);
 
         // Livewire gives '' for blank inputs; a date column must get NULL, not ''.
-        foreach (['sex', 'date_of_birth', 'contact_number', 'address'] as $key) {
+        foreach (['sex', 'date_of_birth', 'contact_number', 'address', 'honorific', 'post_nominals'] as $key) {
             if (array_key_exists($key, $validated) && $validated[$key] === '') {
                 $validated[$key] = null;
             }
@@ -416,6 +424,8 @@ class ProfilePage extends Component
     protected function fillFromUser(User $user): void
     {
         $this->student_number = (string) ($user->student_number ?? '');
+        $this->honorific = (string) ($user->honorific ?? '');
+        $this->post_nominals = (string) ($user->post_nominals ?? '');
         $this->first_name = (string) ($user->first_name ?? '');
         $this->middle_name = (string) ($user->middle_name ?? '');
         $this->last_name = (string) ($user->last_name ?? '');

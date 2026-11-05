@@ -36,16 +36,25 @@
         openCard(k) { if (this.touch()) { this.menu = k; } else { Livewire.navigate(this.items[k].url); } },
         openPreview(k) { this.menu = null; this.preview = k; },
      }"
-     @keydown.escape.window="menu = null; preview = null">
+     @keydown.escape.window="menu = null; preview = null"
+     {{-- The Home tour switches tabs and opens a sample preview as it explains them --}}
+     @tour-page.window="const d = $event.detail; if (d.tab) setTab(d.tab);
+        if (d.preview === null) preview = null;
+        else if (d.preview !== undefined) {
+            {{-- the sample: the first online form on the page (a print form has no online steps to show) --}}
+            const ks = [...document.querySelectorAll('[data-tour=explore-card]')].map(e => +e.dataset.k);
+            openPreview(ks.find(k => ! items[k].paper) ?? ks[0] ?? 0);
+        }"
+     @tour-ended.window="preview = null; menu = null">
 
     {{-- ===== First screen: greeting carousel, buttons, then the search at the screen's middle ===== --}}
     <div class="flex min-h-[calc(50dvh-95px)] flex-col justify-end text-center">
         {!! $hero !!}
 
         {{-- Two separate, small, see-through round buttons; the chosen one is tinted a little more --}}
-        <div class="mt-3 flex justify-center gap-2 pb-3" role="tablist" aria-label="Home view">
+        <div class="mt-3 flex justify-center gap-2 pb-3" role="tablist" aria-label="Home view" data-tour="tabs">
             @foreach (['overview' => ['Overview', 'bx-home-smile'], 'explore' => ['Explore', 'bx-compass']] as $key => [$label, $icon])
-                <button type="button" role="tab" @click="setTab('{{ $key }}')" :aria-selected="(tab === '{{ $key }}').toString()"
+                <button type="button" role="tab" data-tour="tab-{{ $key }}" @click="setTab('{{ $key }}')" :aria-selected="(tab === '{{ $key }}').toString()"
                         class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-sm transition-colors [@media(pointer:coarse)]:min-h-[36px] [@media(pointer:coarse)]:px-3.5"
                         :class="tab === '{{ $key }}'
                             ? 'border-[#2A57B4]/40 bg-[#2A57B4]/10 text-[#1E4090] group-data-[ink=light]/greet:border-white/60 group-data-[ink=light]/greet:bg-white/20 group-data-[ink=light]/greet:text-white'
@@ -57,7 +66,7 @@
     </div>
 
     {{-- Search: drops down on Overview, filters the cards on Explore --}}
-    <div class="relative z-20 mx-auto max-w-2xl" @click.outside="open = false" @keydown.escape="open = false">
+    <div class="relative z-20 mx-auto max-w-2xl" @click.outside="open = false" @keydown.escape="open = false" data-tour="search">
         <div class="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_12px_32px_-12px_rgba(13,37,61,0.28)]">
             <label for="form-search" class="sr-only">Search forms</label>
             <div class="relative">
@@ -115,7 +124,9 @@
                                 <span class="block truncate text-sm font-semibold text-slate-900" x-text="r.name"></span>
                                 <span class="block truncate text-xs text-slate-500" x-text="r.description"></span>
                             </span>
-                            <span class="shrink-0 text-[11px] font-medium tabular-nums" :class="r.paper && ! r.code ? 'text-amber-800' : 'text-slate-500'" x-text="r.code || (r.paper ? 'Print' : 'Online')"></span>
+                            {{-- Phones: just Print / Online; the form's code (F-SDM-003 Rev. 1 …) only on wider screens --}}
+                            <span class="hidden shrink-0 text-[11px] font-medium tabular-nums sm:inline" :class="r.paper && ! r.code ? 'text-amber-800' : 'text-slate-500'" x-text="r.code || (r.paper ? 'Print' : 'Online')"></span>
+                            <span class="shrink-0 text-[11px] font-medium sm:hidden" :class="r.paper ? 'text-amber-800' : 'text-slate-500'" x-text="r.paper ? 'Print' : 'Online'"></span>
                         </a>
                     </li>
                 </template>
@@ -132,9 +143,10 @@
     </div>
 
     {{-- ===== Overview: unfinished work ===== --}}
-    <div x-show="tab === 'overview'" class="mt-10 space-y-8">
+    {{-- Phones: starts well below the search, so the first screen is just the greeting and the search --}}
+    <div x-show="tab === 'overview'" class="mt-10 space-y-8 max-sm:mt-[38dvh]">
         @if ($resume)
-            <section class="mx-auto max-w-4xl" aria-labelledby="resume-title">
+            <section class="mx-auto max-w-4xl" aria-labelledby="resume-title" data-tour="resume">
                 <div class="flex items-baseline justify-between gap-4">
                     <h2 id="resume-title" class="text-base font-semibold text-slate-900 group-data-[ink=light]/greet:text-white">Pick up where you left off</h2>
                     <a href="{{ route('student.documents.index') }}" wire:navigate class="text-sm font-semibold text-[#2A57B4] hover:text-[#1E4090] group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:hover:text-blue-100">My documents &rarr;</a>
@@ -166,7 +178,7 @@
         @endif
 
         {{-- Upcoming visits to the office, right under the unfinished work --}}
-        <section class="mx-auto max-w-4xl" aria-labelledby="home-appts-title">
+        <section class="mx-auto max-w-4xl" aria-labelledby="home-appts-title" data-tour="appointments">
             <div class="flex items-baseline justify-between gap-4">
                 <h2 id="home-appts-title" class="text-base font-semibold text-slate-900 group-data-[ink=light]/greet:text-white">Your appointments</h2>
                 <a href="{{ route('student.appointments.index') }}" wire:navigate class="text-sm font-semibold text-[#2A57B4] hover:text-[#1E4090] group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:hover:text-blue-100">All appointments &rarr;</a>
@@ -224,14 +236,10 @@
             @include('livewire.signatory._role-cards', $signingRoles)
         @endif
 
-        <p class="text-center text-sm text-slate-700 group-data-[ink=light]/greet:text-blue-50">
-            Want to see how your requests are going?
-            <a href="{{ route('student.dashboard') }}" wire:navigate class="font-semibold text-[#2A57B4] hover:text-[#1E4090] group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:underline">Open your activity summary &rarr;</a>
-        </p>
     </div>
 
     {{-- ===== Explore: every form a student can start, by category ===== --}}
-    <section x-show="tab === 'explore'" x-cloak class="mt-10 pb-40 sm:pb-52" aria-labelledby="explore-title">
+    <section x-show="tab === 'explore'" x-cloak class="mt-10 pb-40 sm:pb-52" aria-labelledby="explore-title" data-tour="explore">
         <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 id="explore-title" class="text-xl font-semibold tracking-tight text-slate-900 group-data-[ink=light]/greet:text-white">Explore documents</h2>
             <p class="text-sm text-slate-700 group-data-[ink=light]/greet:text-blue-50" aria-live="polite">
@@ -252,27 +260,28 @@
                                 sm:mx-0 sm:grid-flow-row sm:grid-cols-4 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0">
                         @foreach ($formItems as $k => $item)
                             @continue($item['category'] !== $c['key'])
-                            <div wire:key="explore-{{ $k }}" x-show="matches(items[{{ $k }}])" class="group relative min-w-0 snap-start">
+                            <div data-tour="explore-card" data-k="{{ $k }}" wire:key="explore-{{ $k }}" x-show="matches(items[{{ $k }}])" class="group relative min-w-0 snap-start">
                                 <a href="{{ $item['url'] }}" @click.prevent="openCard({{ $k }})"
-                                   class="block overflow-hidden rounded-lg border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] motion-reduce:hover:translate-y-0 sm:rounded-2xl">
-                                    {{-- Preview: the top of the form as it prints, completely blank --}}
-                                    <div class="relative aspect-[3/4] overflow-hidden border-b border-slate-100 bg-[#e7e5e1] sm:aspect-auto sm:h-48" aria-hidden="true"
+                                   class="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] motion-reduce:hover:translate-y-0">
+                                    {{-- Preview: the whole page as it prints, blank (same card as My documents) --}}
+                                    <div class="relative aspect-[842/1171] overflow-hidden border-b border-slate-200 bg-white" aria-hidden="true"
                                          x-data="{ s: 0.2, src: '' }" x-init="const fit = () => s = $el.clientWidth / 842; fit(); new ResizeObserver(fit).observe($el)"
                                          x-intersect.once.margin.200px="src = @js($item['preview'])">
                                         {{-- The preview loads only once its card is on screen (hidden iframes would all load at once) --}}
                                         @if ($item['preview'] && ! $item['paper'])
                                             <iframe :src="src || false" tabindex="-1" title=""
-                                                    class="pointer-events-none absolute left-0 top-0 origin-top-left border-0 bg-[#e7e5e1]"
+                                                    class="pointer-events-none absolute left-0 top-0 origin-top-left border-0 bg-white"
                                                     :style="`width: 842px; height: 1171px; transform: scale(${s})`" style="width: 842px; height: 1171px; transform: scale(0.2)"></iframe>
                                         @elseif ($item['preview'])
-                                            <img :src="src || false" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top">
+                                            <img :src="src || false" alt="" loading="lazy" class="absolute inset-0 h-full w-full bg-white object-contain">
                                         @else
-                                            <div class="flex h-full items-center justify-center text-slate-400"><i class='bx bx-file text-4xl'></i></div>
+                                            <div class="flex h-full items-center justify-center bg-[#f0f4fb] text-[#1E4090]"><i class='bx bx-file text-4xl'></i></div>
                                         @endif
+                                        <span class="absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ring-1 {{ ($item['issue'] ?? false) ? 'bg-violet-50 text-violet-800 ring-violet-200' : ($item['paper'] ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-[#e2e9f7] text-[#1E4090] ring-sky-200') }}">{{ ($item['issue'] ?? false) ? 'Issue' : ($item['paper'] ? 'Print' : 'Online') }}</span>
                                     </div>
-                                    <div class="p-2.5 sm:flex sm:items-start sm:justify-between sm:gap-2 sm:p-3.5">
-                                        <p class="line-clamp-2 text-xs font-semibold leading-snug text-slate-900 group-hover:text-[#2A57B4] sm:text-sm">{{ $item['name'] }}</p>
-                                        <span class="mt-0.5 hidden shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:inline-block {{ ($item['issue'] ?? false) ? 'bg-[#e6e0f5] text-violet-800' : ($item['paper'] ? 'bg-amber-50 text-amber-800' : 'bg-[#2A57B4]/[0.08] text-[#1E4090]') }}">{{ ($item['issue'] ?? false) ? 'Issue' : ($item['paper'] ? 'Print' : 'Online') }}</span>
+                                    <div class="flex flex-1 flex-col p-3 sm:p-3.5">
+                                        <p class="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-[#2A57B4]">{{ $item['name'] }}</p>
+                                        <p class="mt-0.5 truncate text-xs text-slate-500">{{ ($item['code'] ?? '') ?: $item['categoryLabel'] }}</p>
                                     </div>
                                 </a>
 
@@ -340,7 +349,7 @@
     <template x-teleport="body">
         <div x-show="preview !== null" x-cloak x-transition.opacity class="fixed inset-0 z-[95] flex flex-col bg-slate-900/60 sm:p-6"
              role="dialog" aria-modal="true" aria-labelledby="explore-preview-title" @click.self="preview = null">
-            <div class="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-2xl">
+            <div class="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-2xl" data-tour="sample-preview">
                 <template x-if="preview !== null">
                     <div class="flex h-full flex-col">
                         <div class="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
@@ -349,7 +358,7 @@
                                 <p class="text-xs text-slate-500" x-text="items[preview].paper ? 'Sample of the printed form.' : 'A blank copy of the form. Nothing is saved.'"></p>
                             </div>
                             <div class="flex shrink-0 items-center gap-2">
-                                <a :href="items[preview].url" wire:navigate class="inline-flex items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-sm font-semibold text-white hover:bg-[#24499A]"><span x-text="items[preview].issue ? 'Issue' : 'Start'">Start</span> <span class="hidden sm:inline" x-text="items[preview].issue ? 'this report' : 'this document'">this document</span></a>
+                                <a :href="items[preview].url" wire:navigate data-tour="sample-start" class="inline-flex items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3 py-2 text-sm font-semibold text-white hover:bg-[#24499A]"><span x-text="items[preview].issue ? 'Issue' : 'Start'">Start</span> <span class="hidden sm:inline" x-text="items[preview].issue ? 'this report' : 'this document'">this document</span></a>
                                 <button type="button" @click="preview = null" aria-label="Close preview"
                                         class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"><i class="bx bx-x text-2xl" aria-hidden="true"></i></button>
                             </div>

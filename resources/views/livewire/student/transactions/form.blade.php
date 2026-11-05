@@ -108,7 +108,7 @@
          @resize.window="fit()">
 
         <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2">
-            <div class="min-w-0 flex-1">
+            <div class="min-w-0 flex-1" data-tour="form-head">
                 <h1 class="break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $document->name() }}</h1>
                 <p class="mt-0.5 text-sm text-slate-500">
                     {{ $document->description() }}
@@ -123,14 +123,12 @@
                         <i class="bx bx-info-circle text-xl" aria-hidden="true"></i>
                     </button>
                 @endif
-                @if ($guide)
-                    <button type="button" @click="$dispatch('open-guide')" x-ref="guideBtn"
-                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:w-11"
-                            aria-label="How this works: steps and checklist" title="How this works">
-                        <i class="bx bx-help-circle text-xl" aria-hidden="true"></i>
-                    </button>
-                @endif
-                <button type="button" @click="show()"
+                <button type="button" @click="$dispatch('start-tour')" x-ref="guideBtn" data-tour="form-help"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:w-11"
+                        aria-label="How this works: take a tour of this form" title="How this works">
+                    <i class="bx bx-help-circle text-xl" aria-hidden="true"></i>
+                </button>
+                <button type="button" @click="show()" data-tour="form-preview"
                         class="inline-flex min-h-9 items-center gap-1.5 py-1.5 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] xl:hidden [@media(pointer:coarse)]:min-h-[44px]">
                     <i class="bx bx-show text-base text-slate-500" aria-hidden="true"></i> Preview document
                 </button>
@@ -300,7 +298,7 @@
 
     {{-- Status: one stepper and one next-step message --}}
     @if ($ws && $status !== TransactionStatus::Draft)
-        <section x-data="{ signers: false }" class="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 sm:p-5" aria-labelledby="status-title">
+        <section x-data="{ signers: false }" data-tour="form-status" class="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 sm:p-5" aria-labelledby="status-title">
             <h2 id="status-title" class="sr-only">Status</h2>
             @unless ($closed)
                 @php $step = $progress ?? 0; @endphp
@@ -412,7 +410,7 @@
 
         {{-- 1. Student information: from the account, shown locked so the student sees what is printed. --}}
         <section x-data="{ open: {{ $editable && ($missing->isNotEmpty() || ($needsSig && ! $sigImg)) ? 'true' : 'false' }} }"
-                 class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-student">
+                 class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-student" data-tour="form-student">
             <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                 <button type="button" @click="open = !open" :aria-expanded="open" aria-controls="student-info"
                         class="-ml-1 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
@@ -421,9 +419,12 @@
                     <span class="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">From your account</span>
                 </button>
                 @if ($editable)
-                    <a href="{{ route('profile') }}" wire:navigate class="inline-flex items-center gap-1 text-sm font-medium text-[#2A57B4] hover:underline">
-                        <i class="bx bx-edit-alt" aria-hidden="true"></i> Edit in profile
-                    </a>
+                    {{-- Saves what was typed as a draft before leaving for the profile --}}
+                    <button type="button" wire:click="saveAndEditProfile" wire:loading.attr="disabled" wire:target="saveAndEditProfile"
+                            class="inline-flex items-center gap-1 text-sm font-medium text-[#2A57B4] hover:underline">
+                        <i class="bx bx-edit-alt" aria-hidden="true" wire:loading.remove wire:target="saveAndEditProfile"></i>
+                        <i class="bx bx-loader-alt animate-spin" aria-hidden="true" wire:loading wire:target="saveAndEditProfile"></i> Edit in profile
+                    </button>
                 @endif
             </div>
 
@@ -463,7 +464,7 @@
                     <i class="bx bx-error mt-0.5 text-base" aria-hidden="true"></i>
                     <span>
                         Missing from your account: {{ $missing->implode(', ') }}{{ $needsSig && ! $sigImg ? ($missing->isNotEmpty() ? ', ' : '') . 'e-signature' : '' }}.
-                        <a href="{{ route('profile') }}" wire:navigate class="font-semibold underline">Update your profile</a> before submitting.
+                        <button type="button" wire:click="saveAndEditProfile" class="font-semibold underline">Update your profile</button> before submitting.
                     </span>
                 </p>
             @endif
@@ -522,7 +523,7 @@
 
         {{-- 3. Request details --}}
         <div @if ($officerGate) x-show="$wire.values.is_officer === 'Yes'" x-cloak @endif>
-        <section class="px-4 py-5 sm:px-5" aria-labelledby="sec-details">
+        <section class="px-4 py-5 sm:px-5" aria-labelledby="sec-details" data-tour="form-details">
             <h3 id="sec-details" class="text-sm font-semibold text-slate-900">{{ $editable ? 'Request details' : 'Your answers' }}</h3>
             @if ($editable)
                 <p class="{{ $help }}">Answer each item as it should appear on the printed form. The preview shows the result as you type.</p>
@@ -622,6 +623,10 @@
                     @endif
 
                     <div wire:key="f-{{ $name }}" @if ($editable && $xShow) x-show="{{ $xShow }}" x-cloak @endif>
+                        {{-- 'question' => '...' puts a question above a field (e.g. before a set of checkboxes) --}}
+                        @if (! empty($f['question']))
+                            <p class="{{ $label }} mb-2">{{ $f['question'] }}@if ($editable && ! empty($f['question_required']))<span class="text-rose-600" aria-hidden="true"> *</span><span class="sr-only">(required)</span>@endif</p>
+                        @endif
                         @if ($type === 'checkbox')
                             @if ($editable)
                                 <label for="f-{{ $name }}" class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-3.5 py-3 text-sm text-slate-700 hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50/50">
@@ -737,19 +742,14 @@
 
                             @if ($editable)
                                 @if ($titleKey)
-                                    {{-- Title (Mr./Ms./Dr./Prof.…) and name on one row. --}}
+                                    {{-- Honorifics (Mr./Ms./Dr./Prof.… or typed) and name on one row. --}}
                                     @php $titleField = $document->fields()[$titleKey] ?? []; @endphp
                                     <div class="mt-1 grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
                                         <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $errors->has("values.$titleKey") ? 'border-rose-400' : '' }} pr-2">
-                                            <label for="f-{{ $titleKey }}" class="sr-only">Title for {{ strtolower($f['label']) }}</label>
-                                            <select id="f-{{ $titleKey }}" wire:model="values.{{ $titleKey }}" class="{{ $bare }} cursor-pointer pr-1"
-                                                    @if ($titleField['required'] ?? false) aria-required="true" @endif
-                                                    @error("values.$titleKey") aria-invalid="true" aria-describedby="e-{{ $name }}" @enderror>
-                                                <option value="">Title</option>
-                                                @foreach ($titleField['options'] ?? [] as $opt)
-                                                    <option value="{{ $opt }}">{{ $opt }}</option>
-                                                @endforeach
-                                            </select>
+                                            <label for="f-{{ $titleKey }}" class="sr-only">Honorifics for {{ strtolower($f['label']) }}</label>
+                                            <x-dm.honorific-input id="f-{{ $titleKey }}" model="values.{{ $titleKey }}" class="{{ $bare }} pr-1"
+                                                    :aria-required="($titleField['required'] ?? false) ? 'true' : null"
+                                                    :aria-invalid="$errors->has('values.' . $titleKey) ? 'true' : null" />
                                         </div>
                                         <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $errors->has("values.$name") ? 'border-rose-400' : '' }}">
                                             @if ($icon)<i class="bx {{ $icon }} text-base text-slate-400" aria-hidden="true"></i>@endif
@@ -806,7 +806,10 @@
                                                placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $bare }}"
                                                @if ($required) aria-required="true" @endif
                                                @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif
-                                               @if ($hasError) aria-invalid="true" @endif>
+                                               @if ($hasError) aria-invalid="true" @endif
+                                               @if ($type === 'date' && ! empty($f['today_warning']))
+                                                   x-data x-on:change="if ($event.target.value === @js(now()->toDateString())) $dispatch('today-warning', { text: @js($f['today_warning']) })"
+                                               @endif>
                                     </div>
                                 @endif
 
@@ -875,7 +878,7 @@
 
         {{-- Consent and actions --}}
         @if ($editable)
-            <div class="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5">
+            <div class="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5" data-tour="form-actions">
                 <label for="f-consent" class="flex cursor-pointer items-start gap-3 rounded-xl border {{ $errors->has('consent') ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-slate-50/70' }} px-3.5 py-3 text-sm text-slate-700">
                     <input id="f-consent" type="checkbox" wire:model="consent" class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]"
                            aria-required="true" aria-describedby="consent-text @error('consent') e-consent @enderror"
@@ -933,7 +936,7 @@
 
     {{-- Wide screens: the document beside the form, refreshed from the live answers (nothing is saved). --}}
     <aside class="hidden rounded-2xl border border-slate-200/70 bg-white p-4 xl:sticky xl:top-0 xl:block xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto"
-           aria-label="Document preview"
+           aria-label="Document preview" data-tour="form-preview"
            x-data="{
                 html: '', busy: false, w: 842, h: 1171, scale: 1, seq: 0,
                 wide() { return window.matchMedia('(min-width: 1280px)').matches; },
@@ -985,4 +988,62 @@
                     :style="`width:${w}px;height:${h}px;transform:scale(${scale});transform-origin:top left;`"></iframe>
         </div>
     </aside>
+
+    {{-- A date field with 'today_warning' => '...' shows this when today is picked (e.g. an absence starting today). --}}
+    <div x-data="{ text: null }" @today-warning.window="text = $event.detail.text" @keydown.escape.window="text = null">
+        <template x-teleport="body">
+            <div x-show="text" x-cloak x-transition.opacity class="fixed inset-0 z-[120] flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4"
+                 role="alertdialog" aria-modal="true" aria-labelledby="today-warning-title" @click.self="text = null">
+                <div class="w-full max-w-md rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl sm:p-6">
+                    <div class="flex items-start gap-3">
+                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-600"><i class="bx bx-error text-2xl" aria-hidden="true"></i></span>
+                        <div class="min-w-0">
+                            <h2 id="today-warning-title" class="text-base font-semibold text-slate-900">Your date of absence is today</h2>
+                            <p class="mt-1 text-sm leading-relaxed text-slate-600" x-text="text"></p>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end">
+                        <button type="button" @click="text = null" x-effect="if (text) $nextTick(() => $el.focus())"
+                                class="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 [@media(pointer:coarse)]:min-h-11">I understand</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    {{-- "How this works": a guided tour of this form, from the question mark in the header --}}
+    @php
+        $tourSteps = array_values(array_filter([
+            ['target' => 'form-head', 'title' => $document->name(), 'text' => 'This is the form you picked. Here is how to fill it in and send it, step by step.'],
+            ['target' => 'form-status', 'title' => 'Where it stands', 'text' => 'After you submit, this shows each step: the VPSD office checks it, then each signer signs it, then you download the finished copy.'],
+            ['target' => 'form-student', 'title' => 'Your details', 'text' => 'These come from your account and are printed on the form. If one is wrong, use Edit in profile: what you typed is saved as a draft first.'],
+            ['target' => 'form-details', 'type' => 'Sample answer', 'title' => 'Fill in the request', 'text' => 'Answer each item as it should appear on the printed form, like the sample we are typing. Required items are marked with *. The sample is cleared when you move on.'],
+            ['target' => 'form-preview', 'title' => 'See the document', 'text' => 'The preview shows the form exactly as it will print, with your answers. Nothing is saved or sent by previewing.'],
+            ['target' => 'form-actions', 'title' => 'Save or submit', 'text' => 'Save draft keeps it private so you can finish later. Tick the consent box, then Submit to send it to the VPSD office.'],
+            $guide ? ['target' => 'form-help', 'title' => 'Steps and checklist', 'text' => 'Tap the question mark anytime to see this tour again.', 'cta' => ['label' => 'See the steps and checklist', 'event' => 'open-guide']]
+                   : ['target' => 'form-help', 'title' => 'Need this again?', 'text' => 'Tap the question mark anytime to see this tour again.'],
+        ]));
+    @endphp
+    <x-dm.tour key="documate.tour.form.v2" :steps="$tourSteps" :auto="false" />
+
+    {{-- Officer-only forms: a student without an officer record is stopped here (save and submit refuse too). --}}
+    @if ($this->blockedNotOfficer)
+        <template x-teleport="body">
+            <div class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+                 role="alertdialog" aria-modal="true" aria-labelledby="officer-only-title" aria-describedby="officer-only-text">
+                <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl" x-data x-init="$nextTick(() => $el.querySelector('a')?.focus())">
+                    <span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-amber-50 text-amber-600"><i class="bx bx-lock-alt text-2xl" aria-hidden="true"></i></span>
+                    <h2 id="officer-only-title" class="mt-3 text-lg font-semibold text-slate-900">For organization officers only</h2>
+                    <p id="officer-only-text" class="mt-1.5 text-sm leading-relaxed text-slate-600">
+                        Only officers of a recognized student organization can use the {{ $document->name() }}.
+                        Your account has no officer record. If you are an officer, ask your organization adviser or the VPSD office to add you.
+                    </p>
+                    <div class="mt-5 grid gap-2">
+                        <a href="{{ route('student.home') }}" wire:navigate
+                           class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30">Back to Home</a>
+                    </div>
+                </div>
+            </div>
+        </template>
+    @endif
 </div>

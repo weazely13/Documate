@@ -10,7 +10,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="h-screen overflow-hidden bg-[#eef0f3] antialiased">
+<body class="h-[100dvh] overflow-hidden bg-[#eef0f3] antialiased">
     {{-- The editor runs from resources/js/template-editor.js (Alpine "templateEditor"). --}}
     {{ $slot }}
 

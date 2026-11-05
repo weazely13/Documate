@@ -51,6 +51,8 @@ final class FormSupport
         return match ($key) {
             'student_number' => (string) ($user->student_number ?? ''),
             'full_name', 'formatted_full_name' => $formattedFullName,
+            // With the person's honorific and post-nominals (staff set these on their profile): "Dr. Maria Santos, PhD".
+            'signing_name' => \App\Support\Honorifics::decorate($user->honorific ?? null, $formattedFullName, $user->post_nominals ?? null),
             'program_year_section' => $programYearSection,
             'first_name' => (string) ($user->first_name ?? ''),
             'middle_name' => (string) ($user->middle_name ?? ''),
@@ -139,14 +141,7 @@ final class FormSupport
             return trim($yearLevel);
         }
 
-        $suffix = match (true) {
-            $number % 100 >= 11 && $number % 100 <= 13 => 'th',
-            $number % 10 === 1 => 'st',
-            $number % 10 === 2 => 'nd',
-            $number % 10 === 3 => 'rd',
-            default => 'th',
-        };
-
-        return $number . $suffix;
+        // Forms print the bare number (4-AI45), not 4th.
+        return (string) $number;
     }
 }

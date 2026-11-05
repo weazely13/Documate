@@ -17,6 +17,11 @@ abstract class ClearanceBase extends WorkflowDocument
         return false;
     }
 
+    public function restrictedToOfficers(): bool
+    {
+        return $this->officersOnly() || parent::restrictedToOfficers();
+    }
+
     public function fields(): array
     {
         return [];

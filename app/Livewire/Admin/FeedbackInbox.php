@@ -14,7 +14,7 @@ class FeedbackInbox extends Component
 {
     use WithPagination;
 
-    public const PER_PAGE = 15;
+    public const PER_PAGE = 50;
 
     public const TABS = [
         'open' => 'Pending',

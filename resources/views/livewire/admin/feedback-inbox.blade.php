@@ -9,8 +9,7 @@
 
 <div class="mx-auto max-w-7xl">
 
-    <x-admin.page-header title="Feedback & Issues"
-        description="View feedback and concerns submitted by the users. Respond and resolve." />
+    <h1 class="sr-only">Feedback &amp; Issues</h1>
 
     {{-- Summary --}}
     @php

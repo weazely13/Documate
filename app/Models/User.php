@@ -34,6 +34,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'program_id',
     'organization_id',
     'year_level',
+    'honorific',
+    'post_nominals',
     'section', 
     'academic_status',
     'password',

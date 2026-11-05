@@ -26,6 +26,7 @@ class SignatoryInvitations
             }
 
             $user = User::create([
+                'honorific' => trim((string) ($data['honorific'] ?? '')) ?: null,
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
                 'email' => Str::lower(trim($data['email'])),

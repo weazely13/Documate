@@ -34,9 +34,9 @@
     /* Justified closing paragraph */
     .stmt { text-align: justify; line-height: 20pt; margin-top: 4pt; width: 100%; }
 
-    .stmt { line-height: 20pt; text-align: justify; margin-top: 2pt; }
+    .stmt { line-height: 16pt; text-align: justify; margin-top: 2pt; }
     .ul { border-bottom: .6pt solid #000; font-weight: bold; padding: 0 4pt; }
-    .rule { border-top: 2pt solid #000; margin: 10pt 0 6pt; }
+    .rule { border-top: 2pt solid #000; margin: 6pt 0 2pt; }
 
     /* Signature grid */
     table.sgrid { margin-top: 4pt; page-break-inside: avoid; }

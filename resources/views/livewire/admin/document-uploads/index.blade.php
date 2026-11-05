@@ -27,8 +27,8 @@
     <x-admin.area-header name="documents" active="uploads" />
 
     {{-- Filing and status --}}
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex min-w-0 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist" aria-label="File uploads by">
+    <div class="mb-4 flex items-center justify-between gap-2 sm:flex-wrap">
+        <div class="flex min-w-0 shrink-0 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist" aria-label="File uploads by">
             @foreach (['folder' => ['bxs-folder', 'By form', 'Forms'], 'student' => ['bxs-user-account', 'By student', 'Students'], 'all' => ['bxs-file', 'All uploads', 'All']] as $b => [$icon, $label, $short])
                 <button type="button" role="tab" wire:click="setBy('{{ $b }}')" aria-selected="{{ $by === $b ? 'true' : 'false' }}"
                         class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition sm:px-4 [@media(pointer:coarse)]:h-11 {{ $focus }} {{ $by === $b ? 'bg-[#2A57B4] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
@@ -36,7 +36,17 @@
                 </button>
             @endforeach
         </div>
-        <div class="-mx-1 flex gap-1.5 overflow-x-auto px-1" role="group" aria-label="Status">
+        {{-- Phones: the status is a dropdown beside the tabs --}}
+        <label class="relative min-w-0 flex-1 sm:hidden">
+            <span class="sr-only">Status</span>
+            <select wire:model.live="filter"
+                    class="h-[3.25rem] w-full truncate rounded-xl border-slate-200 bg-white py-0 pl-3 pr-8 text-base font-medium text-slate-800 shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20">
+                @foreach ($statuses as $key => $label)
+                    <option value="{{ $key }}">{{ $label }} ({{ $counts[$key] }})</option>
+                @endforeach
+            </select>
+        </label>
+        <div class="-mx-1 hidden gap-1.5 overflow-x-auto px-1 sm:flex" role="group" aria-label="Status">
             @foreach ($statuses as $key => $label)
                 <button type="button" wire:click="$set('filter', '{{ $key }}')" aria-pressed="{{ $filter === $key ? 'true' : 'false' }}"
                         class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-medium transition [@media(pointer:coarse)]:h-11 {{ $focus }}
@@ -151,25 +161,29 @@
         </div>
 
         @if ($view === 'cards')
-            <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {{-- Same card as My documents and Issued documents: the whole page, the status on its corner, then who and what --}}
+            <ul class="grid grid-cols-2 content-start gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                 @foreach ($list as $r)
                     @php [$tText, $tCls] = $tag($r); @endphp
                     <li wire:key="up-{{ $r['id'] }}" class="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] motion-reduce:hover:translate-y-0">
-                        <div class="relative aspect-[842/1000] overflow-hidden border-b border-slate-200 bg-[#eef0f3]">
+                        <div class="relative aspect-[842/1171] overflow-hidden border-b border-slate-200 bg-white" aria-hidden="true">
                             @if ($r['photo'])
-                                <img src="{{ $r['photo'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover">
+                                <img src="{{ $r['photo'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full bg-white object-contain">
                             @elseif ($r['form_image'])
-                                <img src="{{ $r['form_image'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top opacity-35 grayscale">
-                                <span class="absolute inset-0 grid place-items-center"><span class="grid h-12 w-12 place-items-center rounded-full bg-white/90 text-slate-500 shadow-sm"><i class="bx bx-camera text-2xl" aria-hidden="true"></i></span></span>
+                                {{-- No photo yet: the blank form, faded, with a camera --}}
+                                <img src="{{ $r['form_image'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full bg-white object-contain opacity-40 grayscale">
+                                <span class="absolute inset-0 grid place-items-center"><span class="grid h-12 w-12 place-items-center rounded-full bg-white/95 text-slate-500 shadow ring-1 ring-slate-900/5"><i class="bx bx-camera text-2xl"></i></span></span>
+                            @else
+                                <div class="flex h-full items-center justify-center bg-[#f0f4fb] text-[#1E4090]"><i class="bx bx-file text-4xl"></i></div>
                             @endif
-                            <span class="absolute right-2 top-2 rounded-md px-1.5 py-0.5 text-[11px] font-medium shadow-sm {{ $tCls }}">{{ $tText }}</span>
+                            <span class="absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm {{ $tCls }}">{{ $tText }}</span>
                         </div>
-                        <div class="flex flex-1 flex-col px-3 pb-2 pt-2.5">
-                            <a href="{{ $r['url'] }}" wire:navigate class="truncate rounded text-sm font-semibold text-[#2A57B4] after:absolute after:inset-0 after:content-[''] hover:text-[#1E4090] {{ $focus }}">
+                        <div class="flex flex-1 flex-col p-3 sm:p-3.5">
+                            <a href="{{ $r['url'] }}" wire:navigate class="line-clamp-2 rounded text-sm font-semibold leading-snug text-slate-900 after:absolute after:inset-0 after:content-[''] group-hover:text-[#2A57B4] {{ $focus }}">
                                 {{ $level === 'student' ? $r['type'] : $r['student_name'] }}
                             </a>
                             <p class="mt-0.5 truncate text-xs text-slate-500">{{ $level === 'student' ? $r['student_number'] : ($level === 'all' ? $r['type'] : $r['student_number']) }}</p>
-                            <p class="mt-1 flex items-center gap-1.5 text-xs text-slate-600"><i class="bx bx-calendar-check text-sm text-slate-400" aria-hidden="true"></i>Visited {{ $r['visited_label'] }}</p>
+                            <p class="mt-auto flex items-center gap-1.5 pt-1.5 text-xs text-slate-600"><i class="bx bx-calendar-check text-sm text-slate-400" aria-hidden="true"></i>Visited {{ $r['visited_label'] }}</p>
                         </div>
                         <div class="relative z-10 grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200 text-slate-500">
                             <a href="{{ $r['url'] }}" wire:navigate class="flex h-9 items-center justify-center gap-1 text-xs font-medium hover:bg-slate-50 hover:text-[#2A57B4] [@media(pointer:coarse)]:h-11 {{ $focus }}">

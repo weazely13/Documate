@@ -96,7 +96,7 @@ class OrganizationRoleManager extends Component
             'officer' => $this->reset(['assignOrganizationId', 'selectedStudentId', 'assignPositionId', 'studentSearch']),
             'role' => $this->reset(['editingSigRoleId', 'sigRoleKey', 'sigRoleLabel', 'sigRoleDescription', 'sigRoleScope']),
             'signatory' => $this->reset(['sigAddMode', 'sigSelectedUserId', 'sigRoleId', 'sigScopeId', 'sigActiveFrom', 'sigActiveUntil', 'sigUserSearch',
-                'invFirst', 'invLast', 'invEmail', 'invRoleId', 'invScopeId', 'invFrom', 'invUntil', 'invEmailMatch']),
+                'invHonorific', 'invFirst', 'invLast', 'invEmail', 'invRoleId', 'invScopeId', 'invFrom', 'invUntil', 'invEmailMatch']),
         };
     }
 
@@ -160,6 +160,7 @@ class OrganizationRoleManager extends Component
     public ?string $sigActiveFrom = null;
     public ?string $sigActiveUntil = null;
 
+    public string $invHonorific = '';
     public string $invFirst = '';
     public string $invLast = '';
     public string $invEmail = '';
@@ -661,7 +662,7 @@ class OrganizationRoleManager extends Component
                 Rule::unique('signatory_roles', 'key')->ignore($this->editingSigRoleId),
             ],
             'sigRoleLabel' => ['required', 'string', 'max:255'],
-            'sigRoleScope' => ['required', 'in:none,organization,program,college'],
+            'sigRoleScope' => ['required', 'in:none,organization,program,college,year_level'],
             'sigRoleDescription' => ['nullable', 'string', 'max:1000'],
         ], [
             'sigRoleKey.regex' => 'Key may only contain lowercase letters, numbers, and underscores (e.g. guidance_counselor).',
@@ -809,7 +810,7 @@ class OrganizationRoleManager extends Component
         $scopeId = $scopeType ? $this->sigScopeId : null;
 
         if ($scopeType && ! $scopeId) {
-            $this->addError('sigScopeId', "Pick the {$scopeType} this person signs for.");
+            $this->addError('sigScopeId', 'Pick the ' . SignatoryScope::label($scopeType) . ' this person signs for.');
             return;
         }
 
@@ -895,6 +896,7 @@ class OrganizationRoleManager extends Component
             return;
         }
         $data = $this->validate([
+            'invHonorific' => \App\Support\Honorifics::rules(),
             'invFirst' => ['required', 'string', 'max:100'],
             'invLast' => ['required', 'string', 'max:100'],
             'invEmail' => ['required', 'email:rfc', 'max:150', 'unique:users,email'],
@@ -904,19 +906,20 @@ class OrganizationRoleManager extends Component
         ], [
             'invEmail.unique' => 'That email already has an account. Use "They already have an account" instead.',
         ], [
-            'invFirst' => 'first name', 'invLast' => 'last name', 'invEmail' => 'email',
+            'invHonorific' => 'honorifics', 'invFirst' => 'first name', 'invLast' => 'last name', 'invEmail' => 'email',
             'invRoleId' => 'signatory role', 'invFrom' => 'start date', 'invUntil' => 'end date',
         ]);
         $role = SignatoryRole::findOrFail($data['invRoleId']);
         $scopeType = $role->scope !== 'none' ? $role->scope : null;
 
         if ($scopeType && ! $this->invScopeId) {
-            $this->addError('invScopeId', "Pick the {$scopeType} this person signs for.");
+            $this->addError('invScopeId', 'Pick the ' . SignatoryScope::label($scopeType) . ' this person signs for.');
             return;
         }
 
         try {
             app(SignatoryInvitations::class)->invite([
+                'honorific' => trim((string) ($data['invHonorific'] ?? '')),
                 'first_name' => trim($data['invFirst']),
                 'last_name' => trim($data['invLast']),
                 'email' => $data['invEmail'],
@@ -989,7 +992,7 @@ class OrganizationRoleManager extends Component
 
         $this->sigSelectedUserId = $this->invEmailMatch['id'];
         $this->sigRoleId = $this->invRoleId;
-        $this->reset(['invFirst', 'invLast', 'invEmail', 'invEmailMatch']);
+        $this->reset(['invHonorific', 'invFirst', 'invLast', 'invEmail', 'invEmailMatch']);
     }
 
     // =========================================================
@@ -1019,7 +1022,7 @@ class OrganizationRoleManager extends Component
                 ->when($this->filterOrgProgram, fn ($q, $p) => $q->forProgram($p))
                 ->when($this->filterOrgStatus !== '', fn ($q) => $q->where('is_active', $this->filterOrgStatus === '1'))
                 ->orderBy('name')
-                ->paginate(20, pageName: 'orgPage');
+                ->paginate(50, pageName: 'orgPage');
             $data['takenPrograms'] = $this->takenProgramMap();
         }
 
@@ -1030,7 +1033,7 @@ class OrganizationRoleManager extends Component
                 ->when($this->filterProgCollege, fn ($q, $c) => $q->where('college_id', $c))
                 ->when($this->filterProgStatus !== '', fn ($q) => $q->where('is_active', $this->filterProgStatus === '1'))
                 ->orderBy('name')
-                ->paginate(20, pageName: 'programPage');
+                ->paginate(50, pageName: 'programPage');
         }
 
         if ($this->panel === 'positions') {
@@ -1056,7 +1059,7 @@ class OrganizationRoleManager extends Component
                 ->when($this->filterOffOrg, fn ($q, $o) => $q->where('organization_id', $o))
                 ->when($this->filterOffPosition, fn ($q, $p) => $q->where('officer_position_id', $p))
                 ->latest()
-                ->paginate(20, pageName: 'officerPage');
+                ->paginate(50, pageName: 'officerPage');
 
             $data['selectedStudent'] = $this->selectedStudentId ? User::with('program')->find($this->selectedStudentId) : null;
         }
@@ -1096,7 +1099,7 @@ class OrganizationRoleManager extends Component
                 ->when($this->filterSigStatus === 'expired', fn ($q) => $q->where('is_active', true)->whereNotNull('active_until')->where('active_until', '<', $today))
                 ->orderByDesc('is_active')
                 ->orderBy('active_from')
-                ->paginate(20, pageName: 'signatoryPage');
+                ->paginate(50, pageName: 'signatoryPage');
 
             $data['sigSelectedUser'] = $this->sigSelectedUser;
         }
@@ -1110,7 +1113,7 @@ class OrganizationRoleManager extends Component
         $page = max(1, (int) $this->getPage($pageName));
 
         return new \Illuminate\Pagination\LengthAwarePaginator(
-            $items->forPage($page, 20)->values(), $items->count(), 20, $page, ['pageName' => $pageName]
+            $items->forPage($page, 50)->values(), $items->count(), 50, $page, ['pageName' => $pageName]
         );
     }
 

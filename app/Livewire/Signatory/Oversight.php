@@ -70,7 +70,7 @@ class Oversight extends Component
                     ->whereRaw("CONCAT_WS(' ', first_name, last_name) like ?", ["%{$term}%"])
                     ->orWhere('student_number', 'like', "%{$term}%"))))
             ->orderByDesc('updated_at')
-            ->paginate(15);
+            ->paginate(50);
 
         $counts = [
             'all' => $this->base()->count(),

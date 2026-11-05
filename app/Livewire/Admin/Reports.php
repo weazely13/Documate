@@ -87,7 +87,7 @@ class Reports extends Component
 
     protected const STUDENT_ROLES = ['Student', 'Officer'];
 
-    public const PER_PAGE = 20;
+    public const PER_PAGE = 50;
 
     public const REPORTS = ['forms', 'organizations', 'clearance'];
 

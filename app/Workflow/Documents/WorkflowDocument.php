@@ -18,19 +18,20 @@ use App\Models\StudentDocumentWorkspace;
  */
 abstract class WorkflowDocument
 {
-    /** Courtesy titles offered in front of the names of teachers, officials and other personnel. */
-    public const SALUTATIONS = ['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Prof.', 'Engr.', 'Atty.', 'Rev.'];
+    /** Honorifics suggested in front of the names of teachers, officials and other personnel. */
+    public const SALUTATIONS = \App\Support\Honorifics::HONORIFICS;
 
     /**
-     * A "Title" select for a person's name. Put it right before the name field and give the name
-     * field 'salutation' => '<this key>': the form shows both on one row and the title is printed in front.
+     * An "Honorifics" box for a person's name: pick a suggestion or type one that is not listed.
+     * Put it right before the name field and give the name field 'salutation' => '<this key>':
+     * the form shows both on one row and the honorific is printed in front.
      */
     protected function salutationField(string $nameField, bool $required = true): array
     {
         return [
-            'label' => 'Title', 'type' => 'select', 'required' => $required,
+            'label' => 'Honorifics', 'type' => 'text', 'required' => $required, 'max' => 40,
             'options' => self::SALUTATIONS,
-            'rules' => [\Illuminate\Validation\Rule::in(self::SALUTATIONS)],
+            'rules' => array_slice(\App\Support\Honorifics::rules(), 1),
             'salutation_of' => $nameField,
         ];
     }
@@ -421,10 +422,31 @@ abstract class WorkflowDocument
     {
         return $answers;
     }
-    /** True when the signer records an inspection (remarks) while signing. */
+    /** True when the signer records an inspection (remarks) while signing. The remarks are then required. */
     public function signerRecordsInspection(): bool
     {
         return false;
+    }
+
+    /**
+     * Where a signer's remarks and date are saved, by the signer's role.
+     * @return array{remarks: string, date: string}
+     */
+    public function inspectionKeys(?string $roleKey): array
+    {
+        return ['remarks' => 'inspection_remarks', 'date' => 'inspection_date'];
+    }
+
+    /** The label of the remarks box the signer fills in. */
+    public function inspectionLabel(?string $roleKey): string
+    {
+        return 'Inspection remarks';
+    }
+
+    /** A placeholder for the remarks box. */
+    public function inspectionPlaceholder(?string $roleKey): string
+    {
+        return 'e.g. Haircut done. Cleared.';
     }
 
 
@@ -441,7 +463,7 @@ abstract class WorkflowDocument
         }
 
         $holder = SignatoryRole::where('key', 'vpsd')->first()?->holdersFor(null, null)->first();
-        $values['vpsd_name'] = $holder ? FormSupport::systemValue($holder, 'formatted_full_name') : null;
+        $values['vpsd_name'] = $holder ? FormSupport::systemValue($holder, 'signing_name') : null;
 
         return $values;
     }
@@ -490,6 +512,12 @@ abstract class WorkflowDocument
     public function requiresOfficer(): bool
     {
         return false;
+    }
+
+    /** True when only a student with an officer record may open and file this form at all. */
+    public function restrictedToOfficers(): bool
+    {
+        return $this->requiresOfficer();
     }
 
     /** Plain-language steps from start to finish, built from this form's own rules. */

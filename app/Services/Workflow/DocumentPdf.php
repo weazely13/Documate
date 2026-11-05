@@ -84,7 +84,8 @@ class DocumentPdf
 
         return <<<HTML
     <style>
-    html{background:#e7e5e1!important;overflow-x:hidden}
+    html{background:#e7e5e1!important;overflow-x:hidden;-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
+    *{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
     body{box-sizing:border-box!important;width:595.28pt!important;max-width:none!important;height:841.89pt!important;min-height:0!important;overflow:hidden!important;margin:18pt auto!important;padding:{$top}pt {$right}pt {$bottom}pt {$left}pt!important;background:#fff!important;box-shadow:0 1px 3px rgba(13,37,61,.12),0 8px 24px rgba(0,55,112,.08)!important;position:relative!important;border-radius:0!important}
     .dm-content{display:flow-root;transform-origin:top center}
     .foot{position:absolute!important;left:{$left}pt!important;right:{$right}pt!important;bottom:auto!important}

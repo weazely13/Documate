@@ -22,8 +22,8 @@
 
     $previewSrc = route('admin.workflow.preview', $ws->workspace_id);
     $previewVersion = $ws->updated_at?->timestamp . '-' . $approvals->whereNotNull('acted_at')->count();
-    $aiApplies = in_array($s, ['submitted', 'under_review', 'action_required', 'approved'], true)
-        && ! $document->issuedByOffice() && ! $document->issuerIsStaff();
+    // Issued documents are checked too (the AI is told the office or staff filled them in).
+    $aiApplies = in_array($s, ['submitted', 'under_review', 'action_required', 'approved'], true);
 @endphp
 
 <div class="mx-auto max-w-[1280px] space-y-5">

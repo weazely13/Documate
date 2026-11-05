@@ -116,6 +116,10 @@ class AppointmentsBoard extends Component
         if (array_key_exists($mode, self::VIEWS)) {
             $this->viewMode = $mode;
             $this->openId = null;
+            if ($mode !== 'calendar') {
+                $this->editingHours = false; // limits are set on the calendar only
+                $this->hoursDates = [];
+            }
             $this->clearSelection();
             $this->resetPage();
         }
@@ -391,7 +395,7 @@ class AppointmentsBoard extends Component
             ->orderByDesc('appointment_date')
             ->orderByRaw("CASE session WHEN 'morning' THEN 0 ELSE 1 END")
             ->orderBy('queue_number')
-            ->paginate(15);
+            ->paginate(50);
     }
 
     /* --------------------------- office availability ------------------------ */
@@ -406,10 +410,16 @@ class AppointmentsBoard extends Component
         }
     }
 
+    /** A day that is over: its hours are history and can't be changed. */
+    private function isFinishedDay(string $date): bool
+    {
+        return Carbon::parse($date)->lt(now()->startOfDay());
+    }
+
     /** Month view while editing hours: pick the days to change. */
     public function toggleHoursDate(string $date): void
     {
-        if (! strtotime($date) || OfficeAvailability::isWeekend($date)) {
+        if (! strtotime($date) || OfficeAvailability::isWeekend($date) || $this->isFinishedDay($date)) {
             return;
         }
 
@@ -423,7 +433,7 @@ class AppointmentsBoard extends Component
     /** One day's hours, straight from its column header. */
     public function editDayHours(string $date): void
     {
-        if (! strtotime($date) || OfficeAvailability::isWeekend($date)) {
+        if (! strtotime($date) || OfficeAvailability::isWeekend($date) || $this->isFinishedDay($date)) {
             return;
         }
         $this->hoursDates = [Carbon::parse($date)->toDateString()];
@@ -450,7 +460,12 @@ class AppointmentsBoard extends Component
             'afternoonSlots' => 'required|integer|min:0|max:500',
         ], ['hoursDates.required' => 'Pick at least one day.']);
 
-        $dates = array_filter($this->hoursDates, fn ($d) => ! OfficeAvailability::isWeekend($d));
+        $dates = array_filter($this->hoursDates, fn ($d) => ! OfficeAvailability::isWeekend($d) && ! $this->isFinishedDay($d));
+        if ($dates === []) {
+            $this->addError('hoursDates', "Days that are over can't be changed. Pick today or a later day.");
+
+            return;
+        }
         foreach ($dates as $date) {
             OfficeAvailability::updateOrCreate(['date' => $date], [
                 'morning_open' => $this->morningOpen,
@@ -463,7 +478,7 @@ class AppointmentsBoard extends Component
         $count = count($dates);
         $this->hoursDates = [];
         $this->dialog = null;
-        $this->toast('Hours saved', 'Office hours updated for ' . $count . ' ' . str('day')->plural($count) . '.');
+        $this->toast('Limits saved', 'Allowed appointments updated for ' . $count . ' ' . str('day')->plural($count) . '.');
     }
 
     /* --------------------------------- queue -------------------------------- */

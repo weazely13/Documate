@@ -23,20 +23,13 @@
 {{-- Issued documents: a file cabinet. Folders (one per document type) on the left as a quiet text menu,
      the open folder's files on the right in one table card. --}}
 <div class="mx-auto max-w-6xl space-y-4 pb-24" wire:poll.30s>
-    <div class="flex items-end justify-between gap-3">
-        <div class="min-w-0">
-            <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">Issued documents</h1>
-            <p class="mt-0.5 text-sm text-slate-500">
-                <span class="tabular-nums">{{ $stats['total'] }}</span> issued ·
-                <span class="tabular-nums">{{ $stats['open'] }}</span> in progress ·
-                <span class="tabular-nums">{{ $stats['completed'] }}</span> completed<span class="hidden sm:inline"> · <span class="tabular-nums">{{ $stats['closed'] }}</span> rejected or voided</span>
-            </p>
-        </div>
-        <a href="{{ route('signatory.issue') }}" wire:navigate
-           class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#2A57B4] px-3.5 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] {{ $focus }} [@media(pointer:coarse)]:min-h-11">
-            <i class="bx bx-file text-base" aria-hidden="true"></i> Issue a Document
-        </a>
-    </div>
+    <h1 class="sr-only">Issued documents</h1>
+
+    @if (session('signing_message'))
+        <p role="status" class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <i class="bx bx-check-circle mt-0.5 text-base text-emerald-600" aria-hidden="true"></i>{{ session('signing_message') }}
+        </p>
+    @endif
 
     <div class="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-6">
 
@@ -74,7 +67,13 @@
                 {{-- Drafts: reports started on the Issue page and saved for later. Only their issuer sees them. --}}
                 <div class="flex items-baseline justify-between gap-3 border-b border-slate-200 px-4 py-3">
                     <h2 class="text-[15px] font-semibold text-slate-900">Drafts <span class="ml-1 text-sm font-normal tabular-nums text-slate-500">{{ $drafts->count() }}</span></h2>
-                    <p class="text-xs text-slate-500">Saved, not issued yet. Only you can see them.</p>
+                    <span class="flex items-center gap-3">
+                        <p class="text-xs text-slate-500 max-sm:hidden">Saved, not issued yet. Only you can see them.</p>
+                        <a href="{{ route('signatory.issue') }}" wire:navigate title="Issue a document" aria-label="Issue a document"
+                   class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#2A57B4] px-2.5 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] {{ $focus }} [@media(pointer:coarse)]:h-11">
+                    <i class="bx bx-plus text-base" aria-hidden="true"></i><span class="max-sm:sr-only">Issue</span>
+                </a>
+                    </span>
                 </div>
                 <ul class="min-h-[24rem] divide-y divide-slate-100">
                     @forelse ($drafts as $d)
@@ -135,6 +134,10 @@
                         <i class="bx bx-reset text-lg" aria-hidden="true"></i>
                     </button>
                 @endif
+                <a href="{{ route('signatory.issue') }}" wire:navigate title="Issue a document" aria-label="Issue a document"
+                   class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#2A57B4] px-2.5 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] {{ $focus }} [@media(pointer:coarse)]:h-11">
+                    <i class="bx bx-plus text-base" aria-hidden="true"></i><span class="max-sm:sr-only">Issue</span>
+                </a>
             </div>
             {{-- From sm up: status and order under the header line --}}
             <div class="hidden items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 sm:flex">
@@ -150,7 +153,9 @@
                         <option value="oldest">Oldest first</option>
                     </select>
                 </label>
-                <span class="ml-auto text-xs tabular-nums text-slate-500">{{ $folderName }} · {{ $rows->total() }} {{ str('file')->plural($rows->total()) }}</span>
+                <span class="ml-auto truncate text-xs tabular-nums text-slate-500" title="{{ $stats['total'] }} issued · {{ $stats['open'] }} in progress · {{ $stats['completed'] }} completed · {{ $stats['closed'] }} rejected or voided">
+                    {{ $stats['total'] }} issued · {{ $stats['open'] }} in progress · {{ $stats['completed'] }} completed<span class="max-xl:hidden"> · {{ $stats['closed'] }} rejected or voided</span>
+                </span>
             </div>
 
             <div class="min-h-[24rem]" wire:loading.class="opacity-60">
@@ -164,28 +169,45 @@
                     </div>
 
                 @elseif ($view === 'grid')
-                    <div class="grid gap-3 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3">
+                    {{-- Grid: a card per file with its whole A4 page (same card as My documents), two across on phones, four on wide screens --}}
+                    <ul class="grid grid-cols-2 content-start gap-3 p-3 sm:gap-4 sm:p-4 lg:grid-cols-3 xl:grid-cols-4">
                         @foreach ($rows as $row)
-                            @php $doc = DocumentRegistry::find($row->document_type); @endphp
-                            <div wire:key="tile-{{ $row->workspace_id }}" class="relative flex flex-col rounded-lg border border-slate-200 bg-white p-3.5 transition hover:border-slate-300 hover:shadow-sm">
-                                <div class="flex items-start justify-between gap-2">
-                                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e6e0f5] text-violet-800"><i class='bx bx-file text-lg' aria-hidden="true"></i></span>
-                                    @include('livewire.workflow._badge', ['status' => $row->workflow_status])
+                            @php
+                                $doc = DocumentRegistry::find($row->document_type);
+                                $closedRow = in_array($row->workflow_status?->value, ['rejected', 'voided'], true);
+                            @endphp
+                            <li wire:key="tile-{{ $row->workspace_id }}" class="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] motion-reduce:hover:translate-y-0">
+                                {{-- Preview: the whole page, shrunk to the card's width. Loads once the card is on screen. --}}
+                                <div class="relative aspect-[842/1171] overflow-hidden border-b border-slate-200 bg-white {{ $closedRow ? 'opacity-75' : '' }}" aria-hidden="true"
+                                     x-data="{ s: 0.2, src: '' }" x-init="const fit = () => s = $el.clientWidth / 842; fit(); new ResizeObserver(fit).observe($el)"
+                                     x-intersect.once.margin.200px="src = @js(route('signatory.issued.preview', $row->workspace_id))">
+                                    <iframe :src="src || false" tabindex="-1" title=""
+                                            class="pointer-events-none absolute left-0 top-0 origin-top-left border-0 bg-white"
+                                            :style="`width: 842px; height: 1171px; transform: scale(${s})`" style="width: 842px; height: 1171px; transform: scale(0.2)"></iframe>
+                                    <span class="absolute left-2 top-2 shadow-sm">@include('livewire.workflow._badge', ['status' => $row->workflow_status])</span>
                                 </div>
-                                <a href="{{ route('signatory.issued.show', $row->workspace_id) }}" wire:navigate
-                                   class="mt-3 truncate text-sm font-semibold text-slate-900 after:absolute after:inset-0 after:content-[''] {{ $focus }}" title="{{ $doc?->name() }}">{{ $doc?->name() ?? $row->document_type }}</a>
-                                <p class="truncate text-xs text-slate-600">{{ $subjectOf($row, $doc) }}</p>
-                                <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-500">
-                                    <span class="font-mono tabular-nums">{{ $row->transaction_code }}</span>
-                                    <span class="tabular-nums">{{ $row->approvals_count ? $row->approved_count . '/' . $row->approvals_count . ' signed' : 'No signatures' }}</span>
+                                <div class="flex flex-1 flex-col p-3 sm:p-3.5">
+                                    <a href="{{ route('signatory.issued.show', $row->workspace_id) }}" wire:navigate
+                                       class="line-clamp-2 rounded text-sm font-semibold leading-snug after:absolute after:inset-0 after:content-[''] group-hover:text-[#2A57B4] {{ $closedRow ? 'text-slate-600' : 'text-slate-900' }} {{ $focus }}" title="{{ $doc?->name() }}">{{ $doc?->name() ?? $row->document_type }}</a>
+                                    <p class="mt-0.5 truncate text-xs text-slate-500">
+                                        <span class="font-mono tabular-nums">{{ $row->transaction_code }}</span> · {{ $subjectOf($row, $doc) }}
+                                    </p>
+                                    @if ($row->approvals_count && ! $closedRow)
+                                        <span class="mt-auto flex items-center gap-2 pt-2.5" role="img" aria-label="{{ $row->approved_count }} of {{ $row->approvals_count }} signed">
+                                            <span class="block h-1 flex-1 overflow-hidden rounded-full bg-slate-200"><span class="block h-full rounded-full {{ $row->approved_count >= $row->approvals_count ? 'bg-emerald-500' : 'bg-[#2A57B4]' }}" style="width: {{ round($row->approved_count / max(1, $row->approvals_count) * 100) }}%"></span></span>
+                                            <span class="text-[11px] tabular-nums text-slate-500">{{ $row->approved_count }}/{{ $row->approvals_count }}</span>
+                                        </span>
+                                    @endif
                                 </div>
                                 @if ($row->workflow_status === $done)
-                                    <a href="{{ route('signatory.issued.download', $row->workspace_id) }}"
-                                       class="relative z-10 mt-2.5 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-800 hover:bg-slate-50 {{ $focus }}"><i class='bx bx-download text-base text-[#2A57B4]' aria-hidden="true"></i> Download PDF</a>
+                                    <a href="{{ route('signatory.issued.download', $row->workspace_id) }}" title="Download PDF" aria-label="Download the PDF of {{ $doc?->name() }}"
+                                       class="absolute right-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-[#2A57B4] shadow ring-1 ring-slate-900/10 hover:text-[#1E4090] [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 {{ $focus }}">
+                                        <i class="bx bx-download text-lg" aria-hidden="true"></i>
+                                    </a>
                                 @endif
-                            </div>
+                            </li>
                         @endforeach
-                    </div>
+                    </ul>
 
                 @else
                     {{-- Phones: rows --}}

@@ -148,7 +148,9 @@ class Show extends Component
 
         $this->validate([
             'password' => ['required', 'string'],
-            'inspectionRemarks' => ['nullable', 'string', 'max:300'],
+            'inspectionRemarks' => DocumentRegistry::find($this->approval->workspace->document_type)?->signerRecordsInspection()
+                ? ['required', 'string', 'max:300']
+                : ['nullable', 'string', 'max:300'],
             'rating' => $kind === 'rating' ? ['required', 'in:1,2,3,4,5'] : ['nullable'],
         ], ['rating.required' => 'Choose a rating.'], ['password' => 'password', 'inspectionRemarks' => 'remarks']);
 

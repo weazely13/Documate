@@ -378,11 +378,8 @@
                                     @php $titleField = $document->fields()[$titleKey] ?? []; @endphp
                                     <div class="mt-1 grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
                                         <div class="{{ str_replace('mt-1 ', '', $box) }} pr-2">
-                                            <label for="f-{{ $titleKey }}" class="sr-only">Title</label>
-                                            <select id="f-{{ $titleKey }}" wire:model="values.{{ $titleKey }}" class="{{ $bare }} cursor-pointer">
-                                                <option value="">Title</option>
-                                                @foreach ($titleField['options'] ?? [] as $opt)<option value="{{ $opt }}">{{ $opt }}</option>@endforeach
-                                            </select>
+                                            <label for="f-{{ $titleKey }}" class="sr-only">Honorifics</label>
+                                            <x-dm.honorific-input id="f-{{ $titleKey }}" model="values.{{ $titleKey }}" class="{{ $bare }}" />
                                         </div>
                                         <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $hasError ? 'border-rose-400' : '' }}">
                                             @if ($icon)<i class="bx {{ $icon }} text-base text-slate-400" aria-hidden="true"></i>@endif

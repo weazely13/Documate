@@ -15,7 +15,7 @@
             this.$nextTick(() => this.opener && this.opener !== document.body && this.opener.focus());
         }
      }"
-     @open-intro.window="show()">
+     @open-intro.window="show()" @tour-started.window="open = false">
     <template x-teleport="body">
         <div x-show="open" x-cloak x-transition.opacity
              class="fixed inset-0 z-[86] flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-6"

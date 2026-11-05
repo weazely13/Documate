@@ -96,7 +96,7 @@ class Issued extends Component
                     ->whereRaw("CONCAT_WS(' ', first_name, last_name) like ?", ["%{$term}%"])
                     ->orWhere('student_number', 'like', "%{$term}%"))))
             ->orderBy('submitted_at', $this->sort === 'oldest' ? 'asc' : 'desc')
-            ->paginate(20);
+            ->paginate(50);
 
         $stats = [
             'total' => (int) $folders->sum(),

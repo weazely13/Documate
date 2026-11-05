@@ -176,7 +176,7 @@ class Index extends Component
         $ws = $this->checkable()->whereKey($id)->first();
 
         if (! $ws) {
-            $this->toast('error', 'Nothing to check', 'This transaction is filled in by staff, or it is no longer open.');
+            $this->toast('error', 'Nothing to check', 'This transaction is no longer open.');
 
             return;
         }
@@ -352,19 +352,16 @@ class Index extends Component
         $this->dispatch('toast', type: $type, title: $title, message: $message);
     }
 
-    /** Open transactions the AI check applies to: the ones students fill in (not office- or staff-issued). */
+    /** Open transactions the AI check applies to: every one, including documents issued by the office or staff. */
     private function checkable(): Builder
     {
         return ReviewQueue::base()->whereNotIn('document_type', self::uncheckedKeys());
     }
 
-    /** Document keys filled in by the office or staff themselves, which the AI does not check. */
+    /** Document keys the AI does not check. None: issued documents are checked too. */
     public static function uncheckedKeys(): array
     {
-        return collect(DocumentRegistry::all())
-            ->filter(fn ($d) => $d->issuedByOffice() || $d->issuerIsStaff())
-            ->keys()
-            ->all();
+        return [];
     }
 
     /* ----------------------------- sorting ---------------------------- */
@@ -427,7 +424,9 @@ class Index extends Component
 
         match ($key) {
             'waiting' => $q->orderByRaw("{$waitingSince} {$dir}"),
-            'status' => $q->orderBy('workflow_status', $dir),
+            // In the order work moves: New first, Ready to finish last (not the stored value's A-Z,
+            // which put "approved" = Ready to finish before "submitted" = New).
+            'status' => $q->orderByRaw("CASE workflow_status WHEN 'submitted' THEN 0 WHEN 'under_review' THEN 1 WHEN 'action_required' THEN 2 WHEN 'approved' THEN 3 ELSE 4 END {$dir}"),
             'risk' => $q->orderByRaw("CASE ai_flag WHEN 'flagged' THEN 0 WHEN 'review_failed' THEN 1 WHEN 'pending' THEN 2 WHEN 'clean' THEN 4 ELSE 3 END {$flipped}")
                 ->orderByRaw("{$risk} {$riskDir}"),
             'student' => $q->orderBy(
@@ -567,7 +566,7 @@ class Index extends Component
 
         [$sortKey, $sortDir] = $this->parsedSort();
 
-        $rows = $q->paginate(20);
+        $rows = $q->paginate(50);
         $flagged = in_array($queue, self::FLAGGED_TABS, true);
         $skipAi = self::uncheckedKeys();
         // Waiting on student: the student has the next move, so show the plain age only.

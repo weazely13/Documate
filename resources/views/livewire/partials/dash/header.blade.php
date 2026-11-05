@@ -153,9 +153,10 @@
         @php ob_start(); @endphp
             {{-- The greeting is slide 1; 'slides' => [['view', data], ...] add more (Home: the office's busy times).
                  Slides share one grid cell, so the area keeps the tallest slide's height and nothing jumps. --}}
-            @php $extra = $slides ?? []; $count = 1 + count($extra); @endphp
+            @php $extra = $slides ?? []; $count = 1 + count($extra); $plainPhone = $plainOnPhone ?? false; @endphp
+            {{-- 'plainOnPhone' => true: phones get the greeting alone (no extra slides, no facts line). --}}
             <div x-data="{
-                    i: 0, n: {{ $count }}, paused: false,
+                    i: 0, n: {{ $plainPhone ? "window.matchMedia('(max-width: 639px)').matches ? 1 : $count" : $count }}, paused: false,
                     go(k) { this.i = (k + this.n) % this.n; },
                  }"
                  x-init="if (n > 1 && ! window.matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => { if (! paused) go(i + 1) }, 7000)"
@@ -181,7 +182,7 @@
 
                 {{-- One line at a time: the facts, then what the office is like right now --}}
                 @if ($rotating)
-                    <div class="relative mx-auto mt-2.5 h-6 w-full max-w-2xl text-sm [@media(max-height:680px)]:hidden font-medium text-slate-700 group-data-[ink=light]/greet:text-blue-50 sm:text-[15px]"
+                    <div class="relative mx-auto mt-2.5 h-6 w-full max-w-2xl text-sm [@media(max-height:680px)]:hidden {{ $plainPhone ? 'max-sm:hidden' : '' }} font-medium text-slate-700 group-data-[ink=light]/greet:text-blue-50 sm:text-[15px]"
                          x-data="{ i: 0, n: {{ count($rotating) }} }"
                          x-init="if (n > 1 && ! window.matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => i = (i + 1) % n, 5000)"
                          aria-live="off">
@@ -192,7 +193,7 @@
                 @endif
                     </div>
                     @foreach ($extra as $k => [$view, $data])
-                        <div class="flex flex-col justify-center opacity-0 transition-opacity duration-700 [grid-area:1/1]" :class="i === {{ $k + 1 }} ? 'opacity-100' : 'pointer-events-none opacity-0'"
+                        <div class="flex flex-col justify-center opacity-0 transition-opacity duration-700 [grid-area:1/1] {{ $plainPhone ? 'max-sm:hidden' : '' }}" :class="i === {{ $k + 1 }} ? 'opacity-100' : 'pointer-events-none opacity-0'"
                              role="group" aria-roledescription="slide" aria-label="{{ $k + 2 }} of {{ $count }}" :aria-hidden="(i !== {{ $k + 1 }}).toString()">
                             @include($view, $data)
                         </div>
@@ -200,7 +201,7 @@
                 </div>
 
                 @if ($count > 1)
-                    <div class="mt-2 flex items-center justify-center gap-2.5">
+                    <div class="mt-2 flex items-center justify-center gap-2.5 {{ $plainPhone ? 'max-sm:hidden' : '' }}">
                         <button type="button" @click="go(i - 1)" aria-label="Previous"
                                 class="flex h-7 w-7 items-center justify-center rounded-full text-slate-600 hover:bg-slate-900/5 hover:text-slate-900 group-data-[ink=light]/greet:text-white/80 group-data-[ink=light]/greet:hover:bg-white/10 group-data-[ink=light]/greet:hover:text-white"><i class='bx bx-chevron-left text-xl' aria-hidden="true"></i></button>
                         @for ($k = 0; $k < $count; $k++)
@@ -215,6 +216,17 @@
             </div>
 
         @php $hero = ob_get_clean(); @endphp
+
+        {{-- 'tour' => ['key' => ..., 'steps' => [...]]: a "How to use DocuMate" button at the top right that runs a guided tour --}}
+        @isset($tour)
+            <button type="button" @click="$dispatch('start-tour')" data-tour="tour-btn"
+                    class="absolute right-3 top-3 z-30 grid h-10 w-10 place-items-center rounded-full border border-slate-900/10 bg-white/70 text-[#1E4090] shadow-sm backdrop-blur-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:right-5 sm:top-4
+                           group-data-[ink=light]/greet:border-white/25 group-data-[ink=light]/greet:bg-white/15 group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:hover:bg-white/25"
+                    aria-label="How to use DocuMate: take the tour" title="How to use DocuMate">
+                <i class="bx bx-help-circle text-2xl" aria-hidden="true"></i>
+            </button>
+            <x-dm.tour :key="$tour['key']" :steps="$tour['steps']" />
+        @endisset
 
         {{-- The inner view lays out the page and prints $hero (the greeting carousel) where it belongs --}}
         <div class="relative mx-auto max-w-5xl px-4 pb-28 pt-3 sm:px-8 md:pb-16">

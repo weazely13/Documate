@@ -266,13 +266,15 @@ class Issue extends Component
                 ? 'Saved. The VPSD office will do the final verification.'
                 : 'Issued. The student was notified.';
             if ($mine) {
-                $msg .= $manual ? ' Sign it now, then send it to the committee members.' : ' It is waiting in your signing inbox.';
+                $msg .= $manual ? ' Sign it now, then send it to the committee members.' : ' Your signature is waiting in your signing inbox.';
             }
             session()->flash('signing_message', $msg);
 
+            // Back to Issued documents, where the new one is listed. Only a form that needs the issuer to sign
+            // and then invite the committee by hand goes straight to its signing page.
             return $mine && $manual
                 ? $this->redirectRoute('signatory.show', ['approval' => $mine->id], navigate: true)
-                : $this->redirectRoute('signatory.inbox', navigate: true);
+                : $this->redirectRoute('signatory.issued', navigate: true);
         }
 
         return $this->redirectRoute('admin.workflow.show', ['workspace' => $ws->workspace_id], navigate: true);
@@ -343,7 +345,7 @@ class Issue extends Component
         }
         if ($doc->issuedBySignatory()) {
             $snapshot += [
-                'reporter_name' => FormSupport::systemValue(Auth::user(), 'formatted_full_name'),
+                'reporter_name' => FormSupport::systemValue(Auth::user(), 'signing_name'),
                 'reporter_user_id' => Auth::id(),
             ];
         }

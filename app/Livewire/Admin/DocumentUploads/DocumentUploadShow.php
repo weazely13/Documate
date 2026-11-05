@@ -22,7 +22,10 @@ class DocumentUploadShow extends Component
 
     public function mount(StudentDocumentWorkspace $workspace): void
     {
+        abort_if($workspace->usesWorkflow(), 404); // uploads are for paper (print) forms only
         $this->workspace = $workspace->load(['template.currentVersion.fields', 'user', 'appointments']);
+        // A paper form whose template (or its layout) is gone has nothing to show or check a photo against.
+        abort_unless($this->workspace->template?->currentVersion, 404);
         $this->lastKnownStatus = $this->workspace->analysis_status ?? 'none';
     }
 
@@ -64,7 +67,10 @@ class DocumentUploadShow extends Component
     #[Computed]
     public function canvas(): array
     {
-        $version = $this->workspace->template->currentVersion;
+        $version = $this->workspace->template?->currentVersion;
+        if (! $version) {
+            return ['width' => 794, 'height' => 1123]; // A4
+        }
         $orientation = $version->orientation ?? 'portrait';
         $sizes = ['A4' => [794, 1123], 'A3' => [1123, 1587], 'Letter' => [816, 1056], 'Legal' => [816, 1344]];
         if ($version->document_size === 'Custom' && $version->custom_width && $version->custom_height) {
@@ -100,7 +106,8 @@ class DocumentUploadShow extends Component
     {
         abort_unless($this->canUpload, 403);
 
-        $this->validate(['supportingFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240']);
+        // Photos arrive as JPEG (the browser converts them); HEIC/WebP are allowed for when it could not.
+        $this->validate(['supportingFile' => 'required|file|mimes:jpg,jpeg,png,webp,heic,heif,pdf|max:10240']);
 
         // Wipe any prior scan history for THIS workspace before starting a new
         // run — a re-upload/rerun replaces the old timeline, it never stacks

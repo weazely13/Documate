@@ -3,44 +3,31 @@
 @section('doc_title', "GENERAL STUDENTS' CLEARANCE")
 
 @php
-   
-
-    $name    = (string) ($v['student_name'] ?? '');
-    $program = (string) ($v['student_program'] ?? '');
-    $sem     = trim((string) preg_replace('/\s*semester\s*/i', '', (string) ($v['semester'] ?? '')));
-    $ay      = (string) ($v['academic_year'] ?? '');
-
+    // F-SDM-020 Rev. 2 (05-09-25). Older records may carry the earlier step labels (Homeroom Adviser).
     $by = collect($signers)->filter(fn ($s) => ! empty($s['label']))->keyBy('label');
-    $cell = fn ($label, $cap) => ['s' => $by->get($label, []), 'cap' => $cap];
+    $pick = fn (array $labels) => collect($labels)->map(fn ($l) => $by->get($l))->filter()->first() ?? [];
+    $cell = fn ($labels, $cap) => ['s' => $pick((array) $labels), 'cap' => 'PRINTED NAME &amp; Signature of the<br><i>' . $cap . '</i>'];
 
-    $vp = $by->get('Vice President for Student Development', []);
+    $vp = $pick(['Vice President for Student Development']);
     $dateSigned = ! empty($vp['signed_at']) ? $vp['signed_at']->format('F j, Y') : '';
 
+    $orgName = (string) ($v['clr_academic_org'] ?? $v['clr_non_academic_org'] ?? $v['clr_year_org'] ?? '');
+    $orgAbbr = preg_match('/\(([^)]+)\)/', $orgName, $m) ? $m[1] : $orgName;
+
     $rows = [
-        [$cell('Academic Organization Treasurer', 'Name and Signature of the<br>Academic Organization Treasurer'),
-         $cell('Academic Organization Adviser', 'Name and Signature of the<br>Academic Organization Adviser')],
-        [$cell('Non-Academic Organization Treasurer', 'Name and Signature of the<br>Non-Academic Organization Treasurer'),
-         $cell('Non-Academic Organization Adviser', 'Name and Signature of the<br>Non-Academic Organization Adviser')],
-        [$cell('Year Level Organization Treasurer', 'Name and Signature of the<br>Year Level Organization Treasurer'),
-         $cell('Homeroom Adviser', 'Name and Signature of the<br>Homeroom Adviser')],
-        [$cell('College Chief Librarian', 'Name and Signature of the<br>College Chief Librarian'), null],
+        [$cell('Academic Organization Treasurer', 'Academic Organization Treasurer'), $cell('Academic Organization Adviser', 'Academic Organization Adviser')],
+        [$cell('Non-Academic Organization Treasurer', 'Non-Academic Organization Treasurer'), $cell('Non-Academic Organization Adviser', 'Non-Academic Organization Adviser')],
+        [$cell('Year Level Organization Treasurer', 'Year Level Organization Treasurer'), $cell(['Year-level Adviser', 'Homeroom Adviser'], 'Year-level Adviser')],
+        [$cell(['College Chief Librarian', 'Chief Librarian'], 'College Chief Librarian'), ['s' => ['name' => $orgAbbr], 'cap' => 'PRINTED NAME OF ORGANIZATION<br>(ABBREVIATION)']],
     ];
 @endphp
 
 @section('copy')
     <div class="title">GENERAL STUDENTS' CLEARANCE</div>
 
-    @include('pdf._clearance-line', ['pre' => 'This is to certify that I,', 'value' => $name, 'cap' => '(Printed Name of the Student)', 'post' => ','])
-    @include('pdf._clearance-line', ['pre' => 'a/an', 'value' => $program, 'cap' => '(Program, Year and Section)', 'post' => 'student of this institution, is cleared'])
+    @include('pdf._clearance-head', ['attested' => '<i>Academic</i> and <i>Non-Academic Adviser</i>, the <i>Treasurer of the organizations</i> I am affiliated with, the signatures of the <i>Year-level Adviser</i> and <i>Year Level Organization Treasurer</i>, the <i>College Chief Librarian</i> and the <i>Vice President for Student Development</i>.'])
 
-    <div class="stmt">
-        of all property and financial responsibilities as of the <span class="ul">{{ $sem }}&nbsp;&nbsp;&nbsp;</span> semester
-        of Academic Year <span class="ul">{{ $ay }}&nbsp;&nbsp;&nbsp;</span> as attested by the affixed signatures of
-        the Academic and Non-Academic Adviser and the Treasurers of the organizations I am affiliated with, and the
-        signatures of the School Librarian, the Homeroom Adviser, and the Vice President for Student Development.
-    </div>
-
-    @include('pdf._clearance-row', ['center' => true, 'l' => ['s' => $studentSigner, 'cap' => 'Printed Name of Student &amp; Signature']])
+    @include('pdf._clearance-row', ['center' => true, 'l' => ['s' => $studentSigner, 'cap' => '<i>PRINTED NAME OF STUDENT &amp; SIGNATURE</i>']])
 
     <div class="rule"></div>
 
@@ -50,6 +37,6 @@
 
     @include('pdf._clearance-row', [
         'center' => true,
-        'l' => ['s' => $vp, 'cap' => 'Name and Signature of the Vice President<br>for Student Development<br>Date Signed: <u>&nbsp;' . e($dateSigned) . '&nbsp;</u>'],
+        'l' => ['s' => $vp, 'cap' => 'PRINTED NAME &amp; Signature of the<br><i>Vice President for Student Development</i><br>Date Signed: <u>&nbsp;' . e($dateSigned) . '&nbsp;</u>'],
     ])
 @endsection

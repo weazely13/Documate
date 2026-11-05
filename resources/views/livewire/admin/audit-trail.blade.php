@@ -2,8 +2,9 @@
     use Illuminate\Support\Str;
 
     $field = 'rounded-lg border-slate-300 py-2.5 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4] sm:py-2 sm:text-sm';
-    $pill = 'flex items-center gap-1 rounded-full bg-slate-100 py-1 pl-3 pr-1 text-sm transition focus-within:ring-2 focus-within:ring-[#2A57B4]';
-    $pillSelect = 'max-w-[7rem] cursor-pointer truncate rounded-full border-0 bg-transparent py-1 pl-1 pr-7 text-sm font-semibold text-slate-800 focus:ring-0';
+    // Phones: a 2 × 2 grid of full-width pills (16px selects, so iOS does not zoom in). Wider: pills that wrap.
+    $pill = 'flex min-w-0 items-center gap-1 rounded-full bg-slate-100 py-1 pl-3 pr-1 text-sm transition focus-within:ring-2 focus-within:ring-[#2A57B4] max-sm:min-h-11';
+    $pillSelect = 'min-w-0 cursor-pointer truncate rounded-full border-0 bg-transparent py-1 pl-1 pr-7 text-sm font-semibold text-slate-800 focus:ring-0 max-sm:flex-1 max-sm:text-base sm:max-w-[7rem]';
 
     $actionBadge = fn ($action) => match ($action) {
         'login' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
@@ -45,17 +46,7 @@
 
 <div class="mx-auto max-w-7xl">
 
-    <x-admin.page-header title="Audit Trail"
-        description="Every sign-in, record change, export and transaction step, with who did it and when. Entries can't be edited or deleted.">
-        <x-slot:actions>
-            <button type="button" wire:click="export" wire:loading.attr="disabled" wire:target="export"
-                    class="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#2A57B4] px-4 py-2 text-sm font-semibold text-[#2A57B4] transition hover:bg-[#2A57B4] hover:text-white disabled:opacity-60 sm:w-auto">
-                <i class="bx bx-download" wire:loading.remove wire:target="export"></i>
-                <i class="bx bx-loader-alt animate-spin" wire:loading wire:target="export"></i>
-                Download CSV
-            </button>
-        </x-slot:actions>
-    </x-admin.page-header>
+    <h1 class="sr-only">Audit Trail</h1>
 
     {{-- Today --}}
     @php
@@ -81,7 +72,7 @@
     <div class="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
         {{-- Search keeps the right-hand slot from lg up; only the filter pills wrap --}}
         <div class="flex flex-col gap-2 lg:flex-row lg:items-start">
-            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div class="grid min-w-0 flex-1 grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
             <label class="{{ $pill }} {{ $role !== '' ? '!bg-[#2A57B4] [&>span]:!text-white [&>select]:!text-white [&_option]:text-slate-800' : '' }}">
                 <span class="text-slate-500">Role</span>
                 <select wire:model.live="role" class="{{ $pillSelect }}">
@@ -111,10 +102,10 @@
             </label>
 
             @if ($period === 'custom')
-                <div class="flex items-center gap-2">
-                    <input type="date" wire:model.live="dateFrom" aria-label="From date" class="{{ $field }}">
+                <div class="col-span-2 flex items-center gap-2">
+                    <input type="date" wire:model.live="dateFrom" aria-label="From date" class="min-w-0 max-sm:flex-1 max-sm:text-base {{ $field }}">
                     <span class="text-sm text-slate-400">to</span>
-                    <input type="date" wire:model.live="dateTo" aria-label="To date" class="{{ $field }}">
+                    <input type="date" wire:model.live="dateTo" aria-label="To date" class="min-w-0 max-sm:flex-1 max-sm:text-base {{ $field }}">
                 </div>
             @endif
 
@@ -123,15 +114,24 @@
             <div class="relative order-first w-full shrink-0 lg:order-none lg:w-48 2xl:w-64">
                 <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                 <input type="search" wire:model.live.debounce.400ms="search" placeholder="Search person, IP, or description"
-                       aria-label="Search audit trail" class="w-full pl-9 pr-3 {{ $field }}">
+                       aria-label="Search audit trail" class="w-full pl-9 pr-3 max-sm:text-base {{ $field }}">
             </div>
         </div>
 
         <div class="mt-2 flex items-center justify-between gap-3 px-1 text-xs text-slate-500">
             <span>{{ number_format($page->total()) }} {{ Str::plural('entry', $page->total()) }}</span>
-            @if ($hasFilters)
-                <button type="button" wire:click="clearFilters" class="font-medium hover:text-slate-800">Clear filters</button>
-            @endif
+            <span class="flex items-center gap-3">
+                @if ($hasFilters)
+                    <button type="button" wire:click="clearFilters" class="font-medium hover:text-slate-800">Clear filters</button>
+                @endif
+                <button type="button" wire:click="export" wire:loading.attr="disabled" wire:target="export"
+                        class="inline-flex min-h-8 items-center gap-1 rounded-md px-2 font-semibold text-[#2A57B4] hover:bg-[#f0f4fb] disabled:opacity-60 [@media(pointer:coarse)]:min-h-10"
+                        title="Download these entries as a CSV file">
+                    <i class="bx bx-download text-sm" wire:loading.remove wire:target="export" aria-hidden="true"></i>
+                    <i class="bx bx-loader-alt animate-spin text-sm" wire:loading wire:target="export" aria-hidden="true"></i>
+                    Download CSV
+                </button>
+            </span>
         </div>
     </div>
 

@@ -102,12 +102,16 @@ class DocumentUploadsIndex extends Component
         $this->currentPage = min($last, $this->currentPage + 1);
     }
 
-    /** Every paper form with an attended visit, newest visit first, with the search and dates applied. */
+    /** Every paper (print) form with an attended visit, newest visit first, with the search and dates applied. */
     private function rows(): Collection
     {
         $term = Str::lower(trim($this->search));
 
         return StudentDocumentWorkspace::query()
+            // Paper/print forms only: online and issued documents (workflow_status set) have their own PDF,
+            // even when an appointment came with them (e.g. an advisement's inspection visit).
+            ->whereNull('workflow_status')
+            ->whereHas('template.currentVersion') // soft-deleted templates still count; a missing one does not
             ->whereHas('appointments', fn ($q) => $q->where('status', 'attended'))
             ->with(['user', 'template.currentVersion', 'appointments'])
             ->get()
@@ -196,7 +200,7 @@ class DocumentUploadsIndex extends Component
             'students' => $students,
             default => collect(),
         };
-        $perPage = $level === 'students' ? 20 : 24;
+        $perPage = 50;
         $lastPage = max(1, (int) ceil($items->count() / $perPage));
         $this->currentPage = min(max(1, $this->currentPage), $lastPage);
 

@@ -47,7 +47,7 @@ class ChatWidget extends Component
         } else {
             $this->messages = [[
                 'role' => 'assistant',
-                'content' => self::GREETING,
+                'content' => $this->greeting(),
             ]];
             $this->persist();
         }
@@ -63,6 +63,7 @@ class ChatWidget extends Component
         }
 
         $previousGreetings = [
+            self::GREETING,
             'Hello. How can I assist you with Leyte Normal University or the DocuMate system today?',
             'Hello! How can I help with LNU or DocuMate?',
             'Hello. DocuMate Assistant at your service. How may I assist you?',
@@ -73,9 +74,33 @@ class ChatWidget extends Component
             return false;
         }
 
-        $this->messages[0]['content'] = self::GREETING;
+        $this->messages[0]['content'] = $this->greeting();
 
         return true;
+    }
+
+    /** The welcome message: who the assistant is talking to, and what it can do for that role. */
+    protected function greeting(): string
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return self::GREETING;
+        }
+        $name = $user->first_name ?: 'there';
+        $signs = $user->isSignatory();
+
+        $offer = match ($user->role?->role_name) {
+            'Admin' => "As VPSD office staff, I can show you what needs your attention, explain how to review, send for signing and complete transactions, and help with appointments, uploads, clearance, accounts and reports" . '.',
+            'Signatory' => 'As a signatory, I can help you with the documents waiting for your signature, issuing reports to students, and the documents you have issued' . ($user->isVpsd() ? ', and the VPSD oversight of every transaction' : '') . '.',
+            'Officer' => 'As a student officer, I can help you request documents, follow them as they are signed, book visits to the VPSD office, and tag the clearance of your organization\'s members' . '.',
+            default => 'As a student, I can help you request documents, follow them as they are signed, book visits to the VPSD office, and check your clearance' . '.',
+        };
+
+        if ($signs && $user->role?->role_name !== 'Signatory') {
+            $offer .= ' Since you also sign documents, I can help with your Signing Inbox too.';
+        }
+
+        return "Hello, {$name}. I'm your DocuMate guide. {$offer} I can also tell you where an office is, who to see, or what the Student Handbook says. If something isn't in DocuMate's records, I'll say so.";
     }
 
     /** Starters for an empty chat, by role. */
@@ -83,30 +108,34 @@ class ChatWidget extends Component
     {
         $role = auth()->user()?->role?->role_name;
 
+        // Every role starts with the VPSD office, the office DocuMate serves.
         return match ($role) {
             'Admin' => [
+                'What can you help me with?',
                 'What needs my attention today?',
                 'Which transactions are overdue?',
-                'How do I make a new paper form template?',
+                'Who is the Vice President for Student Development?',
                 'Where is the VPSD office?',
             ],
             'Signatory' => [
+                'What can you help me with?',
                 'How do I sign a document?',
-                'How do I decline a document?',
                 'Where is the VPSD office?',
-                'What does the handbook say about student discipline?',
+                'Who is the Vice President for Student Development?',
+                'What does the VPSD office handle?',
             ],
             'Officer' => [
+                'What can you help me with?',
+                'Where is the VPSD office?',
+                'Who is the Vice President for Student Development?',
                 'How do I tag a student as cleared?',
-                'What is the status of my documents?',
-                'Where is the Office of Student Affairs?',
-                'What does the handbook say about student organizations?',
+                'Who is the Director for Student Organizations and Activities?',
             ],
             default => [
-                'What documents can I request?',
-                'How do I book an appointment?',
-                "Where is the Registrar's Office?",
-                'What does the handbook say about the school uniform?',
+                'What can you help me with?',
+                'Where is the VPSD office?',
+                'What documents can I request from the VPSD?',
+                'How do I book an appointment with the VPSD?',
             ],
         };
     }
@@ -129,12 +158,17 @@ class ChatWidget extends Component
     {
         $context = mb_strtolower($question . ' ' . $answer);
 
-        if (str_contains($context, 'office') || str_contains($context, 'registrar') || str_contains($context, 'cashier')) {
-            return [
-                'Find the Registrar\'s Office',
-                'Find the Cashier\'s Office',
+        // Offices and people: point back to the VPSD office and its units (Guidance, SOA, Scholarships).
+        if (str_contains($context, 'office') || str_contains($context, 'registrar') || str_contains($context, 'cashier')
+            || str_contains($context, 'vpsd') || str_contains($context, 'vice president') || str_contains($context, 'who is')) {
+            $asked = mb_strtolower(trim($question, " ?\t\n"));
+
+            return collect([
+                'Where is the VPSD office?',
+                'Who is the Vice President for Student Development?',
+                'Where is the Guidance Office?',
                 'Who handles scholarships?',
-            ];
+            ])->reject(fn ($q) => mb_strtolower(rtrim($q, '?')) === $asked)->take(3)->values()->all();
         }
 
         $normalize = fn (string $value) => trim(preg_replace('/[^\pL\pN]+/u', ' ', mb_strtolower($value)) ?? '');

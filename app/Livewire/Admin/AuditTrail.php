@@ -22,7 +22,7 @@ class AuditTrail extends Component
 {
     use WithPagination;
 
-    public const PER_PAGE = 25;
+    public const PER_PAGE = 50;
     private const EXPORT_LIMIT = 20000;
 
     public const PERIODS = [

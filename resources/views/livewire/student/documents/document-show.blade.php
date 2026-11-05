@@ -58,8 +58,13 @@
                     </div>
                 @endif
             @else
-                <p class="text-sm font-medium text-slate-900">Next: print it and bring it to the VPSD office.</p>
-                <p class="mt-0.5 text-xs text-slate-500">Book a visit so the office expects you.</p>
+                @if ($this->visitCompleted)
+                    <p class="text-sm font-medium text-slate-900">Visit completed.</p>
+                    <p class="mt-0.5 text-xs text-slate-500">The VPSD personnel will upload a photo of this document for it to become an online copy.</p>
+                @else
+                    <p class="text-sm font-medium text-slate-900">Next: print it and bring it to the VPSD office.</p>
+                    <p class="mt-0.5 text-xs text-slate-500">Book a visit so the office expects you.</p>
+                @endif
 
                 @if (! empty($workspace->analysis_data['error_code']))
                     <p class="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
@@ -73,7 +78,7 @@
                         <a href="{{ route('student.appointments.show', $this->activeAppointment) }}" wire:navigate class="{{ $btnPrimary }} col-span-2 lg:col-span-1">
                             <i class="bx bx-calendar-check text-lg" aria-hidden="true"></i> View appointment
                         </a>
-                    @else
+                    @elseif (! $this->visitCompleted)
                         <a href="{{ route('student.appointments.new', ['workspace' => $workspace->workspace_id]) }}" wire:navigate class="{{ $btnPrimary }} col-span-2 lg:col-span-1">
                             <i class="bx bx-calendar-plus text-lg" aria-hidden="true"></i> Book an appointment
                         </a>

@@ -11,12 +11,7 @@
      Figures live on the Activity summary; roles and reports live on Home. --}}
 <div class="mx-auto max-w-5xl space-y-4 pb-24" wire:poll.15s="checkNew">
 
-    <div class="flex items-end justify-between gap-3">
-        <div class="min-w-0">
-            <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">Signing inbox</h1>
-            <p class="mt-0.5 text-sm text-slate-500">Documents waiting for a signature from a role you hold, and what you decided.</p>
-        </div>
-    </div>
+    <h1 class="sr-only">Signing inbox</h1>
 
     @if (session('signing_message'))
         <p role="status" class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">

@@ -254,7 +254,7 @@ class ManageUsers extends Component
     {
         $currentPage = $this->getPage();
 
-        if ($currentPage > 1 && ! $this->getUsersQuery()->forPage($currentPage, 30)->exists()) {  // was 15
+        if ($currentPage > 1 && ! $this->getUsersQuery()->forPage($currentPage, 50)->exists()) {
             $this->previousPage();
         }
     }
@@ -306,7 +306,7 @@ class ManageUsers extends Component
 
     public function render()
     {
-        $users = $this->getUsersQuery()->paginate(20);
+        $users = $this->getUsersQuery()->paginate(50);
 
         $roles = Role::orderBy('role_name')->get();
 

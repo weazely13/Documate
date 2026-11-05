@@ -36,7 +36,10 @@ class DocumentProgress
 
             [$label, $tone, $step, $next] = $done
                 ? ['Completed', 'done', 4, 'Completed. Open it to view or download.']
-                : [$display['label'], $display['tone'] === 'red' ? 'you' : 'office', 1, 'Paper form: print it and bring it to the VPSD office.'];
+                : [$display['label'], $display['tone'] === 'red' ? 'you' : 'office', 1,
+                    $display['label'] === 'Appointment visit completed'
+                        ? 'Visit completed. The VPSD personnel will upload a photo of this document for it to become an online copy.'
+                        : 'Paper form: print it and bring it to the VPSD office.'];
 
             return [
                 'title' => $workspace->template?->name ? Str::title(str_replace('_', ' ', $workspace->template->name)) : 'Untitled document',

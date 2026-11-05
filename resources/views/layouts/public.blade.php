@@ -1,3 +1,13 @@
+@php
+    // Someone already signed in (in this browser, e.g. another tab) gets a way back in, not "Sign in".
+    $signedIn = auth()->user();
+    $appHome = match ($signedIn?->role?->role_name) {
+        'Admin' => url('/admin/dashboard'),
+        'Signatory' => route('signatory.home'),
+        null => null,
+        default => $signedIn->account_status === 'active' ? url('/student/home') : url('/verify'),
+    };
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -183,11 +193,19 @@
                 <a href="{{ route('document.lookup') }}" class="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-[15px] font-medium text-[#273951] transition hover:bg-[#f5f4f2]">
                     <i class="bx bx-shield-quarter text-lg text-[#2A57B4]" aria-hidden="true"></i> Verify<span class="hidden 2xl:inline">&nbsp;a document</span>
                 </a>
+                @if ($appHome)
+                    <a href="{{ $appHome }}" class="inline-flex h-10 items-center rounded-lg bg-[#2A57B4] px-4 text-[15px] font-medium text-white shadow-sm transition hover:bg-[#24499a]">Go to DocuMate</a>
+                @else
                 <a href="{{ route('login') }}" class="inline-flex h-10 items-center rounded-lg bg-[#2A57B4] px-4 text-[15px] font-medium text-white shadow-sm transition hover:bg-[#24499a]">Sign in</a>
+                @endif
             </div>
 
             <div class="flex items-center gap-2 xl:hidden">
-                <a href="{{ route('login') }}" class="inline-flex h-9 items-center rounded-lg bg-[#2A57B4] px-3.5 text-sm font-medium text-white">Sign in</a>
+                @if ($appHome)
+                    <a href="{{ $appHome }}" class="inline-flex h-9 items-center rounded-lg bg-[#2A57B4] px-3.5 text-sm font-medium text-white">Go to DocuMate</a>
+                @else
+                    <a href="{{ route('login') }}" class="inline-flex h-9 items-center rounded-lg bg-[#2A57B4] px-3.5 text-sm font-medium text-white">Sign in</a>
+                @endif
                 <button id="mobile-menu-btn" class="grid h-9 w-9 place-items-center rounded-lg text-[#273951] hover:bg-[#f5f4f2]" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
                     <i class="bx bx-menu text-2xl" aria-hidden="true"></i>
                 </button>
@@ -230,7 +248,7 @@
             <div>
                 <p class="text-sm font-semibold text-white">Get started</p>
                 <ul class="mt-3 space-y-2 text-sm">
-                    <li><a href="{{ route('login') }}" class="hover:text-white">Sign in</a></li>
+                    @unless ($appHome)<li><a href="{{ route('login') }}" class="hover:text-white">Sign in</a></li>@endunless
                     <li><a href="{{ route('register') }}" class="hover:text-white">Create a student account</a></li>
                     <li><a href="{{ route('document.lookup') }}" class="hover:text-white">Verify a document</a></li>
                 </ul>

@@ -149,7 +149,9 @@ class StudentDocumentWorkspace extends Model
 
     public function needsDocumentVerification(): bool
     {
-        return $this->hasAttendedAppointment()
+        // Only a paper (print) form needs a photo of it uploaded; online and issued documents have their own PDF.
+        return ! $this->usesWorkflow()
+            && $this->hasAttendedAppointment()
             && $this->analysis_status !== 'approved';
     }
 

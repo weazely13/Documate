@@ -39,6 +39,7 @@ final class RequestForExcusedAbsence extends WorkflowDocument
                 'label' => 'First day of absence', 'type' => 'date', 'required' => true,
                 'future' => true,
                 'rules' => ['after_or_equal:today'],
+                'today_warning' => 'Your request date of absence is today. Please be advised that your request may not be reviewed immediately. To facilitate timely processing, you are encouraged to visit the concerned office personally for assistance and confirmation of your request.',
             ],
             'absence_to' => [
                 'label' => 'Last day of absence', 'type' => 'date', 'required' => true,

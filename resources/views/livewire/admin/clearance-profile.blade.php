@@ -12,16 +12,7 @@
 @endphp
 
 <div>
-    <x-admin.page-header
-        title="Clearance Profile"
-        description="Review this student's clearance history and tag their status per semester.">
-        <x-slot:actions>
-            <a href="{{ route($backRoute) }}" wire:navigate
-            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 sm:w-auto sm:py-2">
-                <i class='bx bx-arrow-back'></i> Back to list
-            </a>
-        </x-slot:actions>
-    </x-admin.page-header>
+    <h1 class="sr-only">Clearance Profile</h1>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:items-start">
 
@@ -29,7 +20,12 @@
         <div class="space-y-6 lg:col-span-1">
 
             <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div class="flex items-center gap-4 bg-gradient-to-br from-[#2A57B4] to-[#1d3f85] px-5 py-5 text-white lg:flex-col lg:gap-0 lg:px-6 lg:py-8 lg:text-center">
+                <div class="relative flex items-center gap-4 bg-gradient-to-br from-[#2A57B4] to-[#1d3f85] px-5 py-5 max-lg:pr-14 text-white lg:flex-col lg:gap-0 lg:px-6 lg:py-8 lg:text-center">
+                    {{-- Back to the list, on the card's corner --}}
+                    <a href="{{ route($backRoute) }}" wire:navigate title="Back to list" aria-label="Back to list"
+                       class="absolute left-2.5 top-2.5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 max-lg:left-auto max-lg:right-2.5 max-lg:top-1/2 max-lg:-translate-y-1/2">
+                        <i class="bx bx-arrow-back text-lg" aria-hidden="true"></i>
+                    </a>
                     @if ($user->profile_picture)
                         <img src="{{ asset('storage/' . $user->profile_picture) }}" alt="" class="h-16 w-16 shrink-0 rounded-full object-cover ring-4 ring-white/25 lg:h-20 lg:w-20">
                     @else

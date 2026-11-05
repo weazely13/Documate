@@ -82,7 +82,7 @@ class TransactionRecords extends Component
     ];
 
     /** Students per page. */
-    public int $perPage = 20;
+    public int $perPage = 50;
 
     protected array $mainTabs = ['transactions', 'logbooks'];
 
@@ -538,7 +538,7 @@ class TransactionRecords extends Component
             'students' => $students,
             default => collect(),
         };
-        $perPage = in_array($level, ['folder', 'all'], true) ? 24 : $this->perPage;
+        $perPage = $this->perPage;
         $totalCount = $items->count();
         $totalPages = max(1, (int) ceil($totalCount / $perPage));
         $this->currentPage = min(max(1, $this->currentPage), $totalPages);

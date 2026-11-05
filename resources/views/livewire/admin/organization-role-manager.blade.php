@@ -725,7 +725,7 @@
             @php
                 $activeRoles = $signatoryRoles->where('is_active', true);
                 $rolesWithoutHolder = $activeRoles->filter(fn ($r) => ($sigHolderCounts[$r->id] ?? 0) === 0);
-                $scopeText = fn ($s) => ['organization' => 'Per organization', 'program' => 'Per program', 'college' => 'Per college'][$s] ?? 'Everyone';
+                $scopeText = fn ($s) => ['organization' => 'Per organization', 'program' => 'Per program', 'college' => 'Per college', 'year_level' => 'Per year level'][$s] ?? 'Everyone';
                 $selRole = $signatoryRoles->firstWhere('id', (int) $sigRoleId);
                 $invRole = $signatoryRoles->firstWhere('id', (int) $invRoleId);
                 $today = \Illuminate\Support\Carbon::today();
@@ -1160,12 +1160,13 @@
                                 <option value="organization">Each organization has its own</option>
                                 <option value="program">Each program has its own</option>
                                 <option value="college">Each college has its own</option>
+                                <option value="year_level">Each year level has its own</option>
                             </select>
                             <p class="mt-1 text-[11px] text-slate-400">
                                 @if ($sigRoleScope === 'none')
                                     Anyone holding this role can sign for any student. Best for the VP or Guidance Counselor.
                                 @else
-                                    Signers are picked per {{ $sigRoleScope }}, so each {{ $sigRoleScope }} needs its own signatory.
+                                    Signers are picked per {{ \App\Services\Workflow\SignatoryScope::label($sigRoleScope) }}, so each {{ \App\Services\Workflow\SignatoryScope::label($sigRoleScope) }} needs its own signatory.
                                 @endif
                             </p>
                             @error('sigRoleScope') <p class="{{ $error }}">{{ $message }}</p> @enderror
@@ -1258,7 +1259,7 @@
 
                                 @if ($selRole && $selRole->scope !== 'none')
                                     <div class="mt-3" wire:key="sig-scope-{{ $selRole->id }}">
-                                        <label class="{{ $label }}">Which {{ $selRole->scope }} do they sign for?</label>
+                                        <label class="{{ $label }}">Which {{ \App\Services\Workflow\SignatoryScope::label($selRole->scope) }} do they sign for?</label>
                                         <select wire:model="sigScopeId" class="{{ $formInput }}">
                                             <option value="">Choose…</option>
                                             @foreach ($this->scopeOptions($selRole->scope) as $id => $name)
@@ -1296,7 +1297,12 @@
 
                             @error('invite') <p class="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{{ $message }}</p> @enderror
 
-                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)]">
+                                <div>
+                                    <label for="inv-honorific" class="{{ $label }}">Honorifics</label>
+                                    <x-dm.honorific-input id="inv-honorific" model="invHonorific" class="{{ $formInput }}" />
+                                    @error('invHonorific') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                                </div>
                                 <div>
                                     <label class="{{ $label }}">First name</label>
                                     <input type="text" wire:model="invFirst" class="{{ $formInput }}">
@@ -1339,7 +1345,7 @@
                             </div>
                             @if ($invRole && $invRole->scope !== 'none')
                                 <div wire:key="inv-scope-{{ $invRole->id }}">
-                                    <label class="{{ $label }}">Which {{ $invRole->scope }}?</label>
+                                    <label class="{{ $label }}">Which {{ \App\Services\Workflow\SignatoryScope::label($invRole->scope) }}?</label>
                                     <select wire:model="invScopeId" class="{{ $formInput }}">
                                         <option value="">Choose…</option>
                                         @foreach ($this->scopeOptions($invRole->scope) as $id => $name)

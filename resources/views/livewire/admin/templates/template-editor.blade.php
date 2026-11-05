@@ -13,7 +13,7 @@
 @endphp
 
 <div wire:ignore x-data="templateEditor(@js($editorConfig))"
-     class="flex h-screen flex-col overflow-hidden bg-[#eef0f3] text-slate-800 [font-feature-settings:'tnum']">
+     class="flex h-[100dvh] flex-col overflow-hidden bg-[#eef0f3] text-slate-800 [font-feature-settings:'tnum']">
 
     {{-- ===================== TOP BAR ===================== --}}
     <header class="relative z-30 flex h-12 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-2 sm:px-3">
@@ -589,7 +589,8 @@
             </div>
         </template>
     </div>
-    <nav class="grid h-14 shrink-0 grid-cols-5 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Editor tools">
+    {{-- 100dvh above keeps this bar inside the visible screen on phones (100vh runs under Safari's toolbar) --}}
+    <nav class="relative z-20 grid h-[calc(3.5rem+env(safe-area-inset-bottom))] shrink-0 grid-cols-5 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Editor tools">
         @foreach ([['layers', 'bx-layer', 'Layers'], ['add', 'bx-plus-circle', 'Add'], ['design', 'bx-slider-alt', 'Design'], ['steps', 'bx-list-ol', 'Steps']] as [$k, $icon, $lbl])
             <button type="button" @click="mobilePanel = mobilePanel === '{{ $k }}' ? null : '{{ $k }}'; if (mobilePanel === 'design' || mobilePanel === 'steps') rightTab = mobilePanel === 'steps' ? 'steps' : 'design'"
                     :class="mobilePanel === '{{ $k }}' ? 'text-[#2A57B4]' : 'text-slate-500'" class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium">

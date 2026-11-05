@@ -129,7 +129,7 @@
                         @error('date_of_birth') <p class="error">{{ $message }}</p> @enderror
                     </div>
 
-                    <div class="col-span-2">
+                    <div class="sm:col-span-2">
                         <label class="text-sm font-medium text-gray-700">Contact Number <span class="text-red-500">*</span></label>
                         <input wire:model.live="contact_number" placeholder="e.g. 09123456789"
                             class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30
@@ -202,7 +202,7 @@
                         @error('academic_status') <p class="error">{{ $message }}</p> @enderror
                     </div>
 
-                    <div class="col-span-2">
+                    <div class="sm:col-span-2">
                         <label class="text-sm font-medium text-gray-700">Organization</label>
                         <select wire:model.live="organization_id" @disabled(! $program_id)
                             class="input focus:border-[#2A57B4] focus:ring-2 focus:ring-[#2A57B4]/30 disabled:bg-gray-100

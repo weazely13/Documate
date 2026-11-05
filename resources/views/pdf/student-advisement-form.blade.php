@@ -48,8 +48,19 @@
     }
     while (count($remarks) < 3) { $remarks[] = ''; }
 
+    $doctorDate = ! empty($v['doctor_seen_date']) ? \Carbon\Carbon::parse($v['doctor_seen_date'])->format('F j, Y') : '';
+    $doctorRemarks = [];
+    foreach (preg_split('/\r\n|\r|\n/', trim((string) ($v['doctor_remarks'] ?? ''))) as $para) {
+        foreach (explode("\n", wordwrap($para, 80, "\n", true)) as $line) {
+            $doctorRemarks[] = $line;
+        }
+    }
+    while (count($doctorRemarks) < 2) { $doctorRemarks[] = ''; }
+
+    // Signers follow the chain: the VPSD inspection (haircut) first, then the University Doctor.
     $reporter = $reporterSigner;
-    $insp = $signers[0] ?? [];
+    $insp = $haircut ? ($signers[0] ?? []) : [];
+    $doctorSigner = $doctor ? ($signers[$haircut ? 1 : 0] ?? []) : [];
 
     $lookup = preg_replace('#^https?://#', '', route('document.lookup'));
 @endphp
@@ -197,23 +208,24 @@
 <div class="cut"></div>
 
 {{-- Inspection slip --}}
+{{-- Labels are 150pt wide (bold "Program, Year and Section:" needs about 140pt) with a 10pt gap before the line --}}
 <div class="ln" style="height:18pt;">
-    <div class="lbl lab" style="left:20pt; width:112pt;">Student's Name:</div>
-    <div class="val" style="left:134pt; width:250pt; font-size:{{ $fit($name, 250) }}pt;">{{ $name }}</div>
+    <div class="lbl lab" style="left:20pt; width:150pt;">Student's Name:</div>
+    <div class="val" style="left:180pt; width:280pt; font-size:{{ $fit($name, 280) }}pt;">{{ $name }}</div>
 </div>
 <div class="ln" style="height:24pt;">
-    <div class="lbl lab" style="left:20pt; width:112pt;">Program, Year and Section:</div>
-    <div class="val" style="left:134pt; width:250pt; font-size:{{ $fit($program, 250) }}pt;">{{ $program }}</div>
+    <div class="lbl lab" style="left:20pt; width:150pt;">Program, Year and Section:</div>
+    <div class="val" style="left:180pt; width:280pt; font-size:{{ $fit($program, 280) }}pt;">{{ $program }}</div>
 </div>
 <div class="ln" style="height:18pt;">
-    <div class="lbl lab" style="left:20pt; width:112pt;">Date:</div>
-    <div class="val" style="left:134pt; width:250pt; font-size:{{ $fit($inspDate, 250) }}pt;">{{ $inspDate }}</div>
+    <div class="lbl lab" style="left:20pt; width:150pt;">Date:</div>
+    <div class="val" style="left:180pt; width:280pt; font-size:{{ $fit($inspDate, 280) }}pt;">{{ $inspDate }}</div>
 </div>
 <div style="position:relative; margin-top:2pt;">
-    <div class="lbl lab" style="position:absolute; left:20pt; top:0; width:112pt; height:18pt; line-height:18pt;">Remarks:</div>
-    <div style="margin-left:134pt; width:250pt;">
+    <div class="lbl lab" style="position:absolute; left:20pt; top:0; width:150pt; height:18pt; line-height:18pt;">Remarks:</div>
+    <div style="margin-left:180pt; width:280pt;">
         @foreach ($remarks as $line)
-            <div class="rrow" style="font-size:{{ $fit($line, 250, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+            <div class="rrow" style="font-size:{{ $fit($line, 280, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
         @endforeach
     </div>
 </div>
@@ -225,6 +237,31 @@
             <td style="width:50%;">
                 <div class="lab" style="margin-bottom:2pt;">Inspected by:</div>
                 @include('pdf._signer', ['heading' => '', 's' => $insp, 'caption' => 'Name and Signature of the<br>Vice President for Student Development'])
+            </td>
+        </tr>
+    </table>
+@endif
+
+@if ($doctor)
+    {{-- The University Doctor's remarks, recorded when they sign --}}
+    <div style="position:relative; margin-top:12pt;">
+        <div class="lbl lab" style="position:absolute; left:20pt; top:0; width:150pt; height:18pt; line-height:18pt;">Doctor's Remarks:</div>
+        <div style="margin-left:180pt; width:280pt;">
+            @foreach ($doctorRemarks as $line)
+                <div class="rrow" style="font-size:{{ $fit($line, 280, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+            @endforeach
+        </div>
+    </div>
+    <div class="ln" style="height:18pt; margin-top:4pt;">
+        <div class="lbl lab" style="left:20pt; width:150pt;">Date Seen:</div>
+        <div class="val" style="left:180pt; width:280pt; font-size:{{ $fit($doctorDate, 280) }}pt;">{{ $doctorDate }}</div>
+    </div>
+    <table class="sg" style="margin-top:6pt;">
+        <tr>
+            <td style="width:50%;"></td>
+            <td style="width:50%;">
+                <div class="lab" style="margin-bottom:2pt;">Seen by:</div>
+                @include('pdf._signer', ['heading' => '', 's' => $doctorSigner, 'caption' => 'Name and Signature of the<br>University Doctor'])
             </td>
         </tr>
     </table>

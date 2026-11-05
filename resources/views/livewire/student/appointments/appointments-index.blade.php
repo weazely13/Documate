@@ -39,16 +39,7 @@
 
 <div class="mx-auto max-w-6xl space-y-5 pb-28" @if ($live) wire:poll.5s @endif>
 
-    {{-- Header --}}
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div class="min-w-0">
-            <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">Appointments</h1>
-            <p class="mt-0.5 text-sm text-slate-500">Your visits to the VPSD office, with your queue number once they are approved.</p>
-        </div>
-        <a href="{{ route('student.appointments.new') }}" wire:navigate class="{{ $btnPrimary }} shrink-0">
-            <i class="bx bx-plus text-base" aria-hidden="true"></i> Book an appointment
-        </a>
-    </div>
+    <h1 class="sr-only">Appointments</h1>
 
     @if ($booked)
         <p class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">
@@ -67,7 +58,7 @@
                 @php $on = $filter === $key; @endphp
                 <button type="button" wire:click="setFilter('{{ $key }}')" @if ($on) aria-current="page" @endif class="{{ $segS($on && $viewMode === 'list') }}">
                     @if ($key === 'past')<span class="sm:hidden">Past</span><span class="hidden sm:inline">{{ $label }}</span>@else{{ $label }}@endif
-                    <span class="rounded-full px-1.5 text-[11px] tabular-nums {{ $on && $viewMode === 'list' ? 'bg-[#e2e9f7] text-[#1E4090]' : 'bg-white/80 text-slate-600' }}">{{ $counts[$key] }}</span>
+                    <span class="rounded-full px-1.5 text-[11px] tabular-nums max-sm:hidden {{ $on && $viewMode === 'list' ? 'bg-[#e2e9f7] text-[#1E4090]' : 'bg-white/80 text-slate-600' }}">{{ $counts[$key] }}</span>
                 </button>
             @endforeach
         </nav>
@@ -81,6 +72,9 @@
                 </button>
             @endforeach
         </div>
+        <a href="{{ route('student.appointments.new') }}" wire:navigate class="{{ $btnPrimary }} shrink-0 !px-2.5 sm:!px-3" title="Book an appointment" aria-label="Book an appointment">
+            <i class="bx bx-plus text-base" aria-hidden="true"></i><span class="max-sm:sr-only">Book</span>
+        </a>
     </div>
 
     {{-- ============ List: one row per visit, date first ============ --}}

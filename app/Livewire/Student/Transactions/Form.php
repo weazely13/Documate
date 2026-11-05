@@ -241,8 +241,43 @@ class Form extends Component
 
     /* ------------------------------------------------------------------ */
 
+    /** An officer-only form opened by a student who has no officer record: they may look, not file. */
+    #[Computed]
+    public function blockedNotOfficer(): bool
+    {
+        return $this->isEditable
+            && $this->isOwner
+            && $this->document->restrictedToOfficers()
+            && ! Auth::user()?->isOfficer();
+    }
+
+    /**
+     * "Edit in profile" from the form: keep what was typed as a draft first, then open the profile.
+     * Answers that would not pass even the draft rules are not saved (nothing half-valid is stored).
+     */
+    public function saveAndEditProfile()
+    {
+        if ($this->isEditable && ! $this->blockedNotOfficer && ($this->workspaceId || array_filter($this->answers(), fn ($v) => $v !== null && $v !== '' && $v !== false && $v !== []))) {
+            try {
+                $this->pruneSlots();
+                $this->validate($this->rules(false), [], $this->attributes());
+                DB::transaction(fn () => $this->persist());
+                session()->flash('status', 'Your form was saved as a draft. You can finish it from My documents.');
+            } catch (\Illuminate\Validation\ValidationException|WorkflowException) {
+                // Not saved; the profile still opens.
+            }
+        }
+
+        return $this->redirectRoute('profile', navigate: true);
+    }
+
     public function saveDraft()
     {
+        if ($this->blockedNotOfficer) {
+            $this->addError('form', 'Only officers of a student organization can use this form.');
+
+            return;
+        }
         $this->pruneSlots();
         $this->validate($this->rules(false), [], $this->attributes());
 
@@ -265,6 +300,11 @@ class Form extends Component
 
     public function submit()
     {
+        if ($this->blockedNotOfficer) {
+            $this->addError('form', 'Only officers of a student organization can use this form.');
+
+            return;
+        }
         $this->pruneSlots();
         $snapshot = $this->studentSnapshot();
 

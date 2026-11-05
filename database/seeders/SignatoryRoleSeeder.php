@@ -32,12 +32,14 @@ class SignatoryRoleSeeder extends Seeder
             ['personnel', 'Personnel', 'none'],
             ['discipline_chairman', 'Discipline Committee Chairman', 'none'],
             ['ssc_adviser', 'SSC Adviser', 'none'],
+            ['university_doctor', 'University Doctor', 'none'],
             // scoped
             ['org_adviser', 'Organization Adviser', 'organization'],
             ['org_treasurer', 'Organization Treasurer', 'organization'],
             ['program_chair', 'Academic Chair / Program Coordinator', 'program'],
             ['college_dean', 'College Dean', 'college'],
             ['homeroom_adviser', 'Homeroom Adviser', 'program'],
+            ['year_level_adviser', 'Year-level Adviser', 'year_level'],
         
         ];
 
