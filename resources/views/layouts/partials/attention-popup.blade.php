@@ -1,6 +1,6 @@
-{{-- "Something to check": a small pop-up on every page that lists what the sidebar's numbers count,
-     each linking to its page. The page you are on is left out. Closing it keeps it closed until a number changes
-     (per browser tab); otherwise it shows on each page and fades after a while.
+{{-- "Something to check": a small pop-up on a page whose sidebar tab has a number, saying what that number
+     counts on this page (e.g. on Workflow Review: "52 transactions need your review"). Other pages' numbers stay
+     in the sidebar. Closing it keeps it closed until the number changes (per browser tab); otherwise it fades.
      Needs: $navSections (from layouts.app). --}}
 @php
     $plural = fn (int $n, string $one, string $many) => $n . ' ' . ($n === 1 ? $one : $many);
@@ -20,7 +20,8 @@
     $alerts = [];
     foreach ($navSections as $section) {
         foreach ($section['items'] as [$label, $icon, $routeName, $patterns, $badge]) {
-            if ($badge > 0 && ! request()->routeIs(...$patterns) && \Illuminate\Support\Facades\Route::has($routeName)) {
+            // Only this page's own tab
+            if ($badge > 0 && request()->routeIs(...$patterns)) {
                 $alerts[] = [
                     'key' => $routeName . ':' . $badge,
                     'text' => isset($sayFor[$routeName]) ? $sayFor[$routeName]($badge) : $label . ': ' . $badge,
@@ -50,17 +51,16 @@
          x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
         <div class="attention-pop-head">
             <span class="attention-pop-bell" aria-hidden="true"><i class='bx bxs-bell-ring'></i></span>
-            <p class="attention-pop-title">{{ count($alerts) === 1 ? 'Something to check' : count($alerts) . ' things to check' }}</p>
+            <p class="attention-pop-title">Something to check here</p>
             <button type="button" @click="close()" class="attention-pop-close" aria-label="Close"><i class='bx bx-x'></i></button>
         </div>
         <ul class="attention-pop-list">
             @foreach ($alerts as $a)
                 <li>
-                    <a href="{{ $a['url'] }}" wire:navigate @click="close()">
+                    <div class="attention-pop-item">
                         <i class='bx {{ $a['icon'] }}' aria-hidden="true"></i>
-                        <span class="attention-pop-text">{{ $a['text'] }}<span class="attention-pop-page">{{ $a['page'] }}</span></span>
-                        <i class='bx bx-chevron-right attention-pop-go' aria-hidden="true"></i>
-                    </a>
+                        <span class="attention-pop-text">{{ $a['text'] }}.</span>
+                    </div>
                 </li>
             @endforeach
         </ul>

@@ -1856,3 +1856,24 @@ a[href*="document.lookup"]:hover .group-hover {
 .attention-pop-page { font-size: .7rem; color: #66707f; }
 .attention-pop-go { color: #9a978f; font-size: 1.1rem; }
 @media (max-width: 767px) { .attention-pop { top: 66px; left: 10px; right: 10px; width: auto; max-width: none; } }
+.attention-pop-item { display: flex; align-items: center; gap: 10px; padding: 4px 8px 6px; }
+.attention-pop-item > .bx { font-size: 1.15rem; color: #2A57B4; }
+
+/* The "Something to check" pop-up steps aside for side panels, the same way the AI Assistant button does */
+.attention-pop { transition-property: right, opacity, visibility; transition-duration: .2s; }
+@media (max-width: 639.98px) {
+    body.wf-panel-open .attention-pop { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+@media (min-width: 640px) and (max-width: 1535.98px) {
+    body.wf-panel-open .attention-pop { right: calc(440px + 1rem); max-width: calc(100vw - 440px - 2rem); }
+}
+@media (min-width: 1536px) {
+    body.wf-panel-open .attention-pop { right: calc(420px + 3rem); }
+}
+@media (min-width: 1024px) {
+    body.report-ai-open .attention-pop { right: calc(27rem + 2.25rem); max-width: calc(100vw - 27rem - 3.75rem); }
+}
+@media (max-width: 1023.98px) {
+    body.report-ai-open .attention-pop { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+body.report-pdf-open .attention-pop { opacity: 0; visibility: hidden; pointer-events: none; }

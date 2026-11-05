@@ -192,13 +192,25 @@
                 </a>
             </div>
 
-            {{-- View bar: AI filter, sort, legend, bulk AI check --}}
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="-mx-4 flex min-w-0 items-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] max-sm:w-[calc(100%+2rem)] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
+            {{-- View bar, one row: the robot runs the AI check on what is not checked yet (with how many), then the AI
+                 filters; the waiting legend and the sort on the right. On phones the filters scroll sideways. --}}
+            <div class="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap">
+                <div class="-mx-4 flex min-w-0 items-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] max-sm:w-[calc(100%+2rem)] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
                      role="group" aria-label="Filter by AI check">
-                    <span class="mr-1 inline-flex shrink-0 items-center gap-1 text-sm text-slate-500">
-                        <i class="bx bx-bot text-base text-slate-400" aria-hidden="true"></i> AI check
-                    </span>
+                    @if ($uncheckedInTab > 0)
+                        <button type="button" wire:click="checkUnchecked" wire:loading.attr="disabled" wire:target="checkUnchecked"
+                                class="relative mr-1 inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg border border-[#2A57B4]/30 bg-[#f0f4fb] px-2 text-sm font-medium text-[#24499A] transition-colors hover:bg-[#e2e9f7] disabled:opacity-60 [@media(pointer:coarse)]:min-h-11 {{ $focus }}"
+                                title="Run the AI check on the {{ $uncheckedInTab }} {{ Str::plural('document', $uncheckedInTab) }} in this list that {{ $uncheckedInTab === 1 ? 'has' : 'have' }} not been checked yet"
+                                aria-label="Run the AI check on {{ $uncheckedInTab }} unchecked {{ Str::plural('document', $uncheckedInTab) }}">
+                            <i class="bx bx-bot text-lg" wire:loading.remove wire:target="checkUnchecked" aria-hidden="true"></i>
+                            <i class="bx bx-loader-alt animate-spin text-lg" wire:loading wire:target="checkUnchecked" aria-hidden="true"></i>
+                            <span class="tabular-nums">{{ $uncheckedInTab }}</span>
+                        </button>
+                    @else
+                        <span class="mr-1 inline-flex shrink-0 items-center px-1 text-slate-400" title="AI check: everything in this list has been checked">
+                            <i class="bx bx-bot text-lg" aria-hidden="true"></i><span class="sr-only">AI check</span>
+                        </span>
+                    @endif
                     @foreach ($aiFilters as $key => $label)
                         <button type="button" wire:click="setAi('{{ $key }}')" aria-pressed="{{ $ai === $key ? 'true' : 'false' }}"
                                 class="inline-flex min-h-8 shrink-0 items-center whitespace-nowrap rounded-lg px-2.5 text-sm transition-colors [@media(pointer:coarse)]:min-h-11 {{ $focus }}
@@ -208,21 +220,13 @@
                     @endforeach
                 </div>
 
-                <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto">
-                    @if ($uncheckedInTab > 0)
-                        <button type="button" wire:click="checkUnchecked" wire:loading.attr="disabled" wire:target="checkUnchecked" class="{{ $btnSecondary }} shrink-0 !px-3"
-                                title="{{ $uncheckedInTab }} {{ Str::plural('document', $uncheckedInTab) }} in this list {{ $uncheckedInTab === 1 ? 'has' : 'have' }} not been checked by the AI yet. Click to check {{ $uncheckedInTab === 1 ? 'it' : 'them' }} now.">
-                            <i class="bx bx-bot text-base text-[#2A57B4]" aria-hidden="true"></i>
-                            <span class="sm:hidden">Run AI check ({{ $uncheckedInTab }})</span>
-                            <span class="hidden sm:inline">Run AI check on {{ $uncheckedInTab }} {{ Str::plural('document', $uncheckedInTab) }}</span>
-                        </button>
-                    @endif
+                <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:shrink-0">
 
                     @if (in_array($tab, \App\Livewire\Admin\Workflow\Index::FLAGGED_TABS, true))
                         <details class="relative shrink-0" x-data @click.outside="$el.removeAttribute('open')">
                             <summary class="inline-flex min-h-9 min-w-9 cursor-pointer list-none items-center justify-center gap-1 rounded-lg px-2 text-sm text-slate-600 hover:bg-slate-100 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [&::-webkit-details-marker]:hidden {{ $focus }}">
                                 <i class="bx bx-info-circle text-lg text-slate-400" aria-hidden="true"></i>
-                                <span class="max-sm:sr-only">Waiting colours</span>
+                                <span class="max-2xl:sr-only">Waiting colours</span>
                             </summary>
                             <div class="absolute left-0 z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-lg sm:left-auto sm:right-0">
                                 <p class="text-xs text-slate-500">Counted in school days.</p>
@@ -236,7 +240,7 @@
                     @endif
 
                     <label for="sort-menu" class="sr-only">Sort by</label>
-                    <select id="sort-menu" wire:model.live="sort" class="h-9 min-w-0 flex-1 py-0 sm:w-56 sm:flex-none [@media(pointer:coarse)]:h-11 {{ $field }}">
+                    <select id="sort-menu" wire:model.live="sort" class="h-9 min-w-0 flex-1 py-0 sm:w-48 sm:flex-none [@media(pointer:coarse)]:h-11 {{ $field }}">
                         @foreach ($sortOptions as $value => $text)
                             <option value="{{ $value }}">{{ $text }}</option>
                         @endforeach

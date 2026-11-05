@@ -100,7 +100,8 @@
             <p class="text-sm text-slate-500">{{ $totalCount ? 'Try another search or category.' : 'Create your first form template.' }}</p>
         </div>
     @else
-        <ul class="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {{-- Same card as My documents, Issued documents and Uploads: the whole page, its status on the corner, then the details --}}
+        <ul class="grid grid-cols-2 content-start gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
             @foreach ($templates as $t)
                 @php
                     $v = $t->currentVersion;
@@ -108,23 +109,23 @@
                     $public = $t->status === 'active';
                     $cat = $t->category?->value ?? $t->category;
                 @endphp
-                <li wire:key="tpl-{{ $t->template_id }}" class="group min-w-0">
+                <li wire:key="tpl-{{ $t->template_id }}" class="group relative flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] motion-reduce:hover:translate-y-0">
                     <div class="relative">
                         <a href="{{ route('admin.templates.editor', $t->template_id) }}"
-                           class="relative grid aspect-[4/5] place-items-center overflow-hidden rounded-xl bg-[#eef0f3] p-4 ring-1 ring-slate-200 transition group-hover:ring-2 group-hover:ring-[#2A57B4]/50 {{ $focus }}"
+                           class="relative block aspect-[842/1171] overflow-hidden rounded-t-xl border-b border-slate-200 bg-white {{ $focus }}"
                            aria-label="Open {{ $t->name }}">
                             @if ($v?->image_path)
                                 <img src="{{ Storage::disk('public')->url($v->image_path) }}" alt="" loading="lazy"
-                                     class="max-h-full max-w-full bg-white object-contain shadow-[0_1px_2px_rgba(15,23,42,0.12),0_10px_24px_-12px_rgba(15,23,42,0.4)] transition duration-300 group-hover:-translate-y-0.5">
+                                     class="absolute inset-0 h-full w-full bg-white object-contain">
                             @else
-                                <span class="grid aspect-[210/297] h-full place-items-center rounded bg-white text-slate-300 shadow-sm"><i class="bx bx-image text-3xl"></i></span>
+                                <span class="absolute inset-0 grid place-items-center bg-[#f0f4fb] text-[#1E4090]"><i class="bx bx-image text-4xl"></i></span>
                             @endif
                             <span class="absolute inset-x-0 bottom-0 flex translate-y-2 justify-center pb-3 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
                                 <span class="inline-flex h-8 items-center gap-1 rounded-lg bg-[#2A57B4] px-3.5 text-[13px] font-medium text-white shadow-md"><i class="bx bx-edit-alt text-sm"></i> Open editor</span>
                             </span>
                         </a>
 
-                        <span class="pointer-events-none absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium shadow-sm {{ $public ? 'bg-emerald-600 text-white' : 'bg-white/95 text-slate-600 ring-1 ring-slate-200' }}">
+                        <span class="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ring-1 {{ $public ? 'bg-emerald-50 text-emerald-800 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-slate-200' }}">
                             <i class="bx {{ $public ? 'bx-globe' : 'bx-lock-alt' }} text-xs" aria-hidden="true"></i>{{ $public ? 'Public' : 'Private' }}
                         </span>
 
@@ -157,12 +158,12 @@
                         </div>
                     </div>
 
-                    <div class="mt-2.5 px-0.5">
-                        <a href="{{ route('admin.templates.editor', $t->template_id) }}" class="block truncate text-sm font-semibold text-slate-900 hover:text-[#2A57B4]" title="{{ $t->name }}">{{ $t->name }}</a>
+                    <div class="flex flex-1 flex-col p-3 sm:p-3.5">
+                        <a href="{{ route('admin.templates.editor', $t->template_id) }}" class="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-[#2A57B4]" title="{{ $t->name }}">{{ $t->name }}</a>
                         <p class="mt-0.5 truncate text-xs text-slate-500">
                             {{ $sizeLabel($v) }} · {{ $fields }} {{ Str::plural('field', $fields) }}@if ($t->student_workspaces_count) · used {{ number_format($t->student_workspaces_count) }}×@endif
                         </p>
-                        <p class="mt-1 flex items-center justify-between gap-2 text-xs">
+                        <p class="mt-auto flex pt-1.5 items-center justify-between gap-2 text-xs">
                             @if ($cat)
                                 <span class="truncate text-slate-500">{{ \App\Enums\DocumentCategory::from($cat)->label() }}</span>
                             @else
