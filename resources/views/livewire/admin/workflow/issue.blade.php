@@ -77,7 +77,23 @@
          }"
          @message.window="measure($event)" @resize.window="fit()">
         <div class="flex items-center justify-between gap-3">
-            <h1 class="min-w-0 truncate text-lg font-semibold tracking-[-0.015em] text-slate-900 sm:text-xl">{{ $document->name() }}</h1>
+            @if ($showPicker)
+                {{-- The title is the picker: the admin switches the document from here. Switching clears the answers,
+                     so it asks first when some are filled in. --}}
+                @php $filled = collect($this->values)->filter(fn ($v) => $v !== null && $v !== '' && $v !== false)->isNotEmpty() || $studentId; @endphp
+                <h1 class="min-w-0" x-data="{ prev: @js($type) }">
+                    <label for="issue-doc" class="sr-only">Document to issue</label>
+                    <select id="issue-doc" wire:key="issue-doc-{{ $type }}" title="Choose the document to issue"
+                            @change="if (@js((bool) $filled) && ! confirm('Switch documents? The answers you have filled in will be cleared.')) { $el.value = prev } else { prev = $el.value; $wire.set('type', $el.value) }"
+                            class="block max-w-full cursor-pointer truncate rounded-lg border-0 bg-transparent py-1 pl-1.5 pr-9 -ml-1.5 text-lg font-semibold tracking-[-0.015em] text-slate-900 shadow-none transition-colors hover:bg-slate-100 focus:ring-2 focus:ring-[#2A57B4]/30 sm:text-xl">
+                        @foreach ($this->documentChoices as $key => [$docName, $docDesc])
+                            <option value="{{ $key }}" @selected($key === $type) class="text-base font-normal">{{ $docName }}</option>
+                        @endforeach
+                    </select>
+                </h1>
+            @else
+                <h1 class="min-w-0 truncate text-lg font-semibold tracking-[-0.015em] text-slate-900 sm:text-xl">{{ $document->name() }}</h1>
+            @endif
             <div class="flex shrink-0 items-center gap-2">
                 <button type="button" @click="$dispatch('open-intro')"
                         class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
@@ -154,25 +170,8 @@
         </div>
     @endif
 
-    {{-- Which document to issue. Signatories pick it before coming here (Explore / Home, ?doc=…); the admin, who
-         arrives from Workflow review, picks it here. Switching clears the answers, so it asks first when some are filled. --}}
-    @if ($showPicker)
-        @php $filled = collect($this->values)->filter(fn ($v) => $v !== null && $v !== '' && $v !== false)->isNotEmpty() || $studentId; @endphp
-        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4"
-             x-data="{ prev: @js($type) }">
-            <label for="issue-doc" class="mb-1.5 block text-sm font-medium text-slate-800">Document to issue</label>
-            <select id="issue-doc" wire:key="issue-doc-{{ $type }}"
-                    @change="if (@js((bool) $filled) && ! confirm('Switch documents? The answers you have filled in will be cleared.')) { $el.value = prev } else { prev = $el.value; $wire.set('type', $el.value) }"
-                    class="h-10 w-full rounded-lg border-slate-300 bg-white py-0 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm [@media(pointer:coarse)]:h-11">
-                @foreach ($this->documentChoices as $key => [$docName, $docDesc])
-                    <option value="{{ $key }}" @selected($key === $type)>{{ $docName }}</option>
-                @endforeach
-            </select>
-            @if ($this->documentChoices[$type][1] ?? '')
-                <p class="mt-1.5 text-xs leading-snug text-slate-500">{{ $this->documentChoices[$type][1] }}</p>
-            @endif
-        </div>
-    @endif
+    {{-- Which document to issue: signatories pick it before coming here (Explore / Home, ?doc=…); the admin picks it
+         from the title at the top of the page. --}}
 
     @php
         // Filled in on the printed page (resources/js/pdf-fill.js): the blanks the PDF prints, and which editor an error belongs to.

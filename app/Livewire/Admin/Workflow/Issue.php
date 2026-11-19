@@ -34,7 +34,7 @@ class Issue extends Component
     /** The saved draft being worked on (Save draft / Home "Pick up where you left off"). */
     public ?int $draftId = null;
 
-    /** The admin's page (from Workflow review) shows a document picker; signatories pick on Home or Explore first. */
+    /** The admin gets a dropdown of the documents they may issue; signatories pick on Home or Explore first. */
     public bool $showPicker = false;
 
     /** Documents this person may issue, for the picker: key => [name, description]. */
@@ -51,7 +51,10 @@ class Issue extends Component
     {
         $docs = $this->officeDocuments();
         abort_if(empty($docs), 404);
-        $this->showPicker = request()->routeIs('admin.workflow.issue') && count($docs) > 1;
+        // The admin picks the document here, whichever way they came in (Workflow review's "Issue a document" or the
+        // sidebar's "Issue a Report"). Dedicated signatories pick it on their Home / Explore first.
+        $this->showPicker = count($docs) > 1
+            && (request()->routeIs('admin.workflow.issue') || Auth::user()->isAdmin());
 
         // Home links straight to one report with ?doc=<key>; anything unknown falls back to the first.
         $asked = (string) request()->query('doc', '');
