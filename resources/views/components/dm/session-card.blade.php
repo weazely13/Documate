@@ -1,5 +1,5 @@
-{{-- A morning or afternoon session card, as on the admin dashboard: a flat sky (morning) or lavender
-     (afternoon) tint, a faint sun or cloud in the corner, a status pill, "N of M seen" and a progress bar.
+{{-- A morning or afternoon session card, as on the admin dashboard: the soft blue of every summary card
+     (App\Support\SummaryCard), a faint sun or cloud in the corner, a status pill, "N of M seen" and a progress bar.
      Sizes follow the nearest `cq` container, so two cards sit side by side even on a phone.
      Anything passed in the slot (now serving, actions, queue numbers) goes under the bar. --}}
 @props([
@@ -16,7 +16,7 @@
     $morning = $session === 'morning';
     $pct = $total > 0 ? min(100, (int) round($value / $total * 100)) : 0;
 @endphp
-<div {{ $attributes->merge(['class' => 'relative isolate flex min-w-0 flex-col overflow-hidden rounded-xl p-3 text-slate-900 cq-sm:p-4 ' . ($morning ? 'bg-[#dcecfa]' : 'bg-[#e6e0f5]')]) }}>
+<div {{ $attributes->merge(['class' => 'relative isolate flex min-w-0 flex-col overflow-hidden rounded-xl p-3 text-slate-900 cq-sm:p-4 bg-[#e8f0fb]']) }}>
     <i class="bx {{ $morning ? 'bx-sun' : 'bx-cloud' }} pointer-events-none absolute -bottom-3 -right-2 -z-10 text-5xl text-slate-900/[0.07] cq-sm:text-6xl" aria-hidden="true"></i>
     <div class="flex flex-wrap items-center justify-between gap-1">
         <p class="min-w-0 text-xs font-semibold cq-sm:text-sm">

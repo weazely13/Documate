@@ -49,7 +49,7 @@
         $tab === 'forms' ? ($sum['selectedForm']['label'] ?? null) : null,
         $tab === 'organizations' ? $sum['details'][2][1] ?? null : null,
         $tab === 'clearance' && $state['clearanceOrg'] ? $state['clearanceOrg'] : null,
-        $tab === 'clearance' && $state['status'] ? 'Status: ' . ($state['status'] === 'none' ? 'Not tagged' : $state['status']) : null,
+        $tab === 'clearance' && $state['status'] ? 'Status: ' . ($state['status'] === 'none' ? 'Untagged' : $state['status']) : null,
         $m['search'] ? 'Search: “' . $m['search'] . '”' : null,
     ], fn ($f) => $f && $f !== 'All organizations'));
 
@@ -57,22 +57,14 @@
     $tileColour = [
         'requests' => '#2A57B4', 'students' => '#0891B2', 'completed' => '#059669', 'returned' => '#E11D48',
         'orgs' => '#2A57B4', 'members' => '#0891B2', 'filed' => '#D97706', 'cleared' => '#059669',
-        'Cleared' => '#059669', 'Pending' => '#D97706', 'Uncleared' => '#E11D48', 'Not tagged' => '#64748B',
+        'Cleared' => '#059669', 'Pending' => '#D97706', 'Uncleared' => '#E11D48', 'Untagged' => '#64748B',
     ];
     $tiles = collect($sum['tiles'])->keyBy('key');
     $v = fn (string $key) => (int) ($tiles[$key]['value'] ?? 0);
 
     // ---------- status pills in the records ----------
-    $statusColour = function (?string $s) {
-        return match (true) {
-            in_array($s, ['Completed', 'Cleared'], true) => ['#DCFCE7', '#166534'],
-            $s === 'Approved' => ['#DBEAFE', '#1E40AF'],
-            in_array($s, ['Submitted', 'Under Review'], true) => ['#E0E7FF', '#3730A3'],
-            in_array($s, ['Action Required', 'Pending'], true) => ['#FEF3C7', '#92400E'],
-            in_array($s, ['Rejected', 'Voided', 'Uncleared'], true) => ['#FFE4E6', '#9F1239'],
-            default => ['#F1F5F9', '#475569'],
-        };
-    };
+    // The system-wide status colours (App\Support\StatusStyle), as print hex: [tint, text]
+    $statusColour = fn (?string $s) => \App\Support\StatusStyle::printColours($s);
     $statusCol = collect($m['metrics'])->search(fn ($k) => in_array($k, ['status', 'clearance'], true));
     $statusCol = $statusCol === false ? null : $statusCol + 1;
     $numericCols = collect($table['keys'])->filter(fn ($k) => in_array($k, $m['numeric'], true))->keys()->all();
@@ -105,20 +97,20 @@
     // ---------- terms used in the report, as the system defines them ----------
     $terms = match ($tab) {
         'forms' => [
-            ['Submitted', 'The student filed it; the office has not started reviewing it yet.'],
-            ['Under Review', 'The office and the signers are checking and signing it.'],
-            ['Action Required', 'Sent back to the student to fix or add something.'],
-            ['Approved', 'Every required signatory has approved it; final verification is next.'],
-            ['Completed', 'Final verification is done and the official document may be issued.'],
+            ['Pending', 'Filed and waiting for the office (online), or a paper form waiting for a visit.'],
+            ['Reviewing', 'The office is checking it.'],
+            ['Signing', 'The signers have been asked and are signing it.'],
+            ['Revision', 'Sent back to the student to fix or add something.'],
+            ['Signed', 'Every required signer has signed; the final check is next.'],
+            ['Completed', 'The final check is done and the official document may be issued.'],
             ['Rejected', 'Turned down by the office or a signer. It does not continue.'],
             ['Voided', 'A completed document the VPSD withdrew. It is kept for the record.'],
-            ['Pending', 'A paper form waiting for the office.'],
         ],
         default => [
             ['Cleared', 'An officer checked the student and found nothing owed for the semester.'],
             ['Pending', 'An officer started checking the student but has not finished.'],
             ['Uncleared', 'Something is still owed or missing.'],
-            ['Not tagged', 'No officer has checked the student yet this semester. This is not the same as Uncleared.'],
+            ['Untagged', 'No officer has checked the student yet this semester. This is not the same as Uncleared.'],
         ],
     };
 @endphp
@@ -462,7 +454,7 @@
                 @elseif ($tab === 'clearance')
                     When this semester’s clearance statuses were set, {{ $byUnit }}.
                 @else
-                    {{ $tab === 'organizations' ? 'Requests filed by members, and how many members filed' : 'Requests filed, completed and returned' }}, {{ $byUnit }}.
+                    {{ $tab === 'organizations' ? 'Requests filed by members, and how many members filed' : 'Filed, completed and rejected requests' }}, {{ $byUnit }}.
                 @endif
                 @if ($comparison) The {{ $m['chartType'] === 'bar' ? 'paler bars' : 'dashed lines' }} show {{ $comparison['label'] }}. @endif
             </p>

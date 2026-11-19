@@ -92,6 +92,14 @@ class DocumentUploadsIndex extends Component
         $this->currentPage = 1;
     }
 
+    /** The Filters pop-up's Reset: back to "Needs action", any date (the search stays). */
+    public function resetFilters(): void
+    {
+        $this->filter = 'needs_action';
+        $this->dateFrom = $this->dateTo = '';
+        $this->currentPage = 1;
+    }
+
     public function previousPage(): void
     {
         $this->currentPage = max(1, $this->currentPage - 1);

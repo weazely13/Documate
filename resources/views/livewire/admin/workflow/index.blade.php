@@ -10,23 +10,22 @@
     $btnSecondary = $btnBase . ' border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50';
     $btnDanger = $btnBase . ' border border-rose-200 bg-white text-rose-700 hover:bg-rose-50';
 
-    // One plain-language status per row: [text, text classes, icon + its colour].
+    // The status itself is the system-wide pill (<x-status-badge>, the words and colours on Reports);
+    // this is only the short note beside it, or null.
     $statusFor = function ($row, $queue) {
         return match (true) {
-            $queue === 'action_required' => ['For revision', 'text-slate-700', 'bx-hourglass text-amber-600'],
-            $queue === 'signing' => ['Signed ' . (int) $row->approved_count . ' of ' . (int) $row->approvals_count, 'text-slate-700', 'bx-pen text-violet-600'],
-            $row->workflow_status?->value === 'approved' => ['Ready to finish', 'font-medium text-emerald-700', 'bx-check-circle text-emerald-600'],
-            $row->workflow_status?->value === 'submitted' => ['New', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],
-            default => ['Under review', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],
+            $queue === 'signing' => (int) $row->approved_count . '/' . (int) $row->approvals_count . ' signed',
+            default => null,
         };
     };
 
     // Where the transaction is on its way (phone cards): [current step, labels, current tone: ring + text].
     $stageFor = function ($row) use ($tab) {
         return match (true) {
-            $tab === 'action_required' => [0, ['With student', 'Signing', 'Finish'], ['ring-amber-500', 'text-amber-800']],
-            $tab === 'signing' => [1, ['Review', 'Signed ' . (int) $row->approved_count . '/' . (int) $row->approvals_count, 'Finish'], ['ring-violet-600', 'text-violet-800']],
-            $row->workflow_status?->value === 'approved' => [2, ['Review', 'Signing', 'Ready to finish'], ['ring-emerald-600', 'text-emerald-700']],
+            $tab === 'action_required' => [0, ['Revision', 'Signing', 'Finish'], ['ring-amber-500', 'text-amber-800']],
+            $tab === 'issuance' => [2, ['Review', 'Signing', 'Issue'], ['ring-emerald-600', 'text-emerald-700']],
+            $tab === 'signing' => [1, ['Review', (int) $row->approved_count . '/' . (int) $row->approvals_count . ' signed', 'Finish'], ['ring-violet-600', 'text-violet-800']],
+            $row->workflow_status?->value === 'approved' => [2, ['Review', 'Signing', 'Ready'], ['ring-emerald-600', 'text-emerald-700']],
             default => [0, ['Review', 'Signing', 'Finish'], ['ring-[#2A57B4]', 'text-[#1E4090]']],
         };
     };
@@ -40,29 +39,24 @@
 
         return match (true) {
             $row->ai_flag === 'pending' => ['Checking', 'bg-sky-50 text-[#1E4090] ring-sky-200', 'bx-loader-alt bx-spin'],
-            $row->ai_flag === 'review_failed' => ['Check failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200', 'bx-error-circle'],
-            $row->ai_flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200', null],
-            $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200', null],
-            $rec === 'request_changes' => ['Suggests changes', 'bg-amber-50 text-amber-800 ring-amber-200', null],
-            $row->ai_flag === 'flagged' => ['Requires checking', 'bg-amber-50 text-amber-800 ring-amber-200', null],
-            default => ['No issues', 'bg-emerald-50 text-emerald-800 ring-emerald-200', null],
+            $row->ai_flag === 'review_failed' => ['Failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200', 'bx-error-circle'],
+            $row->ai_flag === null => ['Unchecked', 'bg-slate-100 text-slate-600 ring-slate-200', null],
+            $rec === 'reject' => ['Reject', 'bg-rose-50 text-rose-800 ring-rose-200', null],
+            $rec === 'request_changes' => ['Revise', 'bg-amber-50 text-amber-800 ring-amber-200', null],
+            $row->ai_flag === 'flagged' => ['Flagged', 'bg-amber-50 text-amber-800 ring-amber-200', null],
+            default => ['Clear', 'bg-emerald-50 text-emerald-800 ring-emerald-200', null],
         };
     };
 
     $nameFor = fn ($row) => $row->field_values['student_name'] ?? (($row->user?->full_name ?? '') ?: '-');
 
-    $initialsFor = function ($row) use ($nameFor) {
-        $parts = preg_split('/\s+/', trim($nameFor($row))) ?: [];
-        $first = mb_substr($parts[0] ?? '', 0, 1);
-        $last = count($parts) > 1 ? mb_substr(end($parts), 0, 1) : '';
-
-        return mb_strtoupper($first . $last) ?: '?';
-    };
+    $initialsFor = fn ($row) => \App\Support\Honorifics::initials($nameFor($row));
 
     // The student's photo, laid over their initials; if it is missing or fails to load, the initials show.
     $avatarFor = fn ($row) => $row->user?->profile_picture ? asset('storage/' . $row->user->profile_picture) : null;
 
-    $metaFor = fn ($row) => collect([$row->transaction_code, $row->user?->student_number])->filter()->implode(' · ');
+    // Under the student's name: when it was submitted (the code and student number are in the side panel)
+    $metaFor = fn ($row) => $row->submitted_at ? 'Submitted ' . $row->submitted_at->format('M j, Y') : '';
 
     // Priority lives in the Waiting cell alone: one calm type step per level, a soft chip once overdue.
     $waitStyle = fn ($w) => match ($w['level']) {
@@ -73,19 +67,30 @@
         default => 'text-slate-500',
     };
 
-    // Queue cards: Notion tints from DESIGN.md's work folders. [key, label, tint, accent text, icon, hint].
-    $cards = [
-        ['attention', 'To review', 'bg-[#dcecfa]', 'text-[#1E4090]', 'bx-time-five', 'Awaiting admin review'],
-        ['signing', 'In signing', 'bg-[#e6e0f5]', 'text-violet-700', 'bx-pen', 'Pending signatory action'],
-        ['action_required', 'For revision', 'bg-[#fef3c7]', 'text-amber-800', 'bx-hourglass', 'Sent back for changes'],
-    ];
+    // Time elapsed, in school days: [dot, word, range, what it means]
+    $legend = \App\Support\WaitingTime::legend();
+    // What each status pill on this page means: the system-wide word and colour (StatusStyle), in the order work moves.
+    $statusLegend = collect([
+        'submitted' => 'Sent by the student. The office has not opened it yet.',
+        'under_review' => 'The office is checking the answers.',
+        'signing' => 'Sent to the signatories. Waiting for their signatures.',
+        'action_required' => 'Sent back to the student to fix and resubmit.',
+        'approved' => 'Everyone has signed. Ready for the office to complete and issue.',
+    ])->map(function ($meaning, $state) {
+        $st = \App\Support\StatusStyle::transaction($state);
 
-    $legend = [
-        ['bg-slate-300', 'Under 1'],
-        ['bg-amber-300', '1–2'],
-        ['bg-orange-500', '3–4 Follow up'],
-        ['bg-red-600', '5–6 Urgent'],
-        ['bg-red-900', '7+ Overdue'],
+        return [\App\Support\StatusStyle::DOTS[$st['tone']] ?? 'bg-slate-400', $st['label'], '', $meaning];
+    })->values()->all();
+
+    // What each AI suggestion pill means: [dot, word, '', meaning], in the pills' colours.
+    $aiLegend = [
+        ['bg-emerald-500', 'Clear', '', 'Nothing looks wrong with the answers.'],
+        ['bg-amber-500', 'Flagged', '', 'Something may be off. Open it and take a closer look.'],
+        ['bg-amber-500', 'Revise', '', 'The AI would send it back to the student for revision.'],
+        ['bg-rose-500', 'Reject', '', 'The AI would reject it, for example for made-up or unrelated answers.'],
+        ['bg-slate-400', 'Unchecked', '', 'Not checked yet. Run it with the robot icon in the side panel.'],
+        ['bg-sky-500', 'Checking', '', 'The check is running. It usually takes a few seconds.'],
+        ['bg-orange-500', 'Failed', '', 'The check could not finish. Run it again from the side panel.'],
     ];
 
     $pageIds = $rows->getCollection()->map(fn ($r) => (string) $r->workspace_id)->values();
@@ -94,11 +99,20 @@
 
 <div class="mx-auto max-w-[1440px] space-y-5" @if ($polling) wire:poll.5s @endif>
 
-    <h1 class="sr-only">{{ $viewingFlagged ? 'Flagged by AI' : $tabs[$tab] }}</h1>
+    <h1 class="sr-only">{{ $viewingFlagged ? 'Flagged' : $tabs[$tab] }}</h1>
 
-    {{-- Queue cards: each in its DESIGN.md work tint, the count with the faces of who waits longest beside it --}}
-    <nav class="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Queues">
-        @foreach ($cards as [$key, $label, $tint, $accent, $icon, $hint])
+    {{-- Queue cards, in the order a request finishes: Issuance (signed, or issued by a signatory: the office issues
+         it), Signing, Revision, Review, then the AI's Flagged shortlist. [key, label, icon, hint] --}}
+    @php
+        $cards = [
+            ['issuance', 'Issuance', 'bx-badge-check', 'Signed, ready to issue'],
+            ['signing', 'Signing', 'bx-pen', 'With the signers'],
+            ['action_required', 'Revision', 'bx-hourglass', 'With the student to fix'],
+            ['attention', 'Review', 'bx-time-five', 'For the office to check'],
+        ];
+    @endphp
+    <nav class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5" aria-label="Queues">
+        @foreach ($cards as [$key, $label, $icon, $hint])
             @php
                 $current = $tab === $key && ! $viewingFlagged;
                 $late = $lateCounts[$key] ?? 0;
@@ -106,9 +120,8 @@
             @endphp
             <button type="button" wire:click="openQueue('{{ $key }}')" wire:key="card-{{ $key }}"
                     @if ($current) aria-current="page" @endif
-                    class="relative isolate flex flex-col overflow-hidden rounded-2xl border p-3.5 text-left transition sm:p-4 {{ $tint }} {{ $focus }}
-                        {{ $current ? 'border-[#2A57B4] shadow-[0_0_0_1px_#2A57B4]' : 'border-transparent hover:brightness-[0.98]' }}">
-                <i class="bx {{ $icon }} pointer-events-none absolute -bottom-3 -right-2 -z-10 text-6xl text-slate-900/[0.07]" aria-hidden="true"></i>
+                    class="{{ \App\Support\SummaryCard::BOX }} {{ \App\Support\SummaryCard::tone($current) }} {{ $focus }}">
+                <i class="bx {{ $icon }} {{ \App\Support\SummaryCard::ICON }}" aria-hidden="true"></i>
                 <span class="flex items-center gap-2.5">
                     <span class="text-2xl font-semibold leading-none tracking-[-0.02em] tabular-nums text-slate-900">{{ $counts[$key] }}</span>
                     <span class="flex -space-x-1.5" aria-hidden="true">
@@ -125,9 +138,9 @@
                 <span class="mt-2 block text-sm font-semibold leading-tight text-slate-900 sm:text-[15px]">{{ $label }}</span>
                 <span class="mt-0.5 block truncate text-xs text-slate-600">
                     @if ($late)
-                        <span class="font-medium text-red-700">{{ $late }} overdue</span> ·
+                        <span class="font-medium text-red-700">{{ $late }} Overdue</span> ·
                     @endif
-                    {{ $oldest?->submitted_at ? 'Oldest ' . $oldest->submitted_at->format('M j, Y') : $hint }}
+                    {{ $oldest?->submitted_at ? 'Since ' . $oldest->submitted_at->format('M j') : $hint }}
                 </span>
             </button>
         @endforeach
@@ -135,14 +148,13 @@
         {{-- The AI's shortlist: the review queue, narrowed to what it wants a person to look at --}}
         <button type="button" wire:click="showFlagged" wire:key="card-flagged"
                 @if ($viewingFlagged) aria-current="page" @endif
-                class="relative isolate flex flex-col overflow-hidden rounded-2xl border bg-[#fde0ec] p-3.5 text-left transition sm:p-4 {{ $focus }}
-                    {{ $viewingFlagged ? 'border-[#2A57B4] shadow-[0_0_0_1px_#2A57B4]' : 'border-transparent hover:brightness-[0.98]' }}">
-            <i class="bx bx-bot pointer-events-none absolute -bottom-3 -right-2 -z-10 text-6xl text-slate-900/[0.07]" aria-hidden="true"></i>
+                class="{{ \App\Support\SummaryCard::BOX }} {{ \App\Support\SummaryCard::tone($viewingFlagged) }} {{ $focus }}">
+            <i class="bx bx-bot {{ \App\Support\SummaryCard::ICON }}" aria-hidden="true"></i>
             <span class="flex items-center gap-2.5">
                 <span class="text-2xl font-semibold leading-none tracking-[-0.02em] tabular-nums text-slate-900">{{ $flaggedCount }}</span>
                 <span class="flex -space-x-1.5" aria-hidden="true">
                     @foreach ($flaggedFaces->take(3) as $f)
-                        <span class="relative grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-white text-[9px] font-semibold tracking-tight text-rose-800 ring-2 ring-white/90">
+                        <span class="relative grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-white text-[9px] font-semibold tracking-tight text-[#1E4090] ring-2 ring-white/90">
                             {{ $initialsFor($f) }}
                             @if ($avatarFor($f))
                                 <img src="{{ $avatarFor($f) }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">
@@ -151,34 +163,75 @@
                     @endforeach
                 </span>
             </span>
-            <span class="mt-2 block text-sm font-semibold leading-tight text-slate-900 sm:text-[15px]">Flagged by AI</span>
-            <span class="mt-0.5 block truncate text-xs text-slate-600">{{ $flaggedCount ? 'In To review, worth a closer look' : 'Nothing flagged in To review' }}</span>
+            <span class="mt-2 block text-sm font-semibold leading-tight text-slate-900 sm:text-[15px]">Flagged</span>
+            <span class="mt-0.5 block truncate text-xs text-slate-600">{{ $flaggedCount ? 'AI says check these' : 'Nothing flagged' }}</span>
         </button>
     </nav>
-
-    @if ($readyCount > 0 || $overdue->isNotEmpty())
-        <div class="flex flex-wrap gap-2 text-sm">
-            @if ($readyCount > 0)
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-emerald-800 ring-1 ring-emerald-200">
-                    <i class="bx bx-check-circle text-base" aria-hidden="true"></i>
-                    {{ $readyCount }} ready to finish in To review
-                </span>
-            @endif
-            @if ($overdue->isNotEmpty())
-                <span role="status" class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-rose-800 ring-1 ring-rose-200">
-                    <i class="bx bx-error text-base" aria-hidden="true"></i>
-                    {{ $overdue->count() }} waiting for 7+ school days
-                </span>
-            @endif
-        </div>
-    @endif
 
     {{-- List and, when a row is selected, the panel beside it (a drawer on smaller screens) --}}
     <div class="{{ $panel ? '2xl:grid 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:items-start 2xl:gap-5' : '' }}">
 
         <div class="cq min-w-0 space-y-3">
-            {{-- Search and the one primary action, over the list --}}
+            {{-- One row: Filters (a pop-up like Clearance Monitoring's), the search, the one primary action.
+                 The page still scrolls while the pop-up is open: its backdrop lets the wheel and touch through,
+                 and a click outside closes it. Sorting is on the column headers. --}}
             <div class="flex items-center gap-2">
+                @php $fsel = 'h-9 w-full py-0 text-sm [@media(pointer:coarse)]:h-11 ' . $field; @endphp
+                <x-admin.filters-popup :count="$activeFilters" reset="resetFilters">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Time elapsed</span>
+                            <select wire:model.live="elapsed" class="{{ $fsel }}">
+                                <option value="">All</option>
+                                @foreach ($filterOptions['elapsed'] as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">AI suggestion</span>
+                            <select wire:model.live="ai" class="{{ $fsel }}">
+                                @foreach ($aiFilters as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="col-span-2 block">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Document</span>
+                            <select wire:model.live="docType" class="{{ $fsel }}">
+                                <option value="">All</option>
+                                @foreach ($filterOptions['docs'] as $key => $label)
+                                    <option value="{{ $key }}">{{ \Illuminate\Support\Str::limit($label, 48) }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="col-span-2 block">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Program</span>
+                            <select wire:model.live="program" class="{{ $fsel }}">
+                                <option value="">All</option>
+                                @foreach ($filterOptions['programs'] as $id => $name)
+                                    <option value="{{ $id }}">{{ \Illuminate\Support\Str::limit($name, 48) }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="col-span-2 block">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Year level</span>
+                            <select wire:model.live="year" class="{{ $fsel }}">
+                                <option value="">All</option>
+                                @foreach ($filterOptions['years'] as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Submitted from</span>
+                            <input type="date" wire:model.live="dateFrom" max="{{ now()->toDateString() }}" class="{{ $fsel }}">
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Submitted to</span>
+                            <input type="date" wire:model.live="dateTo" max="{{ now()->toDateString() }}" class="{{ $fsel }}">
+                        </label>
+                </x-admin.filters-popup>
+
                 <div class="relative min-w-0 flex-1">
                     <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" aria-hidden="true"></i>
                     <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, code or document"
@@ -191,100 +244,38 @@
                     <span class="hidden sm:inline">Issue a document</span>
                 </a>
             </div>
-
-            {{-- View bar, one row: the robot runs the AI check on what is not checked yet (with how many), then the AI
-                 filters; the waiting legend and the sort on the right. On phones the filters scroll sideways. --}}
-            <div class="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap">
-                <div class="-mx-4 flex min-w-0 items-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] max-sm:w-[calc(100%+2rem)] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
-                     role="group" aria-label="Filter by AI check">
-                    @if ($uncheckedInTab > 0)
-                        <button type="button" wire:click="checkUnchecked" wire:loading.attr="disabled" wire:target="checkUnchecked"
-                                class="relative mr-1 inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg border border-[#2A57B4]/30 bg-[#f0f4fb] px-2 text-sm font-medium text-[#24499A] transition-colors hover:bg-[#e2e9f7] disabled:opacity-60 [@media(pointer:coarse)]:min-h-11 {{ $focus }}"
-                                title="Run the AI check on the {{ $uncheckedInTab }} {{ Str::plural('document', $uncheckedInTab) }} in this list that {{ $uncheckedInTab === 1 ? 'has' : 'have' }} not been checked yet"
-                                aria-label="Run the AI check on {{ $uncheckedInTab }} unchecked {{ Str::plural('document', $uncheckedInTab) }}">
-                            <i class="bx bx-bot text-lg" wire:loading.remove wire:target="checkUnchecked" aria-hidden="true"></i>
-                            <i class="bx bx-loader-alt animate-spin text-lg" wire:loading wire:target="checkUnchecked" aria-hidden="true"></i>
-                            <span class="tabular-nums">{{ $uncheckedInTab }}</span>
-                        </button>
-                    @else
-                        <span class="mr-1 inline-flex shrink-0 items-center px-1 text-slate-400" title="AI check: everything in this list has been checked">
-                            <i class="bx bx-bot text-lg" aria-hidden="true"></i><span class="sr-only">AI check</span>
-                        </span>
-                    @endif
-                    @foreach ($aiFilters as $key => $label)
-                        <button type="button" wire:click="setAi('{{ $key }}')" aria-pressed="{{ $ai === $key ? 'true' : 'false' }}"
-                                class="inline-flex min-h-8 shrink-0 items-center whitespace-nowrap rounded-lg px-2.5 text-sm transition-colors [@media(pointer:coarse)]:min-h-11 {{ $focus }}
-                                    {{ $ai === $key ? 'bg-[#e2e9f7] font-medium text-[#24499A]' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
-                            {{ $label }}
-                        </button>
-                    @endforeach
-                </div>
-
-                <div class="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:shrink-0">
-
-                    @if (in_array($tab, \App\Livewire\Admin\Workflow\Index::FLAGGED_TABS, true))
-                        <details class="relative shrink-0" x-data @click.outside="$el.removeAttribute('open')">
-                            <summary class="inline-flex min-h-9 min-w-9 cursor-pointer list-none items-center justify-center gap-1 rounded-lg px-2 text-sm text-slate-600 hover:bg-slate-100 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [&::-webkit-details-marker]:hidden {{ $focus }}">
-                                <i class="bx bx-info-circle text-lg text-slate-400" aria-hidden="true"></i>
-                                <span class="max-2xl:sr-only">Waiting colours</span>
-                            </summary>
-                            <div class="absolute left-0 z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-lg sm:left-auto sm:right-0">
-                                <p class="text-xs text-slate-500">Counted in school days.</p>
-                                <ul class="mt-2 space-y-1.5 text-sm text-slate-700">
-                                    @foreach ($legend as [$dot, $text])
-                                        <li class="flex items-center gap-2"><span class="h-2.5 w-2.5 shrink-0 rounded-full {{ $dot }}" aria-hidden="true"></span>{{ $text }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        </details>
-                    @endif
-
-                    <label for="sort-menu" class="sr-only">Sort by</label>
-                    <select id="sort-menu" wire:model.live="sort" class="h-9 min-w-0 flex-1 py-0 sm:w-48 sm:flex-none [@media(pointer:coarse)]:h-11 {{ $field }}">
-                        @foreach ($sortOptions as $value => $text)
-                            <option value="{{ $value }}">{{ $text }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
             {{-- Table, once the list is wide enough --}}
             <div class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white transition-opacity cq-md:block"
                  wire:loading.class="opacity-60" wire:loading.attr="aria-busy"
-                 wire:target="search, sort, setTab, setAi, showFlagged, sortBy, gotoPage, nextPage, previousPage">
+                 wire:target="search, sort, setTab, setAi, showFlagged, sortBy, gotoPage, nextPage, previousPage, elapsed, ai, docType, program, year, dateFrom, dateTo, resetFilters">
                 <table class="min-w-full text-sm">
                     <thead class="border-b border-slate-200 text-xs">
                         <tr>
-                            <th scope="col" class="w-10 py-2.5 pl-4 pr-1">
-                                @if ($pageIds->isNotEmpty())
-                                    <input type="checkbox" aria-label="Select all on this page"
-                                           @checked($pageIds->diff($picked)->isEmpty())
-                                           x-on:change="$wire.set('picked', $event.target.checked ? @js($pageIds) : [])"
-                                           class="h-4 w-4 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]/30">
-                                @endif
-                            </th>
+                            <th scope="col" class="w-12 py-2.5 pl-4 pr-1 text-left font-medium text-slate-500">#</th>
                             <x-admin.sort-th key="student" label="Student" :sort="$sortKey" :dir="$sortDir" class="!py-2.5" />
                             <th scope="col" class="px-4 py-2.5 text-left font-medium text-slate-500">Document</th>
-                            <x-admin.sort-th key="status" label="Status" :sort="$sortKey" :dir="$sortDir" class="!py-2.5" />
-                            <x-admin.sort-th key="risk" label="AI check" :sort="$sortKey" :dir="$sortDir" class="!py-2.5" />
-                            <x-admin.sort-th key="waiting" label="Waiting" :sort="$sortKey" :dir="$sortDir" class="!py-2.5" />
+                            <x-admin.sort-th key="status" label="Status" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
+                                <x-admin.legend-tip label="What the statuses mean" note="Where each request is in its workflow." :items="$statusLegend" />
+                            </x-admin.sort-th>
+                            <x-admin.sort-th key="risk" label="AI suggestion" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
+                                <x-admin.legend-tip label="What the AI suggestions mean" note="The AI reads the answers before you do. It only suggests: you make the decision." :items="$aiLegend" />
+                            </x-admin.sort-th>
+                            <x-admin.sort-th key="waiting" label="Time elapsed" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
+                                <x-admin.legend-tip label="What the time words mean" note="Time elapsed, in school days (d). Weekends do not count." :items="$legend" />
+                            </x-admin.sort-th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($rows as $row)
                             @php
                                 $doc = DocumentRegistry::find($row->document_type);
-                                [$statusText, $statusClass, $statusIcon] = $statusFor($row, $tab);
+                                $statusNote = $statusFor($row, $tab);
                                 $aiPill = $aiFor($row);
                                 $isOpen = $selected === $row->workspace_id;
                             @endphp
                             <tr wire:key="row-{{ $row->workspace_id }}" wire:click="select({{ $row->workspace_id }})"
                                 class="cursor-pointer transition-colors {{ $isOpen ? 'bg-[#f0f4fb]' : 'hover:bg-slate-50' }}">
-                                <td class="py-3 pl-4 pr-1" wire:click.stop>
-                                    <input type="checkbox" wire:model.live="picked" value="{{ $row->workspace_id }}"
-                                           aria-label="Select {{ $nameFor($row) }}, {{ $row->transaction_code }}"
-                                           class="h-4 w-4 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]/30">
-                                </td>
+                                <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($rows->firstItem() ?? 1) + $loop->index }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
                                         <span class="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e2e9f7] text-xs font-semibold text-[#1E4090]" aria-hidden="true">
@@ -312,9 +303,8 @@
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3">
-                                    <span class="inline-flex items-center gap-1.5 text-[13px] {{ $statusClass }}">
-                                        <i class="bx {{ $statusIcon }} text-base" aria-hidden="true"></i>{{ $statusText }}
-                                    </span>
+                                    <x-status-badge :workspace="$row" />
+                                    @if ($statusNote)<p class="mt-1 text-xs tabular-nums text-slate-500">{{ $statusNote }}</p>@endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3">
                                     @if ($aiPill)
@@ -328,10 +318,7 @@
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3">
-                                    <span class="inline-flex items-center gap-2 {{ $waitStyle($row->waiting) }}">
-                                        <span class="h-2 w-2 shrink-0 rounded-full {{ $row->waiting['dot'] }}" aria-hidden="true"></span>
-                                        {{ $row->waiting['text'] }}
-                                    </span>
+                                    <x-dm.time-elapsed :w="$row->waiting" class="{{ $waitStyle($row->waiting) }}" />
                                 </td>
                             </tr>
                         @empty
@@ -348,7 +335,7 @@
             {{-- Cards on narrow lists: tap to open the panel --}}
             <ul class="grid gap-3 transition-opacity cq-sm:grid-cols-2 cq-md:hidden" aria-label="{{ $tabs[$tab] }}"
                 wire:loading.class="opacity-60" wire:loading.attr="aria-busy"
-                wire:target="search, sort, setTab, setAi, showFlagged, sortBy, gotoPage, nextPage, previousPage">
+                wire:target="search, sort, setTab, setAi, showFlagged, sortBy, gotoPage, nextPage, previousPage, elapsed, ai, docType, program, year, dateFrom, dateTo, resetFilters">
                 @forelse ($rows as $row)
                     @php
                         $doc = DocumentRegistry::find($row->document_type);
@@ -400,10 +387,7 @@
                             </ol>
 
                             <span class="mt-4 flex w-full items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
-                                <span class="inline-flex items-center gap-2 {{ $waitStyle($row->waiting) }}">
-                                    <span class="h-2 w-2 shrink-0 rounded-full {{ $row->waiting['dot'] }}" aria-hidden="true"></span>
-                                    {{ $row->waiting['text'] }}
-                                </span>
+                                <x-dm.time-elapsed :w="$row->waiting" class="{{ $waitStyle($row->waiting) }}" />
                                 <span class="inline-flex items-center text-xs font-medium text-[#2A57B4]">Details <i class="bx bx-chevron-right text-base" aria-hidden="true"></i></span>
                             </span>
                         </button>
@@ -426,29 +410,6 @@
         @endif
     </div>
 
-    {{-- Bulk bar: appears once rows are ticked --}}
-    @if (count($picked))
-        <div class="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
-            <div class="pointer-events-auto flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 pl-3 shadow-lg" role="region" aria-label="Selected transactions">
-                <span class="mr-2 text-sm font-medium tabular-nums text-slate-800" role="status">{{ count($picked) }} selected</span>
-                <button type="button" wire:click="checkPicked" wire:loading.attr="disabled" wire:target="checkPicked"
-                        class="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 [@media(pointer:coarse)]:min-h-11 {{ $focus }}">
-                    <i class="bx bx-bot text-base text-[#2A57B4]" aria-hidden="true"></i> Run AI check
-                </button>
-                @if (count($picked) === 1)
-                    <a href="{{ route('admin.workflow.show', (int) reset($picked)) }}" wire:navigate
-                       class="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 [@media(pointer:coarse)]:min-h-11 {{ $focus }}">
-                        Open record
-                    </a>
-                @endif
-                <button type="button" wire:click="clearPicked" aria-label="Clear selection"
-                        class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 {{ $focus }}">
-                    <i class="bx bx-x text-xl" aria-hidden="true"></i>
-                </button>
-            </div>
-        </div>
-    @endif
-
     {{-- Request changes / Reject, from the panel --}}
     @if ($decision && $panel)
         <div class="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4"
@@ -457,7 +418,7 @@
             <div class="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6"
                  x-data x-init="$nextTick(() => $refs.msg.focus())">
                 <h2 id="decision-title" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">
-                    {{ $decision === 'request' ? 'Request changes' : 'Reject this transaction' }}
+                    {{ $decision === 'request' ? 'For Revision' : 'For Rejection' }}
                 </h2>
                 <p id="decision-lead" class="mt-1 text-sm text-slate-500">
                     {{ $nameFor($panel['ws']) }} · {{ $panel['document']?->name() }}.

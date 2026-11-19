@@ -3,8 +3,11 @@
     $input = 'rounded-lg border-slate-300 bg-white text-base shadow-sm cq-sm:text-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20';
     $formInput = 'mt-1 w-full ' . $input;
     $label = 'block text-sm font-medium text-slate-700';
-    $card = 'rounded-xl border border-slate-200 bg-white shadow-sm';
-    $thead = 'border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500';
+    // Cards and tables in the Workflow review style: 16px corners, no shadow, a plain header over a hairline.
+    $card = 'rounded-2xl border border-slate-200 bg-white';
+    $thead = 'border-b border-slate-200 text-xs font-medium text-slate-500';
+    // The Filters pop-up's selects
+    $fsel = 'h-9 w-full rounded-lg border-slate-300 bg-white py-0 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 [@media(pointer:coarse)]:h-11';
     $primaryBtn = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] disabled:opacity-60 [@media(pointer:coarse)]:min-h-11 ' . $focus;
     $secondaryBtn = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 [@media(pointer:coarse)]:min-h-11 ' . $focus;
     $error = 'mt-1 text-sm text-rose-700';
@@ -16,7 +19,7 @@
     // Filters: search, then every dropdown on a single row that scrolls sideways when narrow.
     $filterBar = 'relative z-10 flex items-center gap-2 rounded-t-xl border border-slate-200 bg-white p-3 shadow-sm';
     // The table card right under a filter bar joins it into one card.
-    $joined = '!mt-0 rounded-t-none border-t-0';
+    $joined = '';
     $filterSearch = 'h-9 w-full rounded-lg border-slate-300 bg-white py-0 pl-9 pr-3 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 cq-sm:text-sm [@media(pointer:coarse)]:h-11';
     $filterRow = 'flex shrink-0 items-center gap-1.5 sm:gap-2';
     $pill = 'h-9 shrink-0 rounded-lg border-slate-300 bg-white py-0 pl-3 pr-8 text-sm text-slate-700 shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 [@media(pointer:coarse)]:h-11';
@@ -40,47 +43,37 @@
         @if ($panel === 'organizations')
             <x-admin.alert :message="session('org_message')" />
 
-            <div class="{{ $toolbar }}">
-                <p class="text-sm text-slate-500">{{ $organizations->total() }} {{ Str::plural('organization', $organizations->total()) }}</p>
-                <button type="button" wire:click="openForm('org')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Add organization</button>
-            </div>
-
-            <div class="{{ $filterBar }}">
-                <div class="relative min-w-0 flex-1 sm:max-w-sm">
-                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
+            {{-- One row, as on Workflow review: Filters, the search, then the main action --}}
+            <div class="flex items-center gap-2">
+                <x-admin.filters-popup :count="(int) filled($filterOrgCollege) + (int) filled($filterOrgProgram) + (int) filled($filterOrgStatus)" reset="clearPopupFilters('org')">
+                    <label class="block min-w-0">
+                        <span class="mb-1 block text-xs font-medium text-slate-600">College</span>
+                        <select wire:model.live="filterOrgCollege" class="{{ $fsel }}">
+                            <option value="">All colleges</option>
+                            @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
+                        </select>
+                    </label>
+                    <label class="block min-w-0">
+                        <span class="mb-1 block text-xs font-medium text-slate-600">Status</span>
+                        <select wire:model.live="filterOrgStatus" class="{{ $fsel }}">
+                            <option value="">Any status</option>
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </label>
+                    <label class="col-span-2 block">
+                        <span class="mb-1 block text-xs font-medium text-slate-600">Program</span>
+                        <select wire:model.live="filterOrgProgram" class="{{ $fsel }}">
+                            <option value="">All programs</option>
+                            @foreach ($filterPrograms as $p) <option value="{{ $p->id }}">{{ Str::limit($p->name, 48) }}</option> @endforeach
+                        </select>
+                    </label>
+                </x-admin.filters-popup>
+                <div class="relative min-w-0 flex-1">
+                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400' aria-hidden="true"></i>
                     <input type="search" wire:model.live.debounce.300ms="filterOrgSearch" placeholder="Search organizations" aria-label="Search organizations" class="{{ $filterSearch }}">
                 </div>
-                <div class="{{ $filterRow }}">
-                    <label class="{{ $pickWrap }}" title="College">
-                        <i class="bx bx-buildings text-lg sm:!hidden" aria-hidden="true"></i>
-                        @if (filled($filterOrgCollege))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                        <span class="sr-only">College</span>
-                        <select wire:model.live="filterOrgCollege" class="{{ $pickField }}">
-                        <option value="">All colleges</option>
-                        @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
-                    </select>
-                    </label>
-                    <label class="{{ $pickWrap }}" title="Program">
-                        <i class="bx bx-book-bookmark text-lg sm:!hidden" aria-hidden="true"></i>
-                        @if (filled($filterOrgProgram))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                        <span class="sr-only">Program</span>
-                        <select wire:model.live="filterOrgProgram" class="{{ $pickField }} max-w-[180px]">
-                        <option value="">All programs</option>
-                        @foreach ($filterPrograms as $p) <option value="{{ $p->id }}">{{ $p->name }}</option> @endforeach
-                    </select>
-                    </label>
-                    <label class="{{ $pickWrap }}" title="Status">
-                        <i class="bx bx-toggle-left text-lg sm:!hidden" aria-hidden="true"></i>
-                        @if (filled($filterOrgStatus))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                        <span class="sr-only">Status</span>
-                        <select wire:model.live="filterOrgStatus" class="{{ $pickField }}">
-                        <option value="">Any status</option>
-                        <option value="1">Active</option>
-                        <option value="0">Inactive</option>
-                    </select>
-                    </label>
-                    <button type="button" wire:click="clearFilters(\'org\')" class="{{ $clearBtn }}" title="Clear filters"><i class="bx bx-reset text-lg sm:!hidden" aria-hidden="true"></i><span class="max-sm:sr-only">Clear</span></button>
-                </div>
+                <button type="button" wire:click="openForm('org')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i><span class="max-sm:sr-only">Add organization</span></button>
             </div>
 
             <div class="{{ $card }} {{ $joined }} overflow-hidden">
@@ -88,17 +81,19 @@
                     <table class="w-full text-sm">
                         <thead class="{{ $thead }}">
                             <tr>
-                                <th class="px-4 py-3 text-left">Organization</th>
-                                <th class="hidden px-4 py-3 text-left cq-lg:table-cell">Program</th>
-                                <th class="px-4 py-3 text-center">Members</th>
-                                <th class="px-4 py-3 text-center">Officers</th>
-                                <th class="px-4 py-3 text-left">Status</th>
-                                <th class="px-4 py-3 text-right">Actions</th>
+                                <th class="w-12 py-2.5 pl-4 pr-1 text-left">#</th>
+                                <th class="px-4 py-2.5 text-left">Organization</th>
+                                <th class="hidden px-4 py-2.5 text-left cq-lg:table-cell">Program</th>
+                                <th class="px-4 py-2.5 text-center">Members</th>
+                                <th class="px-4 py-2.5 text-center">Officers</th>
+                                <th class="px-4 py-2.5 text-left">Status</th>
+                                <th class="px-4 py-2.5 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($organizations as $org)
-                                <tr wire:key="org-{{ $org->id }}">
+                                <tr wire:key="org-{{ $org->id }}" class="transition-colors hover:bg-slate-50">
+                                    <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($organizations->firstItem() ?? 1) + $loop->index }}</td>
                                     <td class="max-w-[220px] px-4 py-3 font-medium text-slate-900">
                                         <div class="truncate" title="{{ $org->name }}">{{ $org->name }}</div>
                                         @if ($org->year_level)
@@ -144,7 +139,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">No organizations match your filters.</td></tr>
+                                <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">No organizations match your filters.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -323,38 +318,30 @@
         @if ($panel === 'programs')
             <x-admin.alert :message="session('program_message')" />
 
-            <div class="{{ $toolbar }}">
-                <p class="text-sm text-slate-500">{{ $programs->total() }} {{ Str::plural('program', $programs->total()) }}</p>
-                <button type="button" wire:click="openForm('program')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Add program</button>
-            </div>
-
-            <div class="{{ $filterBar }}">
-                <div class="relative min-w-0 flex-1 sm:max-w-sm">
-                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
+            {{-- One row, as on Workflow review: Filters, the search, then the main action --}}
+            <div class="flex items-center gap-2">
+                <x-admin.filters-popup :count="(int) filled($filterProgCollege) + (int) filled($filterProgStatus)" reset="clearPopupFilters('prog')">
+                    <label class="block min-w-0">
+                        <span class="mb-1 block text-xs font-medium text-slate-600">College</span>
+                        <select wire:model.live="filterProgCollege" class="{{ $fsel }}">
+                            <option value="">All colleges</option>
+                            @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
+                        </select>
+                    </label>
+                    <label class="block min-w-0">
+                        <span class="mb-1 block text-xs font-medium text-slate-600">Status</span>
+                        <select wire:model.live="filterProgStatus" class="{{ $fsel }}">
+                            <option value="">Any status</option>
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </label>
+                </x-admin.filters-popup>
+                <div class="relative min-w-0 flex-1">
+                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400' aria-hidden="true"></i>
                     <input type="search" wire:model.live.debounce.300ms="filterProgSearch" placeholder="Search programs" aria-label="Search programs" class="{{ $filterSearch }}">
                 </div>
-                <div class="{{ $filterRow }}">
-                    <label class="{{ $pickWrap }}" title="College">
-                        <i class="bx bx-buildings text-lg sm:!hidden" aria-hidden="true"></i>
-                        @if (filled($filterProgCollege))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                        <span class="sr-only">College</span>
-                        <select wire:model.live="filterProgCollege" class="{{ $pickField }}">
-                        <option value="">All colleges</option>
-                        @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
-                    </select>
-                    </label>
-                    <label class="{{ $pickWrap }}" title="Status">
-                        <i class="bx bx-toggle-left text-lg sm:!hidden" aria-hidden="true"></i>
-                        @if (filled($filterProgStatus))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                        <span class="sr-only">Status</span>
-                        <select wire:model.live="filterProgStatus" class="{{ $pickField }}">
-                        <option value="">Any status</option>
-                        <option value="1">Active</option>
-                        <option value="0">Inactive</option>
-                    </select>
-                    </label>
-                    <button type="button" wire:click="clearFilters(\'prog\')" class="{{ $clearBtn }}" title="Clear filters"><i class="bx bx-reset text-lg sm:!hidden" aria-hidden="true"></i><span class="max-sm:sr-only">Clear</span></button>
-                </div>
+                <button type="button" wire:click="openForm('program')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i><span class="max-sm:sr-only">Add program</span></button>
             </div>
 
             <div class="{{ $card }} {{ $joined }} overflow-hidden">
@@ -362,17 +349,19 @@
                     <table class="w-full text-sm">
                         <thead class="{{ $thead }}">
                             <tr>
-                                <th class="px-4 py-3 text-left">Program</th>
-                                <th class="px-4 py-3 text-left">College</th>
-                                <th class="px-4 py-3 text-center">Orgs</th>
-                                <th class="px-4 py-3 text-center">Students</th>
-                                <th class="px-4 py-3 text-left">Status</th>
-                                <th class="px-4 py-3 text-right">Actions</th>
+                                <th class="w-12 py-2.5 pl-4 pr-1 text-left">#</th>
+                                <th class="px-4 py-2.5 text-left">Program</th>
+                                <th class="px-4 py-2.5 text-left">College</th>
+                                <th class="px-4 py-2.5 text-center">Orgs</th>
+                                <th class="px-4 py-2.5 text-center">Students</th>
+                                <th class="px-4 py-2.5 text-left">Status</th>
+                                <th class="px-4 py-2.5 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($programs as $program)
-                                <tr wire:key="prog-{{ $program->id }}">
+                                <tr wire:key="prog-{{ $program->id }}" class="transition-colors hover:bg-slate-50">
+                                    <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($programs->firstItem() ?? 1) + $loop->index }}</td>
                                     <td class="max-w-[260px] px-4 py-3 font-medium text-slate-900">
                                         <div class="truncate" title="{{ $program->name }}">{{ $program->name }}</div>
                                     </td>
@@ -397,7 +386,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">No programs match your filters.</td></tr>
+                                <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">No programs match your filters.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -468,8 +457,7 @@
         @if ($panel === 'positions')
             <x-admin.alert :message="session('position_message')" />
 
-            <div class="{{ $toolbar }}">
-                <p class="text-sm text-slate-500">{{ $positions->count() }} {{ Str::plural('position', $positions->count()) }}</p>
+            <div class="flex items-center justify-end gap-2">
                 <button type="button" wire:click="openForm('position')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Add position</button>
             </div>
 
@@ -478,14 +466,16 @@
                 <table class="w-full text-sm">
                     <thead class="{{ $thead }}">
                         <tr>
-                            <th class="px-4 py-3 text-left">Title</th>
-                            <th class="px-4 py-3 text-center">Currently held</th>
-                            <th class="px-4 py-3 text-right">Actions</th>
+                            <th class="w-12 py-2.5 pl-4 pr-1 text-left">#</th>
+                            <th class="px-4 py-2.5 text-left">Title</th>
+                            <th class="px-4 py-2.5 text-center">Currently held</th>
+                            <th class="px-4 py-2.5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($positionsPaged as $position)
-                            <tr wire:key="pos-{{ $position->id }}">
+                            <tr wire:key="pos-{{ $position->id }}" class="transition-colors hover:bg-slate-50">
+                                <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($positionsPaged->firstItem() ?? 1) + $loop->index }}</td>
                                 <td class="px-4 py-3 font-medium text-slate-900">{{ $position->title }}</td>
                                 <td class="px-4 py-3 text-center text-slate-600">{{ $position->officers_count }}</td>
                                 <td class="space-x-2 whitespace-nowrap px-4 py-3 text-right">
@@ -494,7 +484,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">No positions yet.</td></tr>
+                            <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">No positions yet.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -540,46 +530,36 @@
         @if ($panel === 'officers')
             <x-admin.alert :message="session('assign_message')" />
 
-            <div class="{{ $toolbar }}">
-                <p class="text-sm text-slate-500">{{ $officers->total() }} {{ Str::plural('officer', $officers->total()) }}</p>
-                <button type="button" wire:click="openForm('officer')" class="{{ $addBtn }}"><i class='bx bx-user-plus text-lg' aria-hidden="true"></i>Assign officer</button>
-            </div>
-
-            <div class="{{ $filterBar }}">
-                <div class="relative min-w-0 flex-1 sm:max-w-sm">
-                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
+            {{-- One row, as on Workflow review: Filters, the search, then the main action --}}
+            <div class="flex items-center gap-2">
+                <x-admin.filters-popup :count="(int) filled($filterOffCollege) + (int) filled($filterOffOrg) + (int) filled($filterOffPosition)" reset="clearPopupFilters('off')">
+                    <label class="block min-w-0">
+                        <span class="mb-1 block text-xs font-medium text-slate-600">College</span>
+                        <select wire:model.live="filterOffCollege" class="{{ $fsel }}">
+                            <option value="">All colleges</option>
+                            @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
+                        </select>
+                    </label>
+                    <label class="block min-w-0">
+                        <span class="mb-1 block text-xs font-medium text-slate-600">Position</span>
+                        <select wire:model.live="filterOffPosition" class="{{ $fsel }}">
+                            <option value="">All positions</option>
+                            @foreach ($positions as $p) <option value="{{ $p->id }}">{{ $p->title }}</option> @endforeach
+                        </select>
+                    </label>
+                    <label class="col-span-2 block">
+                        <span class="mb-1 block text-xs font-medium text-slate-600">Organization</span>
+                        <select wire:model.live="filterOffOrg" class="{{ $fsel }}">
+                            <option value="">All organizations</option>
+                            @foreach ($filterOrgs as $o) <option value="{{ $o->id }}">{{ Str::limit($o->name, 48) }}</option> @endforeach
+                        </select>
+                    </label>
+                </x-admin.filters-popup>
+                <div class="relative min-w-0 flex-1">
+                    <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400' aria-hidden="true"></i>
                     <input type="search" wire:model.live.debounce.300ms="filterOffSearch" placeholder="Search name or student number" aria-label="Search officers" class="{{ $filterSearch }}">
                 </div>
-                <div class="{{ $filterRow }}">
-                    <label class="{{ $pickWrap }}" title="College">
-                        <i class="bx bx-buildings text-lg sm:!hidden" aria-hidden="true"></i>
-                        @if (filled($filterOffCollege))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                        <span class="sr-only">College</span>
-                        <select wire:model.live="filterOffCollege" class="{{ $pickField }}">
-                        <option value="">All colleges</option>
-                        @foreach ($colleges as $c) <option value="{{ $c->id }}">{{ $c->code }}</option> @endforeach
-                    </select>
-                    </label>
-                    <label class="{{ $pickWrap }}" title="Organization">
-                        <i class="bx bx-group text-lg sm:!hidden" aria-hidden="true"></i>
-                        @if (filled($filterOffOrg))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                        <span class="sr-only">Organization</span>
-                        <select wire:model.live="filterOffOrg" class="{{ $pickField }} max-w-[180px]">
-                        <option value="">All organizations</option>
-                        @foreach ($filterOrgs as $o) <option value="{{ $o->id }}">{{ Str::limit($o->name, 30) }}</option> @endforeach
-                    </select>
-                    </label>
-                    <label class="{{ $pickWrap }}" title="Position">
-                        <i class="bx bx-medal text-lg sm:!hidden" aria-hidden="true"></i>
-                        @if (filled($filterOffPosition))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                        <span class="sr-only">Position</span>
-                        <select wire:model.live="filterOffPosition" class="{{ $pickField }}">
-                        <option value="">All positions</option>
-                        @foreach ($positions as $p) <option value="{{ $p->id }}">{{ $p->title }}</option> @endforeach
-                    </select>
-                    </label>
-                    <button type="button" wire:click="clearFilters(\'off\')" class="{{ $clearBtn }}" title="Clear filters"><i class="bx bx-reset text-lg sm:!hidden" aria-hidden="true"></i><span class="max-sm:sr-only">Clear</span></button>
-                </div>
+                <button type="button" wire:click="openForm('officer')" class="{{ $addBtn }}"><i class='bx bx-user-plus text-lg' aria-hidden="true"></i><span class="max-sm:sr-only">Assign officer</span></button>
             </div>
 
             <div class="{{ $card }} {{ $joined }} overflow-hidden">
@@ -587,16 +567,18 @@
                     <table class="w-full text-sm">
                         <thead class="{{ $thead }}">
                             <tr>
-                                <th class="px-4 py-3 text-left">Student</th>
-                                <th class="px-4 py-3 text-left">Organization</th>
-                                <th class="px-4 py-3 text-left">Position</th>
-                                <th class="px-4 py-3 text-right">Actions</th>
+                                <th class="w-12 py-2.5 pl-4 pr-1 text-left">#</th>
+                                <th class="px-4 py-2.5 text-left">Student</th>
+                                <th class="px-4 py-2.5 text-left">Organization</th>
+                                <th class="px-4 py-2.5 text-left">Position</th>
+                                <th class="px-4 py-2.5 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($officers as $officer)
                                 @php $studentName = ($officer->user->full_name ?? ''); @endphp
-                                <tr wire:key="off-{{ $officer->id }}">
+                                <tr wire:key="off-{{ $officer->id }}" class="transition-colors hover:bg-slate-50">
+                                    <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($officers->firstItem() ?? 1) + $loop->index }}</td>
                                     <td class="max-w-[200px] px-4 py-3">
                                         <div class="truncate font-medium text-slate-900" title="{{ $studentName }}">{{ $studentName }}</div>
                                         <div class="text-xs text-slate-400">{{ $officer->user->student_number ?? '' }}</div>
@@ -613,7 +595,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="4" class="px-4 py-10 text-center text-slate-400">No officers match your filters.</td></tr>
+                                <tr><td colspan="5" class="px-4 py-10 text-center text-slate-400">No officers match your filters.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -733,7 +715,7 @@
 
             {{-- The section comes from the sidebar (?sig=). Jumps inside the page (e.g. "Review roles")
                  keep the URL and the sidebar highlight in step. "Add a signatory" is a modal, not a section. --}}
-            <div x-data="{ tab: @js($sigTab), coverage: false }"
+            <div x-data="{ tab: @js($sigTab) }"
                  x-init="$watch('tab', v => {
                      const url = new URL(window.location);
                      v === 'people' ? url.searchParams.delete('sig') : url.searchParams.set('sig', v);
@@ -746,110 +728,149 @@
                     <x-admin.alert :message="session($flashKey)" class="!mb-0" />
                 @endforeach
 
-                @if ($rolesWithoutHolder->isNotEmpty())
-                    <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
-                        <span>
-                            <strong>{{ $rolesWithoutHolder->count() }} {{ Str::plural('role', $rolesWithoutHolder->count()) }} without a signatory role.</strong>
-                            Documents requiring these roles cannot be sent for signing.
-                        </span>
-                        <button type="button" @click="tab = 'people'; coverage = true"
-                                class="text-xs font-semibold text-amber-800 underline hover:text-amber-950">Review roles</button>
+                {{-- ===== ROLE COVERAGE: which roles have someone who can sign, and which do not ===== --}}
+                @php
+                    $coveredCount = $activeRoles->count() - $rolesWithoutHolder->count();
+                    // Roles that need a signatory first, then the covered ones; each group by name.
+                    $coverageRows = $activeRoles
+                        ->sortBy(fn ($r) => [($sigHolderCounts[$r->id] ?? 0) > 0 ? 1 : 0, mb_strtolower($r->label)])
+                        ->values();
+                @endphp
+                <div x-show="tab === 'coverage'" x-cloak class="space-y-4">
+                    @if ($rolesWithoutHolder->isNotEmpty())
+                        <div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900" role="status">
+                            <i class="bx bx-error mt-0.5 text-base" aria-hidden="true"></i>
+                            <span>
+                                <strong>{{ $rolesWithoutHolder->count() }} {{ Str::plural('role', $rolesWithoutHolder->count()) }} without a signatory.</strong>
+                                Documents requiring these roles cannot be sent for signing.
+                            </span>
+                        </div>
+                    @elseif ($activeRoles->isNotEmpty())
+                        <div class="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-900" role="status">
+                            <i class="bx bx-check-circle mt-0.5 text-base" aria-hidden="true"></i>
+                            <span><strong>Every role has a signatory.</strong> Documents can be sent for signing.</span>
+                        </div>
+                    @endif
+
+                    {{-- Summary --}}
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        <span class="font-semibold text-slate-900">Role coverage</span>
+                        <span class="text-slate-500">{{ $coveredCount }} of {{ $activeRoles->count() }} {{ Str::plural('role', $activeRoles->count()) }} have an assigned signatory</span>
+                        @if ($rolesWithoutHolder->isNotEmpty())
+                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $rolesWithoutHolder->count() }} {{ Str::plural('role', $rolesWithoutHolder->count()) }} need a signatory</span>
+                        @endif
                     </div>
-                @endif
+
+                    <div class="{{ $card }} overflow-hidden">
+                        {{-- Table: the Workflow review table --}}
+                        <div class="{{ $wideTable }}">
+                            <table class="w-full text-sm">
+                                <thead class="{{ $thead }}">
+                                    <tr>
+                                        <th class="w-12 py-2.5 pl-4 pr-1 text-left">#</th>
+                                        <th class="px-4 py-2.5 text-left">Role</th>
+                                        <th class="px-4 py-2.5 text-left">Who it covers</th>
+                                        <th class="px-4 py-2.5 text-left">Coverage</th>
+                                        <th class="px-4 py-2.5 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @forelse ($coverageRows as $r)
+                                        @php $n = $sigHolderCounts[$r->id] ?? 0; @endphp
+                                        <tr wire:key="cov-{{ $r->id }}" class="transition-colors hover:bg-slate-50">
+                                            <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ $loop->iteration }}</td>
+                                            <td class="px-4 py-3">
+                                                <p class="max-w-[280px] truncate font-medium text-slate-900" title="{{ $r->label }}">{{ $r->label }}</p>
+                                                <p class="mt-0.5 font-mono text-[11px] text-slate-400">{{ $r->key }}</p>
+                                            </td>
+                                            <td class="whitespace-nowrap px-4 py-3">
+                                                <span class="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-[#2A57B4]">{{ $scopeText($r->scope) }}</span>
+                                            </td>
+                                            <td class="whitespace-nowrap px-4 py-3">
+                                                @if ($n > 0)
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200"><i class="bx bx-check" aria-hidden="true"></i>{{ $n }} {{ Str::plural('signatory', $n) }}</span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200"><i class="bx bx-error" aria-hidden="true"></i>Needs a signatory</span>
+                                                @endif
+                                            </td>
+                                            <td class="whitespace-nowrap px-4 py-3 text-right">
+                                                @if ($n > 0)
+                                                    <button type="button" wire:click="$set('filterSigRole', '{{ $r->id }}')" @click="tab = 'people'"
+                                                            class="{{ $rowBtn }}">View signatories</button>
+                                                @else
+                                                    <button type="button" wire:click="openForm('signatory', {{ $r->id }})"
+                                                            class="inline-flex min-h-8 items-center gap-1 rounded-lg bg-[#2A57B4] px-3 text-xs font-medium text-white shadow-sm hover:bg-[#24499A] [@media(pointer:coarse)]:min-h-11 {{ $focus }}">
+                                                        <i class="bx bx-user-plus text-sm" aria-hidden="true"></i>Assign signatory
+                                                    </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="5" class="px-4 py-12 text-center text-sm text-slate-400">No roles yet. Open <strong>Signatory roles</strong> to create the first one.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        {{-- Narrow: one row per role --}}
+                        <ul class="{{ $narrowList }}">
+                            @forelse ($coverageRows as $r)
+                                @php $n = $sigHolderCounts[$r->id] ?? 0; @endphp
+                                <li wire:key="cov-m-{{ $r->id }}" class="px-4 py-3.5">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="truncate font-semibold text-slate-900">{{ $r->label }}</p>
+                                            <p class="text-xs text-slate-500">{{ $scopeText($r->scope) }}</p>
+                                        </div>
+                                        @if ($n > 0)
+                                            <span class="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">{{ $n }} {{ Str::plural('signatory', $n) }}</span>
+                                        @else
+                                            <span class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">Needs a signatory</span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-2.5 flex justify-end">
+                                        @if ($n > 0)
+                                            <button type="button" wire:click="$set('filterSigRole', '{{ $r->id }}')" @click="tab = 'people'" class="{{ $rowBtn }}">View signatories</button>
+                                        @else
+                                            <button type="button" wire:click="openForm('signatory', {{ $r->id }})" class="{{ $rowBtn }} !border-[#2A57B4] !text-[#2A57B4]">Assign signatory</button>
+                                        @endif
+                                    </div>
+                                </li>
+                            @empty
+                                <li class="px-4 py-12 text-center text-sm text-slate-400">No roles yet. Open <strong>Signatory roles</strong> to create the first one.</li>
+                            @endforelse
+                        </ul>
+                    </div>
+                </div>
 
                 {{-- ===== WHO CAN SIGN ===== --}}
                 <div x-show="tab === 'people'" x-cloak class="space-y-4">
 
-                    <div class="{{ $toolbar }}">
-                        <p class="text-sm text-slate-500">{{ $signatoryAssignments->total() }} {{ Str::plural('assignment', $signatoryAssignments->total()) }}</p>
-                        <button type="button" wire:click="openForm('signatory')" class="{{ $addBtn }}"><i class='bx bx-user-plus text-lg' aria-hidden="true"></i>Add a signatory</button>
-                    </div>
-
-                    {{-- Role coverage: collapsed by default so the table is visible straight away --}}
-                    <div class="{{ $card }}">
-                        <button type="button" @click="coverage = !coverage" :aria-expanded="coverage"
-                                class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
-                            <span class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                                <span class="font-semibold text-slate-900">Role coverage</span>
-                                <span class="text-slate-500">{{ $activeRoles->count() - $rolesWithoutHolder->count() }} of {{ $activeRoles->count() }} roles have assigned signatory</span>
-                                @if ($rolesWithoutHolder->isNotEmpty())
-                                    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $rolesWithoutHolder->count() }} roles need a signatory</span>
-                                @endif
-                            </span>
-                            <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform" :class="coverage ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
-                        </button>
-
-                        <div x-show="coverage" x-cloak class="space-y-4 border-t border-slate-100 px-4 py-4">
-                            @if ($rolesWithoutHolder->isNotEmpty())
-                                <div>
-                                    <p class="mb-2 text-xs font-medium text-slate-500"> No signatory assigned. Select a role and assign an authorized signatory.</p>
-                                    <div class="flex flex-wrap gap-2">
-                                        @foreach ($rolesWithoutHolder as $r)
-                                            <button type="button" wire:key="need-{{ $r->id }}"
-                                                    wire:click="openForm('signatory', {{ $r->id }})"
-                                                    title="{{ $scopeText($r->scope) }}"
-                                                    class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100">
-                                                + {{ $r->label }}
-                                            </button>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-
-                            @php $coveredRoles = $activeRoles->reject(fn ($r) => ($sigHolderCounts[$r->id] ?? 0) === 0); @endphp
-                            @if ($coveredRoles->isNotEmpty())
-                                <div>
-                                    <p class="mb-2 text-xs font-medium text-slate-500">Signatories Assigned. Filter the table by role.</p>
-                                    <div class="flex flex-wrap gap-2">
-                                        @foreach ($coveredRoles as $r)
-                                            <button type="button" wire:key="cov-{{ $r->id }}"
-                                                    wire:click="$set('filterSigRole', '{{ $r->id }}')"
-                                                    @click="coverage = false"
-                                                    title="{{ $scopeText($r->scope) }}"
-                                                    class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                                                {{ $r->label }}
-                                                <span class="rounded-full bg-emerald-50 px-1.5 text-[11px] font-semibold text-emerald-700">{{ $sigHolderCounts[$r->id] }}</span>
-                                            </button>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-
-                            @if ($activeRoles->isEmpty())
-                                <p class="text-sm text-slate-500">No roles yet. Open <strong>Roles</strong> to create the first one.</p>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="{{ $filterBar }}">
-                        <div class="relative min-w-0 flex-1 sm:max-w-sm">
-                            <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
+                    {{-- One row, as on Workflow review: Filters, the search, then the main action --}}
+                    <div class="flex items-center gap-2">
+                        <x-admin.filters-popup :count="(int) filled($filterSigRole) + (int) filled($filterSigStatus)" reset="clearPopupFilters('sig')">
+                            <label class="col-span-2 block">
+                                <span class="mb-1 block text-xs font-medium text-slate-600">Role</span>
+                                <select wire:model.live="filterSigRole" class="{{ $fsel }}">
+                                    <option value="">All roles</option>
+                                    @foreach ($signatoryRoles as $r) <option value="{{ $r->id }}">{{ $r->label }}</option> @endforeach
+                                </select>
+                            </label>
+                            <label class="col-span-2 block">
+                                <span class="mb-1 block text-xs font-medium text-slate-600">Status</span>
+                                <select wire:model.live="filterSigStatus" class="{{ $fsel }}">
+                                    <option value="">Any status</option>
+                                    <option value="current">Can sign now</option>
+                                    <option value="upcoming">Starts later</option>
+                                    <option value="expired">Expired</option>
+                                    <option value="inactive">Ended</option>
+                                </select>
+                            </label>
+                        </x-admin.filters-popup>
+                        <div class="relative min-w-0 flex-1">
+                            <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400' aria-hidden="true"></i>
                             <input type="search" wire:model.live.debounce.300ms="filterSigSearch" placeholder="Search name or email" aria-label="Search signatories" class="{{ $filterSearch }}">
                         </div>
-                        <div class="{{ $filterRow }}">
-                            <label class="{{ $pickWrap }}" title="Role">
-                                <i class="bx bx-shield-quarter text-lg sm:!hidden" aria-hidden="true"></i>
-                                @if (filled($filterSigRole))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                                <span class="sr-only">Role</span>
-                                <select wire:model.live="filterSigRole" class="{{ $pickField }} max-w-[180px]">
-                                <option value="">All roles</option>
-                                @foreach ($signatoryRoles as $r) <option value="{{ $r->id }}">{{ $r->label }}</option> @endforeach
-                            </select>
-                            </label>
-                            <label class="{{ $pickWrap }}" title="Status">
-                                <i class="bx bx-toggle-left text-lg sm:!hidden" aria-hidden="true"></i>
-                                @if (filled($filterSigStatus))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                                <span class="sr-only">Status</span>
-                                <select wire:model.live="filterSigStatus" class="{{ $pickField }}">
-                                <option value="">Any status</option>
-                                <option value="current">Can sign now</option>
-                                <option value="upcoming">Starts later</option>
-                                <option value="expired">Expired</option>
-                                <option value="inactive">Ended</option>
-                            </select>
-                            </label>
-                            <button type="button" wire:click="clearFilters(\'sig\')" class="{{ $clearBtn }}" title="Clear filters"><i class="bx bx-reset text-lg sm:!hidden" aria-hidden="true"></i><span class="max-sm:sr-only">Clear</span></button>
-                        </div>
+                        <button type="button" wire:click="openForm('signatory')" class="{{ $addBtn }}"><i class='bx bx-user-plus text-lg' aria-hidden="true"></i><span class="max-sm:sr-only">Add a signatory</span></button>
                     </div>
 
                     <div class="{{ $card }} {{ $joined }} overflow-hidden">
@@ -857,11 +878,12 @@
                             <table class="w-full text-sm">
                                 <thead class="{{ $thead }}">
                                     <tr>
-                                        <th class="px-4 py-3 text-left">Person</th>
-                                        <th class="px-4 py-3 text-left">Signs as</th>
-                                        <th class="hidden px-4 py-3 text-left cq-lg:table-cell">Period</th>
-                                        <th class="px-4 py-3 text-left">Status</th>
-                                        <th class="px-4 py-3 text-right">Actions</th>
+                                        <th class="w-12 py-2.5 pl-4 pr-1 text-left">#</th>
+                                        <th class="px-4 py-2.5 text-left">Person</th>
+                                        <th class="px-4 py-2.5 text-left">Signs as</th>
+                                        <th class="hidden px-4 py-2.5 text-left cq-lg:table-cell">Period</th>
+                                        <th class="px-4 py-2.5 text-left">Status</th>
+                                        <th class="px-4 py-2.5 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
@@ -880,7 +902,8 @@
                                             $personName = ($assignment->user->full_name ?? '') ?: ('User #' . $assignment->user_id);
                                             $initials = strtoupper(substr($assignment->user->first_name ?? '?', 0, 1) . substr($assignment->user->last_name ?? '', 0, 1));
                                         @endphp
-                                        <tr wire:key="sigassign-{{ $assignment->id }}" class="{{ $assignment->is_active && ! $isExpired ? '' : 'bg-slate-50/60 text-slate-500' }}">
+                                        <tr wire:key="sigassign-{{ $assignment->id }}" class="transition-colors hover:bg-slate-50 {{ $assignment->is_active && ! $isExpired ? '' : 'bg-slate-50/60 text-slate-500' }}">
+                                            <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($signatoryAssignments->firstItem() ?? 1) + $loop->index }}</td>
                                             <td class="px-4 py-3">
                                                 <div class="flex items-center gap-3">
                                                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e2e9f7] text-xs font-semibold text-[#1E4090]">{{ $initials }}</span>
@@ -925,7 +948,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="px-4 py-12 text-center text-sm text-slate-400">
+                                            <td colspan="6" class="px-4 py-12 text-center text-sm text-slate-400">
                                                 No signatory found. Try clearing the filters, or <strong>Add a signatory</strong>.
                                             </td>
                                         </tr>
@@ -989,17 +1012,64 @@
 
                 {{-- ===== ROLES ===== --}}
                 <div x-show="tab === 'roles'" x-cloak class="space-y-4">
-                    <div class="{{ $toolbar }}">
-                        <!-- <p class="min-w-0 text-sm text-slate-500">Documents ask for roles, never for named people.</p> -->
+                    <div class="flex items-center justify-end gap-2">
                         <button type="button" wire:click="openForm('role')" class="{{ $addBtn }}"><i class='bx bx-plus text-lg' aria-hidden="true"></i>Create role</button>
                     </div>
 
                     <div class="{{ $card }} overflow-hidden">
-                        <div class="divide-y divide-slate-100">
+                        {{-- Table: the Workflow review table --}}
+                        <div class="{{ $wideTable }}">
+                            <table class="w-full text-sm">
+                                <thead class="{{ $thead }}">
+                                    <tr>
+                                        <th class="w-12 py-2.5 pl-4 pr-1 text-left">#</th>
+                                        <th class="px-4 py-2.5 text-left">Role</th>
+                                        <th class="px-4 py-2.5 text-left">Who it covers</th>
+                                        <th class="px-4 py-2.5 text-left">Signatories</th>
+                                        <th class="px-4 py-2.5 text-left">Status</th>
+                                        <th class="px-4 py-2.5 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @forelse ($rolesPaged as $r)
+                                        @php $n = $sigHolderCounts[$r->id] ?? 0; @endphp
+                                        <tr wire:key="sigrole-{{ $r->id }}" class="transition-colors hover:bg-slate-50 {{ $r->is_active ? '' : 'text-slate-500' }}">
+                                            <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($rolesPaged->firstItem() ?? 1) + $loop->index }}</td>
+                                            <td class="px-4 py-3">
+                                                <p class="max-w-[260px] truncate font-medium {{ $r->is_active ? 'text-slate-900' : 'text-slate-500' }}" title="{{ $r->label }}">{{ $r->label }}</p>
+                                                <p class="mt-0.5 font-mono text-[11px] text-slate-400">{{ $r->key }}</p>
+                                            </td>
+                                            <td class="whitespace-nowrap px-4 py-3">
+                                                <span class="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-[#2A57B4]">{{ $scopeText($r->scope) }}</span>
+                                            </td>
+                                            <td class="whitespace-nowrap px-4 py-3 text-xs font-medium {{ $n > 0 ? 'text-emerald-700' : 'text-amber-700' }}">
+                                                {{ $n > 0 ? $n . ' ' . Str::plural('person', $n) . ' can sign' : 'Nobody assigned yet' }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <button wire:click="toggleSignatoryRoleActive({{ $r->id }})"
+                                                        class="rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $r->is_active ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-500 ring-slate-200' }}"
+                                                        title="Click to turn {{ $r->is_active ? 'off' : 'on' }}">
+                                                    {{ $r->is_active ? 'On' : 'Off' }}
+                                                </button>
+                                            </td>
+                                            <td class="whitespace-nowrap px-4 py-3 text-right">
+                                                <button wire:click="editSignatoryRole({{ $r->id }})" class="px-1.5 py-2 text-xs font-medium text-blue-600 hover:underline">Edit</button>
+                                                <button wire:click="deleteSignatoryRole({{ $r->id }})" wire:confirm="Delete this role?" class="px-1.5 py-2 text-xs text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete role">
+                                                    <i class='bx bx-trash'></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="6" class="px-4 py-12 text-center text-sm text-slate-400">No roles yet. Use <strong>Create role</strong> to add the first one.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        {{-- Narrow: one row per role --}}
+                        <ul class="{{ $narrowList }}">
                             @forelse ($rolesPaged as $r)
                                 @php $n = $sigHolderCounts[$r->id] ?? 0; @endphp
-                                <div wire:key="sigrole-{{ $r->id }}"
-                                    class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 {{ $r->is_active ? '' : 'opacity-60' }}">
+                                <li wire:key="sigrole-m-{{ $r->id }}" class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 {{ $r->is_active ? '' : 'opacity-60' }}">
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">
                                             <p class="truncate text-sm font-semibold text-slate-900">{{ $r->label }}</p>
@@ -1012,20 +1082,17 @@
                                     </div>
                                     <div class="flex shrink-0 items-center gap-2">
                                         <button wire:click="toggleSignatoryRoleActive({{ $r->id }})"
-                                                class="rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $r->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }}"
-                                                title="Click to turn {{ $r->is_active ? 'off' : 'on' }}">
+                                                class="rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $r->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
                                             {{ $r->is_active ? 'On' : 'Off' }}
                                         </button>
-                                        <button wire:click="editSignatoryRole({{ $r->id }})" class="text-xs font-semibold text-blue-600 hover:underline">Edit</button>
-                                        <button wire:click="deleteSignatoryRole({{ $r->id }})" wire:confirm="Delete this role?" class="text-xs text-slate-400 hover:text-red-600" title="Delete" aria-label="Delete role">
-                                            <i class='bx bx-trash'></i>
-                                        </button>
+                                        <button wire:click="editSignatoryRole({{ $r->id }})" class="{{ $rowBtn }}">Edit</button>
+                                        <button wire:click="deleteSignatoryRole({{ $r->id }})" wire:confirm="Delete this role?" class="{{ $rowBtnDanger }}">Delete</button>
                                     </div>
-                                </div>
+                                </li>
                             @empty
-                                <p class="px-4 py-10 text-center text-sm text-slate-400">No roles yet. Use <strong>Create role</strong> to add the first one.</p>
+                                <li class="px-4 py-10 text-center text-sm text-slate-400">No roles yet. Use <strong>Create role</strong> to add the first one.</li>
                             @endforelse
-                        </div>
+                        </ul>
                 @if ($rolesPaged->hasPages())
                     <div class="border-t border-slate-100 px-4 py-3">{{ $rolesPaged->links() }}</div>
                 @endif
@@ -1044,9 +1111,10 @@
                             <table class="w-full text-sm">
                                 <thead class="{{ $thead }}">
                                     <tr>
-                                        <th class="px-4 py-3 text-left">Person</th>
-                                        <th class="px-4 py-3 text-left">Status</th>
-                                        <th class="px-4 py-3 text-right">Action</th>
+                                        <th class="w-12 py-2.5 pl-4 pr-1 text-left">#</th>
+                                        <th class="px-4 py-2.5 text-left">Person</th>
+                                        <th class="px-4 py-2.5 text-left">Status</th>
+                                        <th class="px-4 py-2.5 text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
@@ -1062,7 +1130,8 @@
                                             $closed = $inv->declined_at || $inv->cancelled_at;
                                             $open = ! $inv->used_at && ! $closed;
                                         @endphp
-                                        <tr wire:key="inv-{{ $inv->id }}">
+                                        <tr wire:key="inv-{{ $inv->id }}" class="transition-colors hover:bg-slate-50">
+                                            <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($invitationsPaged->firstItem() ?? 1) + $loop->index }}</td>
                                             <td class="px-4 py-3">
                                                 <div class="font-semibold text-slate-900">{{ ($inv->user->full_name ?? '') }}</div>
                                                 <div class="text-xs text-slate-400">{{ $inv->user->email ?? '' }}</div>
@@ -1086,7 +1155,7 @@
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="3" class="px-4 py-12 text-center text-sm text-slate-400">No invitations yet.</td></tr>
+                                        <tr><td colspan="4" class="px-4 py-12 text-center text-sm text-slate-400">No invitations yet.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>

@@ -1,6 +1,8 @@
 {{-- Signatures and activity as checkpoints (Workflow Review panel and the full record).
      Needs: $approvals (with role, actor; may be empty), $audit (AuditLabels::history, newest first).
-     Optional: $idPrefix, $reportUrl (audit trail PDF download) and $reportEvent (window event that opens its preview). --}}
+     Optional: $idPrefix, $reportUrl (audit trail PDF download) and $reportEvent (window event that opens its preview),
+     $plain (true = the checkpoints without their "Checkpoints" heading and the line under it, as in the side panel),
+     $activity (false = signatures only, no checkpoints, as on the full record page). --}}
 @php
     $idPrefix ??= 'rec';
     $signed = $approvals->filter(fn ($a) => $a->status->value === 'approved')->count();
@@ -23,7 +25,7 @@
                         'rejected' => 'bg-red-600 ring-red-600',
                         default => 'bg-white ring-slate-300',
                     };
-                    $state = ['approved' => 'Signed', 'pending' => 'Waiting', 'rejected' => 'Declined', 'skipped' => 'Cancelled'][$v] ?? 'Not started';
+                    $state = ['approved' => 'Signed', 'pending' => 'Pending', 'rejected' => 'Rejected', 'skipped' => 'Cancelled'][$v] ?? 'Queued';
                 @endphp
                 <li class="relative flex gap-3 pb-4 last:pb-0" wire:key="{{ $idPrefix }}-sig-{{ $a->id }}">
                     @unless ($loop->last)
@@ -51,10 +53,10 @@
     </section>
 @endif
 
-@if ($audit->isNotEmpty())
+@if (($activity ?? true) && $audit->isNotEmpty())
     <section aria-labelledby="{{ $idPrefix }}-activity">
-        <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <h3 id="{{ $idPrefix }}-activity" class="text-sm font-semibold text-slate-900">Checkpoints</h3>
+        <div class="flex flex-wrap items-center {{ ($plain ?? false) ? 'justify-end' : 'justify-between' }} gap-x-3 gap-y-1">
+            <h3 id="{{ $idPrefix }}-activity" class="{{ ($plain ?? false) ? 'sr-only' : 'text-sm font-semibold text-slate-900' }}">Checkpoints</h3>
             @if (! empty($reportUrl))
                 <div class="-mr-1 flex items-center gap-0.5">
                     @if (! empty($reportEvent))
@@ -70,7 +72,7 @@
                 </div>
             @endif
         </div>
-        @if (! empty($reportUrl))
+        @if (! empty($reportUrl) && ! ($plain ?? false))
             <p class="mt-0.5 text-xs text-slate-500">The audit trail: answers, signatures, seal and every step, as one report.</p>
         @endif
         <ol class="mt-3">

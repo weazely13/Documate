@@ -32,7 +32,7 @@ class OrganizationRoleManager extends Component
     public string $panel = 'organizations'; // organizations | programs | positions | officers | signatories
 
     #[\Livewire\Attributes\Url(as: 'sig', except: 'people')]
-    public string $sigTab = 'people'; // people | add | roles | invites (inside signatories)
+    public string $sigTab = 'people'; // people | add | coverage | roles | invites (inside signatories)
 
     /** The open create/edit/assign modal: org | program | position | officer | role | signatory, or null. */
     public ?string $form = null;
@@ -79,7 +79,8 @@ class OrganizationRoleManager extends Component
         $this->resetErrorBag();
 
         // Closing "Add a person" lands on "Who can sign?": keep the sidebar highlight in step.
-        if ($this->form === 'signatory') {
+        // Opened from Role coverage ("Assign signatory"), it stays there.
+        if ($this->form === 'signatory' && $this->sigTab !== 'coverage') {
             $this->sigTab = 'people';
             $this->js("window.dispatchEvent(new CustomEvent('users-manager-nav', { detail: 'sig-people' }))");
         }
@@ -213,6 +214,22 @@ class OrganizationRoleManager extends Component
         } elseif (str_starts_with($name, 'filterSig')) {
             $this->resetPage('signatoryPage');
         }
+    }
+
+    /** The Filters pop-up's Reset: that list's dropdowns only; its search stays, as on Workflow review. */
+    public function clearPopupFilters(string $which): void
+    {
+        match ($which) {
+            'org' => $this->reset(['filterOrgCollege', 'filterOrgProgram', 'filterOrgStatus']),
+            'prog' => $this->reset(['filterProgCollege', 'filterProgStatus']),
+            'off' => $this->reset(['filterOffCollege', 'filterOffOrg', 'filterOffPosition']),
+            'sig' => $this->reset(['filterSigRole', 'filterSigStatus']),
+            default => null,
+        };
+        $this->resetPage('orgPage');
+        $this->resetPage('programPage');
+        $this->resetPage('officerPage');
+        $this->resetPage('signatoryPage');
     }
 
     public function clearFilters(string $which): void
@@ -1003,7 +1020,7 @@ class OrganizationRoleManager extends Component
         if (! in_array($this->panel, ['organizations', 'programs', 'positions', 'officers', 'signatories'], true)) {
             $this->panel = 'organizations';
         }
-        if (! in_array($this->sigTab, ['people', 'add', 'roles', 'invites'], true)) {
+        if (! in_array($this->sigTab, ['people', 'add', 'coverage', 'roles', 'invites'], true)) {
             $this->sigTab = 'people';
         }
 

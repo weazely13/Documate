@@ -44,7 +44,7 @@ class ModelStudentRatingBySignatory extends WorkflowDocument
         }
 
         $user = auth()->user();
-        if ($user?->signature_enabled && empty($user->signature_path)) {
+        if ($user && empty($user->signature_path)) {
             return 'Upload your signature in your profile before issuing this rating.';
         }
 

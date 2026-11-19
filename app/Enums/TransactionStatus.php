@@ -17,13 +17,28 @@ enum TransactionStatus: string
     {
         return match ($this) {
             self::Draft => 'Draft',
-            self::Submitted => 'Submitted',
-            self::UnderReview => 'Under Review',
-            self::ActionRequired => 'Action Required',
+            self::Submitted => 'Pending',
+            self::UnderReview => 'Reviewing',
+            self::ActionRequired => 'Revision',
             self::Rejected => 'Rejected',
-            self::Approved => 'Approved',
+            self::Approved => 'Signed',
             self::Completed => 'Completed',
             self::Voided => 'Voided',
+        };
+    }
+
+    /** The status palette hue (App\Support\StatusStyle::TONES), as on Reports. */
+    public function tone(): string
+    {
+        return match ($this) {
+            self::Completed => 'emerald',
+            self::Approved => 'green',
+            self::Submitted => 'amber',        // "Pending": the same amber as every other Pending
+            self::UnderReview => 'indigo',
+            self::ActionRequired => 'orange',
+            self::Rejected => 'rose',
+            self::Voided => 'slate',
+            self::Draft => 'slate',
         };
     }
 

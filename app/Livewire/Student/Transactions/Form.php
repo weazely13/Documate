@@ -614,7 +614,7 @@ class Form extends Component
     private function profileSignatureReady(): bool
     {
         $u = Auth::user();
-        return $u->signature_enabled && $u->signature_path
+        return $u->signature_path
             && Storage::disk(SignatureStore::DISK)->exists($u->signature_path);
     }
 

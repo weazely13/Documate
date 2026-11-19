@@ -19,8 +19,8 @@ use Livewire\WithPagination;
 
 /**
  * The office's appointments. Opens on the calendar (a week of sessions, or the month), where the office's
- * opening hours are also set. The day list runs the queue in two phases: review the requests (with the AI
- * check), then serve the approved ones and record who came. Every row opens the full record.
+ * opening hours are also set. The day list is one table for the day: the requests to review (with the AI
+ * check) first, then the queue, where the office calls numbers and records who came. Every row opens the full record.
  */
 class AppointmentsBoard extends Component
 {
@@ -28,7 +28,6 @@ class AppointmentsBoard extends Component
 
     public const VIEWS = ['calendar' => 'Calendar', 'list' => 'Day list', 'history' => 'All appointments'];
 
-    public const PHASES = ['review' => 'Review requests', 'queue' => 'Queue and attendance'];
 
     public const REJECT_REASONS = [
         'Incomplete or unreadable supporting documents submitted.',
@@ -53,22 +52,39 @@ class AppointmentsBoard extends Component
     #[Url(as: 'date')]
     public string $selectedDate = '';
 
-    #[Url(as: 'phase', except: 'review')]
-    public string $phase = 'review';
 
     #[Url(except: '')]
     public string $search = '';
 
     public string $month = '';
 
-    // History filters
-    public string $filterDate = '';
+    // All tab: filters (in the Filters pop-up) and the column sort, "key:dir" ('' = newest date first)
+    public string $filterFrom = '';     // date range of the visit, Y-m-d
+    public string $filterTo = '';
     public string $filterStatus = '';
+    public string $filterAi = '';
+    public string $filterYear = '';
+    public string $filterProgram = '';
+
+    /** The All tab's AI suggestion filter: the same words as the table's AI pills. (No "Unchecked": an appointment's
+        check is never empty; a new one starts as Checking.) */
+    public const AI_FILTERS = [
+        'clear' => 'Clear', 'flagged' => 'Flagged', 'mismatch' => 'Mismatch', 'reject' => 'Reject',
+        'checking' => 'Checking', 'failed' => 'Failed',
+    ];
+
+    private const FILTERS = ['filterFrom', 'filterTo', 'filterStatus', 'filterAi', 'filterYear', 'filterProgram'];
+
+    #[Url(as: 'sort', except: '')]
+    public string $sort = '';
+
+    /** Columns the All tab sorts by. */
+    public const SORTS = ['student', 'date', 'status'];
 
     /** The appointment whose calendar popover is open (and that one-appointment dialogs act on). */
     public ?int $openId = null;
 
-    // Bulk selection (review phase)
+    // Bulk selection (day list)
     public array $selectedIds = [];
     public ?array $capacityWarning = null;
 
@@ -100,9 +116,6 @@ class AppointmentsBoard extends Component
         if (! in_array($this->calendarMode, ['week', 'month'], true)) {
             $this->calendarMode = 'week';
         }
-        if (! array_key_exists($this->phase, self::PHASES)) {
-            $this->phase = 'review';
-        }
         if (! $this->selectedDate || ! strtotime($this->selectedDate)) {
             $this->selectedDate = now()->toDateString();
         }
@@ -131,14 +144,6 @@ class AppointmentsBoard extends Component
             $this->calendarMode = $mode;
             $this->openId = null;
             $this->month = Carbon::parse($this->selectedDate)->format('Y-m');
-        }
-    }
-
-    public function setPhase(string $phase): void
-    {
-        if (array_key_exists($phase, self::PHASES)) {
-            $this->phase = $phase;
-            $this->clearSelection();
         }
     }
 
@@ -181,6 +186,13 @@ class AppointmentsBoard extends Component
     /** Calendar: open that day's list. */
     public function openDay(string $date): void
     {
+        // While limits are being set, a date is picked for its limits and the calendar stays put.
+        if ($this->editingHours) {
+            $this->calendarMode === 'month' ? $this->toggleHoursDate($date) : $this->editDayHours($date);
+
+            return;
+        }
+
         $this->selectDate($date);
         $this->viewMode = 'list';
         $this->openId = null;
@@ -196,15 +208,93 @@ class AppointmentsBoard extends Component
         $this->resetPage();
     }
 
-    public function updatedFilterDate(): void
+    /** Any All-tab filter changed: back to page 1. */
+    public function updated(string $name): void
     {
-        $this->resetPage();
+        if (in_array($name, self::FILTERS, true)) {
+            $this->resetPage();
+        }
     }
 
     public function clearHistoryFilters(): void
     {
-        $this->reset(['filterDate', 'filterStatus', 'search']);
+        $this->reset([...self::FILTERS, 'search']);
         $this->resetPage();
+    }
+
+    /** The Filters pop-up's Reset: every filter (the search stays, as on Workflow Review). */
+    public function resetFilters(): void
+    {
+        $this->reset(self::FILTERS);
+        $this->resetPage();
+    }
+
+    /** How many All-tab filters are on (the number on the Filters button). */
+    public function activeFilters(): int
+    {
+        return collect(self::FILTERS)->filter(fn ($f) => $this->{$f} !== '')->count();
+    }
+
+    /** Choices for the Filters pop-up. */
+    public function filterOptions(): array
+    {
+        return [
+            'ai' => self::AI_FILTERS,
+            'years' => ['1' => '1st year', '2' => '2nd year', '3' => '3rd year', '4' => '4th year'],
+            'programs' => \App\Models\Program::query()->orderBy('name')->pluck('name', 'id')->all(),
+        ];
+    }
+
+    /**
+     * The AI suggestion filter, matching the table's pills exactly (the board's $aiFor): Checking, Failed and
+     * Unchecked by the check's state; once checked, Reject (the AI would reject), then Mismatch (purpose does not fit),
+     * then Flagged, else Clear.
+     */
+    private function applyAiFilter(Builder $q, string $f): void
+    {
+        $mysql = DB::connection()->getDriverName() === 'mysql';
+        $isReject = fn ($w) => $w->where('ai_findings->recommendation', 'reject');
+        $notReject = fn ($w) => $w->where(fn ($x) => $x->whereNull('ai_findings->recommendation')->orWhere('ai_findings->recommendation', '!=', 'reject'));
+        $misfit = fn ($w) => $mysql
+            ? $w->whereJsonContains('ai_findings->relevance->relevant', false)
+            : $w->whereRaw("json_extract(ai_findings, '$.relevance.relevant') = 0");
+        $fits = fn ($w) => $w->where(fn ($x) => $x->whereNull('ai_findings->relevance->relevant')->orWhere(fn ($y) => $mysql
+            ? $y->whereJsonDoesntContain('ai_findings->relevance->relevant', false)
+            : $y->whereRaw("json_extract(ai_findings, '$.relevance.relevant') != 0")));
+        $checked = fn ($w) => $w->whereNotNull('ai_flag')->whereNotIn('ai_flag', ['pending', 'review_failed']);
+
+        match ($f) {
+            'checking' => $q->where('ai_flag', 'pending'),
+            'failed' => $q->where('ai_flag', 'review_failed'),
+            'reject' => $isReject($checked($q)),
+            'mismatch' => $misfit($notReject($checked($q))),
+            'flagged' => $fits($notReject($checked($q)))->where('ai_flag', 'flagged'),
+            'clear' => $fits($notReject($checked($q)))->where('ai_flag', '!=', 'flagged'),
+            default => null,
+        };
+    }
+
+    /** A column header: ascending, then descending, then back to the default order. */
+    public function sortBy(string $key): void
+    {
+        if (! in_array($key, self::SORTS, true)) {
+            return;
+        }
+        [$current, $dir] = $this->parsedSort();
+        $this->sort = match (true) {
+            $current !== $key => "{$key}:asc",
+            $dir === 'asc' => "{$key}:desc",
+            default => '',
+        };
+        $this->resetPage();
+    }
+
+    /** @return array{0: ?string, 1: ?string} */
+    public function parsedSort(): array
+    {
+        [$key, $dir] = array_pad(explode(':', $this->sort, 2), 2, null);
+
+        return in_array($key, self::SORTS, true) && in_array($dir, ['asc', 'desc'], true) ? [$key, $dir] : [null, null];
     }
 
     /* ------------------------------- popover ------------------------------- */
@@ -244,38 +334,27 @@ class AppointmentsBoard extends Component
             ->orWhere('purpose', 'like', $s));
     }
 
-    /** The selected day's appointments for the current phase. */
+    /**
+     * The selected day's appointments in one list: the requests still to review first (the AI check's worries
+     * on top, then first come, first served), then the queue in order (morning, then afternoon, by number).
+     */
     #[Computed]
     public function dayRows(): Collection
     {
-        $q = $this->applySearch(Appointment::query()->with('user', 'workspace.template')->whereDate('appointment_date', $this->selectedDate));
+        $day = fn () => $this->applySearch(Appointment::query()->with('user', 'workspace.template')->whereDate('appointment_date', $this->selectedDate));
 
-        if ($this->phase === 'review') {
-            // The AI check's worries first, then first come, first served.
-            $q->where('status', 'pending')
-                ->orderByRaw("CASE ai_flag WHEN 'flagged' THEN 0 WHEN 'review_failed' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END")
-                ->orderByAiRisk()
-                ->orderBy('created_at');
-        } else {
-            $q->whereIn('status', ['approved', 'attended', 'missed'])
-                ->orderByRaw("CASE session WHEN 'morning' THEN 0 ELSE 1 END")
-                ->orderBy('queue_number');
-        }
+        $requests = $day()->where('status', 'pending')
+            ->orderByRaw("CASE ai_flag WHEN 'flagged' THEN 0 WHEN 'review_failed' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END")
+            ->orderByAiRisk()
+            ->orderBy('created_at')
+            ->get();
 
-        return $q->get()->each(fn ($a) => $a->refreshMissedStatusIfLapsed());
-    }
+        $queue = $day()->whereIn('status', ['approved', 'attended', 'missed'])
+            ->orderByRaw("CASE session WHEN 'morning' THEN 0 ELSE 1 END")
+            ->orderBy('queue_number')
+            ->get();
 
-    #[Computed]
-    public function phaseCounts(): array
-    {
-        $day = Appointment::whereDate('appointment_date', $this->selectedDate);
-
-        return [
-            'review' => (clone $day)->where('status', 'pending')->count(),
-            'queue' => (clone $day)->whereIn('status', ['approved', 'attended', 'missed'])->count(),
-            'flagged' => (clone $day)->where('status', 'pending')->where('ai_flag', 'flagged')->count(),
-            'attended' => (clone $day)->where('status', 'attended')->count(),
-        ];
+        return $requests->concat($queue)->each(fn ($a) => $a->refreshMissedStatusIfLapsed());
     }
 
     #[Computed]
@@ -363,7 +442,7 @@ class AppointmentsBoard extends Component
                 'pending' => $list->where('status', 'pending')->count(),
                 'flagged' => $list->where('status', 'pending')->where('ai_flag', 'flagged')->count(),
                 'people' => $list->take(3)->map(fn ($x) => $x->user)->filter()->values(),
-                'names' => $list->take(2)->map(fn ($x) => $x->user?->first_name)->filter()->implode(', '),
+                'names' => $list->take(2)->map(fn ($x) => $x->user?->display_first_name)->filter()->implode(', '),
             ];
         }
 
@@ -389,10 +468,29 @@ class AppointmentsBoard extends Component
     #[Computed]
     public function historyRows()
     {
-        return $this->applySearch(Appointment::query()->with('user', 'workspace.template'))
-            ->when($this->filterDate, fn ($q) => $q->whereDate('appointment_date', $this->filterDate))
+        [$key, $dir] = $this->parsedSort();
+
+        $day = fn ($v) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $v) === 1;
+        $q = $this->applySearch(Appointment::query()->with('user', 'workspace.template'))
+            ->when($day($this->filterFrom), fn ($q) => $q->whereDate('appointment_date', '>=', $this->filterFrom))
+            ->when($day($this->filterTo), fn ($q) => $q->whereDate('appointment_date', '<=', $this->filterTo))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
-            ->orderByDesc('appointment_date')
+            ->when($this->filterYear !== '', fn ($q) => $q->whereHas('user', fn ($u) => $u->where('year_level', $this->filterYear)))
+            ->when($this->filterProgram !== '', fn ($q) => $q->whereHas('user', fn ($u) => $u->where('program_id', (int) $this->filterProgram)));
+        if (array_key_exists($this->filterAi, self::AI_FILTERS)) {
+            $this->applyAiFilter($q, $this->filterAi);
+        }
+
+        $name = fn (string $col) => \App\Models\User::select($col)->whereColumn('users.id', 'appointments.user_id');
+        match ($key) {
+            'student' => $q->orderBy($name('last_name'), $dir)->orderBy($name('first_name'), $dir),
+            // In the order a visit moves: requested, booked, then how it ended
+            'status' => $q->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 WHEN 'attended' THEN 2 WHEN 'missed' THEN 3 WHEN 'rejected' THEN 4 ELSE 5 END " . ($dir === 'desc' ? 'DESC' : 'ASC')),
+            'date' => $q->orderBy('appointment_date', $dir),
+            default => $q->orderByDesc('appointment_date'),
+        };
+
+        return $q->orderByDesc('appointment_date')
             ->orderByRaw("CASE session WHEN 'morning' THEN 0 ELSE 1 END")
             ->orderBy('queue_number')
             ->paginate(50);
@@ -526,12 +624,6 @@ class AppointmentsBoard extends Component
     }
 
     /* ------------------------------- selection ------------------------------ */
-
-    public function selectAllPending(): void
-    {
-        $this->selectedIds = $this->dayRows->where('status', 'pending')->pluck('appointment_id')->map(fn ($id) => (string) $id)->all();
-        $this->capacityWarning = null;
-    }
 
     public function clearSelection(): void
     {
@@ -813,7 +905,7 @@ class AppointmentsBoard extends Component
 
     public function render()
     {
-        $polling = $this->viewMode === 'list' && $this->phase === 'review' && $this->dayRows->contains('ai_flag', 'pending');
+        $polling = $this->viewMode === 'list' && $this->dayRows->where('status', 'pending')->contains('ai_flag', 'pending');
 
         return view('livewire.admin.appointments.appointments-board', [
             'monthLabel' => Carbon::parse($this->month . '-01')->format('F Y'),

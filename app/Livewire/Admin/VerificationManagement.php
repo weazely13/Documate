@@ -83,6 +83,13 @@ class VerificationManagement extends Component
         $this->showRaiseModal = true;
     }
 
+    /** The Filters pop-up's Reset: its own filters only; the search stays, as on Workflow review. */
+    public function resetFilters(): void
+    {
+        $this->reset(['verificationStatusFilter', 'accountStatusFilter']);
+        $this->currentPage = 1;
+    }
+
     public function closeRaise(): void
     {
         $this->reset(['verification_start_date', 'verification_end_date', 'showRaiseModal']);

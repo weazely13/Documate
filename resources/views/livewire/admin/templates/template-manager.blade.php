@@ -24,10 +24,7 @@
     {{-- ===== Create form template===== --}}
     <section class="mb-8 rounded-2xl bg-gradient-to-br from-[#e6f0fc] via-[#eee9f9] to-[#fdeef4] p-4 sm:p-6" aria-labelledby="start-h">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
-            <div>
-                <h2 id="start-h" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">Create form template</h2>
-                <p class="text-sm text-slate-600">Upload the new form template as an image or PDF, then add the required fields students need to complete.</p>
-            </div>
+            <h2 id="start-h" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">Create form template</h2>
             <p class="text-xs text-slate-500">{{ $totalCount }} {{ Str::plural('template', $totalCount) }} · {{ $publicCount }} public</p>
         </div>
         <div class="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">
@@ -61,36 +58,34 @@
         </div>
     </section>
 
-    {{-- ===== Browse ===== --}}
-    <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div class="relative lg:w-72">
+    {{-- ===== Browse: Filters (sort and category, the Workflow Review pop-up), then the search ===== --}}
+    <div class="mb-4 flex items-center gap-2">
+        <x-admin.filters-popup :count="(int) ($filterCategory !== '') + (int) ($sort !== 'recent')" reset="resetFilters">
+            <label class="col-span-2 block">
+                <span class="mb-1 block text-xs font-medium text-slate-600">Sort by</span>
+                <select wire:model.live="sort" class="{{ $input }}">
+                    <option value="recent">Recently edited</option>
+                    <option value="name">Name A–Z</option>
+                    <option value="used">Most used</option>
+                </select>
+            </label>
+            <label class="col-span-2 block">
+                <span class="mb-1 block text-xs font-medium text-slate-600">Category</span>
+                <select wire:model.live="filterCategory" class="{{ $input }}">
+                    <option value="">All ({{ $totalCount }})</option>
+                    @foreach ($categories as $c)
+                        <option value="{{ $c['value'] }}">{{ $c['label'] }} ({{ $c['count'] }})</option>
+                    @endforeach
+                    @if ($uncategorised)
+                        <option value="none">No category ({{ $uncategorised }})</option>
+                    @endif
+                </select>
+            </label>
+        </x-admin.filters-popup>
+        <div class="relative min-w-0 flex-1">
             <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true"></i>
             <input type="search" wire:model.live.debounce.250ms="search" placeholder="Search templates" aria-label="Search templates" class="{{ $input }} pl-10">
         </div>
-        <div class="-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 pb-0.5">
-            <button type="button" wire:click="$set('filterCategory', '')" aria-pressed="{{ $filterCategory === '' ? 'true' : 'false' }}"
-                    class="{{ $chip }} {{ $filterCategory === '' ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">All</button>
-            @foreach ($categories as $c)
-                <button type="button" wire:click="$set('filterCategory', '{{ $c['value'] }}')" aria-pressed="{{ $filterCategory === $c['value'] ? 'true' : 'false' }}"
-                        class="{{ $chip }} {{ $filterCategory === $c['value'] ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
-                    {{ $c['label'] }} <span class="tabular-nums {{ $filterCategory === $c['value'] ? 'text-white/70' : 'text-slate-400' }}">{{ $c['count'] }}</span>
-                </button>
-            @endforeach
-            @if ($uncategorised)
-                <button type="button" wire:click="$set('filterCategory', 'none')" aria-pressed="{{ $filterCategory === 'none' ? 'true' : 'false' }}"
-                        class="{{ $chip }} {{ $filterCategory === 'none' ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-200 bg-[#fef3c7] text-[#8a5a00] hover:bg-amber-100' }}">
-                    <i class="bx bx-error-circle text-sm" aria-hidden="true"></i> No category <span class="tabular-nums">{{ $uncategorised }}</span>
-                </button>
-            @endif
-        </div>
-        <label class="flex shrink-0 items-center gap-2 text-sm text-slate-500">
-            <span class="hidden sm:inline">Sort</span>
-            <select wire:model.live="sort" class="h-9 rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-sm text-slate-700 shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/15">
-                <option value="recent">Recently edited</option>
-                <option value="name">Name A–Z</option>
-                <option value="used">Most used</option>
-            </select>
-        </label>
     </div>
 
     @if ($templates->isEmpty())
@@ -295,7 +290,6 @@
                             <span class="mb-1 block text-sm font-medium text-slate-700">About this form <span class="font-normal text-slate-400">(optional)</span></span>
                             <textarea wire:model="description" rows="2" maxlength="300" placeholder="e.g. Permission from a parent or guardian for an off-campus activity."
                                       class="{{ str_replace('h-9 ', '', $input) }} resize-none py-2"></textarea>
-                            <span class="mt-1 block text-xs text-slate-500">Add a brief description that is visible below the form name when selecting a form.</span>
                         </label>
 
                         <div>
@@ -310,8 +304,6 @@
                                 <p class="mt-2 flex items-center gap-1.5 rounded-lg bg-[#e2e9f7] px-3 py-2 text-xs text-[#1E4090]">
                                     <i class="bx bx-ruler text-sm" aria-hidden="true"></i> {{ $custom_width }} × {{ $custom_height }} cm, taken from the file. Pick a size above to change it.
                                 </p>
-                            @else
-                                <p class="mt-1 text-xs text-slate-500">Automatically set based on the uploaded file: the PDF page size or the image dimensions.</p>
                             @endif
                         </div>
 
@@ -326,7 +318,6 @@
                                 @endforeach
                             </div>
                         </div>
-                        <p class="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500"> For optimal print quality, upload a clear scan at 200 DPI or higher. For PDF files, the page size is automatically set.</p>
                     </div>
                 </div>
 

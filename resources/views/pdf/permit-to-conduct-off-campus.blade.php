@@ -126,7 +126,7 @@
 {{-- Activity/Event --}}
 <div class="ln">
     <div class="lbl" style="left:0; width:84pt;">Activity/Event:</div>
-    <div class="val" style="left:86pt; width:401pt; font-size:{{ $fit($activity, 401) }}pt;">{{ $activity }}</div>
+    <div data-f="activity" class="val" style="left:86pt; width:401pt; font-size:{{ $fit($activity, 401) }}pt;">{{ $activity }}</div>
 </div>
 
 {{-- Purpose/s --}}
@@ -134,7 +134,7 @@
     <div class="lbl" style="width:62pt;">Purpose/s:</div>
     <div class="rows">
         @foreach ($rows as $line)
-            <div class="rrow" style="font-size:{{ $fit($line, 423, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+            <div data-f="purposes" class="rrow" style="font-size:{{ $fit($line, 423, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
         @endforeach
     </div>
 </div>
@@ -144,7 +144,7 @@
     <div class="lbl" style="width:100pt;">Date/s and Time:</div>
     <div class="rows" style="margin-left:102pt;">
         @foreach ($slotLines as $line)
-            <div class="rrow" style="font-size:{{ $fit($line, 385, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+            <div data-f="activity_slots" class="rrow" style="font-size:{{ $fit($line, 385, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
         @endforeach
     </div>
 </div>
@@ -152,7 +152,7 @@
 {{-- Venue --}}
 <div class="ln">
     <div class="lbl" style="left:0; width:44pt;">Venue:</div>
-    <div class="val" style="left:46pt; width:441pt; font-size:{{ $fit($venue, 441) }}pt;">{{ $venue }}</div>
+    <div data-f="venue" class="val" style="left:46pt; width:441pt; font-size:{{ $fit($venue, 441) }}pt;">{{ $venue }}</div>
 </div>
 
 {{-- Persons Involved: two columns of ruled lines --}}
@@ -162,13 +162,13 @@
         <tr>
             <td style="width:48%;">
                 @foreach ($colL as $line)
-                    <div class="rrow" style="font-size:{{ $fit($line, 188, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+                    <div data-f="persons_involved" class="rrow" style="font-size:{{ $fit($line, 188, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
                 @endforeach
             </td>
             <td style="width:4%;"></td>
             <td style="width:48%;">
                 @foreach ($colR as $line)
-                    <div class="rrow" style="font-size:{{ $fit($line, 188, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+                    <div data-f="persons_involved" class="rrow" style="font-size:{{ $fit($line, 188, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
                 @endforeach
             </td>
         </tr>

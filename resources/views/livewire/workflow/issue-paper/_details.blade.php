@@ -1,19 +1,15 @@
-{{-- Needs: $student, $rows (label => value). Optional: $heading --}}
-<div class="rounded-xl border border-blue-100 bg-blue-50/60 p-3.5">
-    <div class="flex items-center justify-between gap-2">
-        <p class="text-[11px] font-semibold text-[#2A57B4]">{{ $heading ?? "Filled in from the student's profile" }}</p>
-        <span class="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-blue-100">Read-only</span>
-    </div>
-    @if (! $student)
-        <p class="mt-2 text-sm text-slate-500">Select a student above and these fill in automatically.</p>
-    @else
-        <dl class="mt-2.5 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
-            @foreach ($rows as $label => $value)
-                <div wire:key="dt-{{ \Illuminate\Support\Str::slug($label) }}">
-                    <dt class="text-[11px] font-medium text-slate-500">{{ $label }}</dt>
-                    <dd class="text-sm font-semibold text-slate-900">{{ trim((string) $value) !== '' ? $value : '—' }}</dd>
-                </div>
-            @endforeach
-        </dl>
-    @endif
-</div>
+{{-- Needs: $student, $rows (label => value). Optional: $heading
+     The student's details as printed on the form: values on lines, captions under them, from the account. --}}
+@php $D = \App\Support\DocSheet::class; @endphp
+@if (! $student)
+    <p class="rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500">Pick the student above: their details print here.</p>
+@else
+    <dl class="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+        @foreach ($rows as $label => $value)
+            <div wire:key="dt-{{ \Illuminate\Support\Str::slug($label) }}" class="min-w-0 flex flex-col-reverse">
+                <dt class="{{ $D::CAPTION }} inline-flex items-center gap-1"><i class="bx bx-lock-alt not-italic" aria-hidden="true"></i>{{ $label }}</dt>
+                <dd class="{{ $D::VALUE }}">{{ trim((string) $value) !== '' ? $value : '—' }}</dd>
+            </div>
+        @endforeach
+    </dl>
+@endif

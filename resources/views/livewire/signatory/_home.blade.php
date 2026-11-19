@@ -2,7 +2,7 @@
        Overview  the search drops down every report they may issue; below it, one small card per signing role,
                  with what waits on it and the student documents it signs
        Explore   the same search filters report cards with a preview of each, laid out like the student's Explore
-     Needs: $hero, $reports, $categories, $docsByRole, $assignments, $waitingByRole, $waiting, $oldest, $hasSignature. --}}
+     Needs: $hero, $reports, $categories, $waiting, $oldest, $hasSignature. --}}
 @php
     $focus = 'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30';
     $onSky = 'text-slate-900 group-data-[ink=light]/greet:text-white';
@@ -173,8 +173,6 @@
         @endif
 
         <div data-tour="waiting">@include('livewire.signatory._waiting-cards', ['signingTotal' => $waiting, 'width' => 'max-w-5xl'])</div>
-
-        <div data-tour="roles">@include('livewire.signatory._role-cards', ['width' => 'max-w-5xl'])</div>
     </div>
 
     {{-- ===== Explore: the reports they may issue, with a preview of each (the student Explore's layout) ===== --}}

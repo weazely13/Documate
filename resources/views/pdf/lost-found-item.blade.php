@@ -107,12 +107,12 @@
 
 {{-- Lost --}}
 <div class="opt">
-    <div class="cb">{{ $kind === 'Lost' ? 'X' : '' }}</div>
+    <div data-f="item_kind" class="cb">{{ $kind === 'Lost' ? 'X' : '' }}</div>
     <div class="body">
         <div class="stmt">May I respectfully report to your office a/an</div>
         @foreach ($lostRows as $i => $line)
             <div class="dr">
-                <div class="val" style="left:0; width:318pt; font-size:{{ $fit($line, 318, 9.5, 6) }}pt;">{{ $line }}</div>
+                <div data-f="item_description" class="val" style="left:0; width:318pt; font-size:{{ $fit($line, 318, 9.5, 6) }}pt;">{{ $line }}</div>
                 @if ($loop->last)<div class="lbl" style="left:324pt; width:100pt;">that I lost.</div>@endif
             </div>
         @endforeach
@@ -122,12 +122,12 @@
 
 {{-- Found --}}
 <div class="opt">
-    <div class="cb">{{ $kind === 'Found' ? 'X' : '' }}</div>
+    <div data-f="item_kind" class="cb">{{ $kind === 'Found' ? 'X' : '' }}</div>
     <div class="body">
         <div class="stmt">May I respectfully turn over to your office a/an</div>
         @foreach ($foundRows as $i => $line)
             <div class="dr">
-                <div class="val" style="left:0; width:318pt; font-size:{{ $fit($line, 318, 9.5, 6) }}pt;">{{ $line }}</div>
+                <div data-f="item_description" class="val" style="left:0; width:318pt; font-size:{{ $fit($line, 318, 9.5, 6) }}pt;">{{ $line }}</div>
                 @if ($loop->last)<div class="lbl" style="left:324pt; width:100pt;">that I found.</div>@endif
             </div>
         @endforeach

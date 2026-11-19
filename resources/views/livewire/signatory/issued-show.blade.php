@@ -14,7 +14,7 @@
                     {{ $ws->transaction_code }}@unless ($toSelf) &middot; {{ $ws->field_values['student_name'] ?? '' }}@endunless
                 </p>
             </div>
-            <div class="shrink-0">@include('livewire.workflow._badge', ['status' => $ws->workflow_status])</div>
+            <div class="shrink-0">@include('livewire.workflow._badge', ['ws' => $ws])</div>
         </div>
     </div>
 

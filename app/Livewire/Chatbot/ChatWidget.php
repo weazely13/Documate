@@ -86,7 +86,7 @@ class ChatWidget extends Component
         if (! $user) {
             return self::GREETING;
         }
-        $name = $user->first_name ?: 'there';
+        $name = $user->display_first_name ?: 'there';
         $signs = $user->isSignatory();
 
         $offer = match ($user->role?->role_name) {

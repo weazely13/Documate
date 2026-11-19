@@ -1,5 +1,5 @@
 {{-- One document in the transaction archive, as a card with a preview of the page.
-     Needs: $record, $showStudent (inside a folder: say whose it is), $tagFor, $tintFor, $focus. --}}
+     Needs: $record, $showStudent (inside a folder: say whose it is), $tintFor, $focus. --}}
 @php [$cBg, $cInk] = $tintFor($record['type']); $showDocType = $showDocType ?? false; @endphp
 <li wire:key="card-{{ $record['workspace_id'] }}"
     class="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] motion-reduce:hover:translate-y-0">
@@ -16,7 +16,7 @@
             <div class="flex h-full items-center justify-center {{ $cBg }}"><i class="bx bx-file text-4xl {{ $cInk }}"></i></div>
         @endif
         <span class="absolute right-2 top-2 flex flex-col items-end gap-1">
-            <span class="rounded-md px-1.5 py-0.5 text-[11px] font-medium shadow-sm {{ $tagFor($record) }}">{{ $record['status'] }}</span>
+            <x-status-badge :status="$record['state']" class="shadow-sm" />
             @if ($record['deleted_by_student'])<span class="rounded-md bg-rose-100 px-1.5 py-0.5 text-[11px] font-medium text-rose-800 shadow-sm">Deleted by student</span>@endif
         </span>
     </div>

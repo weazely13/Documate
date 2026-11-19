@@ -83,6 +83,9 @@ Route::middleware(['auth'])->group(function () {
 // Protected
 Route::middleware(['auth'])->group(function () {
 
+    // The LNU Student Handbook: students, officers, signatories and the office alike.
+    Route::get('/handbook', StudentHandbook::class)->name('handbook');
+
     Route::get('/profile/signature', function () {
         $path = auth()->user()->signature_path;
         abort_unless($path && \Storage::disk('local')->exists($path), 404);
@@ -92,7 +95,7 @@ Route::middleware(['auth'])->group(function () {
     // The top bar's search: documents and appointments matching what was typed (pages are searched in the browser)
     Route::get('/search/records', \App\Http\Controllers\RecordSearchController::class)->middleware('throttle:60,1')->name('search.records');
 
-    // Feedback & issue reports: users send them here, admins handle them in the inbox
+    // Feedback: users send it here, admins handle them in the inbox
     Route::get('/feedback', \App\Livewire\Support\FeedbackCenter::class)->name('support.feedback');
     Route::get('/feedback/{report}/attachment', function (\App\Models\FeedbackReport $report) {
         abort_unless(auth()->user()->isAdmin() || $report->user_id === auth()->id(), 403);
@@ -150,7 +153,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('student.appointments.reapply');
         Route::get('/clearance-tagging/{studentId}', OfficerClearanceProfile::class)
             ->name('officer.clearance.show');
-        Route::get('/handbook', StudentHandbook::class)->name('handbook');
         Route::redirect('/student/transactions', '/student/new-transaction')->name('student.transactions.index');
         Route::get('/student/transactions/new/{type}', \App\Livewire\Student\Transactions\Form::class)
             ->name('student.transactions.new');

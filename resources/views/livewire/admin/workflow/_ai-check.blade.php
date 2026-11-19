@@ -1,5 +1,6 @@
 {{-- The AI pre-check on a transaction. Advice only: the office still decides.
-     Needs: $ws. Optional: $run (Livewire call that re-runs it, e.g. "runAiCheck(12)"), $canRun (default true). --}}
+     Needs: $ws. Optional: $run (Livewire call that re-runs it, e.g. "runAiCheck(12)"), $canRun (default true),
+     $hideOk (true = list only the checks that found something, as in the Workflow Review side panel). --}}
 @php
     use App\Services\Workflow\TransactionReviewAgent;
 
@@ -18,11 +19,11 @@
     [$verdict, $pill] = match (true) {
         $flag === 'pending' => ['Checking…', 'bg-sky-50 text-[#1E4090] ring-sky-200'],
         $flag === 'review_failed' => ['Check failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200'],
-        $flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200'],
-        $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        $rec === 'request_changes' => ['Suggests changes', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        $flag === 'flagged' => ['Requires checking', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        default => ['No issues', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
+        $flag === null => ['Unchecked', 'bg-slate-100 text-slate-600 ring-slate-200'],
+        $rec === 'reject' => ['Reject', 'bg-rose-50 text-rose-800 ring-rose-200'],
+        $rec === 'request_changes' => ['Revise', 'bg-amber-50 text-amber-800 ring-amber-200'],
+        $flag === 'flagged' => ['Flagged', 'bg-amber-50 text-amber-800 ring-amber-200'],
+        default => ['Clear', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
     };
 
     $riskBar = match (true) {
@@ -80,9 +81,13 @@
         </div>
     @endif
 
-    @if (! empty($ai['checks']) && in_array($flag, ['clean', 'flagged'], true))
+    @php
+        // The checklist; with $hideOk only what found something (passed checks are not listed).
+        $checks = collect($ai['checks'] ?? [])->when($hideOk ?? false, fn ($c) => $c->reject(fn ($x) => ($x['result'] ?? 'pass') === 'pass'));
+    @endphp
+    @if ($checks->isNotEmpty() && in_array($flag, ['clean', 'flagged'], true))
         <ul class="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200/80" aria-label="Checklist">
-            @foreach ($ai['checks'] as $c)
+            @foreach ($checks as $c)
                 @php [$dot, $word, $wordClass] = $result($c['result'] ?? 'pass'); @endphp
                 <li class="px-3 py-2">
                     <div class="flex items-center justify-between gap-3 text-sm">
@@ -116,7 +121,7 @@
         <div class="mt-3 rounded-lg bg-slate-50 px-3 py-2.5">
             <p class="text-xs font-medium text-slate-500">Suggested note to the {{ $issuedDoc ? 'issuer' : 'student' }}</p>
             <p class="mt-0.5 text-sm text-slate-700">{{ $ai['message'] }}</p>
-            <p class="mt-1 text-xs text-slate-500">It is filled in for you when you choose {{ $rec === 'reject' ? 'Reject' : 'Request changes' }}. You can edit it first.</p>
+            <p class="mt-1 text-xs text-slate-500">It is filled in for you when you choose {{ $rec === 'reject' ? 'For Rejection' : 'For Revision' }}. You can edit it first.</p>
         </div>
     @endif
 

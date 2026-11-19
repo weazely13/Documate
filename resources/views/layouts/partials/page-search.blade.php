@@ -26,7 +26,7 @@
         $pages->push(['label' => $label, 'group' => str_contains($p['label'], '›') ? trim(\Illuminate\Support\Str::before($p['label'], '›')) : 'Pages',
             'icon' => $iconFor[$p['route']] ?? 'bx-file-blank', 'url' => $p['url'], 'hint' => $p['description'] ?? '', 'keywords' => $p['keywords'] ?? '']);
     }
-    foreach ([['Feedback & Issues', 'bx-message-square-dots', 'support.feedback'], ['Handbook', 'bx-book', 'handbook'], ['FAQs', 'bx-help-circle', 'faqs']] as [$label, $icon, $r]) {
+    foreach ([['Feedback', 'bx-message-square-dots', 'support.feedback'], ['Handbook', 'bx-book', 'handbook'], ['FAQs', 'bx-help-circle', 'faqs']] as [$label, $icon, $r]) {
         if (\Illuminate\Support\Facades\Route::has($r) && ! $pages->contains('url', route($r, [], false))) {
             $pages->push(['label' => $label, 'group' => 'Help', 'icon' => $icon, 'url' => route($r, [], false), 'hint' => '', 'keywords' => 'help support']);
         }

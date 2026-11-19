@@ -5,8 +5,9 @@ use Carbon\Carbon;
 
 /**
  * F-SDM-008 Rev. 1 (03-31-23): Disciplinary Case Report Form.
- * Issued by the VPSD office. Chain: the Discipline Committee Chairman signs in DocuMate,
+ * Issued by the Discipline Committee Chairman. Chain: the Chairman signs in DocuMate,
  * then each member signs through an emailed link that the Chairman sends by hand.
+ * The VPSD office receives it only once all of them have signed.
  */
 final class DisciplinaryCaseReport extends WorkflowDocument
 {
@@ -38,6 +39,12 @@ final class DisciplinaryCaseReport extends WorkflowDocument
     }
 
     public function manualExternalInvites(): bool
+    {
+        return true;
+    }
+
+    /** The Chairman and every member sign before it reaches the VPSD office. */
+    public function signedBeforeOffice(): bool
     {
         return true;
     }
@@ -179,7 +186,7 @@ final class DisciplinaryCaseReport extends WorkflowDocument
     }
     public function issueNote(): ?string
     {
-        return 'The student is notified right away and can read it from their dashboard. You sign it next, then send it to the committee members.';
+        return 'The student is notified right away and can read it from their dashboard. You sign it next, then send it to the committee members. The VPSD office receives it once everyone has signed.';
     }
 
 

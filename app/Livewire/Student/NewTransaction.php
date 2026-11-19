@@ -314,7 +314,7 @@ class NewTransaction extends Component
 
         return view('livewire.student.new-transaction', [
             'groups' => [],
-            'firstName' => $user->first_name ?: 'there',
+            'firstName' => $user->display_first_name ?: 'there',
             'facts' => collect([$user->student_number, $user->program?->name])->filter()->values()->all(),
             'formItems' => $this->formItems(),
             'resume' => $this->unfinished((int) $user->id),
@@ -327,7 +327,7 @@ class NewTransaction extends Component
     private function signingQueue(\App\Models\User $user): array
     {
         if (! $user->isSignatory()) {
-            return ['signing' => null, 'signingTotal' => 0, 'signingRoles' => null];
+            return ['signing' => null, 'signingTotal' => 0];
         }
         $pending = \App\Models\TransactionApproval::assignableTo($user)
             ->whereHas('workspace', fn ($q) => $q->where('user_id', '!=', $user->id));
@@ -335,7 +335,6 @@ class NewTransaction extends Component
         return [
             'signing' => (clone $pending)->with(['workspace.user', 'role'])->orderBy('opened_at')->limit(4)->get(),
             'signingTotal' => (clone $pending)->count(),
-            'signingRoles' => \App\Support\SigningRoles::for($user),
         ];
     }
 

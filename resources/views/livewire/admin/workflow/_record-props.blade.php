@@ -1,5 +1,5 @@
 {{-- A transaction's details as a property list (Workflow Review panel and the full record).
-     Needs: $ws (with user.program), $doc, $status ([text, text classes, icon classes]). Optional: $issuer, $waiting (WaitingTime::describe). --}}
+     Needs: $ws (with user.program), $doc, $status (a short note beside the status pill, or null). Optional: $issuer, $waiting (WaitingTime::describe). --}}
 @php
     $student = $ws->user;
     $rows = array_filter([
@@ -25,10 +25,9 @@
 <dl class="divide-y divide-slate-100 text-sm">
     <div class="{{ $row }}">
         <dt class="text-slate-500">Status</dt>
-        <dd class="min-w-0">
-            <span class="inline-flex items-center gap-1.5 {{ $status[1] }}">
-                <i class="bx {{ $status[2] }} text-base" aria-hidden="true"></i>{{ $status[0] }}
-            </span>
+        <dd class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <x-status-badge :workspace="$ws" />
+            @if (! empty($status))<span class="text-xs tabular-nums text-slate-500">{{ $status }}</span>@endif
         </dd>
     </div>
     @foreach ($rows as $label => $value)
@@ -39,12 +38,9 @@
     @endforeach
     @if (! empty($waiting))
         <div class="{{ $row }}">
-            <dt class="text-slate-500">Waiting</dt>
+            <dt class="text-slate-500">Time elapsed</dt>
             <dd>
-                <span class="inline-flex items-center gap-2 {{ $waitClass }}">
-                    <span class="h-2 w-2 shrink-0 rounded-full {{ $waiting['dot'] }}" aria-hidden="true"></span>
-                    {{ $waiting['text'] }}
-                </span>
+                <x-dm.time-elapsed :w="$waiting" class="{{ $waitClass }}" />
             </dd>
         </div>
     @endif

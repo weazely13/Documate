@@ -151,13 +151,13 @@
                         <p class="mt-3 max-w-md text-sm leading-relaxed text-[#273951] sm:text-[15px]">See what is new, what an AI check flagged, and what has waited too long, then send it for signing in one move.</p>
                         <div class="mt-6 overflow-hidden rounded-lg border border-white bg-white shadow-[0_18px_36px_-24px_rgba(13,37,61,0.5)]" aria-hidden="true">
                             <div class="flex items-center justify-between border-b border-[#e7e5e1] px-4 py-2.5">
-                                <span class="text-[13px] font-semibold text-[#0d253d]">To review</span>
+                                <span class="text-[13px] font-semibold text-[#0d253d]">Review</span>
                                 <span class="text-[11px] text-[#9f1239]">3 waiting 7+ school days</span>
                             </div>
                             @foreach ([
-                                ['Permit to Conduct an In-Campus Activity', 'No issues', 'bg-[#d9f3e1] text-[#065f46]'],
-                                ['Disciplinary Action Slip', 'Requires checking', 'bg-[#fef3c7] text-[#78350f]'],
-                                ['Model Student Peer Rating', 'No issues', 'bg-[#d9f3e1] text-[#065f46]'],
+                                ['Permit to Conduct an In-Campus Activity', 'Clear', 'bg-[#d9f3e1] text-[#065f46]'],
+                                ['Disciplinary Action Slip', 'Flagged', 'bg-[#fef3c7] text-[#78350f]'],
+                                ['Model Student Peer Rating', 'Clear', 'bg-[#d9f3e1] text-[#065f46]'],
                             ] as [$doc, $ai, $tone])
                                 <div class="flex items-center gap-3 border-b border-[#f0eeea] px-4 py-2.5 last:border-0">
                                     <img src="{{ asset('images/lnulogo.png') }}" alt="" class="h-6 w-6 shrink-0 rounded-full object-contain">
@@ -216,7 +216,7 @@
                 @foreach ([
                     ['A QR code on every copy', 'Scan it to open the sealed record behind the paper.'],
                     ['A fingerprint you can type', 'No camera? The reference and fingerprint printed at the bottom work too.'],
-                    ['Withdrawn copies say so', 'If the office voids a document, its page shows it, and points to the corrected one.'],
+                    ['Voided copies say so', 'If the office voids a document, its page shows it, and points to the corrected one.'],
                     ['Records that outlast the form', 'Finished documents stay readable even after a form is changed or retired.'],
                 ] as [$t, $d])
                     <div class="bg-[#0d253d] p-4 sm:p-6">

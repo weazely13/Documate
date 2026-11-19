@@ -184,7 +184,7 @@
                                     <iframe :src="src || false" tabindex="-1" title=""
                                             class="pointer-events-none absolute left-0 top-0 origin-top-left border-0 bg-white"
                                             :style="`width: 842px; height: 1171px; transform: scale(${s})`" style="width: 842px; height: 1171px; transform: scale(0.2)"></iframe>
-                                    <span class="absolute left-2 top-2 shadow-sm">@include('livewire.workflow._badge', ['status' => $row->workflow_status])</span>
+                                    <span class="absolute left-2 top-2 shadow-sm">@include('livewire.workflow._badge', ['ws' => $row])</span>
                                 </div>
                                 <div class="flex flex-1 flex-col p-3 sm:p-3.5">
                                     <a href="{{ route('signatory.issued.show', $row->workspace_id) }}" wire:navigate
@@ -222,7 +222,7 @@
                                     <p class="truncate text-xs text-slate-500">{{ $doc?->name() ?? $row->document_type }} · {{ $row->submitted_at?->format('M j') ?? '-' }}</p>
                                 </div>
                                 <div class="flex shrink-0 flex-col items-end gap-1">
-                                    @include('livewire.workflow._badge', ['status' => $row->workflow_status])
+                                    @include('livewire.workflow._badge', ['ws' => $row])
                                     @if ($row->workflow_status === $done)
                                         <a href="{{ route('signatory.issued.download', $row->workspace_id) }}" class="relative z-10 inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-[#2A57B4] {{ $focus }}"><i class='bx bx-download' aria-hidden="true"></i> PDF</a>
                                     @endif
@@ -276,7 +276,7 @@
                                                 <span class="text-xs text-slate-400">–</span>
                                             @endif
                                         </td>
-                                        <td class="whitespace-nowrap px-4 py-3">@include('livewire.workflow._badge', ['status' => $row->workflow_status])</td>
+                                        <td class="whitespace-nowrap px-4 py-3">@include('livewire.workflow._badge', ['ws' => $row])</td>
                                         <td class="whitespace-nowrap px-4 py-2 text-right">
                                             @if ($row->workflow_status === $done)
                                                 <a href="{{ route('signatory.issued.download', $row->workspace_id) }}" onclick="event.stopPropagation()"

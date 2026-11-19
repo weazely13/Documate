@@ -100,8 +100,8 @@ class AppointmentShow extends Component
         }
 
         return $this->clearanceHistory->firstWhere('period_label', $this->clearanceSemesterFilter) ?? [
-            'status' => 'Not Tagged',
-            'status_word' => 'Not Tagged',
+            'status' => 'Untagged',
+            'status_word' => 'Untagged',
             'period_label' => $this->clearanceSemesterFilter,
             'is_current' => false,
             'tagged_by' => null,

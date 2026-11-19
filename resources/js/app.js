@@ -5,10 +5,12 @@ import './insights';
 import './pdf-to-image';
 import templateEditor from './template-editor';
 import dmTour from './tour';
+import pdfFill from './pdf-fill';
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('templateEditor', templateEditor);
     Alpine.data('dmTour', dmTour);
+    Alpine.data('pdfFill', pdfFill);
 });
 
 document.addEventListener('livewire:navigating', () => {

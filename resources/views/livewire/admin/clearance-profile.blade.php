@@ -134,9 +134,7 @@
                                         <span class="shrink-0 rounded-full bg-[#2A57B4] px-2 py-0.5 text-[10px] font-medium text-white">Current</span>
                                     @endif
                                 </div>
-                                <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 {{ $gt['badge'] }}">
-                                    <i class='bx {{ $gt['icon'] }} text-sm'></i>{{ $group['latest_status'] }}
-                                </span>
+                                <x-status-badge :clearance="$group['latest_status'] ?? ''" class="shrink-0" />
                             </div>
 
                             <div class="border-t border-gray-100 px-4 py-3.5 sm:px-5 {{ $lt['bg'] }}">
@@ -144,7 +142,7 @@
                                     <i class='bx {{ $lt['icon'] }} {{ $lt['iconColor'] }} mt-0.5 shrink-0 text-lg'></i>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                            <span class="rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 {{ $lt['badge'] }}">{{ $group['latest_entry']['status'] }}</span>
+                                            <x-status-badge :clearance="$group['latest_entry']['status'] ?? ''" :icon="false" />
                                             <span class="text-xs text-gray-400">{{ $group['latest_entry']['tagged_at'] }}</span>
                                             <span class="text-[11px] font-medium text-[#2A57B4]/70">Latest update</span>
                                         </div>
@@ -169,7 +167,7 @@
                                             <i class='bx {{ $et['icon'] }} {{ $et['iconColor'] }} mt-0.5 shrink-0 text-base'></i>
                                             <div class="min-w-0 flex-1">
                                                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 {{ $et['badge'] }}">{{ $entry['status'] }}</span>
+                                                    <x-status-badge :clearance="$entry['status'] ?? ''" :icon="false" />
                                                     <span class="text-xs text-gray-400">{{ $entry['tagged_at'] }}</span>
                                                 </div>
                                                 <p class="mt-1 line-clamp-2 text-sm text-gray-600" title="{{ $entry['remarks'] ?: 'No remarks.' }}">{{ $entry['remarks'] ?: 'No remarks.' }}</p>

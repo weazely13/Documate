@@ -82,7 +82,7 @@ class ChatScreen
         'admin.dashboard' => ['Dashboard', 'The VPSD office overview: requests to review, signatures, clearance, appointments and trends.', [
             'Open a card to go to that queue.',
         ]],
-        'admin.workflow.index' => ['Workflow Review', 'Online transactions awaiting admin review: To review, In signing, Waiting on student, and those flagged by the AI check.', [
+        'admin.workflow.index' => ['Workflow Review', 'Online transactions awaiting the office: Issuance, Signing, Revision, Review, and those Flagged by the AI check.', [
             'Open a row to check it, then send it for signing, ask for changes or reject it.',
             'Tick rows to run the AI check on several at once.',
         ]],
@@ -127,7 +127,7 @@ class ChatScreen
         'admin.semesters' => ['Semesters', 'The school calendar: create semesters and see which one is current.', []],
         'admin.reports' => ['Reports', 'Reports on transactions, appointments and clearance.', ['Pick a report and a period, then view or download it.']],
         'admin.audit-trail' => ['Audit Trail', 'Who did what and when, across the system.', ['Filter by person, action or date.']],
-        'admin.feedback' => ['Feedback & Issues', 'Feedback and problem reports from users.', []],
+        'admin.feedback' => ['Feedback', 'Feedback from users.', []],
 
         // Signatories
         'signatory.home' => ['Signing home', 'Documents waiting for your signature and the roles you sign for.', []],

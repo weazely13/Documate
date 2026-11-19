@@ -118,14 +118,6 @@ class OnlineTransactionRecordShow extends Component
         $values = $ws->field_values ?? [];
         $status = $ws->workflow_status;
 
-        [$result, $tone] = match ($status) {
-            TransactionStatus::Completed => ['Completed', 'emerald'],
-            TransactionStatus::Rejected => ['Rejected', 'slate'],
-            TransactionStatus::Voided => ['Voided', 'slate'],
-            TransactionStatus::ActionRequired => ['In progress: for revision', 'blue'],
-            default => ['In progress: in review or signing', 'blue'],
-        };
-
         // Every answer the form holds, as the student (and the office) filled it in. From the form's code
         // when it still exists, otherwise from the snapshot taken when it was submitted or completed.
         $answers = $document
@@ -163,8 +155,7 @@ class OnlineTransactionRecordShow extends Component
             'document' => $document,
             'documentName' => $document?->name() ?? ($snap['document_name'] ?? Str::headline((string) $ws->document_type)),
             'codeGone' => $document === null,
-            'result' => $result,
-            'tone' => $tone,
+            'status' => $status,
             'studentName' => $values['student_name'] ?? ($user?->full_name ?? '') ?: 'Unknown student',
             'studentNumber' => $user?->student_number ?: ($values['student_number'] ?? '') ?: ($user?->role?->role_name ?? ''),
             'program' => $user?->program?->name ?: ($values['student_program'] ?? ''),

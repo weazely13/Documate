@@ -18,6 +18,60 @@ class WaitingTime
         'due' => 1,
     ];
 
+    /**
+     * Time elapsed in one plain word, the same everywhere (Workflow Review, its legend, the record page):
+     * Today (under a school day) · Recent (1–2) · Slow (3–4) · Late (5–6) · Overdue (7+).
+     */
+    public const LABELS = [
+        'overdue' => 'Overdue',
+        'urgent' => 'Late',
+        'follow_up' => 'Slow',
+        'due' => 'Recent',
+    ];
+
+    public const TODAY = 'Today';
+
+    /** What each word means, for the pop-out on a time label and the legend. Keyed by level ('' = Today). */
+    public const MEANINGS = [
+        '' => ['under 1 school day', 'Came in today. Nothing is late yet.'],
+        'due' => ['1–2 school days', 'Still on track. Handle it this week.'],
+        'follow_up' => ['3–4 school days', 'Taking a while. Follow it up soon.'],
+        'urgent' => ['5–6 school days', 'Running late. Act on it today.'],
+        'overdue' => ['7+ school days', 'Past the 7-day limit. Act on it now.'],
+    ];
+
+    /** Time-elapsed filter: word key => [at least, under] school days (null = no bound). */
+    public const FILTER = [
+        'today' => [null, 1],
+        'recent' => [1, 3],
+        'slow' => [3, 5],
+        'late' => [5, 7],
+        'overdue' => [7, null],
+    ];
+
+    /** The legend: [dot, word, range, meaning] for every level, from Today to Overdue. */
+    public static function legend(): array
+    {
+        $rows = [];
+        foreach (['', 'due', 'follow_up', 'urgent', 'overdue'] as $level) {
+            [$range, $meaning] = self::MEANINGS[$level];
+            $rows[] = [self::dot($level ?: null), $level ? self::LABELS[$level] : self::TODAY, $range, $meaning];
+        }
+
+        return $rows;
+    }
+
+    public static function dot(?string $level): string
+    {
+        return match ($level) {
+            'overdue' => 'bg-red-900',
+            'urgent' => 'bg-red-600',
+            'follow_up' => 'bg-orange-500',
+            'due' => 'bg-amber-300',
+            default => 'bg-slate-300',
+        };
+    }
+
     /** Whole school days elapsed between $since and $now. */
     public static function schoolDays(?CarbonInterface $since, ?CarbonInterface $now = null): int
     {
@@ -53,49 +107,67 @@ class WaitingTime
      * Display data for a waiting time: the text to show, its urgency level and the dot colour.
      * With $flag off the age is shown plainly, without an urgency level.
      *
-     * @return array{level: ?string, days: int, text: string, dot: string}
+     * 'word' is the one-word term (null when not flagged), 'hint' the plain sentence the pop-out shows.
+     *
+     * @return array{level: ?string, days: int, word: ?string, text: string, hint: string, dot: string}
      */
     public static function describe(?CarbonInterface $since, bool $flag = true, ?CarbonInterface $now = null): array
     {
         $now ??= now();
         $days = self::schoolDays($since, $now);
         $level = $flag ? self::level($days) : null;
+        $hours = $since ? (int) $since->diffInHours($now) : 0;
 
+        // Days (or hours) as one short token: "26d", "3h".
         $span = match (true) {
             ! $since => '-',
-            $days >= 1 => $days . ' ' . ($days === 1 ? 'day' : 'days'),
-            $since->diffInHours($now) >= 1 => (int) $since->diffInHours($now) . ' ' . ((int) $since->diffInHours($now) === 1 ? 'hour' : 'hours'),
-            default => 'Just now',
+            $days >= 1 => $days . 'd',
+            $hours >= 1 => $hours . 'h',
+            default => '',
         };
 
-        $label = match ($level) {
-            'overdue' => 'Overdue',
-            'urgent' => 'Urgent',
-            'follow_up' => 'Follow up',
-            default => null,
+        $word = match (true) {
+            ! $flag || ! $since => null,
+            $level !== null => self::LABELS[$level],
+            default => self::TODAY,
+        };
+
+        $plain = match (true) {
+            ! $since => 'Not started yet.',
+            $days >= 1 => $days . ' school ' . ($days === 1 ? 'day' : 'days'),
+            $hours >= 1 => $hours . ' ' . ($hours === 1 ? 'hour' : 'hours'),
+            default => 'a few minutes',
+        };
+        $hint = match (true) {
+            ! $since => 'Not started yet.',
+            ! $flag => 'With the student for ' . $plain . '. Their time, so it is not flagged.',
+            default => $word . ': waiting ' . $plain . '. ' . self::MEANINGS[$level ?? ''][1] . ' Weekends do not count.',
         };
 
         return [
             'level' => $level,
             'days' => $days,
-            'text' => $label ? "{$label} · {$span}" : $span,
-            'dot' => match ($level) {
-                'overdue' => 'bg-red-900',
-                'urgent' => 'bg-red-600',
-                'follow_up' => 'bg-orange-500',
-                'due' => 'bg-amber-300',
-                default => 'bg-slate-300',
-            },
+            'word' => $word,
+            'text' => $word ? trim($word . ($span !== '' ? ' · ' . $span : '')) : ($span ?: 'Just now'),
+            'hint' => $hint,
+            'dot' => self::dot($level),
         ];
     }
 
     /** The latest moment that already counts as overdue. */
     public static function overdueCutoff(?CarbonInterface $now = null): CarbonInterface
     {
+        return self::cutoff(self::LEVELS['overdue'], $now);
+    }
+
+    /** The latest moment from which $days school days have already passed (so "waiting since" at or before it = at least $days). */
+    public static function cutoff(int $days, ?CarbonInterface $now = null): CarbonInterface
+    {
+        $wanted = $days;
         $cursor = ($now ?? now())->copy();
         $days = 0;
 
-        while ($days < self::LEVELS['overdue']) {
+        while ($days < $wanted) {
             if (! $cursor->isWeekend()) {
                 $days++;
             }

@@ -31,7 +31,7 @@ class AuditLog extends Model
         'Audit Trail',
         'Authentication',
         'Clearance',
-        'Feedback & Issues',
+        'Feedback',
         'Organizations',
         'Semesters & Verification',
         'Signatories',
@@ -40,6 +40,23 @@ class AuditLog extends Model
         'Users',
         'Verification',
     ];
+
+    /** Modules renamed since: older entries keep the name they were written with, and the trail shows the new one. */
+    public const RENAMED_MODULES = [
+        'Feedback & Issues' => 'Feedback',
+    ];
+
+    /** The module as the trail shows it. */
+    public static function moduleLabel(?string $module): string
+    {
+        return self::RENAMED_MODULES[$module] ?? (string) $module;
+    }
+
+    /** Every stored name that shows as this module: itself and its old names. */
+    public static function moduleNames(string $module): array
+    {
+        return [$module, ...array_keys(self::RENAMED_MODULES, $module, true)];
+    }
 
     protected $guarded = [];
 

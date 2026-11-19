@@ -37,6 +37,7 @@ final class PermitToEnterCampus extends WorkflowDocument
             'others_specify' => [
                 'label' => 'If others, please specify', 'type' => 'text', 'max' => 120,
                 'placeholder' => 'e.g. Lost ID, replacement in process',
+                'show_when' => ['others' => true], // printed only when "others" is ticked
             ],
             'reasons' => [
                 'label' => 'Reason/s', 'type' => 'textarea', 'required' => true, 'max' => 500,

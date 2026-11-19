@@ -8,7 +8,6 @@
             ['target' => null, 'tab' => 'overview', 'preview' => null, 'title' => 'Welcome to DocuMate', 'text' => 'Sign the documents that need you, and issue reports to students. Here is a quick look around.'],
             ['target' => 'search', 'tab' => 'overview', 'preview' => null, 'type' => 'disciplinary', 'title' => 'Issue a report', 'text' => 'Type the report you need, like "disciplinary", or open All reports to see the list. Pick one to fill it in for a student.'],
             ['target' => 'waiting', 'tab' => 'overview', 'preview' => null, 'title' => 'Waiting for your signature', 'text' => 'Documents that need your signature, oldest first. Open one to review and sign it, or send it back.'],
-            ['target' => 'roles', 'tab' => 'overview', 'preview' => null, 'title' => 'Your signing roles', 'text' => 'Each role you hold, and the student documents it signs.'],
             ['target' => 'nav-signatory.home', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Home', 'text' => 'This page: what is waiting on you, and the reports you can issue.'],
             ['target' => 'nav-signatory.inbox', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Signing Inbox', 'text' => 'Every document waiting for your signature, and the ones you already signed or sent back.'],
             ['target' => 'nav-signatory.issue', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Issue a Report', 'text' => 'Fill in a report for a student, then send it for signing.'],
@@ -16,9 +15,9 @@
             ['target' => 'nav-signatory.availability', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'My Availability', 'text' => 'Let the office know the days you are away, so documents can be routed while you are out.'],
             ['target' => 'nav-signatory.oversight', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'All Documents', 'text' => 'A read-only view of every transaction in DocuMate.'],
             ['target' => 'nav-signatory.activity', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Activity Summary', 'text' => 'Your signing and issuing at a glance, over time.'],
-            ['target' => 'nav-support.feedback', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Feedback & Issues', 'text' => 'Found a problem or have a suggestion? Send it here and the VPSD office will reply.'],
+            ['target' => 'nav-support.feedback', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Feedback', 'text' => 'Have a suggestion or a compliment? Send it here and the VPSD office will reply.'],
             ['target' => 'nav-handbook', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Handbook', 'text' => 'The LNU Student Handbook, to read or search anytime.'],
-            ['target' => 'nav-profile', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Your profile', 'text' => 'Your name, program, photo and e-signature. What is here is what gets printed on your forms, so keep it up to date.'],
+            ['target' => 'nav-profile', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Your profile', 'text' => 'Your name, photo and e-signature, and under Account, your signing roles and the documents each one signs.'],
             ['target' => '[aria-label="Notifications"]', 'tab' => 'overview', 'preview' => null, 'title' => 'Notifications', 'text' => 'New documents to sign and updates on what you issued arrive here, so you know when to act.'],
             ['target' => '#chatbotBtn', 'title' => 'The DocuMate Assistant', 'text' => 'Not sure what to do? Ask the assistant (in English, Tagalog, Bisaya or Waray; it answers in English). It can explain the page you are on, find an office or a person, or check how your requests are going.'],
             ['target' => 'tour-btn', 'title' => 'See this again anytime', 'text' => 'Tap the question mark to replay this tour.'],
@@ -28,6 +27,6 @@
             ['target' => 'sample-preview', 'tab' => 'explore', 'preview' => 'first', 'title' => 'A sample report', 'text' => 'This is a blank copy, exactly as it prints. Nothing is saved by looking.'],
             ['target' => 'sample-start', 'tab' => 'explore', 'preview' => 'first', 'title' => 'Issue it', 'text' => 'When you are ready, tap Issue: pick the student, fill in the report, and send it for signing.'],
         ]],
-        'inner' => ['livewire.signatory._home', compact('reports', 'categories', 'docsByRole', 'assignments', 'waitingByRole', 'waiting', 'oldest', 'hasSignature', 'signing', 'drafts')],
+        'inner' => ['livewire.signatory._home', compact('reports', 'categories', 'waiting', 'oldest', 'hasSignature', 'signing', 'drafts')],
     ])
 </div>

@@ -44,7 +44,7 @@
                     ['target' => 'nav-signatory.inbox', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Signing Inbox', 'text' => 'Documents waiting for your signature in a role you hold, like an organization adviser.'],
                     ['target' => 'nav-signatory.issue', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Issue a Report', 'text' => 'Fill in a report for a student, then send it for signing.'],
                     ['target' => 'nav-signatory.issued', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Issued Documents', 'text' => 'Reports you have issued, and where each one stands.'],
-                    ['target' => 'nav-support.feedback', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Feedback & Issues', 'text' => 'Found a problem or have a suggestion? Send it here and the VPSD office will reply.'],
+                    ['target' => 'nav-support.feedback', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Feedback', 'text' => 'Have a suggestion or a compliment? Send it here and the VPSD office will reply.'],
                     ['target' => 'nav-handbook', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Handbook', 'text' => 'The LNU Student Handbook, to read or search anytime.'],
                     ['target' => 'nav-profile', 'sidebar' => true, 'tab' => 'overview', 'preview' => null, 'title' => 'Your profile', 'text' => 'Your name, program, photo and e-signature. What is here is what gets printed on your forms, so keep it up to date.'],
                     ['target' => '[aria-label="Notifications"]', 'tab' => 'overview', 'preview' => null, 'title' => 'Notifications', 'text' => 'Updates on your documents and appointments arrive here, so you know when to act.'],
@@ -57,7 +57,7 @@
                     ['target' => 'sample-start', 'tab' => 'explore', 'preview' => 'first', 'click' => true, 'follow' => true, 'clickLabel' => 'Start it', 'title' => 'Start the request', 'text' => 'Tap Start to open the form. We will show you how to fill it in. Nothing is sent until you submit it yourself.'],
                 ]],
                 'picker' => false,
-                'inner' => ['livewire.student._home', compact('formItems', 'categories', 'resume', 'appointments', 'signing', 'signingTotal', 'signingRoles')],
+                'inner' => ['livewire.student._home', compact('formItems', 'categories', 'resume', 'appointments', 'signing', 'signingTotal')],
             ])
         </div>
     @endif

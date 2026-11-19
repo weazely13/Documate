@@ -4,7 +4,7 @@
     $focus = 'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30';
     $control = 'h-9 rounded-lg border-slate-300 bg-white py-0 text-sm text-slate-700 shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 [@media(pointer:coarse)]:h-11';
     $filtering = $search !== '' || $docType !== '' || $result !== 'all' || $sort !== 'oldest';
-    $initials = fn (?string $name) => collect(preg_split('/\s+/', trim((string) $name)))->filter()->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('') ?: '?';
+    $initials = fn (?string $name) => \App\Support\Honorifics::initials($name);
 @endphp
 
 {{-- Signing inbox: only the work. What is waiting for a signature, and the decisions already made.
@@ -19,7 +19,7 @@
         </p>
     @endif
 
-    @if (! auth()->user()->signature_path && auth()->user()->signature_enabled)
+    @if (! auth()->user()->signature_path)
         <div class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p class="text-sm text-amber-900">You have not uploaded your e-signature yet, so you cannot sign.</p>
             <a href="{{ route('profile') }}" wire:navigate class="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg bg-amber-600 px-4 text-sm font-medium text-white hover:bg-amber-700 {{ $focus }}">Add signature</a>
@@ -169,7 +169,7 @@
                             </p>
                         </div>
                         <span class="shrink-0 text-right">
-                            <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $ok ? 'bg-emerald-50 text-emerald-800 ring-emerald-200' : 'bg-rose-50 text-rose-800 ring-rose-200' }}">{{ $ok ? 'Signed' : 'Rejected' }}</span>
+                            <span class="{{ \App\Support\StatusStyle::classes($ok ? 'emerald' : 'rose') }}">{{ $ok ? 'Signed' : 'Rejected' }}</span>
                             <span class="mt-0.5 block text-[11px] tabular-nums text-slate-500">{{ $a->acted_at?->format('M j, Y g:i A') }}</span>
                         </span>
                     </li>

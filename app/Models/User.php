@@ -66,7 +66,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'signature_enabled' => 'boolean'
         ];
     }
 
@@ -158,12 +157,24 @@ class User extends Authenticatable
     }
 
     /**
-     * "First M. Last Suffix", the way the forms and PDFs print a name. Use $user->full_name
-     * anywhere a person's name is shown so the middle initial is never dropped.
+     * "Dr. First M. Last Suffix": the person's chosen honorific (if any) in front, the way the system shows a name.
+     * Use $user->full_name anywhere a person's name is shown so the honorific and middle initial are never dropped.
      */
     public function getFullNameAttribute(): string
     {
+        return \App\Support\Honorifics::prefix($this->honorific, $this->plain_full_name);
+    }
+
+    /** "First M. Last Suffix" without the honorific: for matching a typed or scanned name, not for showing it. */
+    public function getPlainFullNameAttribute(): string
+    {
         return self::formatName($this->first_name, $this->middle_name, $this->last_name, $this->suffix);
+    }
+
+    /** "Dr. First": how a person is greeted (Home, the assistant, emails). Just the first name when there is no honorific. */
+    public function getDisplayFirstNameAttribute(): string
+    {
+        return \App\Support\Honorifics::prefix($this->honorific, $this->first_name);
     }
 
     public static function formatName(?string $first, ?string $middle, ?string $last, ?string $suffix = null): string

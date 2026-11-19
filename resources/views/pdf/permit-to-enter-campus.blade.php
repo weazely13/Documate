@@ -130,19 +130,19 @@
 
 {{-- Checkboxes --}}
 <div class="ln s">
-    <div class="lbl" style="left:28pt; width:150pt;">{!! $box(! empty($v['no_id'])) !!} without an ID</div>
-    <div class="lbl" style="left:190pt; width:200pt;">{!! $box(! empty($v['no_uniform'])) !!} not wearing school uniform</div>
+    <div data-f="no_id" class="lbl" style="left:28pt; width:150pt;">{!! $box(! empty($v['no_id'])) !!} without an ID</div>
+    <div data-f="no_uniform" class="lbl" style="left:190pt; width:200pt;">{!! $box(! empty($v['no_uniform'])) !!} not wearing school uniform</div>
 </div>
 <div class="ln s">
-    <div class="lbl" style="left:28pt; width:122pt;">{!! $box(! empty($v['others'])) !!} others, pls. specify</div>
-    <div class="val" style="left:152pt; width:250pt; text-align:left; font-size:{{ $fit($others, 250) }}pt;">{{ $others }}</div>
+    <div data-f="others" class="lbl" style="left:28pt; width:122pt;">{!! $box(! empty($v['others'])) !!} others, pls. specify</div>
+    <div data-f="others_specify" class="val" style="left:152pt; width:250pt; text-align:left; font-size:{{ $fit($others, 250) }}pt;">{{ $others }}</div>
 </div>
 
 <div class="cited">for the reason/s cited below:</div>
 
 <div style="margin-top:4pt;">
     @foreach ($rows as $line)
-        <div class="rrow" style="font-size:{{ $fit($line, 487, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+        <div data-f="reasons" class="rrow" style="font-size:{{ $fit($line, 487, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
     @endforeach
 </div>
 

@@ -162,7 +162,7 @@
                                 <span class="block truncate text-sm font-semibold text-slate-900 group-hover:text-[#2A57B4]">{{ $doc['title'] }}</span>
                                 <span class="mt-0.5 line-clamp-2 block text-xs text-slate-500">{{ $doc['next'] }}</span>
                                 <span class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                                    <span class="rounded-md px-1.5 py-0.5 font-semibold {{ \App\Support\DocumentProgress::TONES[$doc['tone']] }}">{{ $doc['label'] }}</span>
+                                    <x-status-badge :status="$doc['state']" />
                                     @if ($doc['updated'])<span class="text-slate-400">Edited {{ $doc['updated'] }}</span>@endif
                                 </span>
                             </span>
@@ -187,9 +187,8 @@
                 <div class="mt-3 grid grid-cols-2 gap-2.5 sm:gap-3">
                     @foreach ($appointments as $a)
                         @php
-                            [$sText, $sPill] = $a->status === 'approved'
-                                ? ['Approved' . ($a->queue_number ? ' · #' . $a->queue_number : ''), 'bg-[#e2e9f7] text-[#1E4090] ring-sky-200']
-                                : ['Waiting for approval', 'bg-amber-50 text-amber-800 ring-amber-200'];
+                            $st = \App\Support\StatusStyle::appointment($a->status);
+                            [$sText, $sPill] = [$st['label'] . ($a->status === 'approved' && $a->queue_number ? ' · #' . $a->queue_number : ''), \App\Support\StatusStyle::TONES[$st['tone']]];
                             $live = match (true) {
                                 $a->status !== 'approved' || ! $a->appointment_date->isToday() => null,
                                 $a->now_serving === $a->queue_number => ['It is your turn. Please go to the counter.', 'text-emerald-800'],
@@ -215,7 +214,7 @@
                                 @if ($live)
                                     <span class="mt-1 block text-xs {{ $live[1] }}" aria-live="polite">{{ $live[0] }}</span>
                                 @endif
-                                <span class="mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 {{ $sPill }}">{{ $sText }}</span>
+                                <span class="{{ \App\Support\StatusStyle::BADGE }} mt-2 {{ $sPill }}">{{ $sText }}</span>
                             </span>
                         </a>
                     @endforeach
@@ -233,7 +232,6 @@
 
         @if (! empty($signing))
             @include('livewire.signatory._waiting-cards', ['signing' => $signing, 'signingTotal' => $signingTotal])
-            @include('livewire.signatory._role-cards', $signingRoles)
         @endif
 
     </div>

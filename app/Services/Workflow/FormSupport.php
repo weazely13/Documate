@@ -35,9 +35,9 @@ final class FormSupport
         $user->loadMissing('program', 'organization', 'officerRecord.position', 'officerRecord.organization');
 
         $middleInitial = $user->middle_name ? Str::upper(Str::substr($user->middle_name, 0, 1)) . '.' : null;
-        $formattedFullName = trim(implode(' ', array_filter([
+        $formattedFullName = \App\Support\Honorifics::prefix($user->honorific ?? null, trim(implode(' ', array_filter([
             $user->first_name, $middleInitial, $user->last_name, $user->suffix,
-        ])));
+        ]))));
 
         $programName = (string) ($user->program?->name ?? '');
         $ordinalYear = self::ordinalYearLevel((string) ($user->year_level ?? ''));

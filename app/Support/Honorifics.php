@@ -18,6 +18,41 @@ final class Honorifics
         return [$required ? 'required' : 'nullable', 'string', 'max:40', "regex:/^[\\pL\\pN .,'\\-\\/()]+$/u"];
     }
 
+    /** "Dr. Maria": a name with the honorific in front (when there is one and the name does not already start with it). */
+    public static function prefix(?string $honorific, ?string $name): string
+    {
+        return self::decorate($honorific, $name, null);
+    }
+
+    /** The name without a leading honorific ("Dr. Maria Santos" → "Maria Santos"): for initials and matching. */
+    public static function strip(?string $name): string
+    {
+        $name = trim((string) $name);
+        $known = array_map('mb_strtolower', self::HONORIFICS);
+        // Leading words that are a known honorific, or a short abbreviation ending in a dot (a typed one, e.g. "Hon.").
+        while (preg_match('/^(\S+)\s+(.+)$/u', $name, $m)) {
+            $word = mb_strtolower($m[1]);
+            if (! in_array($word, $known, true) && ! preg_match('/^\pL{1,5}\.$/u', $m[1])) {
+                break;
+            }
+            $name = $m[2];
+        }
+
+        return $name;
+    }
+
+    /** Two-letter initials of a person's name, ignoring a leading honorific ("Dr. Maria Santos" → "MS"). */
+    public static function initials(?string $name, string $fallback = '?'): string
+    {
+        $words = array_values(array_filter(preg_split('/\s+/u', self::strip($name)) ?: []));
+        if (! $words) {
+            return $fallback;
+        }
+        $last = count($words) > 1 ? end($words) : '';
+
+        return mb_strtoupper(mb_substr($words[0], 0, 1) . ($last !== '' ? mb_substr($last, 0, 1) : '')) ?: $fallback;
+    }
+
     /** "Dr. Maria Santos, PhD": a name with its honorific and post-nominals, skipping the empty ones. */
     public static function decorate(?string $honorific, ?string $name, ?string $postNominals): string
     {

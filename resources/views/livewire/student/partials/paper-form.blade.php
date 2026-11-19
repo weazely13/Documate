@@ -1,19 +1,15 @@
-{{-- A paper form (template) as the student fills it in, laid out like the online forms
-     (resources/views/livewire/student/transactions/form.blade.php): the form on the left, the page on the right.
+{{-- A paper form (template), filled in right on the page: each blank on the form image is the place to type.
+     On a narrow screen the page is too small to type on, so tapping a blank opens it large at the foot of the
+     screen (with Back / Next through the blanks).
 
      Needs: $template (name, image_url, document_size, orientation, canvas), $fields, $formValues, $instructions,
             $systemValues, $savedMessage, $lastSavedAt, $titleCase (fn), $preview (bool: the admin's preview, nothing saves)
      Runs on Alpine "documentWorkspace" (resources/js/app.js). --}}
 @php
     $preview = $preview ?? false;
-    $box = 'relative mt-1 flex min-w-0 items-center gap-2.5 rounded-lg border bg-white px-3.5 transition focus-within:ring-[3px]';
-    $boxLocked = 'relative mt-1 flex min-w-0 items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3.5';
-    $bare = 'w-full min-w-0 border-0 bg-transparent p-0 py-3 text-base text-slate-900 placeholder-slate-400 outline-none focus:ring-0 sm:py-2.5 sm:text-sm';
-    $labelCls = 'block text-[13px] font-medium text-slate-700';
-    $help = 'mt-1 text-xs leading-relaxed text-slate-500';
     $btnGhost = 'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] [@media(pointer:coarse)]:h-11';
 
-    // The question shown to students: the field's label, unless it is still the editor's default ("TEXT"), then its name.
+    // What a blank is called: the field's label, unless it is still the editor's default ("TEXT"), then its name.
     $defaultLabels = ['text', 'number', 'date', 'paragraph', 'field'];
     $systemLabels = \App\Livewire\Admin\Templates\TemplateEditor::SYSTEM_VARIABLES;
     $labelOf = fn (array $f) => match (true) {
@@ -23,14 +19,19 @@
     };
 
     $isLocked = fn (array $f) => ($f['source_type'] ?? 'input') === 'system' || (($f['type'] ?? '') === 'date' && ($f['date_mode'] ?? '') === 'current');
-    $locked = collect($fields)->filter($isLocked)->values();
-    $asked = collect($fields)->reject($isLocked)->values();
-    $groups = $asked->groupBy(fn ($f) => $f['group_name'] ?: '')->sortBy(fn ($g, $k) => $k === '' ? 1 : 0);
-    $icon = fn (array $f) => match ($f['type'] ?? 'text') {
-        'date' => 'bx-calendar',
-        'number' => 'bx-hash',
-        default => null,
-    };
+
+    // The blanks to fill, top to bottom and left to right as they sit on the page.
+    $asked = collect($fields)->reject($isLocked)
+        ->sortBy([fn ($a, $b) => round(($a['y'] ?? 0) / 8) <=> round(($b['y'] ?? 0) / 8), fn ($a, $b) => ($a['x'] ?? 0) <=> ($b['x'] ?? 0)])
+        ->values();
+    $blanks = $asked->map(fn ($f) => [
+        'name' => $f['name'],
+        'label' => $labelOf($f),
+        'type' => $f['type'] ?? 'text',
+        'max' => $f['max_length'] ?: null,
+        'required' => (bool) ($f['required'] ?? false),
+        'placeholder' => $f['placeholder'] ?? '',
+    ])->all();
     $title = $titleCase($template['name']);
 @endphp
 
@@ -44,7 +45,7 @@
         canvasWidth: {{ $template['canvas']['width'] }},
         canvasHeight: {{ $template['canvas']['height'] }},
      })"
-     class="mx-auto w-full max-w-2xl xl:grid xl:max-w-[1440px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-start xl:gap-6 {{ $preview ? 'pb-24' : '' }}">
+     class="mx-auto w-full max-w-5xl space-y-3 sm:space-y-4 {{ $preview ? 'pb-24' : '' }}">
 
     @if ($preview)
         {{-- The admin's preview: framed and labelled over the whole screen, so it is never mistaken for the real thing --}}
@@ -65,164 +66,57 @@
         </div>
     @endif
 
-    <div class="min-w-0 space-y-5" :class="mobileTab === 'preview' ? 'hidden xl:block' : ''">
-        {{-- Header --}}
-        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2">
-            <div class="min-w-0 flex-1">
-                <h1 class="break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $title }}</h1>
-                <p class="mt-0.5 text-sm text-slate-500">
-                    {{ ! empty($template['description']) ? $template['description'] : 'Paper form · fill it in, save it as a PDF, then print it and bring it to the VPSD office.' }}
-                    <template x-if="lastSavedAt"><span class="whitespace-nowrap">&middot; Saved <span x-text="lastSavedAt"></span></span></template>
-                </p>
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
-                <button type="button" @click="showInstructions = true" class="{{ $btnGhost }} w-9 !px-0 [@media(pointer:coarse)]:w-11"
-                        aria-label="How to fill out this form" title="How to fill out this form">
-                    <i class="bx bx-info-circle text-xl" aria-hidden="true"></i>
-                </button>
-                <button type="button" @click="mobileTab = 'preview'" class="{{ $btnGhost }} px-4 xl:hidden">
-                    <i class="bx bx-show text-base text-slate-500" aria-hidden="true"></i> Preview document
-                </button>
-            </div>
+    {{-- Header --}}
+    <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+            <h1 class="truncate text-lg font-semibold tracking-[-0.015em] text-slate-900 sm:text-xl">{{ $title }}</h1>
+            <p class="text-xs text-slate-500">
+                Paper form · {{ $template['document_size'] }}{{ $template['orientation'] === 'landscape' ? ' landscape' : '' }}
+                <template x-if="lastSavedAt"><span class="whitespace-nowrap">&middot; Saved <span x-text="lastSavedAt"></span></span></template>
+            </p>
         </div>
-
-
-        <template x-if="savedMessage">
-            <div role="status" class="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-                <i class="bx bx-check-circle text-lg" aria-hidden="true"></i><span x-text="savedMessage"></span>
-            </div>
-        </template>
-
-        <form @submit.prevent class="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm" aria-labelledby="pf-title">
-            <h2 id="pf-title" class="sr-only">Fill in the form</h2>
-
-            {{-- Filled in for you: profile details and today's date, locked --}}
-            @if ($locked->isNotEmpty())
-                <section x-data="{ open: false }" class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="pf-sec-auto">
-                    <button type="button" @click="open = !open" :aria-expanded="open" aria-controls="pf-auto"
-                            class="-ml-1 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
-                        <i class="bx text-xl text-slate-400" :class="open ? 'bx-chevron-down' : 'bx-chevron-right'" aria-hidden="true"></i>
-                        <span id="pf-sec-auto" class="text-sm font-semibold text-slate-900">Filled in for you</span>
-                        <span class="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">{{ $locked->count() }} from your account</span>
-                    </button>
-                    <div id="pf-auto" x-show="open" x-cloak class="mt-3">
-                        <p class="{{ $help }} mt-0">Printed on the form for you. Change your details in your profile.</p>
-                        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            @foreach ($locked as $f)
-                                <div wire:key="pf-lock-{{ $f['id'] }}">
-                                    <label for="pf-{{ $f['name'] }}" class="{{ $labelCls }}">{{ $labelOf($f) }}</label>
-                                    <div class="{{ $boxLocked }}">
-                                        <i class="bx bx-lock-alt text-base text-slate-400" aria-hidden="true"></i>
-                                        <input id="pf-{{ $f['name'] }}" type="text" disabled :value="displayValue(@js($f)) || '—'"
-                                               class="{{ $bare }} cursor-not-allowed text-slate-700 disabled:text-slate-700">
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </section>
-            @endif
-
-            {{-- The questions, one section per group --}}
-            @forelse ($groups as $groupName => $groupFields)
-                <section class="border-b border-slate-100 px-4 py-5 last:border-b-0 sm:px-5" aria-labelledby="pf-g-{{ $loop->index }}">
-                    <h3 id="pf-g-{{ $loop->index }}" class="text-sm font-semibold text-slate-900">
-                        {{ $groupName !== '' ? $titleCase($groupName) : ($groups->count() > 1 ? 'Other details' : 'Your answers') }}
-                    </h3>
-                    @if ($loop->first)
-                        <p class="{{ $help }}">Answer each item as it should appear on the printed form. The preview shows the result as you type.</p>
-                    @endif
-
-                    <div class="mt-4 space-y-4">
-                        @foreach ($groupFields as $f)
-                            @php
-                                $name = Illuminate\Support\Js::from($f['name']);
-                                $max = $f['max_length'] ?: null;
-                            @endphp
-                            <div wire:key="pf-f-{{ $f['id'] }}">
-                                <label for="pf-{{ $f['name'] }}" class="{{ $labelCls }}">
-                                    {{ $labelOf($f) }}
-                                    @if ($f['required'])<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
-                                </label>
-
-                                @if ($f['type'] === 'paragraph')
-                                    <div class="{{ $box }} items-start"
-                                         :class="errorModal.fields[{{ $name }}] ? 'border-rose-400 focus-within:border-rose-500 focus-within:ring-rose-200' : 'border-slate-300 focus-within:border-[#2A57B4] focus-within:ring-[#2A57B4]/20'">
-                                        <textarea id="pf-{{ $f['name'] }}" x-model="values[{{ $name }}]" @focus="setActiveField({{ $name }})" @blur="clearActiveField()"
-                                                  rows="{{ max((int) ($f['max_lines'] ?? 3), 3) }}" @if ($max) maxlength="{{ $max }}" @endif
-                                                  placeholder="{{ $f['placeholder'] ?: '' }}" class="{{ $bare }} resize-y"
-                                                  @if ($f['required']) aria-required="true" @endif></textarea>
-                                        @if ($max)
-                                            <span class="pointer-events-none absolute bottom-1.5 right-3 text-[11px] tabular-nums text-slate-500" aria-hidden="true"><span x-text="(values[{{ $name }}] || '').length"></span>/{{ $max }}</span>
-                                        @endif
-                                    </div>
-                                @else
-                                    <div class="{{ $box }}"
-                                         :class="errorModal.fields[{{ $name }}] ? 'border-rose-400 focus-within:border-rose-500 focus-within:ring-rose-200' : 'border-slate-300 focus-within:border-[#2A57B4] focus-within:ring-[#2A57B4]/20'">
-                                        @if ($icon($f))<i class="bx {{ $icon($f) }} text-base text-slate-400" aria-hidden="true"></i>@endif
-                                        <input id="pf-{{ $f['name'] }}" x-model="values[{{ $name }}]" @focus="setActiveField({{ $name }})" @blur="clearActiveField()"
-                                               type="{{ $f['type'] === 'number' ? 'text' : ($f['type'] === 'date' ? 'date' : 'text') }}"
-                                               @if ($f['type'] === 'number') inputmode="numeric" pattern="[0-9]*" @input="$event.target.value = $event.target.value.replace(/[^0-9]/g, ''); values[{{ $name }}] = $event.target.value" @endif
-                                               @if ($max && $f['type'] !== 'date') maxlength="{{ $max }}" @endif
-                                               placeholder="{{ $f['type'] === 'date' ? '' : ($f['placeholder'] ?: '') }}" class="{{ $bare }}"
-                                               @if ($f['required']) aria-required="true" @endif>
-                                    </div>
-                                @endif
-
-                                @error('formValues.' . $f['name'])
-                                    <p class="mt-1 flex items-start gap-1 text-xs font-medium text-rose-600"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p>
-                                @enderror
-                                <template x-if="errorModal.fields[{{ $name }}]">
-                                    <p class="mt-1 flex items-start gap-1 text-xs font-medium text-rose-600"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>This needs your answer.</p>
-                                </template>
-                            </div>
-                        @endforeach
-                    </div>
-                </section>
-            @empty
-                <p class="px-4 py-8 text-center text-sm text-slate-500 sm:px-5">There is nothing to fill in on this form. Save it as a PDF and print it.</p>
-            @endforelse
-
-            {{-- Actions --}}
-            <div class="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5">
-                <p class="text-xs text-slate-500">
-                    <span class="font-medium text-slate-700" x-text="filledCount + ' of ' + totalCount + ' answered'"></span>
-                    · Print the PDF, sign where needed, and bring it to the VPSD office.
-                </p>
-                <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                    @if ($preview)
-                        <span class="text-center text-xs text-slate-500 sm:mr-auto sm:text-left">Preview only: these buttons work for students.</span>
-                    @endif
-                    <button type="button" @if ($preview) disabled @else @click="saveWorkspace()" @endif
-                            class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9 sm:w-auto sm:py-1.5">
-                        <i class="bx bx-save text-base" aria-hidden="true"></i> Save as draft
-                    </button>
-                    <button type="button" @if ($preview) disabled @else @click="savePdf()" :disabled="pdfLoading" @endif
-                            class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9 sm:w-auto sm:py-1.5">
-                        <i class="bx text-base" :class="pdfLoading ? 'bx-loader-alt bx-spin' : 'bxs-file-pdf'" aria-hidden="true"></i>
-                        <span x-text="pdfLoading ? 'Preparing PDF…' : 'Save as PDF'">Save as PDF</span>
-                    </button>
-                </div>
-            </div>
-        </form>
+        <button type="button" @click="showInstructions = true" class="{{ $btnGhost }} w-9 shrink-0 !px-0 [@media(pointer:coarse)]:w-11"
+                aria-label="How to fill out this form" title="How to fill out this form">
+            <i class="bx bx-info-circle text-xl" aria-hidden="true"></i>
+        </button>
     </div>
 
-    {{-- The page, beside the form on wide screens; its own view on phones --}}
-    <aside class="rounded-2xl border border-slate-200/70 bg-white p-4 xl:sticky xl:top-0 xl:block xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto"
-           :class="mobileTab === 'preview' ? '' : 'hidden xl:block'" aria-label="Document preview">
-        <div class="mb-3 flex items-center justify-between gap-3">
-            <div class="min-w-0">
-                <h2 class="text-base font-semibold text-slate-900">Preview</h2>
-                <p class="text-xs text-slate-500">Updates as you type. This is how the printed page will look.</p>
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
-                <span class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500">
-                    <i class="bx bx-printer text-sm" aria-hidden="true"></i> {{ $template['document_size'] }}{{ $template['orientation'] === 'landscape' ? ' landscape' : '' }}
-                </span>
-                <button type="button" @click="mobileTab = 'form'" class="{{ $btnGhost }} xl:hidden"><i class="bx bx-arrow-back text-base" aria-hidden="true"></i> Form</button>
-            </div>
+    <template x-if="savedMessage">
+        <div role="status" class="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-800">
+            <i class="bx bx-check-circle text-lg" aria-hidden="true"></i><span x-text="savedMessage"></span>
         </div>
-        <div x-ref="previewFrame" class="overflow-hidden rounded-xl border border-slate-200 bg-[#e7e5e1] p-2 sm:p-3">
+    </template>
+
+    {{-- The form itself. Blue boxes are the blanks: type in them (or tap them on a phone). --}}
+    <form @submit.prevent aria-labelledby="pf-title"
+          x-data="{
+            blanks: @js($blanks),
+            editing: null,
+            get small() { return this.previewScale < 0.72; },
+            get pos() { return this.blanks.findIndex(b => b.name === this.editing); },
+            get current() { return this.blanks[this.pos] || null; },
+            edit(name) { this.editing = name; },
+            step(d) { const i = this.pos + d; if (i >= 0 && i < this.blanks.length) this.editing = this.blanks[i].name; else this.editing = null; },
+            onFocus(name, el) {
+                this.setActiveField(name);
+                if (this.small) { el.blur(); this.edit(name); }
+            },
+            // The page shrinks to the frame's width. Done here: the outer component cannot see refs inside this one.
+            init() {
+                const frame = this.$refs.previewFrame;
+                const fit = () => {
+                    const cs = getComputedStyle(frame);
+                    const inner = frame.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+                    if (inner > 0) this.previewScale = Math.min(inner / this.canvasWidth, 1);
+                };
+                this.$nextTick(fit);
+                new ResizeObserver(fit).observe(frame);
+            },
+          }">
+        <h2 id="pf-title" class="sr-only">Fill in the form: type in each blank</h2>
+
+
+        <div x-ref="previewFrame" class="overflow-hidden rounded-xl bg-[#e7e5e1] p-1.5 sm:p-3">
             <div class="mx-auto" :style="`width: ${canvasWidth * previewScale}px; height: ${canvasHeight * previewScale}px;`">
                 <div class="relative origin-top-left bg-white shadow-sm"
                      :style="`width: ${canvasWidth}px; height: ${canvasHeight}px; transform: scale(${previewScale});`">
@@ -232,17 +126,119 @@
                             <span class="-rotate-[30deg] select-none whitespace-nowrap text-[140px] font-semibold tracking-[0.2em] text-[#2A57B4]/[0.07]">PREVIEW</span>
                         </span>
                     @endif
+
                     @foreach ($fields as $f)
-                        @php $name = Illuminate\Support\Js::from($f['name']); @endphp
-                        <div class="absolute rounded-sm transition-shadow duration-150" x-bind:style="fieldBoxStyle(@js($f))"
-                             :class="activeField === {{ $name }} ? 'ring-2 ring-[#2A57B4] ring-offset-2 z-10' : (errorModal.fields[{{ $name }}] ? 'ring-2 ring-rose-400 ring-offset-2 z-10' : '')">
-                            <div class="pointer-events-none w-full px-2 py-1" x-bind:style="fieldTextStyle(@js($f))" x-text="displayValue(@js($f))"></div>
-                        </div>
+                        @php
+                            $name = Illuminate\Support\Js::from($f['name']);
+                            $max = $f['max_length'] ?: null;
+                        @endphp
+                        @if ($isLocked($f))
+                            {{-- Printed for you (profile details, today's date) --}}
+                            <div class="absolute" x-bind:style="fieldBoxStyle(@js($f))" wire:key="pf-lock-{{ $f['id'] }}" title="{{ $labelOf($f) }} (from your account)">
+                                <div class="pointer-events-none w-full px-2 py-1" x-bind:style="fieldTextStyle(@js($f))" x-text="displayValue(@js($f))"></div>
+                            </div>
+                        @else
+                            @php
+                                $cls = 'block h-full w-full resize-none rounded-[2px] border-0 px-2 py-1 outline-none ring-inset transition-colors focus:outline-none focus:ring-2 focus:ring-[#2A57B4] focus:bg-white placeholder:text-[#2A57B4]/45';
+                            @endphp
+                            <div class="absolute" x-bind:style="fieldBoxStyle(@js($f))" wire:key="pf-f-{{ $f['id'] }}">
+                                @if ($f['type'] === 'paragraph')
+                                    <textarea id="pf-{{ $f['name'] }}" x-model="values[{{ $name }}]"
+                                              @focus="onFocus({{ $name }}, $el)" @blur="clearActiveField()"
+                                              @if ($max) maxlength="{{ $max }}" @endif
+                                              placeholder="{{ $labelOf($f) }}" aria-label="{{ $labelOf($f) }}" title="{{ $labelOf($f) }}"
+                                              @if ($f['required']) aria-required="true" @endif
+                                              class="{{ $cls }}" x-bind:style="fieldTextStyle(@js($f)) + 'height:100%;max-height:none;'"
+                                              :class="errorModal.fields[{{ $name }}] ? 'bg-rose-100/70 ring-2 ring-rose-500' : (isFilled({{ $name }}) ? 'bg-transparent ring-1 ring-[#2A57B4]/15 hover:bg-[#2A57B4]/[0.06]' : 'bg-[#2A57B4]/[0.08] ring-1 ring-[#2A57B4]/40 hover:bg-[#2A57B4]/[0.14]')"></textarea>
+                                @else
+                                    <input id="pf-{{ $f['name'] }}" x-model="values[{{ $name }}]"
+                                           @focus="onFocus({{ $name }}, $el)" @blur="clearActiveField()"
+                                           type="{{ $f['type'] === 'date' ? 'date' : 'text' }}"
+                                           @if ($f['type'] === 'number') inputmode="numeric" pattern="[0-9]*" @input="$event.target.value = $event.target.value.replace(/[^0-9]/g, ''); values[{{ $name }}] = $event.target.value" @endif
+                                           @if ($max && $f['type'] !== 'date') maxlength="{{ $max }}" @endif
+                                           placeholder="{{ $f['type'] === 'date' ? '' : $labelOf($f) }}" aria-label="{{ $labelOf($f) }}" title="{{ $labelOf($f) }}"
+                                           @if ($f['required']) aria-required="true" @endif
+                                           class="{{ $cls }}" x-bind:style="fieldTextStyle(@js($f)) + 'height:100%;'"
+                                           :class="errorModal.fields[{{ $name }}] ? 'bg-rose-100/70 ring-2 ring-rose-500' : (isFilled({{ $name }}) ? 'bg-transparent ring-1 ring-[#2A57B4]/15 hover:bg-[#2A57B4]/[0.06]' : 'bg-[#2A57B4]/[0.08] ring-1 ring-[#2A57B4]/40 hover:bg-[#2A57B4]/[0.14]')">
+                                @endif
+                            </div>
+                        @endif
                     @endforeach
                 </div>
             </div>
         </div>
-    </aside>
+
+        @error('formValues')
+            <p class="mt-2 text-sm font-medium text-rose-600">{{ $message }}</p>
+        @enderror
+
+        {{-- Phones: the blank being filled, large, at the foot of the screen --}}
+        <div x-show="editing" x-cloak x-transition.opacity
+             class="fixed inset-0 z-[90] flex items-end bg-slate-900/40"
+             @click.self="editing = null" @keydown.escape.window="editing = null"
+             role="dialog" aria-modal="true" aria-labelledby="pf-edit-label">
+            <div class="w-full rounded-t-2xl bg-white px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl" x-show="editing" x-transition:enter="transition duration-200 ease-out" x-transition:enter-start="translate-y-6">
+                <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300" aria-hidden="true"></div>
+                <div class="flex items-center justify-between gap-3">
+                    <label for="pf-edit" id="pf-edit-label" class="min-w-0 truncate text-sm font-semibold text-slate-900">
+                        <span x-text="current?.label"></span><span x-show="current?.required" class="text-rose-600" aria-hidden="true"> *</span>
+                    </label>
+                    <span class="shrink-0 text-xs tabular-nums text-slate-500" x-text="(pos + 1) + ' of ' + blanks.length"></span>
+                </div>
+                <template x-if="current && current.type === 'paragraph'">
+                    <textarea id="pf-edit" x-model="values[current.name]" rows="4" :maxlength="current.max || null"
+                              x-effect="editing; $nextTick(() => $el.focus())"
+                              class="mt-2 block w-full resize-none border-0 bg-transparent px-0.5 py-0 text-base font-medium leading-7 text-slate-900 outline-none focus:ring-0 bg-[linear-gradient(to_bottom,transparent_27px,#2A57B4_27px,#2A57B4_28px)] bg-[length:100%_28px] bg-local"></textarea>
+                </template>
+                <template x-if="current && current.type !== 'paragraph'">
+                    <input id="pf-edit" x-model="values[current.name]" :type="current.type === 'date' ? 'date' : 'text'"
+                           :inputmode="current.type === 'number' ? 'numeric' : null" :maxlength="current.type !== 'date' ? (current.max || null) : null"
+                           @input="if (current.type === 'number') { $event.target.value = $event.target.value.replace(/[^0-9]/g, ''); values[current.name] = $event.target.value }"
+                           @keydown.enter.prevent="step(1)" enterkeyhint="next"
+                           x-effect="editing; $nextTick(() => $el.focus())"
+                           class="mt-2 block w-full border-0 border-b-2 border-[#2A57B4] bg-transparent px-0.5 py-2 text-lg font-medium text-slate-900 outline-none focus:ring-0">
+                </template>
+                <div class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                    <button type="button" @click="step(-1)" :disabled="pos <= 0"
+                            class="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 disabled:opacity-40">
+                        <i class="bx bx-chevron-left text-lg" aria-hidden="true"></i> Back
+                    </button>
+                    <button type="button" @click="step(1)"
+                            class="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white">
+                        <span x-text="pos >= blanks.length - 1 ? 'Done' : 'Next'"></span> <i class="bx bx-chevron-right text-lg" aria-hidden="true" x-show="pos < blanks.length - 1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Actions: below the form page --}}
+        <div class="mt-3 py-2">
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <p class="text-xs text-slate-500">
+                    <span class="font-semibold tabular-nums text-slate-800" x-text="filledCount + ' of ' + totalCount"></span> filled · print, sign, bring to VPSD
+                </p>
+                @if ($preview)
+                    <span class="text-xs text-slate-500">Preview only: buttons work for students.</span>
+                @endif
+            </div>
+            <div class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex sm:justify-end">
+                @if ($blanks)
+                    <button type="button" @click="edit(blanks[0].name)" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 sm:hidden" x-show="small">
+                        <i class="bx bx-edit-alt text-base" aria-hidden="true"></i><span class="sr-only">Fill in, one blank at a time</span>
+                    </button>
+                @endif
+                <button type="button" @if ($preview) disabled @else @click="saveWorkspace()" @endif
+                        class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9">
+                    <i class="bx bx-save text-base" aria-hidden="true"></i> Save draft
+                </button>
+                <button type="button" @if ($preview) disabled @else @click="savePdf()" :disabled="pdfLoading" @endif
+                        class="col-span-2 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-5 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:min-h-9">
+                    <i class="bx text-base" :class="pdfLoading ? 'bx-loader-alt bx-spin' : 'bxs-file-pdf'" aria-hidden="true"></i>
+                    <span x-text="pdfLoading ? 'Preparing PDF…' : 'Save as PDF'">Save as PDF</span>
+                </button>
+            </div>
+        </div>
+    </form>
 
     {{-- How to fill out this form --}}
     <template x-teleport="body">
@@ -253,7 +249,7 @@
             <div class="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
                 <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
                     <div class="min-w-0">
-                        <h2 id="pf-ins-title" class="text-base font-semibold text-slate-900">How to fill out this form</h2>
+                        <h2 id="pf-ins-title" class="text-base font-semibold text-slate-900">How to fill it out</h2>
                         <p class="mt-0.5 text-xs text-slate-500">{{ $title }}</p>
                     </div>
                     <button type="button" @click="showInstructions = false" class="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]" aria-label="Close">
@@ -267,7 +263,7 @@
                             <p class="text-sm leading-relaxed text-slate-700">{{ $step['description'] }}</p>
                         </li>
                     @empty
-                        <li class="px-2 py-2.5 text-sm text-slate-500">Fill in each item, save the form as a PDF, print it and bring it to the VPSD office.</li>
+                        <li class="px-2 py-2.5 text-sm text-slate-500">Type in the blue boxes, save as PDF, print it and bring it to the VPSD office.</li>
                     @endforelse
                 </ol>
                 <div class="flex justify-end border-t border-slate-100 px-5 py-3">
@@ -286,7 +282,7 @@
                 <div class="flex items-start gap-3">
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600"><i class="bx bx-error text-xl" aria-hidden="true"></i></span>
                     <div class="min-w-0 flex-1">
-                        <h3 id="pf-err-title" class="text-base font-semibold text-slate-900">This can't be saved yet</h3>
+                        <h3 id="pf-err-title" class="text-base font-semibold text-slate-900">Not saved yet</h3>
                         <p class="mt-1 text-sm text-slate-600" x-text="errorModal.message"></p>
                     </div>
                 </div>

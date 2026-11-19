@@ -16,11 +16,12 @@
         'semester' => $periodTerm ?? '',
         'academic_year' => $periodTerm ? $periodYear : '',
         'tagged_by' => $currentStatus['tagged_by'],
-        'tagged_at' => $history->firstWhere('is_current', true)['tagged_at'] ?? null,
+        'tagged_at' => $currentStatus['tagged_at'] ?? null,
     ];
 
+    // The timeline and the chip counts cover every semester, whatever the status filter shows below.
     $rank = fn ($e) => [(int) substr((string) $e['academic_year'], 0, 4), str_contains(strtolower($e['semester']), 'second') ? 2 : (str_contains(strtolower($e['semester']), 'summer') || str_contains(strtolower($e['semester']), 'mid') ? 3 : 1)];
-    $timeline = $history->sortBy($rank)->values();
+    $timeline = $fullHistory->sortBy($rank)->values();
     $counts = collect(['Cleared', 'Pending', 'Uncleared'])->mapWithKeys(fn ($s) => [$s => $timeline->where('status', $s)->count()]);
     $byYear = $history->groupBy('academic_year');
 @endphp

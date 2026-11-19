@@ -71,8 +71,8 @@ class AdminReportSpreadsheet
             $rows[] = [$m['label'], $m['total'], $m['previous'], $m['delta'] === null ? '—' : ($m['delta'] > 0 ? '+' : '') . $m['delta'] . '%', 'Period vs. the one before'];
         }
         $rows = array_merge($rows, [
-            ['Digital documents completed', $wf['completed'], null, null, $wf['completion_rate'] . '% of ' . $wf['total'] . ' submitted'],
-            ['Digital documents in progress', $wf['in_progress'], null, null, 'Still with the office, signers or the student'],
+            ['Completed', $wf['completed'], null, null, $wf['completion_rate'] . '% of ' . $wf['total'] . ' submitted'],
+            ['Reviewing', $wf['in_progress'], null, null, 'Still with the office, signers or the student'],
             ['Rejected', $wf['rejected'], null, null, $wf['rejections']['review'] . ' by VPSD, ' . $wf['rejections']['signer'] . ' by signers'],
             ['Voided', $wf['voided'], null, null, 'Completed documents later withdrawn'],
             ['Average time to issue', $wf['avg_issue'], null, null, 'Submitted to completed'],

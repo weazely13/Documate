@@ -1,2 +1,2 @@
 {{-- Needs: $text --}}
-<p class="rounded-xl bg-slate-50 px-3.5 py-2.5 text-xs leading-relaxed text-slate-600">{{ $text }}</p>
+<p class="flex items-start gap-1.5 text-xs leading-relaxed text-slate-500"><i class="bx bx-pen mt-0.5 text-sm text-slate-400" aria-hidden="true"></i><span>{{ $text }}</span></p>

@@ -118,18 +118,18 @@
     <div class="lbl" style="left:0; width:487pt;">I would like to request renewal of my ID for the following reason/s:</div>
 </div>
 
-<div class="ln s"><div class="lbl" style="left:28pt; width:400pt;">{!! $box(! empty($v['not_presentable'])) !!} It does not look presentable anymore.</div></div>
-<div class="ln s"><div class="lbl" style="left:28pt; width:400pt;">{!! $box(! empty($v['destroyed'])) !!} It has been destroyed.</div></div>
-<div class="ln s"><div class="lbl" style="left:28pt; width:400pt;">{!! $box(! empty($v['lost'])) !!} It was lost.</div></div>
+<div data-f="not_presentable" class="ln s"><div class="lbl" style="left:28pt; width:400pt;">{!! $box(! empty($v['not_presentable'])) !!} It does not look presentable anymore.</div></div>
+<div data-f="destroyed" class="ln s"><div class="lbl" style="left:28pt; width:400pt;">{!! $box(! empty($v['destroyed'])) !!} It has been destroyed.</div></div>
+<div data-f="lost" class="ln s"><div class="lbl" style="left:28pt; width:400pt;">{!! $box(! empty($v['lost'])) !!} It was lost.</div></div>
 
 {{-- Other reason/s: first line after the label, then ruled rows --}}
 <div class="ln s">
-    <div class="lbl" style="left:28pt; width:122pt;">{!! $box($other) !!} Other reason/s:</div>
-    <div class="val left" style="left:152pt; width:335pt; font-size:{{ $fit($rows[0], 335, 9.5, 6) }}pt;">{{ $rows[0] }}</div>
+    <div data-f="other" class="lbl" style="left:28pt; width:122pt;">{!! $box($other) !!} Other reason/s:</div>
+    <div data-f="other_specify" class="val left" style="left:152pt; width:335pt; font-size:{{ $fit($rows[0], 335, 9.5, 6) }}pt;">{{ $rows[0] }}</div>
 </div>
 <div style="margin-left:152pt; width:335pt;">
     @foreach (array_slice($rows, 1) as $line)
-        <div class="rrow" style="font-size:{{ $fit($line, 335, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+        <div data-f="other_specify" class="rrow" style="font-size:{{ $fit($line, 335, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
     @endforeach
 </div>
 

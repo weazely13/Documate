@@ -13,7 +13,7 @@ final class ReportPie
     public const STATUS = [
         'pending' => '#fcd34d', 'submitted' => '#a5b4fc', 'under_review' => '#6366f1', 'action_required' => '#f59e0b',
         'approved' => '#2A57B4', 'completed' => '#10b981', 'rejected' => '#f43f5e', 'voided' => '#fda4af',
-        'Cleared' => '#10b981', 'Pending' => '#fbbf24', 'Uncleared' => '#f43f5e', 'Not tagged' => '#cbd5e1',
+        'Cleared' => '#10b981', 'Pending' => '#fbbf24', 'Uncleared' => '#f43f5e', 'Untagged' => '#cbd5e1',
     ];
 
     /** Organizations take these in a fixed order (the categorical palette). */

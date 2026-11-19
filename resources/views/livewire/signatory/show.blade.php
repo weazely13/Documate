@@ -19,7 +19,7 @@
                 <h2 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $document->name() }}</h2>
                 <p class="mt-0.5 font-mono text-xs text-slate-500">{{ $ws->transaction_code }}</p>
             </div>
-            <div class="shrink-0">@include('livewire.workflow._badge', ['status' => $ws->workflow_status])</div>
+            <div class="shrink-0">@include('livewire.workflow._badge', ['ws' => $ws])</div>
         </div>
     </div>
 
@@ -70,6 +70,52 @@
     </section>
 
 
+
+    {{-- Your part: what the signer fills in (remarks, rating, scores), right on the form, before signing. --}}
+    @php
+        $D = \App\Support\DocSheet::class;
+        $needsRemarks = $document->signerRecordsInspection();
+        $fillsIn = $canAct && ($needsRemarks || in_array($kind ?? null, ['rating', 'form'], true));
+    @endphp
+    @if ($fillsIn)
+        <section class="rounded-[3px] bg-white px-4 py-5 shadow-[0_1px_2px_rgba(13,37,61,0.06),0_12px_32px_-16px_rgba(13,37,61,0.28)] ring-1 ring-slate-200/80 sm:px-8 sm:py-6" aria-labelledby="your-part">
+            <div class="flex items-baseline justify-between gap-3">
+                <h3 id="your-part" class="{{ $D::HEADING }}">Your part</h3>
+                <span class="truncate text-[11px] italic text-slate-500">{{ $approval->role->label ?? $approval->label }}</span>
+            </div>
+
+            <div class="mt-4 space-y-5">
+                @if (($kind ?? null) === 'rating')
+                    <fieldset>
+                        <legend class="text-[15px] text-slate-800">Rating <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></legend>
+                        <div class="mt-2 grid grid-cols-5 gap-1.5 {{ $errors->has('rating') ? 'rounded-lg bg-rose-50 p-1' : '' }}">
+                            @foreach (\App\Workflow\Documents\ModelStudentRating::RATINGS as $n => $rLabel)
+                                <label wire:key="rt-{{ $n }}" class="flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg border border-slate-200 px-1 py-1.5 text-center transition-colors hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-[#2A57B4] has-[:checked]:text-white has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/30">
+                                    <input type="radio" name="rating" wire:model="rating" value="{{ $n }}" class="sr-only">
+                                    <span class="text-base font-semibold">{{ $n }}</span>
+                                    <span class="text-[10px] leading-tight opacity-80">{{ $rLabel }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('rating') <p class="{{ $D::ERROR }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
+                    </fieldset>
+                @elseif (($kind ?? null) === 'form')
+                    @include('livewire.workflow._signer-fields', ['fields' => $document->signerFields($ws->field_values ?? [])])
+                @endif
+
+                @if ($needsRemarks)
+                    @php $inspRole = $approval->role?->key; @endphp
+                    <div class="group/f">
+                        <textarea id="inspection-remarks" wire:model="inspectionRemarks" rows="3" maxlength="300" aria-required="true"
+                                  placeholder="{{ $document->inspectionPlaceholder($inspRole) }}"
+                                  class="{{ $D::LINED }} {{ $errors->has('inspectionRemarks') ? 'bg-rose-50/60' : '' }}"></textarea>
+                        <label for="inspection-remarks" class="{{ $D::CAPTION }}">{{ $document->inspectionLabel($inspRole) }} <span class="not-italic text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+                        @error('inspectionRemarks') <p class="{{ $D::ERROR }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
+                    </div>
+                @endif
+            </div>
+        </section>
+    @endif
 
     {{-- Committee members --}}
     @if ($canSend)
@@ -281,46 +327,20 @@
                 <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 sm:hidden"></div>
 
                 @if ($modal === 'approve')
-                    <h3 id="sign-modal-title" class="text-lg font-semibold text-slate-900">Confirm your signature</h3>
-                    <p class="mt-1 text-sm text-slate-500">I have reviewed this {{ strtolower($document->name()) }} and authorize this action. Your signature below will be applied and sealed.</p>
+                    <h3 id="sign-modal-title" class="text-lg font-semibold text-slate-900">Sign this {{ strtolower($document->name()) }}</h3>
+                    <p class="mt-1 text-sm text-slate-500">Your signature is applied and sealed.</p>
 
-                    @if (auth()->user()->signature_enabled)
-                        @if ($signatureReady)
-                            <p class="mt-4 text-xs font-medium text-slate-500">Digitally signed by</p>
-                            <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}" alt="Your saved e-signature" class="mt-1 h-16 rounded-lg border border-slate-100 bg-white p-1">
-                            <p class="mt-1 border-b border-slate-300 pb-0.5 text-sm font-semibold text-slate-900">{{ \App\Services\Workflow\FormSupport::systemValue(auth()->user(), 'signing_name') }}</p>
-                        @endif
-                    @else
-                        <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                            Your signature image is turned off. This approval will show your name and seal only.
-                        </p>
+                    @if ($signatureReady)
+                        <p class="mt-4 text-xs font-medium text-slate-500">Digitally signed by</p>
+                        <img src="{{ route('profile.signature') }}?v={{ md5(auth()->user()->signature_path) }}" alt="Your saved e-signature" class="mt-1 h-16 rounded-lg border border-slate-100 bg-white p-1">
+                        <p class="mt-1 border-b border-slate-300 pb-0.5 text-sm font-semibold text-slate-900">{{ \App\Services\Workflow\FormSupport::systemValue(auth()->user(), 'signing_name') }}</p>
                     @endif
 
-                    @if ($document->signerRecordsInspection())
-                        @php $inspRole = $approval->role?->key; @endphp
-                        <label for="inspection-remarks" class="mt-4 block text-sm font-medium text-slate-700">{{ $document->inspectionLabel($inspRole) }} <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
-                        <textarea id="inspection-remarks" wire:model="inspectionRemarks" rows="3" maxlength="300" required aria-required="true" placeholder="{{ $document->inspectionPlaceholder($inspRole) }}" class="{{ $field }}"></textarea>
-                        @error('inspectionRemarks') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
+                    @if ($fillsIn)
+                        <p class="mt-3 flex items-center gap-1.5 text-xs text-emerald-700"><i class="bx bx-check-circle" aria-hidden="true"></i>Your part is filled in.</p>
                     @endif
 
-                    @if (($kind ?? null) === 'rating')
-                        <p id="rating-label" class="mt-4 text-sm font-medium text-slate-700">Your rating</p>
-                        <div class="mt-1.5 space-y-1.5" role="radiogroup" aria-labelledby="rating-label">
-                            @foreach (\App\Workflow\Documents\ModelStudentRating::RATINGS as $n => $label)
-                                <label wire:key="rt-{{ $n }}" class="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/20">
-                                    <input type="radio" name="rating" wire:model="rating" value="{{ $n }}" class="h-5 w-5 accent-[#2A57B4]">
-                                    <span class="font-medium text-slate-800">{{ $label }}</span><span class="ml-auto text-slate-500">({{ $n }})</span>
-                                </label>
-                            @endforeach
-                        </div>
-                        @error('rating') <p class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
-                    @elseif (($kind ?? null) === 'form')
-                        <div class="mt-4">
-                            @include('livewire.workflow._signer-fields', ['fields' => $document->signerFields($ws->field_values ?? [])])
-                        </div>
-                    @endif
-
-                    <label for="sign-password" class="mt-4 block text-sm font-medium text-slate-700">Enter your password to sign</label>
+                    <label for="sign-password" class="mt-4 block text-sm font-medium text-slate-700">Your password</label>
                     <input id="sign-password" type="password" wire:model="password" wire:keydown.enter="approve" autocomplete="current-password" class="{{ $field }}"
                            aria-required="true" @error('password') aria-invalid="true" aria-describedby="sign-password-error" @enderror>
                     @error('password') <p id="sign-password-error" role="alert" class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror

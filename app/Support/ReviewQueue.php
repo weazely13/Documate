@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
 class ReviewQueue
 {
     /** Queues whose waiting time is the office's (or a signatory's) to act on, so it is flagged. */
-    public const FLAGGED = ['attention', 'signing'];
+    public const FLAGGED = ['issuance', 'attention', 'signing'];
 
     /** Paperless transactions past the draft stage. */
     public static function base(): Builder
@@ -25,18 +25,27 @@ class ReviewQueue
             ->where('workflow_status', '!=', 'draft');
     }
 
-    /** attention = the office acts next, signing = with signatories, action_required = with the student. */
+    /**
+     * issuance = the office issues it next (fully signed, or a report a signatory issued),
+     * attention = the office reviews it next, signing = with signatories, action_required = with the student.
+     * A staff-issued document that is signed before the office gets it (signedBeforeOffice) is in Signing until then.
+     */
     public static function apply(Builder $q, string $queue): Builder
     {
         $staffKeys = self::staffKeys();
+        $signFirst = self::signFirstKeys();
+        $officeNow = array_values(array_diff($staffKeys, $signFirst));   // staff-issued, straight to Issuance
 
         return match ($queue) {
+            'issuance' => $q->where(fn ($w) => $w
+                ->where('workflow_status', 'approved')
+                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereIn('document_type', $officeNow))),
             'attention' => $q->where(fn ($w) => $w
-                ->whereIn('workflow_status', ['submitted', 'approved'])
-                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereDoesntHave('approvals'))
-                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereIn('document_type', $staffKeys))),
+                ->where('workflow_status', 'submitted')
+                ->orWhere(fn ($x) => $x->where('workflow_status', 'under_review')->whereDoesntHave('approvals')
+                    ->whereNotIn('document_type', $staffKeys))),
             'signing' => $q->where('workflow_status', 'under_review')->whereHas('approvals')
-                ->whereNotIn('document_type', $staffKeys),
+                ->whereNotIn('document_type', $officeNow),
             'action_required' => $q->where('workflow_status', 'action_required'),
         };
     }
@@ -66,15 +75,46 @@ class ReviewQueue
             ->max();
     }
 
+    /**
+     * Has waited at least $days school days: nothing has moved since (no status change, no signature), the same test
+     * overdue() uses. With $under, also fewer than $under days: something moved, or it came in, after that cutoff.
+     */
+    public static function waited(Builder $q, ?int $atLeast, ?int $under): Builder
+    {
+        if ($atLeast !== null && $atLeast > 0) {
+            $c = WaitingTime::cutoff($atLeast);
+            $q->where('submitted_at', '<=', $c)
+                ->whereDoesntHave('auditLogs', fn ($a) => $a->whereNotNull('to_status')->where('created_at', '>', $c))
+                ->whereDoesntHave('approvals', fn ($a) => $a->where('acted_at', '>', $c));
+        }
+        if ($under !== null) {
+            $c = WaitingTime::cutoff($under);
+            $q->where(fn ($w) => $w->where('submitted_at', '>', $c)
+                ->orWhereHas('auditLogs', fn ($a) => $a->whereNotNull('to_status')->where('created_at', '>', $c))
+                ->orWhereHas('approvals', fn ($a) => $a->where('acted_at', '>', $c)));
+        }
+
+        return $q;
+    }
+
     /** Open transactions in the flagged queues that have not moved for a week of school days. */
     public static function overdue(): Builder
     {
         $cutoff = WaitingTime::overdueCutoff();
 
         return self::base()
-            ->where(fn ($w) => self::apply($w, 'attention')->orWhere(fn ($x) => self::apply($x, 'signing')))
+            ->where(fn ($w) => self::apply($w, 'issuance')->orWhere(fn ($x) => self::apply($x, 'attention'))->orWhere(fn ($x) => self::apply($x, 'signing')))
             ->whereDoesntHave('auditLogs', fn ($a) => $a->whereNotNull('to_status')->where('created_at', '>', $cutoff))
             ->whereDoesntHave('approvals', fn ($a) => $a->where('acted_at', '>', $cutoff));
+    }
+
+    /** Staff-issued document keys whose signers all sign before the office receives it. */
+    private static function signFirstKeys(): array
+    {
+        return collect(DocumentRegistry::all())
+            ->filter(fn ($d) => $d->issuerIsStaff() && $d->signedBeforeOffice())
+            ->keys()
+            ->all();
     }
 
     /** Document keys a signatory or staff member issues (they skip the office's own signing queue). */

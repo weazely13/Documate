@@ -65,7 +65,6 @@ class ProfilePage extends Component
 
     // Select options
     public array $sexOptions = ['Male', 'Female'];
-    public bool $signature_enabled = true;
 
     public array $yearLevelOptions = [
         '1' => '1st Year',
@@ -113,10 +112,6 @@ class ProfilePage extends Component
 
             return;
         }
-
-        // Saving a signature is consent to use it (there is no separate on/off switch).
-        Auth::user()->forceFill(['signature_enabled' => true])->save();
-        $this->signature_enabled = true;
 
         $this->reset('signatureData', 'signature_password');
         $this->dispatch('signature-saved');
@@ -447,7 +442,6 @@ class ProfilePage extends Component
         $this->role_name = (string) ($user->role->role_name ?? 'User');
         $this->profile_picture = $user->profile_picture;
         $this->isOfficerLocked = method_exists($user, 'isOfficer') ? $user->isOfficer() : false;
-        $this->signature_enabled = (bool) ($user->signature_enabled ?? true);
     }
     public function updatedEmail(): void
     {

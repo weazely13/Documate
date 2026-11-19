@@ -112,7 +112,7 @@
 {{-- RE: --}}
 <div class="ln" style="height:34pt;">
     <div class="lbl" style="left:0; width:36pt; font-weight:bold;">RE:</div>
-    <div class="val left" style="left:40pt; width:447pt; font-size:{{ $fit($subject, 447, 10, 6) }}pt;">{{ $subject }}</div>
+    <div data-f="subject" class="val left" style="left:40pt; width:447pt; font-size:{{ $fit($subject, 447, 10, 6) }}pt;">{{ $subject }}</div>
 </div>
 
 {{-- Statement --}}
@@ -121,10 +121,10 @@
 </div>
 <div class="ln">
     <div class="lbl" style="left:0; width:80pt;">Development at</div>
-    <div class="val" style="left:82pt; width:90pt; font-size:{{ $fit($time, 90) }}pt;">{{ $time }}</div>
+    <div data-f="appointment_time" class="val" style="left:82pt; width:90pt; font-size:{{ $fit($time, 90) }}pt;">{{ $time }}</div>
     <div class="cap" style="left:82pt; width:90pt;">(Time)</div>
     <div class="lbl" style="left:176pt; width:16pt;">on</div>
-    <div class="val" style="left:194pt; width:180pt; font-size:{{ $fit($when, 180) }}pt;">{{ $when }}</div>
+    <div data-f="appointment_date" class="val" style="left:194pt; width:180pt; font-size:{{ $fit($when, 180) }}pt;">{{ $when }}</div>
     <div class="cap" style="left:194pt; width:180pt;">(Date)</div>
     <div class="lbl" style="left:376pt; width:8pt;">.</div>
 </div>

@@ -47,20 +47,7 @@
         return ['text' => abs($p) . '%', 'icon' => $p > 0 ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt', 'good' => $lowerIsBetter ? $p < 0 : $p > 0];
     };
 
-    $clear = [
-        'Cleared' => ['bg-emerald-50 text-emerald-700 ring-emerald-200', 'from-emerald-500 to-teal-400', 'bx-check'],
-        'Pending' => ['bg-amber-50 text-amber-700 ring-amber-200', 'from-amber-400 to-orange-400', 'bx-time-five'],
-        'Uncleared' => ['bg-rose-50 text-rose-700 ring-rose-200', 'from-rose-500 to-pink-500', 'bx-x'],
-        'Not tagged' => ['bg-slate-100 text-slate-600 ring-slate-200', 'from-slate-400 to-slate-500', 'bx-minus'],
-    ];
-    $txTone = fn ($state) => match ($state) {
-        'completed' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-        'approved' => 'bg-blue-50 text-[#2A57B4] ring-blue-200',
-        'submitted', 'under_review' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-        'action_required', 'pending' => 'bg-amber-50 text-amber-700 ring-amber-200',
-        'rejected', 'voided' => 'bg-rose-50 text-rose-700 ring-rose-200',
-        default => 'bg-slate-100 text-slate-600 ring-slate-200',
-    };
+    // Status pills use the system-wide words and colours: App\Support\StatusStyle via the status-badge component.
 
     $card = 'min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm';
     $cardTitle = 'text-[15px] font-semibold text-slate-900';
@@ -73,7 +60,6 @@
     // Sections that run edge to edge: out past the page gutter, their own text back in by it.
     $bleed = '-mx-4 md:-mx-6';
     $gutter = 'px-4 md:px-6';
-    $badge = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset';
     $menu = 'z-40 w-56 max-w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-xl bg-white py-1 text-sm shadow-lg ring-1 ring-slate-200';
     $menuItem = 'flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40';
     $outlineBtn = 'inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]';
@@ -433,7 +419,7 @@
                     <div class="space-y-2 text-xs leading-relaxed text-slate-700">
                     @if ($tab === 'forms')
                         <p><b>Form</b> dropdown: pick one form. <b>Show all</b> goes back to every form.</p>
-                        <p><b>Pie</b>: where each request stands now. <b>Trend</b>: requests filed, completed and returned over time.</p>
+                        <p><b>Pie</b>: where each request stands now. <b>Trend</b>: requests filed, completed and rejected over time.</p>
                         <p><b>Table</b>: one row per request. Issued date stays blank until it is completed.</p>
                     @elseif ($tab === 'organizations')
                         <p><b>Organization</b> dropdown: pick one. <b>Show all</b> goes back to every organization.</p>
@@ -441,7 +427,7 @@
                         <p><b>Trend</b>: forms filed by members over time.</p>
                     @else
                         <p><b>Columns</b>: share of each year level that is cleared. <b>Trend</b>: when statuses were set this semester.</p>
-                        <p><b>Not tagged</b>: not checked by an officer yet (not the same as Uncleared).</p>
+                        <p><b>Untagged</b>: not checked by an officer yet (not the same as Uncleared).</p>
                     @endif
                     <p><b>Dates</b>: set a range at the top of the period menu. <b>Compare</b>: adds an earlier period to the trend.</p>
                     <p><b>Metrics</b>: choose columns. Tick rows, then <i class="bx bx-download align-middle" aria-hidden="true"></i> to download them. <i class="bx bx-dots-vertical-rounded align-middle" aria-hidden="true"></i> on a row copies it.</p>
@@ -915,10 +901,10 @@
                                             <td class="whitespace-nowrap px-4 py-1 tabular-nums text-slate-600 {{ $edge }}">{!! $r['completed'] ? e($r['completed']->format('g:i A')) : $dash !!}</td>
                                             @break
                                         @case('status')
-                                            <td class="px-4 py-1"><span class="{{ $badge }} {{ $txTone($r['state']) }}">{{ $r['status'] }}</span></td>
+                                            <td class="px-4 py-1"><x-status-badge :status="$r['state']" /></td>
                                             @break
                                         @case('clearance')
-                                            <td class="px-4 py-1"><span class="{{ $badge }} {{ $clear[$r['status']][0] }}"><i class="bx {{ $clear[$r['status']][2] }}" aria-hidden="true"></i>{{ $r['status'] }}</span></td>
+                                            <td class="px-4 py-1"><x-status-badge :clearance="$r['status'] ?? ''" /></td>
                                             @break
                                         @case('code')
                                             <td class="whitespace-nowrap px-4 py-1"><a href="{{ $r['url'] }}" wire:navigate class="font-semibold tabular-nums text-[#2A57B4] hover:underline">{{ $r['code'] }}</a></td>
@@ -985,7 +971,7 @@
                             <a href="{{ $r['url'] }}" wire:navigate class="min-w-0 flex-1">
                                 <span class="flex items-start justify-between gap-2">
                                     <span class="min-w-0 truncate text-sm font-medium text-slate-900">{{ $r['student'] }}</span>
-                                    <span class="{{ $badge }} shrink-0 !px-2 !text-[11px] {{ $tab === 'forms' ? $txTone($r['state']) : $clear[$r['status']][0] }}">{{ $r['status'] }}</span>
+                                    @if ($tab === 'forms')<x-status-badge :status="$r['state']" class="shrink-0 !px-2 !text-[11px]" />@else<x-status-badge :clearance="$r['status'] ?? ''" :icon="false" class="shrink-0 !px-2 !text-[11px]" />@endif
                                 </span>
                                 <span class="block truncate text-xs text-slate-500">{{ $r['number'] }} · {{ $r['organization'] }}</span>
                                 @if ($tab === 'forms')

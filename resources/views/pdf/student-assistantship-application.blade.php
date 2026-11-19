@@ -140,7 +140,7 @@
     </tr>
 @for ($i = 0; $i < 3; $i++)
     @php $l = $left[$i]; $r = $right[$i] ?? null; @endphp
-    <tr>
+    <tr data-f="__schedule">
         <td class="day">{{ SA::DAYS[$l][0] }}</td>
         <td>{{ SA::range($v, $l, 'am') }}</td><td>{{ SA::fmt(SA::halfHours($v, $l, 'am')) }}</td>
         <td>{{ SA::range($v, $l, 'pm') }}</td><td>{{ SA::fmt(SA::halfHours($v, $l, 'pm')) }}</td>

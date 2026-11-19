@@ -61,7 +61,7 @@ final class ReportAssessment
                 $prev = $d['prevClearanceCounts'];
                 $rows = [
                     self::rate('cleared', $pct($c['Cleared'] ?? 0, $total), ($c['Cleared'] ?? 0) . ' of ' . $total . ' students'),
-                    self::rate('not_tagged', $pct($c['Not tagged'] ?? 0, $total), ($c['Not tagged'] ?? 0) . ' of ' . $total . ' students'),
+                    self::rate('not_tagged', $pct($c['Untagged'] ?? 0, $total), ($c['Untagged'] ?? 0) . ' of ' . $total . ' students'),
                     self::rate('uncleared', $pct($c['Uncleared'] ?? 0, $total), ($c['Uncleared'] ?? 0) . ' of ' . $total . ' students'),
                 ];
                 if ($prev !== null) {

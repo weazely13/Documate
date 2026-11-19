@@ -106,22 +106,27 @@ class Show extends Component
     private function signatureReady(): bool
     {
         $u = Auth::user();
-        if (! $u->signature_enabled) return true;   // signing without an image is allowed
         $path = $u->signature_path;
         return $path && Storage::disk(SignatureStore::DISK)->exists($path);
     }
 
+    /**
+     * The signer's part (remarks, rating, scores) is filled in on the document itself, so it stays put when the
+     * confirm dialog opens and closes. Approving checks it first: problems show on the page, not in the dialog.
+     */
     public function openModal(string $which): void
     {
-        if (in_array($which, ['approve', 'reject'], true)) {
-            $this->resetErrorBag();
-            $this->inspectionRemarks = '';
-            $this->password = '';
-            $this->reason = '';
-            $this->modal = $which;
-            $this->rating = null;
-            $this->answers = [];
+        if (! in_array($which, ['approve', 'reject'], true)) {
+            return;
         }
+        $this->resetErrorBag();
+        $this->password = '';
+        $this->reason = '';
+
+        if ($which === 'approve') {
+            $this->checkSignerPart();
+        }
+        $this->modal = $which;
     }
 
     public function closeModal(): void
@@ -130,7 +135,24 @@ class Show extends Component
         $this->password = '';
         $this->reason = '';
         $this->resetErrorBag();
-        $this->inspectionRemarks = '';
+    }
+
+    /** Validates what the signer filled in on the document (throws, so the errors land on the page). */
+    protected function checkSignerPart(): void
+    {
+        $kind = $this->approval->signer_user_id ? ExternalSigning::kindFor($this->approval) : null;
+
+        $this->validate([
+            'inspectionRemarks' => DocumentRegistry::find($this->approval->workspace->document_type)?->signerRecordsInspection()
+                ? ['required', 'string', 'max:300']
+                : ['nullable', 'string', 'max:300'],
+            'rating' => $kind === 'rating' ? ['required', 'in:1,2,3,4,5'] : ['nullable'],
+        ], ['rating.required' => 'Choose a rating.'], ['inspectionRemarks' => 'remarks']);
+
+        if ($kind === 'form') {
+            $ws = $this->approval->workspace;
+            DocumentRegistry::get($ws->document_type)->signerResponse($this->answers, $ws->field_values ?? []);
+        }
     }
 
     public function approve()
@@ -144,20 +166,15 @@ class Show extends Component
             return;
         }
 
-        $kind = $this->approval->signer_user_id ? ExternalSigning::kindFor($this->approval) : null;
-
-        $this->validate([
-            'password' => ['required', 'string'],
-            'inspectionRemarks' => DocumentRegistry::find($this->approval->workspace->document_type)?->signerRecordsInspection()
-                ? ['required', 'string', 'max:300']
-                : ['nullable', 'string', 'max:300'],
-            'rating' => $kind === 'rating' ? ['required', 'in:1,2,3,4,5'] : ['nullable'],
-        ], ['rating.required' => 'Choose a rating.'], ['password' => 'password', 'inspectionRemarks' => 'remarks']);
-
-        if ($kind === 'form') {
-            $ws = $this->approval->workspace;
-            DocumentRegistry::get($ws->document_type)->signerResponse($this->answers, $ws->field_values ?? []);
+        try {
+            $this->checkSignerPart();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Something on the document needs fixing: close the dialog so the highlighted answers show.
+            $this->modal = null;
+            $this->password = '';
+            throw $e;
         }
+        $this->validate(['password' => ['required', 'string']], [], ['password' => 'password']);
 
         if (! Hash::check($this->password, $user->password)) {
             RateLimiter::hit($key, 60);

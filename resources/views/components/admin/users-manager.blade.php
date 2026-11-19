@@ -4,7 +4,7 @@
      the left, and the open section on the right under its own title and hairline.
      <x-admin.users-manager active="verifications"> ...page... </x-admin.users-manager>
      Keys: accounts, verifications, organizations, programs, positions, officers,
-           sig-people, sig-roles, sig-invites ("Add a person" is a button on Who can sign?, so sig-add shows Who can sign?).
+           sig-people, sig-coverage, sig-roles, sig-invites ("Add a person" is a button on Who can sign?, so sig-add shows Who can sign?).
 
      Layout responds to the space this shell gets (container queries, `cq-*`), not the screen.
      Narrow: the menu folds into one select-like button that opens a sheet of every section. --}}
@@ -29,6 +29,7 @@
         ],
         'Signatories' => [
             'sig-people' => ['Signatories', $org('signatories', 'people'), 'bx-pen', 'Manage individuals authorized to sign documents and their assigned roles.'],
+            'sig-coverage' => ['Role coverage', $org('signatories', 'coverage'), 'bx-check-shield', 'Which signatory roles have someone who can sign, and which still need one.'],
             'sig-roles' => ['Signatory roles', $org('signatories', 'roles'), 'bx-shield-quarter', 'Manage the roles required for document signing.'],
             'sig-invites' => ['Invitations', $org('signatories', 'invites'), 'bx-envelope', 'Manage invitations for individuals to become authorized signatories.'],
         ],
@@ -40,7 +41,7 @@
 @endphp
 
 <div class="cq mx-auto w-full max-w-[1280px] pb-16"
-     x-data="{ active: @js($active), sheet: false, items: @js($items->map(fn ($i) => ['label' => $i[0], 'icon' => $i[2], 'note' => $i[3]])) }"
+     x-data="{ active: @js($active), sheet: false, items: @js($items->map(fn ($i) => ['label' => $i[0], 'icon' => $i[2]])) }"
      @users-manager-nav.window="active = $event.detail"
      @keydown.escape.window="sheet = false">
 
@@ -110,11 +111,9 @@
         </aside>
 
         {{-- ============ OPEN SECTION ============ --}}
-        <section class="min-w-0 flex-1" aria-labelledby="um-section-title">
-            <header class="mb-5 border-b border-slate-200 pb-4">
-                <h2 id="um-section-title" class="text-lg font-semibold tracking-[-0.012em] text-slate-900" x-text="items[active]?.label">{{ $items[$active][0] }}</h2>
-                <p class="mt-0.5 text-sm text-slate-500" x-text="items[active]?.note">{{ $items[$active][3] }}</p>
-            </header>
+        {{-- The open section, straight under the menu: no title or description above it (the menu already names it) --}}
+        <section class="min-w-0 flex-1" aria-label="{{ $items[$active][0] }}" :aria-label="items[active]?.label">
+            <h2 class="sr-only" x-text="items[active]?.label">{{ $items[$active][0] }}</h2>
 
             <div class="cq">
                 {{ $slot }}

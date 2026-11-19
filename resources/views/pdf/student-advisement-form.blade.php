@@ -155,26 +155,26 @@
 
 {{-- Doctor --}}
 <div class="opt">
-    <div class="cb">{{ $doctor ? 'X' : '' }}</div>
+    <div data-f="advise_doctor" class="cb">{{ $doctor ? 'X' : '' }}</div>
     <div class="body">
         <div class="dr">
             <div class="lbl" style="left:0; width:200pt;">Advised to see the University Doctor for</div>
-            <div class="val" style="left:202pt; width:257pt; font-size:{{ $fit($docRows[0], 257, 9.5, 6) }}pt;">{{ $docRows[0] }}</div>
+            <div data-f="doctor_reason" class="val" style="left:202pt; width:257pt; font-size:{{ $fit($docRows[0], 257, 9.5, 6) }}pt;">{{ $docRows[0] }}</div>
         </div>
         @foreach (array_slice($docRows, 1) as $line)
-            <div class="rrow" style="font-size:{{ $fit($line, 459, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+            <div data-f="doctor_reason" class="rrow" style="font-size:{{ $fit($line, 459, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
         @endforeach
     </div>
 </div>
 
 {{-- Haircut --}}
 <div class="opt">
-    <div class="cb">{{ $haircut ? 'X' : '' }}</div>
+    <div data-f="advise_haircut" class="cb">{{ $haircut ? 'X' : '' }}</div>
     <div class="body">
         <div style="height:15pt; line-height:15pt;">Advised to have haircut/mustache shave and to report</div>
         <div class="dr" style="height:30pt;">
             <div class="lbl" style="left:0; width:82pt;">to the VPSD on</div>
-            <div class="val" style="left:84pt; width:170pt; text-align:center; font-size:{{ $fit($reportDate, 170, 9.5, 6) }}pt;">{{ $reportDate }}</div>
+            <div data-f="haircut_report_date haircut_report_session" class="val" style="left:84pt; width:170pt; text-align:center; font-size:{{ $fit($reportDate, 170, 9.5, 6) }}pt;">{{ $reportDate }}</div>
             <div class="cap" style="left:84pt; width:170pt;">(Date)</div>
             <div class="lbl" style="left:258pt; width:150pt;">for further inspection.</div>
         </div>
@@ -183,14 +183,14 @@
 
 {{-- Others --}}
 <div class="opt">
-    <div class="cb">{{ $others ? 'X' : '' }}</div>
+    <div data-f="advise_others" class="cb">{{ $others ? 'X' : '' }}</div>
     <div class="body">
         <div class="dr">
             <div class="lbl" style="left:0; width:104pt;">Others, pls. specify:</div>
-            <div class="val" style="left:106pt; width:353pt; font-size:{{ $fit($othRows[0], 353, 9.5, 6) }}pt;">{{ $othRows[0] }}</div>
+            <div data-f="others_specify" class="val" style="left:106pt; width:353pt; font-size:{{ $fit($othRows[0], 353, 9.5, 6) }}pt;">{{ $othRows[0] }}</div>
         </div>
         @foreach (array_slice($othRows, 1) as $line)
-            <div class="rrow" style="font-size:{{ $fit($line, 459, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+            <div data-f="others_specify" class="rrow" style="font-size:{{ $fit($line, 459, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
         @endforeach
     </div>
 </div>

@@ -117,14 +117,14 @@
 {{-- Line 2 --}}
 <div class="ln">
     <div class="lbl" style="left:0; width:176pt;">to be absent from his/her classes on</div>
-    <div class="val" style="left:178pt; width:150pt; font-size:{{ $fit($dates, 150) }}pt;">{{ $dates }}</div>
+    <div data-f="absence_from absence_to" class="val" style="left:178pt; width:150pt; font-size:{{ $fit($dates, 150) }}pt;">{{ $dates }}</div>
     <div class="cap" style="left:178pt; width:150pt;">(Inclusive Date of Absence)</div>
     <div class="lbl" style="left:332pt; width:155pt;">for the reason/s cited below:</div>
 </div>
 
 <div style="margin-top:2pt;">
     @foreach ($rows as $line)
-        <div class="rrow" style="font-size:{{ $fit($line, 487, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+        <div data-f="reasons" class="rrow" style="font-size:{{ $fit($line, 487, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
     @endforeach
 </div>
 

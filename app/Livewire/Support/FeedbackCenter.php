@@ -9,23 +9,18 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-/** Users send feedback or report an issue, and follow the office's replies. */
+/** Users send feedback and follow the office's replies. */
 class FeedbackCenter extends Component
 {
     use WithFileUploads;
 
     private const MAX_PER_HOUR = 5;
 
-    #[Url(except: 'feedback')]
-    public string $type = 'feedback'; // feedback | issue
-
     public string $category = '';
     public ?int $rating = null;
-    public string $severity = '';
     public string $subject = '';
     public string $message = '';
     public string $pageUrl = '';
@@ -37,22 +32,13 @@ class FeedbackCenter extends Component
     {
         abort_if(auth()->user()->isAdmin(), 403);
 
-        // The page they came from, so an issue report says where it happened
+        // The page they came from, so the office can see where the feedback was sent from
         $previous = url()->previous();
         if ($previous && $previous !== url()->current() && Str::startsWith($previous, url('/'))) {
             $this->pageUrl = $previous;
         }
 
         $this->openId = (int) request()->query('report') ?: null;
-    }
-
-    public function updatedType(): void
-    {
-        if (! array_key_exists($this->type, FeedbackReport::TYPES)) {
-            $this->type = 'feedback';
-        }
-        $this->category = '';
-        $this->resetValidation();
     }
 
     public function setRating(int $stars): void
@@ -62,13 +48,9 @@ class FeedbackCenter extends Component
 
     protected function rules(): array
     {
-        $isIssue = $this->type === 'issue';
-
         return [
-            'type' => ['required', Rule::in(array_keys(FeedbackReport::TYPES))],
-            'category' => ['required', Rule::in(array_keys(FeedbackReport::CATEGORIES[$this->type] ?? []))],
-            'rating' => [$isIssue ? 'nullable' : 'required', 'integer', 'between:1,5'],
-            'severity' => [$isIssue ? 'required' : 'nullable', Rule::in(array_keys(FeedbackReport::SEVERITIES))],
+            'category' => ['required', Rule::in(array_keys(FeedbackReport::CATEGORIES))],
+            'rating' => ['required', 'integer', 'between:1,5'],
             'subject' => ['required', 'string', 'min:5', 'max:150'],
             'message' => ['required', 'string', 'min:10', 'max:3000'],
             'pageUrl' => ['nullable', 'string', 'max:500'],
@@ -81,7 +63,6 @@ class FeedbackCenter extends Component
         return [
             'category.required' => 'Pick the topic that fits best.',
             'rating.required' => 'Tap a star to rate your experience.',
-            'severity.required' => 'Tell us how much this affects you.',
             'attachment.image' => 'The attachment must be a screenshot or photo.',
             'attachment.max' => 'The image must be 5 MB or smaller.',
         ];
@@ -103,10 +84,8 @@ class FeedbackCenter extends Component
 
         $report = FeedbackReport::create([
             'user_id' => $user->id,
-            'type' => $data['type'],
             'category' => $data['category'],
-            'rating' => $this->type === 'feedback' ? $data['rating'] : null,
-            'severity' => $this->type === 'issue' ? $data['severity'] : null,
+            'rating' => $data['rating'],
             'subject' => trim($data['subject']),
             'message' => trim($data['message']),
             'page_url' => $data['pageUrl'] ?: null,
@@ -117,11 +96,11 @@ class FeedbackCenter extends Component
 
         $this->notifyAdmins($report, $user);
 
-        $this->reset(['category', 'rating', 'severity', 'subject', 'message', 'attachment']);
+        $this->reset(['category', 'rating', 'subject', 'message', 'attachment']);
         $this->openId = $report->id;
 
         $this->dispatch('toast', type: 'success',
-            title: $report->type === 'issue' ? 'Issue reported' : 'Thanks for your feedback',
+            title: 'Thanks for your feedback',
             message: "Reference {$report->reference()}. The office will reply here.");
     }
 
@@ -137,13 +116,12 @@ class FeedbackCenter extends Component
             return;
         }
 
-        $isIssue = $report->type === 'issue';
         Notification::send($admins, new WorkflowNotification(
-            title: $isIssue ? 'New issue report' : 'New feedback',
+            title: 'New feedback',
             message: 'sent "' . Str::limit($report->subject, 60) . '"',
             url: route('admin.feedback', ['report' => $report->id]),
-            icon: $isIssue ? 'bx-error-circle' : 'bx-message-square-dots',
-            color: $isIssue ? 'text-rose-600 bg-rose-100' : 'text-blue-600 bg-blue-100',
+            icon: 'bx-message-square-dots',
+            color: 'text-blue-600 bg-blue-100',
             actor: $from,
             namePrefix: true,
         ));
@@ -159,8 +137,7 @@ class FeedbackCenter extends Component
 
         return view('livewire.support.feedback-center', [
             'reports' => $reports,
-            'categories' => FeedbackReport::CATEGORIES[$this->type],
-            'severities' => FeedbackReport::SEVERITIES,
-        ])->layout('layouts.app', ['title' => 'Feedback & Issues']);
+            'categories' => FeedbackReport::CATEGORIES,
+        ])->layout('layouts.app', ['title' => 'Feedback']);
     }
 }

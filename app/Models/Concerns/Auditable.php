@@ -52,7 +52,7 @@ trait Auditable
         $name = $this->name ?? $this->label ?? $this->title ?? null;
 
         if (! $name && isset($this->first_name)) {
-            $name = \App\Models\User::formatName($this->first_name, $this->middle_name ?? null, $this->last_name, $this->suffix ?? null);
+            $name = \App\Support\Honorifics::prefix($this->honorific ?? null, \App\Models\User::formatName($this->first_name, $this->middle_name ?? null, $this->last_name, $this->suffix ?? null));
         }
 
         // Records that belong to a person (appointments, clearance, verification) are named after them

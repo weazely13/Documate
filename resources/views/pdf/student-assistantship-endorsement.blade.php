@@ -111,10 +111,10 @@
 {{-- Line 2 --}}
 <div class="ln">
     <div class="lbl" style="left:0; width:190pt;">is assigned as Student Assistant in the</div>
-    <div class="val" style="left:192pt; width:140pt; font-size:{{ $fit($office, 140) }}pt;">{{ $office }}</div>
+    <div data-f="office_name" class="val" style="left:192pt; width:140pt; font-size:{{ $fit($office, 140) }}pt;">{{ $office }}</div>
     <div class="cap" style="left:192pt; width:140pt;">(Name of Office)</div>
     <div class="lbl" style="left:334pt; width:42pt;">starting</div>
-    <div class="val" style="left:378pt; width:106pt; font-size:{{ $fit($start, 106) }}pt;">{{ $start }}</div>
+    <div data-f="start_date" class="val" style="left:378pt; width:106pt; font-size:{{ $fit($start, 106) }}pt;">{{ $start }}</div>
     <div class="cap" style="left:378pt; width:106pt;">(Date)</div>
     <div class="lbl" style="left:485pt; width:4pt;">.</div>
 </div>
@@ -130,7 +130,7 @@
         <th class="sub" style="width:85pt;">PM</th>
     </tr>
     @foreach ($days as $k)
-        <tr>
+        <tr data-f="source_application">
             <td class="day">{{ SA::DAYS[$k][0] }}</td>
             <td>{{ SA::range($v, $k, 'am') }}</td>
             <td>{{ SA::range($v, $k, 'pm') }}</td>
@@ -139,7 +139,7 @@
 </table>
 
 @if (! empty($v['source_application']))
-    <div style="margin-top:4pt; text-align:center; font-size:6.5pt; color:#777;">Based on application {{ $v['source_application'] }}</div>
+    <div data-f="source_application" style="margin-top:4pt; text-align:center; font-size:6.5pt; color:#777;">Based on application {{ $v['source_application'] }}</div>
 @endif
 
 {{-- Signature --}}

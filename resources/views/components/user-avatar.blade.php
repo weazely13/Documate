@@ -3,9 +3,8 @@
 @props(['src' => null, 'name' => ''])
 
 @php
-    $initials = \Illuminate\Support\Str::upper(
-        collect(preg_split('/\s+/', trim((string) $name)))->filter()->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('')
-    ) ?: '?';
+    // Initials skip a leading honorific ("Dr. Maria Santos" → MS)
+    $initials = \App\Support\Honorifics::initials($name);
 @endphp
 
 <span {{ $attributes->class('relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white') }}>

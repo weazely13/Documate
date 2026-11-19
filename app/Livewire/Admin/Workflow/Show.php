@@ -66,7 +66,7 @@ class Show extends Component
 
     public function startReview(): void
     {
-        $this->act(fn ($w, $ws, $u) => $w->startReview($ws, $u), 'Review started.');
+        $this->act(fn ($w, $ws, $u) => $w->startReview($ws, $u), null);   // no notice: the page itself shows it moved on
     }
 
     public function sendForSigning(): void
@@ -186,7 +186,7 @@ class Show extends Component
         return Storage::disk(DocumentPdf::DISK)->download($path, $ws->transaction_code . '.pdf');
     }
 
-    private function act(callable $fn, string $success): void
+    private function act(callable $fn, ?string $success): void
     {
         $this->resetErrorBag();
 
@@ -200,7 +200,7 @@ class Show extends Component
 
         $this->modal = null;
         $this->message = '';
-        $this->notice = $success;
+        $this->notice = $success ?: null;
         unset($this->workspace);
     }
     public function resendInvite(): void
@@ -278,18 +278,13 @@ class Show extends Component
 
         $audit = \App\Workflow\AuditLabels::history($ws);
 
-        // Same status wording and waiting time as the Workflow Review list.
+        // The status pill is the system-wide one (as on Reports); this is the note beside it, as in the Workflow Review list.
         $status = $ws->workflow_status->value;
         $signed = $approvals->filter(fn ($a) => $a->status->value === 'approved')->count();
         $statusLine = match (true) {
-            $status === 'completed' => ['Completed', 'font-medium text-emerald-700', 'bx-check-circle text-emerald-600'],
-            $status === 'rejected' => ['Rejected', 'font-medium text-rose-700', 'bx-x-circle text-rose-600'],
-            $status === 'voided' => ['Voided', 'text-slate-700', 'bx-block text-slate-500'],
-            $status === 'approved' => ['Ready to finish', 'font-medium text-emerald-700', 'bx-check-circle text-emerald-600'],
-            $status === 'action_required' => ['For revision', 'text-slate-700', 'bx-hourglass text-amber-600'],
-            $status === 'under_review' && $approvals->isNotEmpty() => ['Signed ' . $signed . ' of ' . $approvals->count(), 'text-slate-700', 'bx-pen text-violet-600'],
-            $status === 'under_review' => ['Under review', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],
-            default => ['New', 'text-slate-700', 'bx-time-five text-[#2A57B4]'],
+            $status === 'approved' => 'Ready',
+            $status === 'under_review' && $approvals->isNotEmpty() => $signed . '/' . $approvals->count() . ' signed',
+            default => null,
         };
         $waiting = null;
         if (in_array($status, ['submitted', 'under_review', 'action_required', 'approved'], true)) {

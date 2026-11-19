@@ -11,7 +11,7 @@
     $state = ! $found ? 'missing' : (($voided ?? false) ? 'voided' : ($report['valid'] ? 'valid' : 'failed'));
     $tone = [
         'valid' => ['#d9f3e1', '#065f46', '#059669', 'bx-badge-check', 'Genuine and unaltered', 'VERIFIED'],
-        'voided' => ['#fde0ec', '#9f1239', '#be123c', 'bx-block', 'Withdrawn by the VPSD office', 'VOIDED'],
+        'voided' => ['#fde0ec', '#9f1239', '#be123c', 'bx-block', 'Voided by the VPSD office', 'VOIDED'],
         'failed' => ['#fde0ec', '#9f1239', '#be123c', 'bx-error-alt', 'Does not match its seal', 'NOT VALID'],
         'missing' => ['#ecebe7', '#273951', '#66707f', 'bx-search-alt', 'No record found', 'NO RECORD'],
     ][$state];

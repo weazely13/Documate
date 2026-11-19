@@ -41,6 +41,7 @@ final class StudentIdRenewal extends WorkflowDocument
             'other_specify' => [
                 'label' => 'If other, please explain', 'type' => 'textarea', 'max' => 300,
                 'sensitive' => true,
+                'show_when' => ['other' => true], // printed only when "other" is ticked
             ],
             'surrender_ack' => [
                 'label' => 'Since the use of more than one ID is a ground for disciplinary action, my old ID is, therefore, surrendered to this office.',

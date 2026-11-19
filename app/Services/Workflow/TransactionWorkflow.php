@@ -650,7 +650,7 @@ class TransactionWorkflow
                 'status' => ApprovalStatus::Approved,
                 'acted_by' => $signer->id,
                 'auth_method' => $authMethod,
-                'signature_path' => $signer->signature_enabled ? $signer->signature_path : null,
+                'signature_path' => $signer->signature_path,
                 'acted_at' => now(),
             ] + ($response !== null ? ['response' => $response] : []))->save();
 
@@ -1209,7 +1209,7 @@ class TransactionWorkflow
             ->pluck('role.label')->filter()->unique()->implode(', ');
 
         $sig = null;
-        if ($issuer->signature_enabled && $issuer->signature_path && Storage::disk(SignatureStore::DISK)->exists($issuer->signature_path)) {
+        if ($issuer->signature_path && Storage::disk(SignatureStore::DISK)->exists($issuer->signature_path)) {
             [$sig] = app(SignatureStore::class)->archive($issuer->signature_path);
         }
 

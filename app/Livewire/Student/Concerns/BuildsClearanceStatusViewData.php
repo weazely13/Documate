@@ -56,9 +56,10 @@ trait BuildsClearanceStatusViewData
             ->map(function (Collection $group) {
                 $latest = $group->first();
 
-                // Extract Academic Year start year and Semester rank
-                $academicYear = $latest->semesterPeriod?->academic_year ?? $latest->academic_year ?? '';
-                $semesterName = $latest->semesterPeriod?->semester ?? $latest->semester ?? '';
+                // The semester's own school year and term (Semester has school_year / semester_label); the
+                // record's copies are only a fallback for a record whose semester was deleted.
+                $academicYear = $latest->semesterPeriod?->school_year ?? $latest->academic_year ?? '';
+                $semesterName = $latest->semesterPeriod?->semester_label ?? $latest->semester ?? '';
 
                 return [
                     'status' => $latest->status,
@@ -92,19 +93,21 @@ trait BuildsClearanceStatusViewData
                 'tagged_by' => $currentGroup['tagged_by'],
                 'remarks' => $currentGroup['remarks'],
                 'last_updated' => $currentGroup['last_updated'],
+                'tagged_at' => $currentGroup['tagged_at'],
             ];
         }
 
         $currentSemester = Semester::current();
 
         return [
-            'status' => 'Not Tagged',
-            'status_word' => 'Not Tagged',
+            'status' => 'Untagged',
+            'status_word' => 'Untagged',
             'period_label' => $currentSemester ? $currentSemester->label() : 'No semester is currently set',
             'is_current' => true,
             'tagged_by' => null,
             'remarks' => null,
             'last_updated' => null,
+            'tagged_at' => null,
         ];
     }
 }

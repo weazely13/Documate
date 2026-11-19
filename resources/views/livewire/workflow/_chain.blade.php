@@ -15,9 +15,9 @@
             $text = match ($v) {
                 'approved' => 'Signed by ' . ($name ?: 'unknown') . ($a->acted_at ? ', ' . $a->acted_at->format('M j, Y g:i A') : ''),
                 'pending' => 'Waiting for ' . ($external ? ($a->external_name ?: 'the rater') : ($a->role->label ?? 'signatory')),
-                'rejected' => 'Declined by ' . ($name ?: 'unknown') . ($a->acted_at ? ', ' . $a->acted_at->format('M j, Y g:i A') : ''),
+                'rejected' => 'Rejected by ' . ($name ?: 'unknown') . ($a->acted_at ? ', ' . $a->acted_at->format('M j, Y g:i A') : ''),
                 'skipped' => 'Cancelled',
-                default => 'Not started',
+                default => 'Queued',
             };
         @endphp
         <li class="flex items-start gap-3" wire:key="chain-{{ $a->id }}">

@@ -5,7 +5,7 @@
     $hero = $hero ?? false;
     $sem = trim((string) ($e['semester'] ?? ''));
     $semLabel = $sem === '' ? 'This semester' : (str_contains(strtolower($sem), 'semester') || str_contains(strtolower($sem), 'summer') ? $sem : $sem . ' Semester');
-    $status = $e['status'] === 'Not Tagged' ? 'Not tagged yet' : $e['status'];
+    $status = \App\Support\StatusStyle::clearanceLabel($e['status']);
     $date = ! empty($e['tagged_at']) ? $e['tagged_at']->format('M j, Y') : null;
 @endphp
 <div class="relative w-full overflow-hidden rounded-xl text-white shadow-[0_20px_36px_-24px_rgba(13,37,61,0.55)] [container-type:inline-size]

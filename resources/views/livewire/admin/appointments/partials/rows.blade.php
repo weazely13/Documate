@@ -1,44 +1,96 @@
-{{-- Appointment rows, after a table with an actions column: a table once the list is wide enough, cards below that.
-     A row opens the full record. Needs: $rows, $mode ('review' | 'queue' | 'history'), plus the board's
-     $statusFor, $aiFor, $initials, $avatar, $focus, $selectedIds, $search. --}}
+{{-- Appointment rows in the Workflow Review table style: a table once the list is wide enough, cards below that.
+     A row opens the full record (there is no separate open button). The table always fits its box: the purpose
+     column takes the width that is left and truncates. Needs: $rows, $mode ('day' = the Day list, one table for the day with a checkbox
+     on every row; 'history' = All), plus the board's $statusFor, $aiFor, $initials, $avatar, $focus, $selectedIds, $search. --}}
 @php
+    use App\Support\StatusStyle;
+
     $sessionShort = ['morning' => 'Morning', 'afternoon' => 'Afternoon'];
-    $selectable = $mode === 'review';
-    $pendingIds = $rows->where('status', 'pending')->pluck('appointment_id')->map(fn ($id) => (string) $id)->values();
-    $empty = trim($search) !== '' ? 'No match. Try another name or clear the search.' : match ($mode) {
-        'review' => 'No requests waiting for review on this day.',
-        'queue' => 'Nobody is in the queue for this day yet.',
-        default => 'No appointments here.',
-    };
+    $selectable = $mode === 'day';
+    $rowIds = $rows->pluck('appointment_id')->map(fn ($id) => (string) $id)->values();
+    $empty = trim($search) !== '' ? 'No match. Try another name or clear the search.' : ($mode === 'day' ? 'No appointments on this day.' : 'No appointments here.');
     $act = 'grid h-8 w-8 place-items-center rounded-lg text-base transition-colors [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 ' . $focus;
-    $cols = 6 + ($selectable ? 1 : 0) + ($mode !== 'queue' ? 1 : 0);
+    $th = 'px-4 py-2.5 text-left font-medium text-slate-500';
+    // The All tab numbers its rows (#) before the queue number, counting on across pages ($offset = rows on earlier pages)
+    $counted = $mode === 'history';
+    $offset ??= 0;
+    $cols = 7 + ($selectable ? 1 : 0) + ($counted ? 1 : 0);
+    // The All tab sorts by its column headers, as Workflow Review does
+    $sortable = $mode === 'history';
+    [$sortKey, $sortDir] = $sortable ? $this->parsedSort() : [null, null];
+
+    // What the header icons explain: the status words (StatusStyle) and the AI pills, in their colours.
+    $statusLegend = collect([
+        'pending' => 'Requested. Waiting for the office to approve or reject it.',
+        'approved' => 'Booked, with a queue number for the session.',
+        'attended' => 'The student came to the office.',
+        'missed' => 'The session ended and the student did not come.',
+        'rejected' => 'The office turned the request down.',
+        'retracted' => 'The student cancelled it.',
+    ])->map(function ($meaning, $key) {
+        $s = StatusStyle::appointment($key);
+
+        return [StatusStyle::DOTS[$s['tone']] ?? 'bg-slate-400', $s['label'], '', $meaning];
+    })->values()->all();
+    $aiLegend = [
+        ['bg-emerald-500', 'Clear', '', 'The purpose and the details look fine.'],
+        ['bg-amber-500', 'Flagged', '', 'Something may be off. Open it and take a closer look.'],
+        ['bg-amber-500', 'Mismatch', '', 'The purpose does not fit the office or the document picked.'],
+        ['bg-rose-500', 'Reject', '', 'The AI would reject it, for example for made-up or unrelated details.'],
+        ['bg-sky-500', 'Checking', '', 'The check is running or waiting its turn. It usually takes a few seconds.'],
+        ['bg-orange-500', 'Failed', '', 'The check could not finish. Run it again from the selection bar.'],
+    ];
 @endphp
 
 {{-- min-h keeps a full working area under the rows, so a short list never sits cramped against the bulk bar or the page end. --}}
-<div class="hidden min-h-[28rem] overflow-hidden rounded-2xl border border-slate-200 bg-white cq-md:block"
-     wire:loading.class="opacity-60" wire:target="setPhase, selectDate, step, jumpToday, search, filterDate, filterStatus, gotoPage, nextPage, previousPage">
-    <table class="min-w-full text-sm">
-        <thead class="border-b border-slate-200 text-xs text-slate-500">
+<div class="hidden min-h-[28rem] overflow-hidden rounded-2xl border border-slate-200 bg-white transition-opacity cq-md:block"
+     wire:loading.class="opacity-60" wire:target="selectDate, step, jumpToday, search, filterFrom, filterTo, filterStatus, filterAi, filterYear, filterProgram, resetFilters, sortBy, gotoPage, nextPage, previousPage">
+    <table class="w-full text-sm">
+        <thead class="border-b border-slate-200 text-xs">
             <tr>
                 @if ($selectable)
                     <th scope="col" class="w-10 py-2.5 pl-4 pr-1">
-                        @if ($pendingIds->isNotEmpty())
-                            <input type="checkbox" aria-label="Select all requests on this list"
-                                   @checked($pendingIds->diff($selectedIds)->isEmpty())
-                                   x-on:change="$wire.set('selectedIds', $event.target.checked ? @js($pendingIds) : [])"
+                        @if ($rowIds->isNotEmpty())
+                            <input type="checkbox" aria-label="Select every appointment on this list"
+                                   @checked($rowIds->diff($selectedIds)->isEmpty())
+                                   x-on:change="$wire.set('selectedIds', $event.target.checked ? @js($rowIds) : [])"
                                    class="h-4 w-4 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]/30">
                         @endif
                     </th>
                 @endif
-                <th scope="col" class="w-14 px-3 py-2.5 text-left font-medium">No.</th>
-                <th scope="col" class="px-3 py-2.5 text-left font-medium">Student</th>
-                <th scope="col" class="px-3 py-2.5 text-left font-medium">Purpose and document</th>
-                <th scope="col" class="px-3 py-2.5 text-left font-medium">{{ $mode === 'history' ? 'Date' : ($mode === 'review' ? 'Requested' : 'Session') }}</th>
-                @if ($mode !== 'queue')
-                    <th scope="col" class="px-3 py-2.5 text-left font-medium">AI check</th>
+                @if ($counted)
+                    <th scope="col" class="w-12 {{ $th }}">#</th>
                 @endif
-                <th scope="col" class="px-3 py-2.5 text-left font-medium">Status</th>
-                <th scope="col" class="px-3 py-2.5 text-right font-medium">Action</th>
+                <th scope="col" class="w-16 {{ $th }}">Queue No.</th>
+                @if ($sortable)
+                    <x-admin.sort-th key="student" label="Student" :sort="$sortKey" :dir="$sortDir" class="w-[42%] !py-2.5" />
+                @else
+                    <th scope="col" class="w-[42%] {{ $th }}">Student</th>
+                @endif
+                <th scope="col" class="w-[58%] {{ $th }}">Purpose and document</th>
+                @if ($sortable)
+                    <x-admin.sort-th key="date" label="Date" :sort="$sortKey" :dir="$sortDir" class="!py-2.5" />
+                @else
+                    <th scope="col" class="{{ $th }}">Session</th>
+                @endif
+                {{-- Under 60rem of table the AI suggestion sits under the status pill, so Student and Purpose keep room to read --}}
+                <th scope="col" class="hidden [@container(min-width:60rem)]:table-cell {{ $th }}">
+                    <span class="inline-flex items-center gap-1 whitespace-nowrap">AI suggestion
+                        <x-admin.legend-tip label="What the AI suggestions mean" note="The AI reads each request before you do. It only suggests: you make the decision." :items="$aiLegend" />
+                    </span>
+                </th>
+                @if ($sortable)
+                    <x-admin.sort-th key="status" label="Status" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
+                        <x-admin.legend-tip label="What the statuses mean" note="Where each appointment stands." :items="$statusLegend" />
+                    </x-admin.sort-th>
+                @else
+                    <th scope="col" class="{{ $th }}">
+                        <span class="inline-flex items-center gap-1">Status
+                            <x-admin.legend-tip label="What the statuses mean" note="Where each appointment stands." :items="$statusLegend" />
+                        </span>
+                    </th>
+                @endif
+                <th scope="col" class="{{ $th }} !text-right">Action</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
@@ -56,9 +108,12 @@
                                    class="h-4 w-4 rounded border-slate-300 text-[#2A57B4] focus:ring-[#2A57B4]/30">
                         </td>
                     @endif
-                    <td class="px-3 py-3 font-medium tabular-nums text-slate-700">{{ $a->queue_number ? str_pad($a->queue_number, 2, '0', STR_PAD_LEFT) : '–' }}</td>
-                    <td class="px-3 py-3">
-                        <div class="flex items-center gap-2.5">
+                    @if ($counted)
+                        <td class="px-4 py-3 text-xs tabular-nums text-slate-500">{{ $offset + $loop->iteration }}</td>
+                    @endif
+                    <td class="px-4 py-3 text-xs tabular-nums text-slate-500">{{ $a->queue_number ? str_pad($a->queue_number, 2, '0', STR_PAD_LEFT) : '–' }}</td>
+                    <td class="max-w-0 px-4 py-3">
+                        <div class="flex min-w-0 items-center gap-3">
                             <span class="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e2e9f7] text-xs font-semibold text-[#1E4090]" aria-hidden="true">
                                 {{ $initials($a->user) }}
                                 @if ($avatar($a->user))
@@ -67,45 +122,45 @@
                             </span>
                             <div class="min-w-0">
                                 <a href="{{ $url }}" wire:navigate onclick="event.stopPropagation()"
-                                   class="block max-w-[200px] truncate rounded font-medium text-slate-900 hover:text-[#2A57B4] {{ $focus }}">
+                                   class="block max-w-[11rem] truncate rounded text-left font-medium text-slate-900 hover:text-[#2A57B4] {{ $focus }}" title="{{ $a->user?->full_name }}">
                                     {{ $a->user?->full_name ?? 'Unknown student' }}
                                 </a>
-                                <p class="truncate text-xs tabular-nums text-slate-500">{{ $a->user?->student_number }}</p>
+                                <p class="mt-0.5 truncate text-xs tabular-nums text-slate-500">{{ $a->user?->student_number }}</p>
                             </div>
                         </div>
                     </td>
-                    <td class="px-3 py-3">
-                        <p class="max-w-[240px] truncate text-slate-800" title="{{ $a->purpose }}">{{ $a->purpose ?: 'General visit' }}</p>
-                        <p class="max-w-[240px] truncate text-xs text-slate-500">{{ $a->workspace ? $a->workspace->documentName() : 'No document' }}</p>
+                    <td class="max-w-0 px-4 py-3">
+                        <p class="truncate text-slate-700" title="{{ $a->purpose ?: 'General visit' }}">{{ $a->purpose ?: 'General visit' }}</p>
+                        <p class="mt-0.5 truncate text-xs text-slate-500" title="{{ $a->workspace ? $a->workspace->documentName() : 'No document' }}">{{ $a->workspace ? $a->workspace->documentName() : 'No document' }}</p>
                     </td>
-                    <td class="whitespace-nowrap px-3 py-3 text-slate-700">
+                    <td class="whitespace-nowrap px-4 py-3 text-slate-700">
                         @if ($mode === 'history')
-                            <span class="block tabular-nums">{{ $a->appointment_date?->format('d M Y') }}</span>
-                            <span class="text-xs text-slate-500">{{ $sessionShort[$a->session] ?? '' }}</span>
-                        @elseif ($mode === 'review')
-                            <span class="block tabular-nums">{{ $a->created_at?->format('d M, g:i A') }}</span>
-                            <span class="text-xs text-slate-500">{{ $sessionShort[$a->session] ?? '' }}</span>
+                            <span class="block tabular-nums">{{ $a->appointment_date?->format('M j, Y') }}</span>
+                            <span class="mt-0.5 block text-xs text-slate-500">{{ $sessionShort[$a->session] ?? '' }}</span>
                         @else
-                            {{ $sessionShort[$a->session] ?? '' }}
+                            <span class="block">{{ $sessionShort[$a->session] ?? '' }}</span>
+                            @if ($a->status === 'pending')
+                                <span class="mt-0.5 block text-xs tabular-nums text-slate-500">Requested {{ $a->created_at?->format('M j, g:i A') }}</span>
+                            @endif
                         @endif
                     </td>
-                    @if ($mode !== 'queue')
-                        <td class="whitespace-nowrap px-3 py-3">
+                    <td class="hidden whitespace-nowrap px-4 py-3 [@container(min-width:60rem)]:table-cell">
+                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $aPill }}"
+                              @if (! empty($a->ai_findings['summary'])) title="{{ $a->ai_findings['summary'] }}" @endif>
+                            @if ($spin) <i class="bx bx-loader-alt bx-spin text-sm" aria-hidden="true"></i> @endif{{ $aText }}
+                        </span>
+                    </td>
+                    <td class="whitespace-nowrap px-4 py-3">
+                        <span class="{{ StatusStyle::BADGE }} {{ $sPill }}">{{ $sText }}</span>
+                        <span class="mt-1.5 flex [@container(min-width:60rem)]:hidden">
                             <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $aPill }}"
                                   @if (! empty($a->ai_findings['summary'])) title="{{ $a->ai_findings['summary'] }}" @endif>
-                                @if ($spin) <i class="bx bx-loader-alt bx-spin text-sm" aria-hidden="true"></i> @endif{{ $aText }}
+                                @if ($spin) <i class="bx bx-loader-alt bx-spin text-sm" aria-hidden="true"></i> @endif<span class="sr-only">AI suggestion:</span> {{ $aText }}
                             </span>
-                        </td>
-                    @endif
-                    <td class="whitespace-nowrap px-3 py-3">
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $sPill }}">{{ $sText }}</span>
+                        </span>
                     </td>
-                    <td class="whitespace-nowrap px-3 py-2" onclick="event.stopPropagation()">
+                    <td class="whitespace-nowrap px-4 py-2" onclick="event.stopPropagation()">
                         <div class="flex items-center justify-end gap-1">
-                            <a href="{{ $url }}" wire:navigate class="{{ $act }} bg-[#f0f4fb] text-[#2A57B4] hover:bg-[#e2e9f7]"
-                               aria-label="Open the record of {{ $a->user?->full_name }}" title="Open record">
-                                <i class="bx bx-show" aria-hidden="true"></i>
-                            </a>
                             @if ($a->status === 'pending')
                                 <button type="button" wire:click="openDialog('approve', 'one', {{ $a->appointment_id }})"
                                         class="{{ $act }} bg-emerald-50 text-emerald-700 hover:bg-emerald-100" aria-label="Approve {{ $a->user?->full_name }}" title="Approve">
@@ -115,7 +170,7 @@
                                         class="{{ $act }} bg-rose-50 text-rose-700 hover:bg-rose-100" aria-label="Reject {{ $a->user?->full_name }}" title="Reject">
                                     <i class="bx bx-x" aria-hidden="true"></i>
                                 </button>
-                            @elseif ($a->status === 'approved' && $mode === 'queue')
+                            @elseif ($a->status === 'approved' && $mode === 'day')
                                 <button type="button" wire:click="setNowServing('{{ $a->session }}', {{ $a->queue_number }})"
                                         class="{{ $act }} bg-sky-50 text-[#1E4090] hover:bg-sky-100" aria-label="Call number {{ $a->queue_number }}, {{ $a->user?->full_name }}" title="Call to the counter">
                                     <i class="bx bx-bell" aria-hidden="true"></i>
@@ -144,7 +199,7 @@
             [$aText, $aPill, $spin] = $aiFor($a);
             $url = route('admin.appointments.show', $a->appointment_id);
         @endphp
-        <li wire:key="ac-{{ $a->appointment_id }}" class="relative flex flex-col rounded-2xl border border-slate-200 bg-white">
+        <li wire:key="ac-{{ $a->appointment_id }}" class="relative flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white">
             <a href="{{ $url }}" wire:navigate class="block flex-1 rounded-2xl p-4 {{ $focus }}">
                 <span class="flex items-start gap-3 {{ $selectable ? 'pr-8' : '' }}">
                     <span class="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e2e9f7] text-[13px] font-semibold text-[#1E4090]" aria-hidden="true">
@@ -161,18 +216,16 @@
                         </span>
                     </span>
                 </span>
-                <span class="mt-3 block text-sm text-slate-800">{{ $a->purpose ?: 'General visit' }}</span>
+                <span class="mt-3 block truncate text-sm text-slate-800" title="{{ $a->purpose ?: 'General visit' }}">{{ $a->purpose ?: 'General visit' }}</span>
                 <span class="mt-0.5 block truncate text-xs text-slate-500">{{ $a->workspace ? $a->workspace->documentName() : 'No document' }}</span>
                 <span class="mt-3 flex flex-wrap items-center gap-1.5">
-                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $sPill }}">{{ $sText }}</span>
-                    @if ($mode !== 'queue')
-                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $aPill }}">
-                            @if ($spin) <i class="bx bx-loader-alt bx-spin text-sm" aria-hidden="true"></i> @endif<span class="sr-only">AI check:</span> {{ $aText }}
-                        </span>
-                    @endif
+                    <span class="{{ StatusStyle::BADGE }} {{ $sPill }}">{{ $sText }}</span>
+                    <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $aPill }}">
+                        @if ($spin) <i class="bx bx-loader-alt bx-spin text-sm" aria-hidden="true"></i> @endif<span class="sr-only">AI suggestion:</span> {{ $aText }}
+                    </span>
                 </span>
             </a>
-            @if ($a->status === 'pending' || ($a->status === 'approved' && $mode === 'queue'))
+            @if ($a->status === 'pending' || ($a->status === 'approved' && $mode === 'day'))
                 <div class="flex justify-end gap-1 border-t border-slate-100 px-2 py-1.5">
                     @if ($a->status === 'pending')
                         <button type="button" wire:click="openDialog('reject', 'one', {{ $a->appointment_id }})" class="{{ $act }} !w-auto px-3 text-sm font-medium text-rose-700 hover:bg-rose-50">Reject</button>

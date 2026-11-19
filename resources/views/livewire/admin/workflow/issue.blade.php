@@ -23,15 +23,16 @@
     $partNo = 0;
     $part = function () use (&$partNo) { return ['I', 'II', 'III', 'IV', 'V', 'VI'][$partNo++] ?? (string) $partNo; };
 
-    // Same field styling as the student transaction form (DESIGN.md: 8px inputs, brand focus ring).
-    $box = 'relative mt-1 flex min-w-0 items-center gap-2.5 rounded-lg border border-slate-300 bg-white px-3.5 shadow-sm transition focus-within:border-[#2A57B4] focus-within:ring-[3px] focus-within:ring-[#2A57B4]/20';
-    $boxLocked = 'relative mt-1 flex min-w-0 items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3.5';
-    $bare = 'w-full min-w-0 border-0 bg-transparent p-0 py-3 text-base text-slate-900 placeholder-slate-500 outline-none focus:ring-0 sm:py-2.5 sm:text-sm';
-    // Used by the report-specific layouts (issue-paper/*) for their own inputs.
-    $input = 'mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-base text-slate-900 shadow-sm outline-none placeholder-slate-500 focus:border-[#2A57B4] focus:ring-[3px] focus:ring-[#2A57B4]/20 sm:py-2.5 sm:text-sm';
-    $label = 'block text-[13px] font-medium text-slate-700';
-    $help = 'mt-1 text-xs leading-relaxed text-slate-500';
-    $err = 'mt-1 flex items-start gap-1 text-xs font-medium text-rose-600';
+    // Filled in on the form itself (<x-doc.sheet>): blank lines with their captions under them, as on paper.
+    $D = \App\Support\DocSheet::class;
+    $box = 'mt-1 ' . $D::LINE;
+    $bare = $D::INPUT;
+    // Used by the report-specific layouts (issue-paper/*) for their own inputs and textareas.
+    $input = $D::FIELD;
+    $caption = $D::CAPTION;
+    $help = $D::HINT;
+    $err = $D::ERROR;
+    $partHead = 'flex items-baseline gap-2 ' . $D::HEADING;
 
     $paperMap = [
         'model_student_rating_signatory' => 'rating',
@@ -49,20 +50,16 @@
     $paper = $paperMap[$this->type] ?? null;
     $hasPaper = $paper && view()->exists("livewire.workflow.issue-paper.$paper");
 
-    $fieldIcon = fn (string $name, array $f) => $f['icon'] ?? match (true) {
-        ($f['type'] ?? '') === 'date' => 'bx-calendar',
-        ($f['type'] ?? '') === 'time' => 'bx-time-five',
-        str_ends_with($name, '_email') => 'bx-envelope',
-        str_ends_with($name, '_name') => 'bx-user',
-        str_contains($name, 'venue') || str_contains($name, 'place') => 'bx-map',
-        default => null,
-    };
+    // Short answers share a row on wider screens; longer ones take the whole width.
+    $isShort = fn (string $name, array $f): bool => empty($f['salutation']) && (
+        in_array($f['type'] ?? 'text', ['date', 'time', 'select', 'number'], true)
+        || (($f['type'] ?? 'text') === 'text' && ($f['max'] ?? 255) <= 150)
+    );
 @endphp
 
-<div class="mx-auto w-full max-w-2xl xl:grid xl:max-w-[1440px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-start xl:gap-6">
-<div class="min-w-0 space-y-5">
+<div class="mx-auto w-full max-w-3xl space-y-4 sm:space-y-5">
 
-    {{-- Header --}}
+    {{-- Header. "PDF" opens the exact printed copy from the live answers (nothing is saved). --}}
     <div x-data="{
             open: false, loading: false, html: '', w: 842, h: 1171, scale: 1, wrapEl: null, frameEl: null,
             async show() {
@@ -79,27 +76,20 @@
             }
          }"
          @message.window="measure($event)" @resize.window="fit()">
-        <div class="flex items-center justify-end gap-3">
-                <div class="flex shrink-0 items-center gap-2">
-                    <button type="button" @click="$dispatch('open-intro')"
-                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
-                            aria-label="Before you start: what to check before issuing" title="Before you start">
-                        <i class="bx bx-info-circle text-xl" aria-hidden="true"></i>
-                    </button>
-                    <button type="button" @click="show()"
-                            class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 xl:hidden [@media(pointer:coarse)]:h-11"
-                            aria-label="Preview document">
-                        <i class="bx bx-show text-base text-slate-500" aria-hidden="true"></i><span class="hidden sm:inline">Preview</span>
-                    </button>
-                </div>
+        <div class="flex items-center justify-between gap-3">
+            <h1 class="min-w-0 truncate text-lg font-semibold tracking-[-0.015em] text-slate-900 sm:text-xl">{{ $document->name() }}</h1>
+            <div class="flex shrink-0 items-center gap-2">
+                <button type="button" @click="$dispatch('open-intro')"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+                        aria-label="Before you start: what to check before issuing" title="Before you start">
+                    <i class="bx bx-info-circle text-xl" aria-hidden="true"></i>
+                </button>
+                <button type="button" @click="show()" title="See the printed copy"
+                        class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 [@media(pointer:coarse)]:h-11">
+                    <i class="bx bxs-file-pdf text-base text-rose-600" aria-hidden="true"></i> PDF<span class="sr-only"> preview of the printed copy</span>
+                </button>
+            </div>
         </div>
-        <h1 class="sr-only">{{ $staffIssued ? 'Issue a document' : 'Issue a document' }}: {{ $document->name() }}</h1>
-
-        <p class="mt-2 text-sm leading-relaxed text-slate-600">
-            {{ $document->issueNote() ?? ($staffIssued
-                ? 'The student is notified right away and can read it from their dashboard.'
-                : 'You fill it in, it goes straight to the signatory, and the student is notified. Nothing is sent to the student for editing.') }}
-        </p>
 
         <template x-teleport="body">
             <div x-show="open" x-cloak x-transition.opacity
@@ -109,8 +99,8 @@
                 <div class="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-2xl" @click.outside="open = false">
                     <div class="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
                         <div class="min-w-0">
-                            <h2 id="issue-preview-title" class="text-sm font-semibold text-slate-900">Document preview</h2>
-                            <p class="text-xs text-slate-500">Shows your current answers. Nothing is saved or issued by previewing.</p>
+                            <h2 id="issue-preview-title" class="text-sm font-semibold text-slate-900">Printed copy</h2>
+                            <p class="text-xs text-slate-500">With your answers so far. Nothing is saved.</p>
                         </div>
                         <button type="button" @click="open = false" x-init="$watch('open', v => v && $nextTick(() => $el.focus()))"
                                 class="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]"
@@ -138,7 +128,7 @@
              class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
             <p class="flex items-center gap-2 font-semibold">
                 <i class="bx bx-error-circle text-lg" aria-hidden="true"></i>
-                {{ $errors->count() === 1 ? 'Please fix 1 problem before issuing' : 'Please fix ' . $errors->count() . ' problems before issuing' }}
+                {{ $errors->count() === 1 ? 'Fix 1 thing to issue' : 'Fix ' . $errors->count() . ' things to issue' }}
             </p>
             <ul class="mt-1.5 list-disc space-y-0.5 pl-9">
                 @foreach ($errors->getMessages() as $key => $messages)
@@ -154,7 +144,7 @@
                     <li>
                         @if ($target)
                             <a href="#{{ $target }}" class="underline decoration-rose-300 underline-offset-2 hover:decoration-rose-600"
-                               @click.prevent="const t = document.getElementById('{{ $target }}') || document.querySelector('[wire\\:model$=\'{{ substr($target, 2) }}\']'); if (t) { t.scrollIntoView({ block: 'center' }); t.focus({ preventScroll: true }); }">{{ $messages[0] }}</a>
+                               @click.prevent="$dispatch('fill-open', { name: @js(str_starts_with($key, 'values.') ? explode('.', substr($key, 7))[0] : null) }); $nextTick(() => { const t = document.getElementById('{{ $target }}'); if (t && t.offsetParent && ! t.closest('[data-editor].fixed')) { t.scrollIntoView({ block: 'center' }); t.focus({ preventScroll: true }); } })">{{ $messages[0] }}</a>
                         @else
                             {{ $messages[0] }}
                         @endif
@@ -164,93 +154,93 @@
         </div>
     @endif
 
-    {{-- 1. Document --}}
-        <section class="rounded-xl border border-slate-300 bg-white px-4 py-4 shadow-sm sm:px-5" aria-labelledby="sec-doc">
-            <h3 id="sec-doc" class="flex items-baseline gap-2 text-sm font-semibold text-slate-900"><span class="w-7 shrink-0 tabular-nums text-slate-500">{{ $part() }}.</span>{{ $staffIssued ? 'Report' : 'Document' }}</h3>
-            @if (count($documents) > 1)
-                <label for="f-type" class="{{ $label }} mt-3">Which document are you issuing? <span class="text-rose-600" aria-hidden="true">*</span></label>
-                <div class="{{ $box }}">
-                    <i class="bx bx-file text-base text-slate-400" aria-hidden="true"></i>
-                    <select id="f-type" wire:model.live="type" class="{{ $bare }} cursor-pointer" aria-describedby="h-type">
-                        @foreach ($documents as $key => $doc)
-                            <option value="{{ $key }}">{{ $doc->name() }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <p id="h-type" class="{{ $help }}">{{ $document->description() }}</p>
-            @else
-                <p class="mt-1 text-sm font-medium text-slate-900">{{ $document->name() }}</p>
-                <p class="{{ $help }}">{{ $document->description() }}</p>
+    {{-- Which document to issue. Signatories pick it before coming here (Explore / Home, ?doc=…); the admin, who
+         arrives from Workflow review, picks it here. Switching clears the answers, so it asks first when some are filled. --}}
+    @if ($showPicker)
+        @php $filled = collect($this->values)->filter(fn ($v) => $v !== null && $v !== '' && $v !== false)->isNotEmpty() || $studentId; @endphp
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4"
+             x-data="{ prev: @js($type) }">
+            <label for="issue-doc" class="mb-1.5 block text-sm font-medium text-slate-800">Document to issue</label>
+            <select id="issue-doc" wire:key="issue-doc-{{ $type }}"
+                    @change="if (@js((bool) $filled) && ! confirm('Switch documents? The answers you have filled in will be cleared.')) { $el.value = prev } else { prev = $el.value; $wire.set('type', $el.value) }"
+                    class="h-10 w-full rounded-lg border-slate-300 bg-white py-0 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm [@media(pointer:coarse)]:h-11">
+                @foreach ($this->documentChoices as $key => [$docName, $docDesc])
+                    <option value="{{ $key }}" @selected($key === $type)>{{ $docName }}</option>
+                @endforeach
+            </select>
+            @if ($this->documentChoices[$type][1] ?? '')
+                <p class="mt-1.5 text-xs leading-snug text-slate-500">{{ $this->documentChoices[$type][1] }}</p>
             @endif
-        </section>
+        </div>
+    @endif
+
+    @php
+        // Filled in on the printed page (resources/js/pdf-fill.js): the blanks the PDF prints, and which editor an error belongs to.
+        $printed = \App\Support\PdfFill::printed($document);
+        $editorFor = function (string $key) use ($document): ?string {
+            if (! str_starts_with($key, 'values.')) {
+                return null;
+            }
+            $n = explode('.', substr($key, 7))[0];
+
+            return ($document->fields()[$n]['salutation_of'] ?? null) ?: $n;
+        };
+        $errorEditors = collect($errors->keys())->map($editorFor)->filter()->unique()->values()->all();
+    @endphp
 
     <form wire:submit="issue" novalidate wire:confirm="Certify and issue this {{ $kindWord }}? It is recorded under your name and sent for signing."
-          class="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm"
-          x-data @input="$dispatch('doc-changed')" @change="$dispatch('doc-changed')" aria-labelledby="issue-form-title">
-        <h2 id="issue-form-title" class="sr-only">Fill in the report</h2>
+          class="space-y-4"
+          x-data="pdfFill({ editable: true, placed: @js($printed), deps: @js(\App\Support\PdfFill::deps($document)) })"
+          @input.debounce.500ms="refresh()" @change.debounce.250ms="refresh()"
+          @fill-open.window="$event.detail.name && placed[$event.detail.name] && open($event.detail.name)"
+          aria-labelledby="issue-form-title">
+        <template data-errors="{{ json_encode($errorEditors) }}"></template>
+        <h2 id="issue-form-title" class="sr-only">Fill in the {{ $kindWord }}: click a blank on the page</h2>
 
-        {{-- Before you start: a popup that opens with the page (reopen it from the info button). --}}
+        {{-- Before you start: what this document is and how to fill it in. Opens with the page (reopen it from the info button). --}}
         @include('livewire.workflow._intro-modal', [
-            'storageKey' => 'issue.' . ($staffIssued ? 'staff' : 'office'),
-            'lead' => $staffIssued ? 'Issuing a report to a student.' : 'Issuing a document to a student.',
+            'storageKey' => 'issue.' . $document->key(),
+            'title' => $document->name(),
+            'lead' => $document->description(),
             'items' => array_values(array_filter([
-                'Fields marked * are required. Greyed-out fields come from the student\'s account and cannot be typed over.',
-                $document->issuedToSelf() ? null : 'Search for the student by name, email or student number, then pick them from the list.',
-                ($document->issuedBySignatory() || $staffIssued) ? 'Your profile e-signature is applied for you. Add it in your profile first if it is not set.' : null,
-                'The preview shows the printed form as you type. Nothing is saved until you issue it.',
-                'Issuing asks you to confirm the details are accurate and that you are authorized to issue it.',
+                $document->issuedToSelf() ? null : 'Pick the student first: their details print on the form.',
+                'Click a blue blank on the form to fill it in.',
+                ($document->issuedBySignatory() || $staffIssued) ? 'Your profile e-signature is applied for you.' : null,
+                $staffIssued ? 'The student is notified once you issue it.' : 'It goes straight to signing; the student is notified.',
+                'Nothing is saved until you issue it.',
             ])),
-            'startLabel' => 'Start the report',
+            'note' => $document->issueNote(),
+            'startLabel' => 'Start',
         ])
 
-
-        {{-- 2. Student --}}
+        {{-- Student concerned: picked first, then printed on the form --}}
         @unless ($document->issuedToSelf())
-            <section class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-student">
-                <h3 id="sec-student" class="flex items-baseline gap-2 text-sm font-semibold text-slate-900"><span class="w-7 shrink-0 tabular-nums text-slate-500">{{ $part() }}.</span>Student concerned</h3>
-                <p class="{{ $help }} pl-9">Pick the student. Their details are copied from their account and printed on the form.</p>
-
-                <div class="relative mt-3" x-data @keydown.escape="$wire.set('studentSearch', '')">
-                    <label for="f-student" class="{{ $label }}">Student <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
-
+            <section class="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/80" aria-labelledby="sec-student">
+                <h3 id="sec-student" class="sr-only">Student concerned</h3>
+                <div class="group/f relative" x-data @keydown.escape="$wire.set('studentSearch', '')">
                     @if ($student)
-                        <div class="mt-1 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5">
-                            <div class="min-w-0">
-                                <p class="truncate text-sm font-semibold text-slate-900">{{ $student->full_name }}</p>
-                                <p class="truncate text-xs text-slate-500">{{ collect([$student->student_number, $student->program?->name])->filter()->implode(' · ') }}</p>
-                            </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="min-w-0 truncate text-sm">
+                                <span class="font-semibold text-slate-900">{{ $student->full_name }}</span>
+                                <span class="text-slate-500">· {{ collect([$student->student_number, $student->program?->name])->filter()->implode(' · ') }}</span>
+                            </p>
                             <button type="button" id="f-student" wire:click="$set('studentId', null)"
-                                    class="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30"
+                                    class="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[#2A57B4] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]"
                                     aria-label="Change student: remove {{ $student->full_name }}">
-                                <i class="bx bx-transfer-alt" aria-hidden="true"></i> Change student
+                                <i class="bx bx-transfer-alt" aria-hidden="true"></i> Change
                             </button>
                         </div>
-
-                        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            @foreach (['formatted_full_name' => 'Name', 'student_number' => 'Student number', 'program_year_section' => 'Program, year and section', 'college' => 'College'] as $key => $sysLabel)
-                                @php $sysVal = FS::systemValue($student, $key); @endphp
-                                <div wire:key="sys-{{ $key }}">
-                                    <label for="sys-{{ $key }}" class="{{ $label }}">{{ $sysLabel }}</label>
-                                    <div class="{{ $boxLocked }}">
-                                        <i class="bx bx-lock-alt text-base text-slate-400" aria-hidden="true"></i>
-                                        <input id="sys-{{ $key }}" type="text" value="{{ $sysVal }}" disabled placeholder="Not on the student's account"
-                                               class="{{ $bare }} cursor-not-allowed text-slate-700">
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
                     @else
-                        <div class="{{ $box }} {{ $errors->has('studentId') ? 'border-rose-400' : '' }}">
+                        <div class="{{ $box }} !mt-0 {{ $errors->has('studentId') ? $D::ERROR_LINE : '' }}">
                             <i class="bx bx-search text-base text-slate-400" aria-hidden="true"></i>
                             <input id="f-student" type="search" wire:model.live.debounce.300ms="studentSearch" autocomplete="off" @keydown.enter.prevent
-                                   placeholder="Search by name, email or student number" class="{{ $bare }}"
-                                   aria-required="true" aria-describedby="h-student @error('studentId') e-student @enderror" @error('studentId') aria-invalid="true" @enderror
+                                   placeholder="Student: type a name, email or student number" class="{{ $bare }}"
+                                   aria-required="true" aria-label="Student concerned" aria-describedby="@error('studentId') e-student @enderror" @error('studentId') aria-invalid="true" @enderror
                                    @keydown.arrow-down.prevent="$el.closest('.relative').querySelector('[data-pick]')?.focus()">
                         </div>
-                        <p id="h-student" class="{{ $help }}">Type at least 2 characters, then pick the student from the list.</p>
 
                         @if (strlen($studentSearch) >= 2)
-                            <div class="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg" role="list" aria-label="Matching students"
+                            <div class="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg" role="list" aria-label="Matching students"
                                  @keydown.arrow-down.prevent="$event.target.nextElementSibling?.focus()"
                                  @keydown.arrow-up.prevent="($event.target.previousElementSibling ?? document.getElementById('f-student')).focus()">
                                 @forelse ($this->studentResults as $s)
@@ -273,41 +263,30 @@
             </section>
         @endunless
 
-        {{-- 3. Source application (endorsement) --}}
+        {{-- Source application (endorsement) --}}
         @if ($document->sourceDocumentType())
-            <section class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-source">
-                <h3 id="sec-source" class="flex items-baseline gap-2 text-sm font-semibold text-slate-900"><span class="w-7 shrink-0 tabular-nums text-slate-500">{{ $part() }}.</span>Approved application <span class="text-rose-600" aria-hidden="true">*</span></h3>
-                <p class="{{ $help }} pl-9">The schedule on the endorsement is copied from the application you pick.</p>
+            <section class="rounded-xl bg-white px-4 py-4 shadow-sm ring-1 ring-slate-200/80" aria-labelledby="sec-source">
+                <h3 id="sec-source" class="{{ $D::HEADING }}">Approved application <span class="text-rose-600" aria-hidden="true">*</span></h3>
 
                 @if (! $student)
-                    <p class="mt-3 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">Pick a student first.</p>
+                    <p class="mt-2 text-sm italic text-slate-500">Pick a student first.</p>
                 @elseif ($this->sourceOptions->isEmpty())
-                    <p class="mt-3 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">This student has no submitted Student Assistantship Application.</p>
+                    <p class="mt-2 text-sm italic text-slate-500">This student has no submitted Student Assistantship Application.</p>
                 @else
                     <fieldset class="mt-3 space-y-2" id="f-source" tabindex="-1" @error('sourceId') aria-describedby="e-source" @enderror>
-                        <legend class="sr-only">Choose the student's application</legend>
+                        <legend class="sr-only">Choose the student's application (its schedule is copied)</legend>
                         @foreach ($this->sourceOptions as $o)
                             @php $sv = $o->field_values ?? []; @endphp
                             <label wire:key="src-{{ $o->workspace_id }}"
-                                   class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-300 p-3 hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/20">
+                                   class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50/60 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/20">
                                 <input type="radio" name="source_application" value="{{ $o->workspace_id }}" wire:model.live="sourceId" class="mt-1 h-4 w-4 accent-[#2A57B4]">
                                 <span class="min-w-0 flex-1">
                                     <span class="flex flex-wrap items-center gap-2">
                                         <span class="font-mono text-xs font-semibold text-slate-600">{{ $o->transaction_code }}</span>
-                                        <span class="text-xs text-slate-500">submitted {{ $o->submitted_at?->format('M j, Y') }}</span>
-                                        @include('livewire.workflow._badge', ['status' => $o->workflow_status])
+                                        <span class="text-xs text-slate-500">{{ $o->submitted_at?->format('M j, Y') }}</span>
+                                        @include('livewire.workflow._badge', ['ws' => $o])
                                         <span class="text-xs font-semibold tabular-nums text-slate-700">{{ SA::fmt(SA::weeklyTotal($sv)) }} hrs/week</span>
                                     </span>
-                                    <span class="mt-1.5 block space-y-0.5 text-xs text-slate-600">
-                                        @foreach (SA::DAYS as $dk => [$dl])
-                                            @php $am = SA::range($sv, $dk, 'am'); $pm = SA::range($sv, $dk, 'pm'); @endphp
-                                            @if ($am || $pm)
-                                                <span class="block"><strong>{{ $dl }}:</strong> {{ collect([$am, $pm])->filter()->implode(' · ') }}</span>
-                                            @endif
-                                        @endforeach
-                                    </span>
-                                    <a href="{{ route('admin.workflow.show', $o->workspace_id) }}" target="_blank" rel="noopener"
-                                       class="mt-1 inline-block text-xs font-semibold text-[#2A57B4] hover:underline">Open application<span class="sr-only"> (opens in a new tab)</span></a>
                                 </span>
                             </label>
                         @endforeach
@@ -317,139 +296,133 @@
             </section>
         @endif
 
-        {{-- 4. Report details --}}
-        <section class="px-4 py-5 sm:px-5" aria-labelledby="sec-details">
-            <h3 id="sec-details" class="flex items-baseline gap-2 text-sm font-semibold text-slate-900"><span class="w-7 shrink-0 tabular-nums text-slate-500">{{ $part() }}.</span>{{ $staffIssued ? 'Particulars of the report' : 'Details' }}</h3>
-            <p class="{{ $help }} pl-9">State each item exactly as it should appear on the printed {{ $kindWord }}.</p>
+        {{-- The printed page itself: click a blue blank to fill it in. What you see is what prints. --}}
+        <div>
+            <x-doc.pdf-page :label="$document->name() . ': click a blank to fill it in'" />
+        </div>
 
-            @if ($hasPaper)
-                <div class="mt-4" wire:key="paper-{{ $this->type }}">
-                    @include("livewire.workflow.issue-paper.$paper", ['student' => $student, 'doc' => $document, 'input' => $input])
-                </div>
-            @else
-                <div class="mt-4 space-y-4">
-                    @if (collect($document->fields())->contains(fn ($f) => ($f['type'] ?? '') === 'radio'))
-                        <p class="rounded-lg bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600">
-                            <strong>Scale:</strong> 5 Outstanding &middot; 4 Very Satisfactory &middot; 3 Satisfactory &middot; 2 Good &middot; 1 Poor
-                        </p>
-                    @endif
-                    @foreach ($document->fields() as $name => $f)
-                        @continue(! empty($f['hidden']) || ! empty($f['salutation_of']))
-                        @continue(($f['group'] ?? null) === 'rating_rows')
-                        @php
-                            $kind = $f['type'] ?? 'text';
-                            $dep = $f['show_when'] ?? null;
-                            $xShow = $dep ? '$wire.values.' . array_key_first($dep) . ' === ' . json_encode($dep[array_key_first($dep)]) : null;
-                            $required = $f['required'] ?? false;
-                            $hasError = $errors->has("values.$name");
-                            $describedBy = trim((! empty($f['help']) ? "h-$name " : '') . ($hasError ? "e-$name" : ''));
-                            $icon = $fieldIcon($name, $f);
-                            $titleKey = $f['salutation'] ?? null;
-                        @endphp
-                        <div wire:key="f-{{ $this->type }}-{{ $name }}" @if ($xShow) x-show="{{ $xShow }}" x-cloak @endif>
-                            @if ($kind === 'checkbox')
-                                <label for="f-{{ $name }}" class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-3.5 py-3 text-sm text-slate-700 hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50/50">
-                                    <input id="f-{{ $name }}" type="checkbox" wire:model="values.{{ $name }}" class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]">
-                                    <span class="font-medium">{{ $f['label'] }}</span>
-                                </label>
-                            @elseif ($kind === 'radio')
-                                <fieldset id="f-{{ $name }}" tabindex="-1" @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif>
-                                    <legend class="{{ $label }}">{{ $f['label'] }} @if ($required)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif</legend>
-                                    <div class="mt-1.5 grid grid-cols-5 gap-1 sm:gap-2">
-                                        @foreach ($f['options'] as $opt)
-                                            <label wire:key="r-{{ $name }}-{{ $opt }}"
-                                                   class="flex min-h-11 min-w-0 cursor-pointer flex-col items-center justify-center rounded-lg border border-slate-300 px-1 py-2 text-center hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/20">
-                                                <input type="radio" name="values_{{ $name }}" value="{{ $opt }}" wire:model="values.{{ $name }}" class="sr-only">
-                                                <span class="text-sm font-semibold text-slate-800">{{ $opt }}</span>
-                                                @if (! empty($f['option_labels'][$opt]))
-                                                    <span class="hidden w-full truncate text-[10px] leading-tight text-slate-500 sm:block">{{ $f['option_labels'][$opt] }}</span>
-                                                @endif
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </fieldset>
-                            @else
-                                <label for="f-{{ $name }}" class="{{ $label }}">
-                                    {{ $f['label'] }} @if ($required)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
-                                </label>
-                                @php $aria = ($required ? 'aria-required="true" ' : '') . ($describedBy ? 'aria-describedby="' . e($describedBy) . '" ' : '') . ($hasError ? 'aria-invalid="true"' : ''); @endphp
+        {{-- What the page does not print (and each blank's editor): a short list under the page --}}
+        <div data-extra :class="hasExtra ? 'rounded-xl bg-white px-4 py-5 shadow-sm ring-1 ring-slate-200/80 sm:px-6' : ''">
+            <h3 x-show="hasExtra" x-cloak class="{{ $D::HEADING }} mb-4">Also needed (not printed)</h3>
+            @if (collect($document->fields())->contains(fn ($f) => ($f['type'] ?? '') === 'radio'))
+                <p x-show="hasExtra" class="mb-3 text-xs text-slate-500">
+                    <strong>Scale:</strong> 5 Outstanding &middot; 4 Very Satisfactory &middot; 3 Satisfactory &middot; 2 Good &middot; 1 Poor
+                </p>
+            @endif
+            <div class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+                @foreach ($document->fields() as $name => $f)
+                    @continue(! empty($f['hidden']) || ! empty($f['salutation_of']))
+                    @continue(($f['group'] ?? null) === 'rating_rows')
+                    @php
+                        $kind = $f['type'] ?? 'text';
+                        $dep = $f['show_when'] ?? null;
+                        $xShow = $dep ? '$wire.values.' . array_key_first($dep) . ' === ' . json_encode($dep[array_key_first($dep)]) : null;
+                        $required = $f['required'] ?? false;
+                        $hasError = $errors->has("values.$name") || (($f['salutation'] ?? null) && $errors->has('values.' . $f['salutation']));
+                        $describedBy = trim((! empty($f['help']) ? "h-$name " : '') . ($hasError ? "e-$name" : ''));
+                        $titleKey = $f['salutation'] ?? null;
+                        $captionHtml = e($f['label']) . ($required ? '<span class="not-italic text-rose-600" aria-hidden="true"> *</span><span class="sr-only">(required)</span>' : '');
+                        $wide = ! $isShort($name, $f) || in_array($kind, ['checkbox', 'radio', 'textarea'], true);
+                    @endphp
+                    <x-doc.pop :name="$name">
+                    <div wire:key="f-{{ $this->type }}-{{ $name }}" class="group/f min-w-0 {{ $wide ? 'sm:col-span-2' : '' }}" @if ($xShow) x-show="{{ $xShow }}" x-cloak @endif>
+                        @if ($kind === 'checkbox')
+                            <label for="f-{{ $name }}" class="{{ $D::OPTION }} -mx-2 items-start">
+                                <input id="f-{{ $name }}" type="checkbox" wire:model="values.{{ $name }}" class="mt-1 h-4 w-4 shrink-0 rounded-sm accent-[#2A57B4]">
+                                <span>{{ $f['label'] }}</span>
+                            </label>
+                        @elseif ($kind === 'radio')
+                            <fieldset id="f-{{ $name }}" tabindex="-1" @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif>
+                                <legend class="text-[15px] text-slate-800">{{ $f['label'] }} @if ($required)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif</legend>
+                                <div class="mt-1.5 grid grid-cols-5 gap-1 sm:gap-2 {{ $hasError ? 'rounded-lg bg-rose-50 p-1' : '' }}">
+                                    @foreach ($f['options'] as $opt)
+                                        <label wire:key="r-{{ $name }}-{{ $opt }}"
+                                               class="flex min-h-11 min-w-0 cursor-pointer flex-col items-center justify-center rounded-lg border border-slate-200 px-1 py-2 text-center transition-colors hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-[#2A57B4] has-[:checked]:text-white has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/30">
+                                            <input type="radio" name="values_{{ $name }}" value="{{ $opt }}" wire:model="values.{{ $name }}" class="sr-only">
+                                            <span class="text-sm font-semibold">{{ $opt }}</span>
+                                            @if (! empty($f['option_labels'][$opt]))
+                                                <span class="hidden w-full truncate text-[10px] leading-tight opacity-80 sm:block">{{ $f['option_labels'][$opt] }}</span>
+                                            @endif
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </fieldset>
+                        @else
+                            @php $aria = ($required ? 'aria-required="true" ' : '') . ($describedBy ? 'aria-describedby="' . e($describedBy) . '" ' : '') . ($hasError ? 'aria-invalid="true"' : ''); @endphp
 
-                                @if ($titleKey)
-                                    @php $titleField = $document->fields()[$titleKey] ?? []; @endphp
-                                    <div class="mt-1 grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
-                                        <div class="{{ str_replace('mt-1 ', '', $box) }} pr-2">
-                                            <label for="f-{{ $titleKey }}" class="sr-only">Honorifics</label>
-                                            <x-dm.honorific-input id="f-{{ $titleKey }}" model="values.{{ $titleKey }}" class="{{ $bare }}" />
-                                        </div>
-                                        <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $hasError ? 'border-rose-400' : '' }}">
-                                            @if ($icon)<i class="bx {{ $icon }} text-base text-slate-400" aria-hidden="true"></i>@endif
-                                            <input id="f-{{ $name }}" type="text" wire:model="values.{{ $name }}" @if (isset($f['max'])) maxlength="{{ $f['max'] }}" @endif
-                                                   placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $bare }}" {!! $aria !!}>
-                                        </div>
+                            @if ($titleKey)
+                                <div class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 sm:grid-cols-[7rem_minmax(0,1fr)]">
+                                    <div class="{{ str_replace('mt-1 ', '', $box) }}">
+                                        <x-dm.honorific-input id="f-{{ $titleKey }}" model="values.{{ $titleKey }}" class="{{ $bare }}" />
                                     </div>
-                                @elseif ($kind === 'textarea')
-                                    <div x-data="{ n: ($wire.values['{{ $name }}'] || '').length }" class="{{ $box }} items-start {{ $hasError ? 'border-rose-400' : '' }}">
-                                        <textarea id="f-{{ $name }}" wire:model="values.{{ $name }}" rows="4" maxlength="{{ $f['max'] ?? 500 }}" @input="n = $el.value.length"
-                                                  placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $bare }} resize-y" {!! $aria !!}></textarea>
-                                        <span class="pointer-events-none absolute bottom-1.5 right-3 text-[11px] tabular-nums text-slate-500" aria-hidden="true"><span x-text="n"></span>/{{ $f['max'] ?? 500 }}</span>
-                                    </div>
-                                @elseif ($kind === 'select')
-                                    <div class="{{ $box }} {{ $hasError ? 'border-rose-400' : '' }}">
-                                        @if ($icon)<i class="bx {{ $icon }} text-base text-slate-400" aria-hidden="true"></i>@endif
-                                        <select id="f-{{ $name }}" wire:model="values.{{ $name }}" class="{{ $bare }} cursor-pointer" {!! $aria !!}>
-                                            <option value="">Choose…</option>
-                                            @foreach ($f['options'] as $opt)
-                                                <option value="{{ $opt }}">{{ $f['option_labels'][$opt] ?? $opt }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @else
-                                    @php $isEmail = str_ends_with($name, '_email'); @endphp
-                                    <div class="{{ $box }} {{ $hasError ? 'border-rose-400' : '' }}">
-                                        @if ($icon)<i class="bx {{ $icon }} text-base text-slate-400" aria-hidden="true"></i>@endif
-                                        <input id="f-{{ $name }}" wire:model="values.{{ $name }}"
-                                               type="{{ $isEmail ? 'email' : (['date' => 'date', 'time' => 'time'][$kind] ?? 'text') }}"
-                                               @if ($kind === 'date')
-                                                   @if (! empty($f['past'])) max="{{ now()->toDateString() }}" @else min="{{ now()->toDateString() }}" @endif
-                                               @endif
-                                               @if (isset($f['max'])) maxlength="{{ $f['max'] }}" @endif
+                                    <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $hasError ? $D::ERROR_LINE : '' }}">
+                                        <input id="f-{{ $name }}" type="text" wire:model="values.{{ $name }}" @if (isset($f['max'])) maxlength="{{ $f['max'] }}" @endif
                                                placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $bare }}" {!! $aria !!}>
                                     </div>
-                                @endif
+                                    <label for="f-{{ $titleKey }}" class="{{ $caption }} !mt-0">Title</label>
+                                    <label for="f-{{ $name }}" class="{{ $caption }} !mt-0">{!! $captionHtml !!}</label>
+                                </div>
+                            @elseif ($kind === 'textarea')
+                                <div x-data="{ n: ($wire.values['{{ $name }}'] || '').length }" class="relative rounded-sm transition-colors focus-within:bg-[#2A57B4]/[0.03] {{ $hasError ? 'bg-rose-50/50' : '' }}">
+                                    <textarea id="f-{{ $name }}" wire:model="values.{{ $name }}" rows="4" maxlength="{{ $f['max'] ?? 500 }}" @input="n = $el.value.length"
+                                              placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $D::LINED }}" {!! $aria !!}></textarea>
+                                    <span class="pointer-events-none absolute -bottom-5 right-0 hidden text-[11px] tabular-nums text-slate-400 group-focus-within/f:block" aria-hidden="true"><span x-text="n"></span>/{{ $f['max'] ?? 500 }}</span>
+                                </div>
+                                <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
+                            @elseif ($kind === 'select')
+                                <div class="{{ $box }} {{ $hasError ? $D::ERROR_LINE : '' }}">
+                                    <select id="f-{{ $name }}" wire:model="values.{{ $name }}" class="{{ $bare }} cursor-pointer pr-8" {!! $aria !!}>
+                                        <option value="">Choose…</option>
+                                        @foreach ($f['options'] as $opt)
+                                            <option value="{{ $opt }}">{{ $f['option_labels'][$opt] ?? $opt }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
+                            @else
+                                @php $isEmail = str_ends_with($name, '_email'); @endphp
+                                <div class="{{ $box }} {{ $hasError ? $D::ERROR_LINE : '' }}">
+                                    <input id="f-{{ $name }}" wire:model="values.{{ $name }}"
+                                           type="{{ $isEmail ? 'email' : (['date' => 'date', 'time' => 'time'][$kind] ?? 'text') }}"
+                                           @if ($kind === 'date')
+                                               @if (! empty($f['past'])) max="{{ now()->toDateString() }}" @else min="{{ now()->toDateString() }}" @endif
+                                           @endif
+                                           @if (isset($f['max'])) maxlength="{{ $f['max'] }}" @endif
+                                           placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $bare }}" {!! $aria !!}>
+                                </div>
+                                <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
                             @endif
-                            @if (! empty($f['help'])) <p id="h-{{ $name }}" class="{{ $help }}">{{ $f['help'] }}</p> @endif
-                            @error("values.$name") <p id="e-{{ $name }}" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
-                        </div>
-                    @endforeach
-                </div>
-            @endif
-        </section>
-
-        {{-- Confirmation and actions --}}
-        <div class="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5">
-            <div class="overflow-hidden rounded-lg border {{ $errors->has('confirmed') ? 'border-rose-300' : 'border-slate-300' }}">
-                <label for="f-confirmed" class="flex cursor-pointer items-start gap-3 px-3.5 py-3 text-sm text-slate-700 {{ $errors->has('confirmed') ? 'bg-rose-50' : 'bg-white' }}">
-                    <input id="f-confirmed" type="checkbox" wire:model="confirmed" class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]"
-                           aria-required="true" aria-describedby="confirmed-text @error('confirmed') e-confirmed @enderror" @error('confirmed') aria-invalid="true" @enderror>
-                    <span id="confirmed-text">
-                        I certify that the details in this {{ $kindWord }} are true and accurate, that I am authorized to issue it, and that the student's personal data is used only for this purpose under the Data Privacy Act of 2012.
-                    </span>
-                </label>
+                        @endif
+                        @if (! empty($f['help'])) <p id="h-{{ $name }}" class="{{ $help }}">{{ $f['help'] }}</p> @endif
+                        @error("values.$name") <p id="e-{{ $name }}" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
+                    </div>
+                    </x-doc.pop>
+                @endforeach
             </div>
+        </div>
+        {{-- Certify and issue: below the form page --}}
+        <div class="py-2">
+            <label for="f-confirmed" class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-slate-700">
+                <input id="f-confirmed" type="checkbox" wire:model="confirmed" class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]"
+                       aria-required="true" aria-describedby="confirmed-text @error('confirmed') e-confirmed @enderror" @error('confirmed') aria-invalid="true" @enderror>
+                <span id="confirmed-text" class="{{ $errors->has('confirmed') ? 'text-rose-700' : '' }}">
+                    This is accurate, I may issue it, and the student's data is used only for this (Data Privacy Act of 2012).
+                </span>
+            </label>
             @error('confirmed') <p id="e-confirmed" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
-            <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+            <div class="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
                 <a href="{{ $backUrl }}" wire:navigate
-                   class="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:min-h-9 sm:w-auto sm:py-1.5 [@media(pointer:coarse)]:min-h-11">Cancel and go back</a>
+                   class="inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:min-h-9 {{ $staffIssued ? '' : 'col-span-1' }}">Cancel</a>
                 @if ($staffIssued)
                     <button type="button" wire:click="saveDraft" wire:loading.attr="disabled" wire:target="saveDraft"
-                            class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9 sm:w-auto sm:py-1.5 [@media(pointer:coarse)]:min-h-11">
+                            class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9">
                         <i class="bx bx-save text-base text-slate-500" aria-hidden="true"></i>
                         <span wire:loading.remove wire:target="saveDraft">{{ $draftId ? 'Update draft' : 'Save draft' }}</span>
                         <span wire:loading wire:target="saveDraft">Saving…</span>
                     </button>
                 @endif
                 <button type="submit" wire:loading.attr="disabled" wire:target="issue"
-                        class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-4 py-2 text-center text-sm font-medium leading-snug text-white shadow-sm hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9 sm:w-auto sm:py-1.5 [@media(pointer:coarse)]:min-h-11">
+                        class="{{ $staffIssued ? 'col-span-2' : '' }} inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-5 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9">
                     <i class="bx bx-check-shield text-base" aria-hidden="true"></i>
                     <span wire:loading.remove wire:target="issue">Certify and issue</span>
                     <span wire:loading wire:target="issue">Issuing…</span>
@@ -457,55 +430,4 @@
             </div>
         </div>
     </form>
-</div>{{-- left column --}}
-
-    {{-- Wide screens: the document beside the form, refreshed from the live answers (nothing is saved). --}}
-    <aside class="hidden rounded-xl border border-slate-300 bg-white p-4 xl:sticky xl:top-0 xl:block xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto"
-           aria-label="Document preview"
-           x-data="{
-                html: '', busy: false, w: 842, h: 1171, scale: 1, seq: 0,
-                wide() { return window.matchMedia('(min-width: 1280px)').matches; },
-                async refresh() {
-                    if (! this.wide()) return;
-                    const n = ++this.seq;
-                    this.busy = true;
-                    const html = await this.$wire.previewDocument();
-                    if (n !== this.seq) return;
-                    this.html = html;
-                    this.busy = false;
-                },
-                fit() { const cw = this.$refs.box ? this.$refs.box.clientWidth : 0; if (cw > 0) this.scale = Math.min(1, cw / this.w); },
-                measure(e) {
-                    if (this.$refs.frame && e.source === this.$refs.frame.contentWindow && e.data && e.data.documatePreviewHeight) {
-                        this.h = Math.ceil(e.data.documatePreviewHeight);
-                    }
-                }
-           }"
-           x-init="fit(); new ResizeObserver(() => fit()).observe($refs.box); refresh()"
-           @doc-changed.window.debounce.900ms="refresh()"
-           @resize.window.debounce.300ms="html ? fit() : refresh()"
-           @message.window="measure($event)"
-           wire:key="issue-preview">
-        <div class="mb-3 flex items-center justify-between gap-3">
-            <div class="min-w-0">
-                <h2 class="text-base font-semibold text-slate-900">Preview</h2>
-                <p class="text-xs text-slate-500">Updates as you type. Nothing is saved by previewing.</p>
-            </div>
-            <div class="flex shrink-0 items-center gap-2">
-                <span x-show="busy && html" x-cloak class="inline-flex items-center gap-1 text-xs text-slate-500" role="status">
-                    <i class="bx bx-loader-alt bx-spin" aria-hidden="true"></i> Updating
-                </span>
-                <span class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500">
-                    <i class="bx bxs-file-pdf text-sm" aria-hidden="true"></i> A4 PDF
-                </span>
-            </div>
-        </div>
-        <div x-ref="box" wire:ignore class="overflow-hidden rounded-xl border border-slate-200 bg-[#e7e5e1]" :style="`height:${h * scale}px`">
-            <div x-show="! html" class="flex h-64 items-center justify-center gap-2 text-sm text-slate-600" role="status">
-                <i class="bx bx-loader-alt bx-spin text-xl" aria-hidden="true"></i> Preparing preview…
-            </div>
-            <iframe x-ref="frame" x-show="html" :srcdoc="html" title="Document preview" class="block border-0 bg-[#e7e5e1]"
-                    :style="`width:${w}px;height:${h}px;transform:scale(${scale});transform-origin:top left;`"></iframe>
-        </div>
-    </aside>
 </div>

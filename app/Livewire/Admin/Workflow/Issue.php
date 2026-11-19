@@ -34,10 +34,24 @@ class Issue extends Component
     /** The saved draft being worked on (Save draft / Home "Pick up where you left off"). */
     public ?int $draftId = null;
 
+    /** The admin's page (from Workflow review) shows a document picker; signatories pick on Home or Explore first. */
+    public bool $showPicker = false;
+
+    /** Documents this person may issue, for the picker: key => [name, description]. */
+    #[Computed]
+    public function documentChoices(): array
+    {
+        return collect($this->officeDocuments())
+            ->map(fn (WorkflowDocument $d) => [$d->name(), (string) $d->description()])
+            ->sortBy(fn ($c) => $c[0])
+            ->all();
+    }
+
     public function mount(): void
     {
         $docs = $this->officeDocuments();
         abort_if(empty($docs), 404);
+        $this->showPicker = request()->routeIs('admin.workflow.issue') && count($docs) > 1;
 
         // Home links straight to one report with ?doc=<key>; anything unknown falls back to the first.
         $asked = (string) request()->query('doc', '');

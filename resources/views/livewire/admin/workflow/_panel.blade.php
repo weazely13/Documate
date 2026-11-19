@@ -34,6 +34,17 @@
             <p class="truncate text-sm font-medium tabular-nums text-slate-700">{{ $ws->transaction_code }}</p>
         </div>
         <div class="flex shrink-0 items-center gap-1">
+            {{-- Run the AI check on this one (it used to be the robot over the list) --}}
+            @unless (in_array($ws->document_type, \App\Livewire\Admin\Workflow\Index::uncheckedKeys(), true))
+                @php $aiBusy = $ws->ai_flag === 'pending'; @endphp
+                <button type="button" wire:click="runAiCheck({{ $ws->workspace_id }})" wire:loading.attr="disabled" wire:target="runAiCheck({{ $ws->workspace_id }})"
+                        @disabled($aiBusy) class="{{ $iconBtn }} disabled:opacity-60"
+                        aria-label="{{ $aiBusy ? 'AI check running' : ($ws->ai_flag ? 'Run the AI check again' : 'Run the AI check') }}"
+                        title="{{ $aiBusy ? 'AI check running' : ($ws->ai_flag ? 'Run the AI check again' : 'Run the AI check') }}">
+                    <i class="bx {{ $aiBusy ? 'bx-loader-alt bx-spin' : 'bx-bot' }} text-xl" wire:loading.remove wire:target="runAiCheck({{ $ws->workspace_id }})" aria-hidden="true"></i>
+                    <i class="bx bx-loader-alt bx-spin text-xl" wire:loading wire:target="runAiCheck({{ $ws->workspace_id }})" aria-hidden="true"></i>
+                </button>
+            @endunless
             <button type="button" @click="$dispatch('open-doc-preview')" class="{{ $iconBtn }}"
                     aria-label="Preview the document" title="Preview the document">
                 <i class="bx bx-show text-xl" aria-hidden="true"></i>
@@ -62,9 +73,9 @@
                 <h2 id="wf-panel-title" x-ref="title" tabindex="-1" class="break-words rounded text-lg font-semibold leading-snug tracking-[-0.012em] text-slate-900 focus:outline-none">
                     {{ $nameFor($ws) }}
                 </h2>
-                <p class="mt-0.5 text-sm text-slate-500">
-                    {{ $doc?->name() }}@if ($ws->updated_at) · last updated {{ $ws->updated_at->format('M j, g:i A') }}@endif
-                </p>
+                @if ($ws->updated_at)
+                    <p class="mt-0.5 text-sm text-slate-500">Last updated {{ $ws->updated_at->format('M j, g:i A') }}</p>
+                @endif
             </div>
         </div>
 
@@ -73,18 +84,15 @@
         {{-- Decide --}}
         @if ($hasDecisions)
             <section aria-labelledby="wf-decide">
-                <h3 id="wf-decide" class="text-sm font-semibold text-slate-900">Decide</h3>
+                <h3 id="wf-decide" class="sr-only">Decide</h3>
 
                 @if (! $decision && $errors->has('action'))
                     <p class="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">{{ $errors->first('action') }}</p>
                 @endif
 
-                @if ($panel['canFinish'])
-                    <p class="mt-1 text-sm text-slate-500">Everyone has signed. Completing seals the record and issues the PDF. It cannot be undone.</p>
-                @elseif ($panel['canSend'] && $panel['sendBlocker'])
-                    <p class="mt-1 text-sm text-slate-500">{{ $panel['sendBlocker'] }}</p>
-                @elseif ($panel['canSend'])
-                    <p class="mt-1 text-sm text-slate-500">If the answers are in order, send it for signing. The first signatory is notified.</p>
+                {{-- Only what stops sending is said; the buttons speak for themselves --}}
+                @if ($panel['canSend'] && $panel['sendBlocker'])
+                    <p class="text-sm text-slate-500">{{ $panel['sendBlocker'] }}</p>
                 @endif
 
                 <div class="mt-3 grid gap-2 sm:flex sm:flex-wrap">
@@ -96,15 +104,15 @@
                     @if ($panel['canSend'] && ! $panel['sendBlocker'])
                         <button type="button" wire:click="quickSend({{ $ws->workspace_id }})" wire:loading.attr="disabled" wire:target="quickSend"
                                 wire:confirm="Send this transaction for signing?"
-                                class="{{ $btnPrimary }}">Send for signing</button>
+                                class="{{ $btnPrimary }}">For Signing</button>
                     @elseif ($panel['canSend'])
-                        <a href="{{ route('admin.workflow.show', $ws->workspace_id) }}" wire:navigate class="{{ $btnPrimary }}">Open to send for signing</a>
+                        <a href="{{ route('admin.workflow.show', $ws->workspace_id) }}" wire:navigate class="{{ $btnPrimary }}">For Signing</a>
                     @endif
                     @if ($panel['canRequest'])
-                        <button type="button" wire:click="openDecision('request')" class="{{ $btnSecondary }}">Request changes</button>
+                        <button type="button" wire:click="openDecision('request')" class="{{ $btnSecondary }}">For Revision</button>
                     @endif
                     @if ($panel['canReject'])
-                        <button type="button" wire:click="openDecision('reject')" class="{{ $btnDanger }}">Reject</button>
+                        <button type="button" wire:click="openDecision('reject')" class="{{ $btnDanger }}">For Rejection</button>
                     @endif
                 </div>
             </section>
@@ -122,19 +130,15 @@
         {{-- AI check --}}
         @if ($panel['checkable'])
             <div class="rounded-xl border border-slate-200 p-4">
-                @include('livewire.admin.workflow._ai-check', ['ws' => $ws, 'run' => 'runAiCheck(' . $ws->workspace_id . ')', 'poll' => false])
+                @include('livewire.admin.workflow._ai-check', ['ws' => $ws, 'run' => 'runAiCheck(' . $ws->workspace_id . ')', 'poll' => false, 'hideOk' => true])
             </div>
         @endif
 
+        {{-- Signatures and the checkpoints, with the audit-trail Preview / Download; no "Checkpoints" heading or line under it here --}}
         @include('livewire.admin.workflow._record-timeline', [
-            'approvals' => $panel['approvals'], 'audit' => $panel['audit'], 'idPrefix' => 'wf',
+            'approvals' => $panel['approvals'], 'audit' => $panel['audit'], 'idPrefix' => 'wf', 'plain' => true,
             'reportUrl' => route('admin.workflow.report', $ws->workspace_id), 'reportEvent' => 'open-report-preview',
         ])
-
-        <a href="{{ route('admin.workflow.show', $ws->workspace_id) }}" wire:navigate
-           class="inline-flex items-center gap-1 rounded text-sm font-medium text-[#2A57B4] hover:underline {{ $focus }}">
-            Full record and document preview <i class="bx bx-right-arrow-alt text-base" aria-hidden="true"></i>
-        </a>
     </div>
 
     @include('livewire.admin.workflow._preview-modal', ['src' => $previewSrc, 'version' => $previewVersion, 'title' => ($doc?->name() ?? 'Document') . ' · ' . $ws->transaction_code])

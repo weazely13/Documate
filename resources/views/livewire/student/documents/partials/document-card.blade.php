@@ -6,18 +6,10 @@
     $wf = $workspace->usesWorkflow();
 
     [
-        'title' => $title, 'href' => $href, 'issued' => $issued, 'label' => $label,
+        'title' => $title, 'href' => $href, 'issued' => $issued, 'state' => $state,
         'tone' => $tone, 'step' => $step, 'next' => $next, 'closed' => $closed,
     ] = \App\Support\DocumentProgress::describe($workspace);
 
-    // Status as a pill (DESIGN.md: tint + deep text + 200 ring), the same pills as Appointments.
-    $pill = match ($tone) {
-        'you' => 'bg-amber-50 text-amber-800 ring-amber-200',
-        'office' => 'bg-[#e2e9f7] text-[#1E4090] ring-sky-200',
-        'signing' => 'bg-violet-50 text-violet-800 ring-violet-200',
-        'done' => 'bg-emerald-50 text-emerald-800 ring-emerald-200',
-        default => 'bg-slate-100 text-slate-600 ring-slate-200',
-    };
     $nextTone = match ($tone) {
         'you' => 'text-amber-800',
         'done' => 'text-emerald-800',
@@ -86,11 +78,11 @@
                 @endfor
             </span>
         @endif
-        <span class="mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 sm:hidden {{ $pill }}">{{ $label }}</span>
+        <x-status-badge :status="$state" class="mt-2 sm:hidden" />
     </div>
 
     <div class="relative z-10 hidden shrink-0 items-center gap-2 sm:flex">
-        <span class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $pill }}">{{ $label }}</span>
+        <x-status-badge :status="$state" />
     </div>
 
     @if ($deletable)

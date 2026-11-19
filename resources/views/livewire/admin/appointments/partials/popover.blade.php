@@ -6,12 +6,12 @@
     [$aText, $aPill, $spin] = $aiFor($p);
     $logs = $p->statusLogs->sortByDesc('created_at')->take(3)->sortBy('created_at')->values();
     $logLabel = fn ($l) => match ($l->status) {
-        'pending' => $l->note ?: 'Requested',
+        'pending' => 'Pending',
         'approved' => 'Approved',
         'rejected' => 'Rejected',
-        'attended' => 'Visit completed',
+        'attended' => 'Attended',
         'missed' => 'Missed',
-        'retracted' => 'Withdrawn',
+        'retracted' => 'Cancelled',
         default => ucfirst($l->status),
     };
 @endphp
@@ -57,7 +57,7 @@
             <div class="min-w-0">
                 <dt class="text-slate-500">Status</dt>
                 <dd class="mt-0.5 flex flex-wrap gap-1">
-                    <span class="inline-flex rounded-full px-2 py-px text-[11px] font-medium ring-1 {{ $sPill }}">{{ $sText }}</span>
+                    <span class="{{ \App\Support\StatusStyle::BADGE }} !px-2 !py-px !text-[11px] {{ $sPill }}">{{ $sText }}</span>
                     @if ($p->status === 'pending')
                         <span class="inline-flex items-center gap-1 rounded-full px-2 py-px text-[11px] font-medium ring-1 {{ $aPill }}">
                             @if ($spin) <i class="bx bx-loader-alt bx-spin" aria-hidden="true"></i> @endif<span class="sr-only">AI check:</span> {{ $aText }}

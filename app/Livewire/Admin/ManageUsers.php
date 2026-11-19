@@ -46,6 +46,13 @@ class ManageUsers extends Component
 
     public function updatingShowRemoved() { $this->resetPage(); }
 
+    /** The Filters pop-up's Reset: its own filters only; the search stays, as on Workflow review. */
+    public function resetFilters(): void
+    {
+        $this->reset(['roleFilter', 'statusFilter', 'yearFilter', 'showRemoved']);
+        $this->resetPage();
+    }
+
     /** Which Users and Accounts Manager sidebar item is open, read from the page URL once. */
     public string $navKey = 'accounts';
 

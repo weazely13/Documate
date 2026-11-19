@@ -103,7 +103,7 @@
         @endphp
         <tr>
             <td class="n">{{ $i }}</td>
-            <td class="nm">{{ $nm }}</td>
+            <td data-f="interviewees" class="nm">{{ $nm }}</td>
             <td class="s">{{ $nm === '' ? '' : ($v["score_{$i}_personality"] ?? '') }}</td>
             <td class="s">{{ $nm === '' ? '' : ($v["score_{$i}_communication"] ?? '') }}</td>
             <td class="s">{{ $nm === '' ? '' : ($v["score_{$i}_talent"] ?? '') }}</td>

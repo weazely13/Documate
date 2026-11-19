@@ -86,6 +86,8 @@ class ClearanceStatusPage extends Component
             'formattedYearLevel' => $this->formatYearLevel((string) $user->year_level),
             'currentStatus' => $currentStatus,
             'history' => $history,
+            // Every semester, unfiltered: the record timeline and the counts on the status chips
+            'fullHistory' => $fullHistory,
             'semesterOptions' => $semesterOptions,
             'statusOptions' => collect(ClearanceStatus::STATUSES),
         ])->layout('layouts.app', ['title' => 'Clearance Status']);

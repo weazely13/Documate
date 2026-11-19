@@ -38,7 +38,10 @@
                 @endif
             </span>
             <div class="min-w-0">
-                <h1 class="break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $who ?: $ws->transaction_code }}</h1>
+                <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <h1 class="break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $who ?: $ws->transaction_code }}</h1>
+                    <x-status-badge :workspace="$ws" />
+                </div>
                 <p class="mt-0.5 text-sm text-slate-500">
                     {{ $document->name() }} · <span class="tabular-nums">{{ $ws->transaction_code }}</span>
                     @if ($ws->updated_at) <span class="whitespace-nowrap">· last updated {{ $ws->updated_at->format('M j, g:i A') }}</span> @endif
@@ -64,13 +67,6 @@
     <div class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
 
         <div class="contents lg:block lg:min-w-0 lg:space-y-5">
-
-            <section class="{{ $card }} order-1" aria-labelledby="rec-details">
-                <h2 id="rec-details" class="sr-only">Details</h2>
-                @include('livewire.admin.workflow._record-props', ['ws' => $ws, 'doc' => $document, 'status' => $statusLine, 'issuer' => $issuer, 'waiting' => $waiting])
-            </section>
-
-
 
             {{-- The document itself --}}
             <section class="{{ $card }} order-4" aria-labelledby="rec-preview">
@@ -132,7 +128,7 @@
                             <p class="mt-0.5 text-sm text-slate-500">Read the answers in the preview, then start the review.</p>
                             <div class="{{ $actions }}">
                                 <button type="button" wire:click="startReview" wire:loading.attr="disabled" class="{{ $primary }}">Start review</button>
-                                <button type="button" wire:click="openModal('reject')" class="{{ $danger }}">Reject</button>
+                                <button type="button" wire:click="openModal('reject')" class="{{ $danger }}">For Rejection</button>
                             </div>
                             @break
 
@@ -159,9 +155,8 @@
 
                                 @if ($reviewerFields)
                                     <fieldset class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                        <legend class="px-1 text-sm font-semibold text-slate-900">Fill in before sending</legend>
-                                        <p class="text-xs text-slate-500">These are completed by the VPSD office and printed on the document.</p>
-                                        <div class="mt-3 space-y-3">
+                                        <legend class="sr-only">Office fields</legend>
+                                        <div class="space-y-3">
                                             @foreach ($reviewerFields as $name => $f)
                                                 <div wire:key="rf-{{ $name }}">
                                                     <label for="rf-{{ $name }}" class="block text-sm font-medium text-slate-800">
@@ -210,9 +205,9 @@
                                 <div class="{{ $actions }}">
                                     <button type="button" wire:click="sendForSigning" wire:loading.attr="disabled"
                                             @disabled($noHolder || ($needsIdentityCheck && (! $identityMethod || ! $identityConfirmed)))
-                                            class="{{ $primary }}">Send for signing</button>
-                                    <button type="button" wire:click="openModal('request')" class="{{ $secondary }}">Request changes</button>
-                                    <button type="button" wire:click="openModal('reject')" class="{{ $danger }}">Reject</button>
+                                            class="{{ $primary }}">For Signing</button>
+                                    <button type="button" wire:click="openModal('request')" class="{{ $secondary }}">For Revision</button>
+                                    <button type="button" wire:click="openModal('reject')" class="{{ $danger }}">For Rejection</button>
                                 </div>
                             @else
                                 @php $open = $approvals->first(fn ($a) => $a->status->value === 'pending'); @endphp
@@ -226,9 +221,9 @@
                                         <button type="button" wire:click="resendInvite" wire:loading.attr="disabled" class="{{ $secondary }}">Resend invitation</button>
                                     @endif
                                     @unless ($anyApproved)
-                                        <button type="button" wire:click="openModal('request')" class="{{ $secondary }}">Request changes</button>
+                                        <button type="button" wire:click="openModal('request')" class="{{ $secondary }}">For Revision</button>
                                     @endunless
-                                    <button type="button" wire:click="openModal('reject')" class="{{ $danger }}">Reject</button>
+                                    <button type="button" wire:click="openModal('reject')" class="{{ $danger }}">For Rejection</button>
                                 </div>
                             @endif
                             @break
@@ -237,7 +232,7 @@
                             <h2 id="next-step" class="text-[15px] font-semibold text-slate-900">Waiting on the student</h2>
                             <p class="mt-2 break-words rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">You asked: {{ $ws->workflow_note }}</p>
                             <div class="{{ $actions }}">
-                                <button type="button" wire:click="openModal('reject')" class="{{ $danger }}">Reject instead</button>
+                                <button type="button" wire:click="openModal('reject')" class="{{ $danger }}">For Rejection</button>
                             </div>
                             @break
 
@@ -281,18 +276,12 @@
                     @endswitch
                 </section>
 
-                @if ($aiApplies)
-                    <div class="{{ $card }} order-3">
-                        @include('livewire.admin.workflow._ai-check', ['ws' => $ws, 'run' => 'runAiCheck'])
-                    </div>
-                @endif
-
-            <section class="{{ $card }} order-7 space-y-6" aria-label="Signatures and checkpoints">
-                @include('livewire.admin.workflow._record-timeline', [
-                    'approvals' => $approvals, 'audit' => $audit, 'idPrefix' => 'rec',
-                    'reportUrl' => route('admin.workflow.report', $ws->workspace_id), 'reportEvent' => 'open-report-preview',
-                ])
-            </section>
+            {{-- Signatures only (the AI check and the checkpoints are in the Workflow Review side panel) --}}
+            @if ($approvals->isNotEmpty())
+                <section class="{{ $card }} order-7" aria-label="Signatures">
+                    @include('livewire.admin.workflow._record-timeline', ['approvals' => $approvals, 'audit' => $audit, 'idPrefix' => 'rec', 'activity' => false])
+                </section>
+            @endif
         </div>
     </div>
 
@@ -314,7 +303,7 @@
             <div class="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6"
                  x-data x-init="$nextTick(() => $refs.msg.focus())">
                 <h2 id="modal-title" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">
-                    {{ ['request' => 'Request changes', 'reject' => 'Reject this transaction', 'void' => 'Void this document'][$modal] }}
+                    {{ ['request' => 'For Revision', 'reject' => 'For Rejection', 'void' => 'Void this document'][$modal] }}
                 </h2>
                 <p id="modal-lead" class="mt-1 text-sm text-slate-500">
                     @if ($modal === 'request') The student sees this message and can edit and resubmit.

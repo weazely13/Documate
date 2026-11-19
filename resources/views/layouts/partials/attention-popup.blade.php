@@ -13,7 +13,7 @@
         'student.documents.index' => fn ($n) => $plural($n, 'update', 'updates') . ' on your documents from the office',
         'student.appointments.index' => fn ($n) => $plural($n, 'upcoming visit', 'upcoming visits') . ' to the VPSD office',
         'student.clearance-status' => fn ($n) => 'You are tagged Uncleared this semester',
-        'officer.clearance' => fn ($n) => $plural($n, 'member of your organization is', 'members of your organization are') . ' not tagged yet this semester',
+        'officer.clearance' => fn ($n) => $plural($n, 'member of your organization is', 'members of your organization are') . ' Untagged this semester',
         'signatory.inbox' => fn ($n) => $plural($n, 'document is', 'documents are') . ' waiting for your signature',
         'signatory.issued' => fn ($n) => $plural($n, 'report you issued was', 'reports you issued were') . ' sent back for changes',
     ];
@@ -49,20 +49,19 @@
          x-show="show" x-cloak
          x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
          x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-        <div class="attention-pop-head">
-            <span class="attention-pop-bell" aria-hidden="true"><i class='bx bxs-bell-ring'></i></span>
-            <p class="attention-pop-title">Something to check here</p>
+        {{-- Just what needs checking: no heading, a close button beside it. --}}
+        <div class="attention-pop-row">
+            <ul class="attention-pop-list">
+                @foreach ($alerts as $a)
+                    <li>
+                        <div class="attention-pop-item">
+                            <i class='bx {{ $a['icon'] }}' aria-hidden="true"></i>
+                            <span class="attention-pop-text">{{ $a['text'] }}.</span>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
             <button type="button" @click="close()" class="attention-pop-close" aria-label="Close"><i class='bx bx-x'></i></button>
         </div>
-        <ul class="attention-pop-list">
-            @foreach ($alerts as $a)
-                <li>
-                    <div class="attention-pop-item">
-                        <i class='bx {{ $a['icon'] }}' aria-hidden="true"></i>
-                        <span class="attention-pop-text">{{ $a['text'] }}.</span>
-                    </div>
-                </li>
-            @endforeach
-        </ul>
     </div>
 @endif

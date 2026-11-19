@@ -6,7 +6,7 @@
     $pick = 'relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 sm:block sm:h-auto sm:w-auto sm:border-0 max-sm:[@media(pointer:coarse)]:h-11 max-sm:[@media(pointer:coarse)]:w-11';
     $pickField = $control . ' absolute inset-0 h-full w-full cursor-pointer pl-3 pr-8 opacity-0 sm:static sm:opacity-100';
     $filtering = $search !== '' || $type !== '' || $status !== '';
-    $initials = fn (?string $name) => collect(preg_split('/\s+/', trim((string) $name)))->filter()->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('') ?: '?';
+    $initials = fn (?string $name) => \App\Support\Honorifics::initials($name);
 
     // The four figures, as a summary strip in the folder tints (DESIGN.md: sky = to review, lavender = signing,
     // mint = done, rose = stopped). Each one filters the list.
@@ -84,7 +84,7 @@
                                 <p class="truncate text-xs text-slate-500">{{ $doc?->name() ?? $row->document_type }}</p>
                             </div>
                             <div class="flex shrink-0 flex-col items-end gap-1">
-                                @include('livewire.workflow._badge', ['status' => $row->workflow_status])
+                                @include('livewire.workflow._badge', ['ws' => $row])
                                 <span class="text-[11px] tabular-nums text-slate-500">{{ $row->updated_at?->format('M j') }}</span>
                             </div>
                         </li>
@@ -132,7 +132,7 @@
                                             <span class="text-xs text-slate-400">–</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3">@include('livewire.workflow._badge', ['status' => $row->workflow_status])</td>
+                                    <td class="px-4 py-3">@include('livewire.workflow._badge', ['ws' => $row])</td>
                                     <td class="whitespace-nowrap px-4 py-3 text-right text-xs tabular-nums text-slate-500">{{ $row->updated_at?->format('M j, g:i A') }}</td>
                                 </tr>
                             @endforeach

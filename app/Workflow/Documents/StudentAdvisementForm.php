@@ -127,7 +127,7 @@ final class StudentAdvisementForm extends WorkflowDocument
         }
 
         $user = auth()->user();
-        if ($user?->signature_enabled && empty($user->signature_path)) {
+        if ($user && empty($user->signature_path)) {
             return 'Upload your signature in your profile before issuing this form.';
         }
 
@@ -172,7 +172,7 @@ final class StudentAdvisementForm extends WorkflowDocument
 
     public function signingNote(): ?string
     {
-        return 'See or inspect the student first, then record your remarks in the signing box (required). Signing marks your step as done.';
+        return 'See the student first, then write your remarks under Your part.';
     }
 
     public function appointment(array $values): ?array
