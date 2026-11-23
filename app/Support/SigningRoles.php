@@ -6,7 +6,7 @@ use App\Models\TransactionApproval;
 use App\Models\User;
 use App\Workflow\Documents\DocumentRegistry;
 
-/** The "Your signing roles" cards on Home: each role a person holds today, what waits on it, and what it signs. */
+/** "Signing roles" under Account settings (Profile): each role a person holds today, what waits on it, and what it signs. */
 class SigningRoles
 {
     /**

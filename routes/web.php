@@ -12,7 +12,6 @@ use App\Livewire\Admin\TransactionRecordShow;
 use App\Livewire\Admin\TransactionRecords;
 use App\Livewire\Officer\ClearanceTagging;
 use App\Livewire\Student\ClearanceStatusPage;
-use App\Livewire\Student\Dashboard as StudentDashboard;
 use App\Livewire\Student\NewTransaction;
 use App\Livewire\Admin\Templates\TemplateManager;
 use App\Livewire\Admin\Templates\TemplateEditor;
@@ -73,7 +72,8 @@ Route::middleware(['auth'])->group(function () {
         // Home: greeting and the form search. The old dashboard is now the Activity summary.
         Route::get('/student/home', NewTransaction::class)->name('student.home');
         Route::redirect('/dashboard', '/student/home')->name('dashboard');
-        Route::get('/student/dashboard', StudentDashboard::class)->name('student.dashboard');
+        // The student Activity Summary was removed; old links land on Home
+        Route::redirect('/student/dashboard', '/student/home')->name('student.dashboard');
         Route::get('/clearance-status', ClearanceStatusPage::class)->name('student.clearance-status');
 
         // other system pages
@@ -83,13 +83,19 @@ Route::middleware(['auth'])->group(function () {
 // Protected
 Route::middleware(['auth'])->group(function () {
 
+    // The LNU Student Handbook: students, officers, signatories and the office alike.
+    Route::get('/handbook', StudentHandbook::class)->name('handbook');
+
     Route::get('/profile/signature', function () {
         $path = auth()->user()->signature_path;
         abort_unless($path && \Storage::disk('local')->exists($path), 404);
 
         return \Storage::disk('local')->response($path, null, ['Cache-Control' => 'private, no-store']);
     })->name('profile.signature');
-    // Feedback & issue reports: users send them here, admins handle them in the inbox
+    // The top bar's search: documents and appointments matching what was typed (pages are searched in the browser)
+    Route::get('/search/records', \App\Http\Controllers\RecordSearchController::class)->middleware('throttle:60,1')->name('search.records');
+
+    // Feedback: users send it here, admins handle them in the inbox
     Route::get('/feedback', \App\Livewire\Support\FeedbackCenter::class)->name('support.feedback');
     Route::get('/feedback/{report}/attachment', function (\App\Models\FeedbackReport $report) {
         abort_unless(auth()->user()->isAdmin() || $report->user_id === auth()->id(), 403);
@@ -147,7 +153,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('student.appointments.reapply');
         Route::get('/clearance-tagging/{studentId}', OfficerClearanceProfile::class)
             ->name('officer.clearance.show');
-        Route::get('/handbook', StudentHandbook::class)->name('handbook');
         Route::redirect('/student/transactions', '/student/new-transaction')->name('student.transactions.index');
         Route::get('/student/transactions/new/{type}', \App\Livewire\Student\Transactions\Form::class)
             ->name('student.transactions.new');

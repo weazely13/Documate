@@ -9,25 +9,23 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-/** Admin inbox for feedback and issue reports: a list, and a details panel to reply, note and resolve. */
+/** Admin inbox for feedback: a list, and a details panel to read it, reply (optional) and keep an internal note. */
 class FeedbackInbox extends Component
 {
     use WithPagination;
 
-    public const PER_PAGE = 15;
+    public const PER_PAGE = 50;
 
+    /** The list's dropdown: which feedback to show. There is no status to work through: replying is optional. */
     public const TABS = [
-        'open' => 'Open',
-        'resolved' => 'Resolved',
-        'closed' => 'Closed',
-        'all' => 'All',
+        'all' => 'All feedback',
+        'unread' => 'Unread',
+        'replied' => 'Replied',
+        'unreplied' => 'No reply',
     ];
 
-    #[Url(except: 'open')]
-    public string $tab = 'open';
-
-    #[Url(except: '')]
-    public string $kind = ''; // '' | feedback | issue
+    #[Url(except: 'all')]
+    public string $tab = 'all';
 
     #[Url(except: '')]
     public string $search = '';
@@ -38,6 +36,46 @@ class FeedbackInbox extends Component
     public string $reply = '';
     public string $note = '';
 
+    /** Column-header sorting, as on Workflow review: ascending, then descending, then back to the default order. */
+    public string $sortKey = '';
+    public string $sortDir = 'asc';
+
+    private const SORTS = ['from', 'subject', 'reply', 'sent'];
+
+    public function sortBy(string $key): void
+    {
+        if (! in_array($key, self::SORTS, true)) {
+            return;
+        }
+
+        [$this->sortKey, $this->sortDir] = match (true) {
+            $this->sortKey !== $key => [$key, 'asc'],
+            $this->sortDir === 'asc' => [$key, 'desc'],
+            default => ['', 'asc'],
+        };
+
+        $this->resetPage();
+    }
+
+    /** The picked column's order, or null for the default (unread first, then newest). */
+    private function applySort($query)
+    {
+        $dir = $this->sortDir === 'desc' ? 'desc' : 'asc';
+
+        return match ($this->sortKey) {
+            'from' => $query->orderBy(
+                \App\Models\User::withTrashed()->select('first_name')->whereColumn('users.id', 'feedback_reports.user_id'), $dir
+            )->orderBy(
+                \App\Models\User::withTrashed()->select('last_name')->whereColumn('users.id', 'feedback_reports.user_id'), $dir
+            ),
+            'subject' => $query->orderBy('subject', $dir),
+            // Not replied first when ascending; replied ones by when
+            'reply' => $query->orderByRaw("CASE WHEN replied_at IS NULL THEN 0 ELSE 1 END {$dir}")->orderBy('replied_at', $dir),
+            'sent' => $query->orderBy('created_at', $dir),
+            default => null,
+        };
+    }
+
     public function mount(): void
     {
         if ($this->selectedId) {
@@ -46,7 +84,6 @@ class FeedbackInbox extends Component
     }
 
     public function updatingTab(): void { $this->resetPage(); }
-    public function updatingKind(): void { $this->resetPage(); }
     public function updatingSearch(): void { $this->resetPage(); }
 
     public function select(int $id): void
@@ -56,6 +93,11 @@ class FeedbackInbox extends Component
             $this->selectedId = null;
 
             return;
+        }
+
+        // Opening it marks it read (a plain update: reading is not an audited change)
+        if ($report->isUnread()) {
+            FeedbackReport::whereKey($report->id)->update(['status' => FeedbackReport::READ]);
         }
 
         $this->selectedId = $report->id;
@@ -74,14 +116,6 @@ class FeedbackInbox extends Component
         return FeedbackReport::findOrFail($this->selectedId);
     }
 
-    public function markInProgress(): void
-    {
-        $report = $this->selected();
-        $report->update(['status' => 'in_progress', 'handled_by' => auth()->id(), 'resolved_at' => null]);
-
-        $this->dispatch('toast', type: 'success', title: 'Marked in progress', message: $report->reference());
-    }
-
     public function sendReply(): void
     {
         $this->validate(['reply' => ['required', 'string', 'min:2', 'max:3000']], ['reply.required' => 'Write a reply first.']);
@@ -91,42 +125,10 @@ class FeedbackInbox extends Component
             'admin_reply' => trim($this->reply),
             'replied_at' => now(),
             'handled_by' => auth()->id(),
-            'status' => $report->status === 'new' ? 'in_progress' : $report->status,
         ]);
 
         $this->notifyUser($report, 'The OVPSD office replied to "' . Str::limit($report->subject, 50) . '"');
         $this->dispatch('toast', type: 'success', title: 'Reply sent', message: 'The user was notified.');
-    }
-
-    public function resolve(): void
-    {
-        $this->validate(['reply' => ['nullable', 'string', 'max:3000']]);
-
-        $report = $this->selected();
-        $changes = ['status' => 'resolved', 'resolved_at' => now(), 'handled_by' => auth()->id()];
-        if (trim($this->reply) !== '' && trim($this->reply) !== (string) $report->admin_reply) {
-            $changes += ['admin_reply' => trim($this->reply), 'replied_at' => now()];
-        }
-        $report->update($changes);
-
-        $this->notifyUser($report, ($report->type === 'issue' ? 'Your issue report' : 'Your feedback') . ' "' . Str::limit($report->subject, 50) . '" was marked resolved');
-        $this->dispatch('toast', type: 'success', title: 'Resolved', message: $report->reference() . ' moved to Resolved.');
-    }
-
-    public function close(): void
-    {
-        $report = $this->selected();
-        $report->update(['status' => 'closed', 'handled_by' => auth()->id()]);
-
-        $this->dispatch('toast', type: 'success', title: 'Closed', message: $report->reference() . ' moved to Closed.');
-    }
-
-    public function reopen(): void
-    {
-        $report = $this->selected();
-        $report->update(['status' => 'in_progress', 'resolved_at' => null, 'handled_by' => auth()->id()]);
-
-        $this->dispatch('toast', type: 'success', title: 'Reopened', message: $report->reference() . ' is open again.');
     }
 
     public function saveNote(): void
@@ -144,7 +146,7 @@ class FeedbackInbox extends Component
     private function notifyUser(FeedbackReport $report, string $message): void
     {
         $report->user?->notify(new WorkflowNotification(
-            title: $report->type === 'issue' ? 'Update on your issue report' : 'Reply to your feedback',
+            title: 'Reply to your feedback',
             message: $message,
             url: route('support.feedback', ['report' => $report->id]),
             icon: 'bx-reply',
@@ -156,7 +158,6 @@ class FeedbackInbox extends Component
     private function query()
     {
         return FeedbackReport::query()
-            ->when($this->kind !== '', fn ($q) => $q->where('type', $this->kind))
             ->when($this->search !== '', function ($q) {
                 $term = '%' . $this->search . '%';
                 $q->where(fn ($w) => $w->where('subject', 'like', $term)
@@ -171,9 +172,9 @@ class FeedbackInbox extends Component
     private function forTab($query, string $tab)
     {
         return match ($tab) {
-            'open' => $query->open(),
-            'resolved' => $query->where('status', 'resolved'),
-            'closed' => $query->where('status', 'closed'),
+            'unread' => $query->unread(),
+            'replied' => $query->whereNotNull('replied_at'),
+            'unreplied' => $query->whereNull('replied_at'),
             default => $query,
         };
     }
@@ -182,18 +183,19 @@ class FeedbackInbox extends Component
     {
         $counts = collect(self::TABS)->map(fn ($label, $key) => $this->forTab($this->query(), $key)->count());
 
-        $reports = $this->forTab($this->query(), $this->tab)
-            ->with('user.role')
-            // Open tab: issues that block people first, then newest
-            ->when($this->tab === 'open', fn ($q) => $q->orderByRaw("CASE WHEN status = 'new' THEN 0 ELSE 1 END")
-                ->orderByRaw("CASE severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END"))
-            ->latest()
-            ->paginate(self::PER_PAGE);
+        $reports = $this->forTab($this->query(), $this->tab)->with('user.role');
+
+        if ($this->applySort($reports) === null) {
+            // Unread first, then newest
+            $reports->orderByRaw("CASE WHEN status = 'new' THEN 0 ELSE 1 END");
+        }
+
+        $reports = $reports->latest('id')->paginate(self::PER_PAGE);
 
         $stats = [
-            'new' => FeedbackReport::where('status', 'new')->count(),
-            'open_issues' => FeedbackReport::open()->where('type', 'issue')->count(),
-            'resolved_30' => FeedbackReport::where('status', 'resolved')->where('resolved_at', '>=', now()->subDays(30))->count(),
+            'unread' => FeedbackReport::unread()->count(),
+            'received_30' => FeedbackReport::where('created_at', '>=', now()->subDays(30))->count(),
+            'replied_30' => FeedbackReport::where('replied_at', '>=', now()->subDays(30))->count(),
             'avg_rating' => FeedbackReport::whereNotNull('rating')->where('created_at', '>=', now()->subDays(30))->avg('rating'),
             'ratings' => FeedbackReport::whereNotNull('rating')->where('created_at', '>=', now()->subDays(30))->count(),
         ];
@@ -204,6 +206,6 @@ class FeedbackInbox extends Component
             'tabs' => self::TABS,
             'stats' => $stats,
             'selected' => $this->selectedId ? FeedbackReport::with(['user.role', 'handler'])->find($this->selectedId) : null,
-        ])->layout('layouts.app', ['title' => 'Feedback & Issues']);
+        ])->layout('layouts.app', ['title' => 'Feedback']);
     }
 }

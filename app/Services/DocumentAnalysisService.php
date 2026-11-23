@@ -86,15 +86,15 @@ class DocumentAnalysisService
         $referenceInstructions = $referenceImage
             ? <<<TXT
 You have been given TWO images:
-- Image 1: a physical photo the student uploaded as proof the document was processed at the office.
-- Image 2: a reference render of exactly what the document should contain — this shows the correct, expected value for every field, generated from what the student actually entered digitally.
+- Image 1: a photo of the physical document, taken and uploaded by the VPSD secretary/admin at the office after the student's visit, so it becomes the student's online copy.
+- Image 2: a reference render of exactly what the document should contain — this shows the correct, expected value for every field, generated from what the student entered digitally when filling in the form.
 
 Use Image 2 as ground truth for what each field's value should read. Compare it directly against what you see written/printed in Image 1 for the corresponding field. This is a much stronger signal than reasoning from a text list alone, so prioritize the visual comparison between the two images over the text list below.
 TXT
-            : "You have been given ONE image: a physical photo the student uploaded as proof the document was processed at the office. No reference render was available, so rely on the expected text values listed below.";
+            : "You have been given ONE image: a photo of the physical document, taken and uploaded by the VPSD secretary/admin at the office after the student's visit. No reference render was available, so rely on the expected text values listed below.";
 
         $prompt = <<<PROMPT
-You are reviewing a photo submitted by a student as proof they had a "{$documentName}" physically processed at the office.
+You are helping the VPSD (Office of the Vice President for Student Development) secretary/admin check a photo they took of a student's "{$documentName}" after it was processed at the office. The uploader is the VPSD secretary/admin, not the student: never describe the photo as submitted or uploaded by the student, and write the summary to the admin about the student's document.
 
 {$referenceInstructions}
 
@@ -106,7 +106,7 @@ You are reviewing a photo submitted by a student as proof they had a "{$document
 6. For each of the fields below, state what you actually see written/printed for it on Image 1, and whether it matches the expected value (from Image 2 if provided, otherwise from the text below). Treat minor differences in spacing, capitalization, or date formatting (e.g. "Jan 5, 2026" vs "01/05/2026") as a match. Only flag it as NOT matching if the substantive content is genuinely different (a different name, a different number, a different date, etc). If a field is blank or illegible on Image 1, mark it as not matching and say why.
 Expected values:
 {$expectedValuesList}
-7. Write a short (2-4 sentence) plain-language summary suitable for a non-technical admin, mentioning any field mismatches if found.
+7. Write a short (2-4 sentence) plain-language summary for the VPSD secretary/admin who uploaded the photo, mentioning any field mismatches if found (e.g. "The photo you uploaded shows the student's ...").
 
 Use "detected_document_type" for what Image 1 actually is (e.g. "Student Complaint Form", "website screenshot"). Fill "unrelated_reason" only when matches_document is false.
 

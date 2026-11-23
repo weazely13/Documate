@@ -118,7 +118,7 @@
 
 <div style="margin-top:2pt;">
     @foreach ($rows as $line)
-        <div class="rrow" style="font-size:{{ $fit($line, 487, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+        <div data-f="reason" class="rrow" style="font-size:{{ $fit($line, 487, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
     @endforeach
 </div>
 

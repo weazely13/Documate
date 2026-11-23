@@ -13,7 +13,7 @@
 
     // A document card's preview: paperless forms render their real page; paper templates show their name.
     $previewUrl = fn ($doc) => $doc->document_type ? route('student.transactions.preview', $doc->workspace_id) : null;
-    $docStatus = fn ($doc) => $doc->workflow_status?->label() ?? 'Pending at the office';
+    $docStatus = fn ($doc) => \App\Support\StatusStyle::transaction($doc->workflow_status ?? $doc->status)['label'];
     $sessionTimes = ['morning' => '8:00 AM – 12:00 PM', 'afternoon' => '1:00 PM – 5:00 PM'];
 @endphp
 

@@ -30,7 +30,7 @@ class ActivitySummary extends Component
     {
         $user = Auth::user();
         if (! $user->isSignatoryAccount()) {
-            return $this->redirectRoute($user->isAdmin() ? 'admin.dashboard' : 'student.dashboard', navigate: true);
+            return $this->redirectRoute($user->isAdmin() ? 'admin.dashboard' : 'student.home', navigate: true);
         }
     }
 

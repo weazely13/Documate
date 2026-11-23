@@ -49,13 +49,6 @@
                 ['back' => 'bg-[#f6cdb5]', 'front' => 'from-[#fef4ee] to-[#fdece3]', 'ink' => 'text-[#9a4521]'],
             ];
             $folderTheme = fn (string $type) => $themes[crc32($type) % count($themes)];
-            $tagFor = fn (array $r) => match (true) {
-                $r['result'] === 'completed' => 'bg-emerald-600 text-white',
-                $r['status'] === 'Rejected' => 'bg-rose-600 text-white',
-                $r['result'] === 'closed' => 'bg-slate-500 text-white',
-                $r['status'] === 'Waiting on Student' => 'bg-amber-500 text-white',
-                default => 'bg-[#2A57B4] text-white',
-            };
             $activeFilters = (int) ($result !== 'all') + (int) ($period !== 'all') + (int) ($mode !== 'all') + (int) ($folder !== '' && $by !== 'folder');
             $menuBtn = 'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition [@media(pointer:coarse)]:h-11 ' . $focus;
             $menu = 'absolute left-0 z-30 mt-1.5 max-h-80 w-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg';
@@ -88,114 +81,81 @@
                 </button>
             </div>
 
-            {{-- Search; inside a folder, account or All documents also the filters and the view --}}
-            <div class="mb-6 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm sm:p-3">
-                <div class="flex items-center gap-2">
-                    <div class="relative min-w-0 flex-1">
-                        <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true"></i>
-                        <input type="search" wire:model.live.debounce.300ms="search" aria-label="Search the archive"
-                               placeholder="{{ match ($level) { 'folders' => 'Search folders, names, codes or scanned text', 'students' => 'Search students by name or number', default => 'Search name, student no., document, code or scanned text' } }}"
-                               class="h-10 w-full rounded-lg border-slate-300 pl-10 pr-3 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm [@media(pointer:coarse)]:h-11">
-                    </div>
-                    @if ($inside)
-                        <div class="inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="View">
-                            @foreach (['cards' => ['bx-grid-alt', 'Cards'], 'table' => ['bx-list-ul', 'Table']] as $v => [$vIcon, $vLabel])
-                                <button type="button" wire:click="setView('{{ $v }}')" aria-pressed="{{ $view === $v ? 'true' : 'false' }}" title="{{ $vLabel }}"
-                                        class="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition [@media(pointer:coarse)]:h-10 {{ $focus }}
-                                            {{ $view === $v ? 'bg-white text-[#2A57B4] shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-800' }}">
-                                    <i class="bx {{ $vIcon }} text-lg" aria-hidden="true"></i><span class="hidden sm:inline">{{ $vLabel }}</span>
-                                </button>
-                            @endforeach
-                        </div>
-                    @endif
+            {{-- One row, as on Workflow review: Filters (inside a folder or on All documents), the search, and the view switch --}}
+            @php
+                $wfField = 'rounded-lg border-slate-300 bg-white text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm';
+                $fsel = 'h-9 w-full py-0 text-sm [@media(pointer:coarse)]:h-11 ' . $wfField;
+            @endphp
+            @if ($level !== 'student')
+            <div class="mb-4 flex items-center gap-2">
+                @if ($inside)
+                    <x-admin.filters-popup :count="$activeFilters" reset="resetPopupFilters">
+                        @if ($showType)
+                            <label class="col-span-2 block">
+                                <span class="mb-1 block text-xs font-medium text-slate-600">Document type</span>
+                                <select wire:model.live="folder" class="{{ $fsel }}">
+                                    <option value="">Every type</option>
+                                    @foreach ($folders as $f)
+                                        <option value="{{ $f['type'] }}">{{ Str::limit($f['type'], 48) }} ({{ $f['count'] }})</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        @endif
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Result</span>
+                            <select wire:model.live="result" class="{{ $fsel }}">
+                                @foreach ($results as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                            </select>
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Mode</span>
+                            <select wire:model.live="mode" class="{{ $fsel }}">
+                                @foreach ($modes as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                            </select>
+                        </label>
+                        <label class="col-span-2 block">
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Date</span>
+                            <select wire:model.live="period" class="{{ $fsel }}">
+                                @foreach ($periods as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                            </select>
+                        </label>
+                        @if ($period === 'custom')
+                            <label class="block min-w-0">
+                                <span class="mb-1 block text-xs font-medium text-slate-600">From</span>
+                                <input type="date" wire:model.live="dateFrom" max="{{ $dateTo ?: now()->toDateString() }}" class="{{ $fsel }}">
+                            </label>
+                            <label class="block min-w-0">
+                                <span class="mb-1 block text-xs font-medium text-slate-600">To</span>
+                                <input type="date" wire:model.live="dateTo" min="{{ $dateFrom }}" max="{{ now()->toDateString() }}" class="{{ $fsel }}">
+                            </label>
+                        @endif
+                    </x-admin.filters-popup>
+                @endif
+
+                <div class="relative min-w-0 flex-1">
+                    <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" aria-hidden="true"></i>
+                    <input type="search" wire:model.live.debounce.300ms="search" aria-label="Search the archive"
+                           placeholder="{{ match ($level) { 'folders' => 'Search folders, names, codes or scanned text', 'students' => 'Search students by name or number', default => 'Search name, student no., document, code or scanned text' } }}"
+                           class="h-9 w-full pl-9 pr-3 [@media(pointer:coarse)]:h-11 {{ $wfField }}">
                 </div>
 
                 @if ($inside)
-                <div class="-mx-1 mt-2 flex items-center gap-2 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:overflow-visible">
-                    @if ($showType)
-                        {{-- Document type: inside a student's account and on All documents --}}
-                        <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape="open = false">
-                            <button type="button" @click="open = !open" :aria-expanded="open"
-                                    class="{{ $menuBtn }} {{ $folder !== '' ? 'border-[#2A57B4]/40 bg-[#eef3fc] text-[#1E4090]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
-                                <i class="bx bx-folder text-base" aria-hidden="true"></i>
-                                <span class="max-w-[12rem] truncate">{{ $folder !== '' ? $folder : 'Document type' }}</span>
-                                <i class="bx bx-chevron-down text-base text-slate-400" aria-hidden="true"></i>
+                    <div class="inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="View">
+                        @foreach (['cards' => ['bx-grid-alt', 'Cards'], 'table' => ['bx-list-ul', 'Table']] as $v => [$vIcon, $vLabel])
+                            <button type="button" wire:click="setView('{{ $v }}')" aria-pressed="{{ $view === $v ? 'true' : 'false' }}" title="{{ $vLabel }}"
+                                    class="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition [@media(pointer:coarse)]:h-10 {{ $focus }}
+                                        {{ $view === $v ? 'bg-white text-[#2A57B4] shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-800' }}">
+                                <i class="bx {{ $vIcon }} text-lg" aria-hidden="true"></i><span class="hidden sm:inline">{{ $vLabel }}</span>
                             </button>
-                            <div x-show="open" x-cloak x-transition.opacity class="{{ $menu }} w-72" role="menu">
-                                <button type="button" wire:click="$set('folder', '')" @click="open = false" class="{{ $menuItem }}" role="menuitem">
-                                    <i class="bx bx-check text-base {{ $folder === '' ? 'text-[#2A57B4]' : 'invisible' }}" aria-hidden="true"></i> Every type
-                                </button>
-                                @foreach (($level === 'student' && $openStudent ? $openStudent['folders']->map(fn ($f) => ['type' => $f['type'], 'count' => $f['forms']->count()]) : $folders) as $f)
-                                    <button type="button" wire:click="$set('folder', @js($f['type']))" @click="open = false" class="{{ $menuItem }}" role="menuitem">
-                                        <i class="bx bx-check text-base {{ $folder === $f['type'] ? 'text-[#2A57B4]' : 'invisible' }}" aria-hidden="true"></i>
-                                        <span class="min-w-0 flex-1 truncate">{{ $f['type'] }}</span>
-                                        <span class="text-xs tabular-nums text-slate-400">{{ $f['count'] }}</span>
-                                    </button>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    @foreach ([['result', $results, $result, 'bx-check-circle', 'Result'], ['mode', $modes, $mode, 'bx-devices', 'Mode']] as [$prop, $options, $current, $icon, $name])
-                        <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape="open = false">
-                            <button type="button" @click="open = !open" :aria-expanded="open" aria-label="{{ $name }}: {{ $options[$current] }}"
-                                    class="{{ $menuBtn }} {{ $current !== 'all' ? 'border-[#2A57B4]/40 bg-[#eef3fc] text-[#1E4090]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
-                                <i class="bx {{ $icon }} text-base" aria-hidden="true"></i>
-                                <span class="whitespace-nowrap">{{ $current !== 'all' ? $options[$current] : $name }}</span>
-                                <i class="bx bx-chevron-down text-base text-slate-400" aria-hidden="true"></i>
-                            </button>
-                            <div x-show="open" x-cloak x-transition.opacity class="{{ $menu }}" role="menu">
-                                @foreach ($options as $value => $label)
-                                    <button type="button" wire:click="$set('{{ $prop }}', '{{ $value }}')" @click="open = false" class="{{ $menuItem }}" role="menuitem">
-                                        <i class="bx bx-check text-base {{ $current === $value ? 'text-[#2A57B4]' : 'invisible' }}" aria-hidden="true"></i> {{ $label }}
-                                    </button>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endforeach
-
-                    {{-- Date: quick ranges, or pick the from and to dates --}}
-                    <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape="open = false">
-                        <button type="button" @click="open = !open" :aria-expanded="open" aria-label="Date: {{ $dateLabel }}"
-                                class="{{ $menuBtn }} {{ $period !== 'all' ? 'border-[#2A57B4]/40 bg-[#eef3fc] text-[#1E4090]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
-                            <i class="bx bx-calendar text-base" aria-hidden="true"></i>
-                            <span class="whitespace-nowrap">{{ $period !== 'all' ? $dateLabel : 'Date' }}</span>
-                            <i class="bx bx-chevron-down text-base text-slate-400" aria-hidden="true"></i>
-                        </button>
-                        <div x-show="open" x-cloak x-transition.opacity class="absolute left-0 z-30 mt-1.5 w-72 rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg" role="dialog" aria-label="Date">
-                            @foreach (array_diff_key($periods, ['custom' => 1]) as $value => $label)
-                                <button type="button" wire:click="$set('period', '{{ $value }}')" @click="open = false" class="{{ $menuItem }}">
-                                    <i class="bx bx-check text-base {{ $period === $value ? 'text-[#2A57B4]' : 'invisible' }}" aria-hidden="true"></i> {{ $label }}
-                                </button>
-                            @endforeach
-                            <div class="mt-1 border-t border-slate-100 px-3 pb-2 pt-2.5">
-                                <p class="mb-1.5 flex items-center gap-2 text-xs font-medium text-slate-600">
-                                    <i class="bx bx-check text-base {{ $period === 'custom' ? 'text-[#2A57B4]' : 'invisible' }}" aria-hidden="true"></i> Date range
-                                </p>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <label class="block min-w-0"><span class="mb-0.5 block text-[11px] text-slate-500">From</span>
-                                        <input type="date" wire:model.live="dateFrom" max="{{ $dateTo ?: now()->toDateString() }}" class="h-9 w-full rounded-lg border-slate-300 px-2 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20"></label>
-                                    <label class="block min-w-0"><span class="mb-0.5 block text-[11px] text-slate-500">To</span>
-                                        <input type="date" wire:model.live="dateTo" min="{{ $dateFrom }}" max="{{ now()->toDateString() }}" class="h-9 w-full rounded-lg border-slate-300 px-2 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20"></label>
-                                </div>
-                            </div>
-                        </div>
+                        @endforeach
                     </div>
-
-                    @if ($activeFilters || trim($search) !== '')
-                        <button type="button" wire:click="resetFilters"
-                                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-800 [@media(pointer:coarse)]:h-11 {{ $focus }}">
-                            <i class="bx bx-x text-lg" aria-hidden="true"></i> Reset filters
-                        </button>
-                    @endif
-                </div>
                 @endif
             </div>
+            @endif
 
             @php
-                $share = ['tagFor' => $tagFor, 'tintFor' => $tintFor, 'focus' => $focus];
+                $share = ['tintFor' => $tintFor, 'focus' => $focus];
                 $cardGrid = 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
-                $tableHead = 'mb-1.5 hidden grid-cols-[minmax(0,1fr)_10rem_6rem_7rem_10rem] gap-4 px-[0.9375rem] text-xs font-medium text-slate-500 md:grid';
                 $backBtn = 'inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 [@media(pointer:coarse)]:h-11 ' . $focus;
             @endphp
 
@@ -241,12 +201,7 @@
                         @endforeach
                     </ul>
                 @else
-                    <div class="{{ $tableHead }}"><span class="pl-[2.375rem]">{{ $level === 'all' ? 'Student and document' : 'Student' }}</span><span>Code</span><span>Mode</span><span>Date</span><span>Status</span></div>
-                    <ul class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                        @foreach ($pageItems as $record)
-                            @include('livewire.admin.partials.archive-row', $share + ['record' => $record, 'showStudent' => true, 'showDocType' => $level === 'all'])
-                        @endforeach
-                    </ul>
+                    @include('livewire.admin.partials.archive-table', $share + ['records' => $pageItems, 'showStudent' => true, 'showDocType' => $level === 'all', 'offset' => ($currentPage - 1) * $perPage])
                 @endif
             @endif
 
@@ -305,24 +260,25 @@
             @elseif ($level === 'student')
                 {{-- ===== Inside one student's account: their documents, filed by type ===== --}}
                 @php $s = $openStudent; @endphp
-                <div class="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <button type="button" wire:click="closeOpened" class="{{ $backBtn }} mb-4"><i class="bx bx-chevron-left text-lg" aria-hidden="true"></i> All students</button>
-                    <div class="flex flex-wrap items-center gap-4">
-                        <x-dm.avatar :user="$s['user']" :name="$s['student_name']" class="h-14 w-14 text-base" />
-                        <div class="min-w-0 flex-1">
-                            <h2 class="truncate text-xl font-semibold tracking-[-0.01em] text-slate-900">{{ $s['student_name'] }}</h2>
-                            <p class="text-sm tabular-nums text-slate-500">{{ $s['student_number'] }} · latest {{ $s['latest_label'] }}</p>
-                        </div>
-                        <dl class="grid w-full grid-cols-3 gap-2 text-center sm:w-auto">
-                            <div class="rounded-lg bg-[#f2f5fb] px-4 py-2"><dt class="text-[11px] text-slate-500">Documents</dt><dd class="text-lg font-semibold tabular-nums text-slate-900">{{ $s['forms']->count() }}</dd></div>
-                            <div class="rounded-lg bg-[#d9f3e1] px-4 py-2"><dt class="text-[11px] text-slate-600">Completed</dt><dd class="text-lg font-semibold tabular-nums text-[#1f6b3a]">{{ $s['completed_count'] }}</dd></div>
-                            <div class="rounded-lg bg-[#dcecfa] px-4 py-2"><dt class="text-[11px] text-slate-600">In progress</dt><dd class="text-lg font-semibold tabular-nums text-[#1E4090]">{{ $s['open_count'] }}</dd></div>
-                        </dl>
-                    </div>
+                {{-- The student, on one line: back, photo, name with number and latest date, then the counts --}}
+                <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                    <button type="button" wire:click="closeOpened" class="{{ $backBtn }} !h-8 shrink-0 px-2" aria-label="All students">
+                        <i class="bx bx-chevron-left text-lg" aria-hidden="true"></i><span class="hidden sm:inline">All students</span>
+                    </button>
+                    <x-dm.avatar :user="$s['user']" :name="$s['student_name']" class="h-8 w-8 shrink-0 text-xs" />
+                    <p class="flex min-w-0 flex-1 items-baseline gap-2">
+                        <span class="truncate text-[15px] font-semibold text-slate-900">{{ $s['student_name'] }}</span>
+                        <span class="hidden shrink-0 text-xs tabular-nums text-slate-500 sm:inline">{{ $s['student_number'] }} · latest {{ $s['latest_label'] }}</span>
+                    </p>
+                    <dl class="flex shrink-0 items-center gap-1.5 text-xs">
+                        <div class="flex items-baseline gap-1 rounded-md bg-[#f2f5fb] px-2 py-1"><dd class="font-semibold tabular-nums text-slate-900">{{ $s['forms']->count() }}</dd><dt class="text-slate-500">{{ Str::plural('document', $s['forms']->count()) }}</dt></div>
+                        <div class="flex items-baseline gap-1 rounded-md bg-[#d9f3e1] px-2 py-1"><dd class="font-semibold tabular-nums text-[#1f6b3a]">{{ $s['completed_count'] }}</dd><dt class="text-slate-600">completed</dt></div>
+                        <div class="flex items-baseline gap-1 rounded-md bg-[#dcecfa] px-2 py-1"><dd class="font-semibold tabular-nums text-[#1E4090]">{{ $s['open_count'] }}</dd><dt class="text-slate-600">in progress</dt></div>
+                    </dl>
                 </div>
 
-                {{-- The account's own controls: Folders / Cards / Table, and a separate Sort. Inside an open folder only
-                     the Sort (the documents there, by date or code). --}}
+                {{-- The account's controls on one line: Sort, then Folders / Cards / Table, then the search.
+                     Inside an open folder the same, after a back button; Folders goes back to the folders. --}}
                 @php
                     $sortNow = array_key_exists($sort, $sortOptions) ? $sort : 'newest';
                     $inFolder = $folder !== '';
@@ -338,48 +294,55 @@
                             default => $f['forms']->sortByDesc('date_sort')->values(),
                         }]);
                     }
+                    // A column picked in the table's header orders the documents in each folder
+                    if ($tableSort !== '') {
+                        $accountFolders = $accountFolders->map(fn ($f) => ['type' => $f['type'], 'forms' => $sortTableRows($f['forms'])]);
+                    }
                     $asTiles = $arrange === 'folders' && ! $inFolder;
-                    $acctMode = $arrange === 'folders' ? 'folders' : $view;
+                    $acctMode = $inFolder ? $view : ($arrange === 'folders' ? 'folders' : $view);
                     $sortLabels = $inFolder ? ['newest' => 'Newest first', 'az' => 'Code A–Z', 'za' => 'Code Z–A'] : ['newest' => 'Newest first', 'az' => 'Name A–Z', 'za' => 'Name Z–A'];
                 @endphp
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <div class="flex min-w-0 items-center gap-2">
-                        @if ($inFolder)
-                            <button type="button" wire:click="$set('folder', '')" class="{{ $backBtn }}"><i class="bx bx-chevron-left text-lg" aria-hidden="true"></i> All folders</button>
-                        @endif
-                        <h3 class="truncate text-[15px] font-semibold text-slate-900">
-                            {{ $inFolder ? $folder : ($asTiles ? 'Folders' : 'Documents') }}
-                            <span class="ml-1 text-sm font-normal tabular-nums text-slate-500">{{ $asTiles ? $accountFolders->count() : $s['forms']->count() }}</span>
-                        </h3>
-                    </div>
-                    <div class="flex shrink-0 items-center gap-2">
-                        @unless ($inFolder)
-                            <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="Show as">
-                                @foreach (['folders' => ['bxs-folder', 'Folders'], 'cards' => ['bx-grid-alt', 'Cards'], 'table' => ['bx-list-ul', 'Table']] as $key => [$aIcon, $aLabel])
-                                    <button type="button" wire:click="setArrange('{{ $key }}')" aria-pressed="{{ $acctMode === $key ? 'true' : 'false' }}" title="{{ $aLabel }}"
-                                            class="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition [@media(pointer:coarse)]:h-10 {{ $focus }}
-                                                {{ $acctMode === $key ? 'bg-white text-[#2A57B4] shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-800' }}">
-                                        <i class="bx {{ $aIcon }} text-lg" aria-hidden="true"></i><span class="hidden sm:inline">{{ $aLabel }}</span>
-                                    </button>
-                                @endforeach
-                            </div>
-                        @endunless
-                        {{-- Sort: its own button --}}
-                        <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape="open = false">
-                            <button type="button" @click="open = !open" :aria-expanded="open" aria-label="Sort: {{ $sortLabels[$sortNow] }}"
-                                    class="{{ $menuBtn }} border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
-                                <i class="bx {{ $sortOptions[$sortNow][0] }} text-lg" aria-hidden="true"></i>
-                                <span class="whitespace-nowrap">{{ $sortLabels[$sortNow] }}</span>
-                                <i class="bx bx-chevron-down text-base text-slate-400" aria-hidden="true"></i>
-                            </button>
-                            <div x-show="open" x-cloak x-transition.opacity class="absolute right-0 z-30 mt-1.5 w-48 rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg" role="menu">
-                                @foreach ($sortLabels as $key => $label)
-                                    <button type="button" wire:click="setSort('{{ $key }}')" @click="open = false" class="{{ $menuItem }}" role="menuitem">
-                                        <i class="bx bx-check text-base {{ $sortNow === $key ? 'text-[#2A57B4]' : 'invisible' }}" aria-hidden="true"></i> {{ $label }}
-                                    </button>
-                                @endforeach
-                            </div>
+                <div class="mb-4 flex items-center gap-2">
+                    @if ($inFolder)
+                        <button type="button" wire:click="$set('folder', '')" class="{{ $backBtn }} shrink-0 px-2" aria-label="All folders" title="All folders">
+                            <i class="bx bx-chevron-left text-lg" aria-hidden="true"></i><span class="hidden lg:inline">All folders</span>
+                        </button>
+                    @endif
+
+                    {{-- Sort --}}
+                    <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false" @keydown.escape="open = false">
+                        <button type="button" @click="open = !open" :aria-expanded="open" aria-label="Sort: {{ $sortLabels[$sortNow] }}" title="Sort: {{ $sortLabels[$sortNow] }}"
+                                class="{{ $menuBtn }} border-slate-200 bg-white px-2.5 text-slate-700 hover:bg-slate-50 sm:px-3">
+                            <i class="bx {{ $sortOptions[$sortNow][0] }} text-lg" aria-hidden="true"></i>
+                            <span class="hidden whitespace-nowrap md:inline">{{ $sortLabels[$sortNow] }}</span>
+                            <i class="bx bx-chevron-down hidden text-base text-slate-400 md:inline" aria-hidden="true"></i>
+                        </button>
+                        <div x-show="open" x-cloak x-transition.opacity class="absolute left-0 z-30 mt-1.5 w-48 rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg" role="menu">
+                            @foreach ($sortLabels as $key => $label)
+                                <button type="button" wire:click="setSort('{{ $key }}')" @click="open = false" class="{{ $menuItem }}" role="menuitem">
+                                    <i class="bx bx-check text-base {{ $sortNow === $key ? 'text-[#2A57B4]' : 'invisible' }}" aria-hidden="true"></i> {{ $label }}
+                                </button>
+                            @endforeach
                         </div>
+                    </div>
+
+                    {{-- Folders / Cards / Table --}}
+                    <div class="inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="Show as">
+                        @foreach (['folders' => ['bxs-folder', 'Folders'], 'cards' => ['bx-grid-alt', 'Cards'], 'table' => ['bx-list-ul', 'Table']] as $key => [$aIcon, $aLabel])
+                            <button type="button" wire:click="{{ $inFolder && $key !== 'folders' ? "setView('{$key}')" : "setArrange('{$key}')" }}" aria-pressed="{{ $acctMode === $key ? 'true' : 'false' }}" title="{{ $aLabel }}"
+                                    class="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition [@media(pointer:coarse)]:h-10 {{ $focus }}
+                                        {{ $acctMode === $key ? 'bg-white text-[#2A57B4] shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-800' }}">
+                                <i class="bx {{ $aIcon }} text-lg" aria-hidden="true"></i><span class="hidden xl:inline">{{ $aLabel }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+
+                    {{-- Search --}}
+                    <div class="relative min-w-0 flex-1">
+                        <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" aria-hidden="true"></i>
+                        <input type="search" wire:model.live.debounce.300ms="search" aria-label="Search this student's documents"
+                               placeholder="Search document, code or scanned text"
+                               class="h-9 w-full pl-9 pr-3 [@media(pointer:coarse)]:h-11 {{ $wfField }}">
                     </div>
                 </div>
 
@@ -403,8 +366,7 @@
                     @foreach ($accountFolders as $sf)
                         @php [$sfBg, $sfInk] = $tintFor($sf['type']); @endphp
                         <section wire:key="acct-folder-{{ md5($sf['type']) }}" aria-label="{{ $sf['type'] }}">
-                            {{-- Inside an open folder its name is already in the bar above --}}
-                            <p class="mb-2.5 flex items-center gap-2 text-sm {{ $inFolder ? 'hidden' : '' }}">
+                            <p class="mb-2.5 flex items-center gap-2 text-sm">
                                 <span class="grid h-7 w-7 place-items-center rounded-md {{ $sfBg }}"><i class="bx bxs-folder text-base {{ $sfInk }}" aria-hidden="true"></i></span>
                                 <span class="min-w-0 truncate font-semibold text-slate-800">{{ $sf['type'] }}</span>
                                 <span class="tabular-nums text-slate-400">{{ $sf['forms']->count() }}</span>
@@ -416,11 +378,7 @@
                                     @endforeach
                                 </ul>
                             @else
-                                <ul class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                                    @foreach ($sf['forms'] as $record)
-                                        @include('livewire.admin.partials.archive-row', $share + ['record' => $record, 'showStudent' => false])
-                                    @endforeach
-                                </ul>
+                                @include('livewire.admin.partials.archive-table', $share + ['records' => $sf['forms'], 'showStudent' => false, 'offset' => 0])
                             @endif
                         </section>
                     @endforeach

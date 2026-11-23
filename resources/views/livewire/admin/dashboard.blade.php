@@ -25,23 +25,23 @@
 
     // Headline cards: [label, number, pill, icon, Audit Trail gradient, bar %, bar fill, explanation, link label, url]
     $heroes = [
-        ['To review', number_format($work['to_review']),
-            $work['overdue'] ? $work['overdue'] . ' overdue' : 'none overdue', 'bx-file-find',
+        ['Review', number_format($work['to_review']),
+            $work['overdue'] ? $work['overdue'] . ' Overdue' : 'On time', 'bx-file-find',
             'blue', $pct($work['overdue'], $work['to_review']),
-            $work['overdue'] . ' of ' . $work['to_review'] . ' have waited for 7+ school days · ' . $work['ready'] . ' more are ready to finish',
+            $work['overdue'] . ' of ' . $work['to_review'] . ' Overdue (7d+) · ' . $work['ready'] . ' for Issuance',
             'Open Workflow Review', route('admin.workflow.index')],
-        ['In signing', number_format($work['signing']),
-            $work['signing_late'] ? $work['signing_late'] . ' overdue' : 'on time', 'bx-edit',
+        ['Signing', number_format($work['signing']),
+            $work['signing_late'] ? $work['signing_late'] . ' Overdue' : 'On time', 'bx-edit',
             'indigo', $pct($signedTotal, $signedTotal + $sig['pending']),
             $signedTotal . ' signatures in the last ' . $range . ' days · ' . $sig['pending'] . ' pending signature',
-            'Requests in signing', route('admin.workflow.index', ['tab' => 'signing'])],
-        ['Students cleared', $clearedPct . '%',
-            $clearance['not_tagged'] . ' not tagged', 'bx-check-shield',
+            'Open Signing', route('admin.workflow.index', ['tab' => 'signing'])],
+        ['Cleared', $clearedPct . '%',
+            $clearance['not_tagged'] . ' Untagged', 'bx-check-shield',
             'green', $clearedPct,
-            number_format($clearance['Cleared']) . ' of ' . number_format($clearance['total']) . ' active students · ' . $clearance['Pending'] . ' pending, ' . $clearance['Uncleared'] . ' uncleared',
+            number_format($clearance['Cleared']) . ' of ' . number_format($clearance['total']) . ' active students · ' . $clearance['Pending'] . ' Pending, ' . $clearance['Uncleared'] . ' Uncleared',
             'Clearance monitoring', route('admin.clearance-monitoring')],
-        ['Appointment requests', number_format($work['appointment_requests']),
-            $work['appointment_requests'] ? 'action needed' : 'all reviewed', 'bx-calendar-event',
+        ['Appointments', number_format($work['appointment_requests']),
+            $work['appointment_requests'] ? 'Pending' : 'Clear', 'bx-calendar-event',
             'manila', $pct($todaySeen, $todayTotal),
             'Visits waiting for approval · ' . $todaySeen . ' of ' . $todayTotal . ' seen today',
             'Appointments board', route('admin.appointments.index')],
@@ -67,7 +67,7 @@
 
     $roles = collect($sig['byRole'])->sortByDesc('waiting')->values()->all();
     $orgs = $clearance['organizations'];
-    $initials = fn (string $name) => Str::upper(collect(preg_split('/\s+/', trim($name)))->filter()->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('')) ?: '?';
+    $initials = fn (string $name) => \App\Support\Honorifics::initials($name);
 
     // Audit Trail ring badges.
     $badge = 'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1';
@@ -79,7 +79,6 @@
         'gray' => 'bg-slate-100 text-slate-600 ring-slate-200',
     ];
     $apptTone = ['pending' => 'amber', 'approved' => 'blue', 'attended' => 'green', 'missed' => 'red'];
-    $clearTone = ['Cleared' => 'green', 'Pending' => 'amber', 'Uncleared' => 'red'];
 
     // Cards come in pairs (1 × 2) at every width; on phones each half is "pocket" sized:
     // tighter padding and type, with secondary detail lines hidden below cq-sm.
@@ -124,23 +123,17 @@
 
                     {{-- Front of the folder, holding the figures --}}
                     <span class="relative mt-8 flex flex-1 flex-col rounded-xl bg-gradient-to-b {{ $c['front'] }} p-3 {{ $c['text'] }} shadow-[0_-6px_14px_-12px_rgba(13,37,61,0.3)] ring-1 ring-inset ring-white/70 cq-sm:mt-11 cq-sm:p-5 cq-sm:pt-4">
-                        <span class="flex items-start justify-between gap-2 cq-sm:gap-3">
-                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset {{ $c['icon'] }} cq-sm:h-10 cq-sm:w-10"><i class='bx {{ $icon }} text-lg cq-sm:text-xl' aria-hidden="true"></i></span>
-                            <span class="inline-flex min-w-0 items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $c['pill'] }} cq-sm:gap-1.5 cq-sm:px-2.5 cq-sm:py-1 cq-sm:text-[11px]">
-                                <span class="h-1.5 w-1.5 shrink-0 rounded-full {{ $c['dot'] }}" aria-hidden="true"></span><span class="truncate">{{ $pill }}</span>
-                            </span>
-                        </span>
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset {{ $c['icon'] }} cq-sm:h-10 cq-sm:w-10"><i class='bx {{ $icon }} text-lg cq-sm:text-xl' aria-hidden="true"></i></span>
                         <span class="mt-2.5 text-2xl font-semibold leading-none tracking-tight tabular-nums cq-sm:mt-3 cq-sm:text-[2rem]">{{ $number }}</span>
                         <span class="mt-1 text-xs font-semibold leading-snug cq-sm:mt-1.5 cq-sm:text-sm">{{ $label }}</span>
                         <span class="mt-2.5 block h-1.5 overflow-hidden rounded-full {{ $c['track'] }} cq-sm:mt-4 cq-sm:h-2" aria-hidden="true">
                             <span class="block h-full rounded-full {{ $c['fill'] }}" style="width: {{ $bar }}%"></span>
                         </span>
-                        {{-- Explanation and link only where there is room; on phones the whole folder is the link --}}
-                        <span class="mt-2.5 hidden text-xs leading-relaxed {{ $c['soft'] }} cq-sm:block">{{ $explain }}</span>
+                        {{-- The link only where there is room; on phones the whole folder is the link --}}
                         <span class="mt-auto hidden items-center gap-1 pt-3 text-xs font-semibold underline {{ $c['line'] }} underline-offset-4 cq-sm:inline-flex">
                             {{ $linkLabel }} <i class='bx bx-right-arrow-alt text-sm transition group-hover:translate-x-0.5' aria-hidden="true"></i>
                         </span>
-                        <span class="sr-only cq-sm:hidden">{{ $explain }}. {{ $linkLabel }}.</span>
+                        <span class="sr-only cq-sm:hidden">{{ $linkLabel }}.</span>
                     </span>
                 </a>
             @endforeach
@@ -218,10 +211,9 @@
                     <h3 class="{{ $cardTitle }}"><i class="bx bx-transfer hidden cq-sm:inline" aria-hidden="true"></i>Ongoing student transactions</h3>
                     <a href="{{ route('admin.transactions.index') }}" wire:navigate class="{{ $link }}">All records <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
                 </div>
-                <p class="mt-1 text-xs text-slate-600 cq-sm:text-sm"><span class="font-semibold text-slate-900">{{ number_format($tx['open']) }}</span> transaction in progress<span class="hidden cq-sm:inline">. View the current status of each request.</span></p>
-                <ul class="mt-2.5 grid grid-cols-2 gap-1.5 cq-sm:mt-4 cq-sm:grid-cols-1 cq-sm:gap-3 cq-lg:grid-cols-2">
+                <ul class="mt-3 grid grid-cols-2 gap-1.5 cq-sm:mt-4 cq-sm:grid-cols-1 cq-sm:gap-3 cq-lg:grid-cols-2">
                     @foreach ($tx['stages'] as $i => [$label, $count, $color, $meaning])
-                        <li class="rounded-lg border border-slate-200 p-2 cq-sm:p-3.5">
+                        <li @class(['rounded-lg border border-slate-200 p-2 cq-sm:p-3.5', 'col-span-2 cq-sm:col-span-1 cq-lg:col-span-2' => $loop->last && $loop->count % 2])>
                             <div class="flex items-center gap-1.5 cq-sm:gap-2">
                                 <span class="hidden rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-slate-600 cq-sm:inline">{{ sprintf('%02d', $i + 1) }}</span>
                                 <span class="min-w-0 flex-1 truncate text-xs font-semibold text-slate-900 cq-sm:text-sm">{{ $label }}</span>
@@ -232,11 +224,6 @@
                             </span>
                         </li>
                     @endforeach
-                    <li class="rounded-lg bg-blue-50/60 p-2 ring-1 ring-inset ring-blue-100 cq-sm:p-3.5">
-                        <p class="text-[11px] font-medium text-[#2A57B4] cq-sm:text-xs">Completed in {{ $range }} days</p>
-                        <p class="mt-0.5 text-lg font-semibold tabular-nums text-slate-900 cq-sm:mt-1 cq-sm:text-2xl">{{ number_format($tx['completed']['total']) }}</p>
-                        <p class="mt-0.5 hidden text-xs text-slate-600 cq-sm:block">{{ $tx['rate'] === null ? 'No finished requests yet' : $tx['rate'] . '% of finished requests were completed' }} · typically {{ $duration($tx['turnaround']) }}</p>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -251,7 +238,7 @@
             ['Cleared', $clearance['Cleared'], 'Requirements are fulfilled', 'bx-check', 'bg-emerald-50 text-emerald-600', 'bg-emerald-500', '#10b981'],
             ['Pending', $clearance['Pending'], 'Awaiting clearance verification', 'bx-time-five', 'bg-amber-50 text-amber-600', 'bg-amber-400', '#fbbf24'],
             ['Uncleared', $clearance['Uncleared'], 'Requirements are incomplete', 'bx-x', 'bg-rose-50 text-rose-600', 'bg-rose-500', '#f43f5e'],
-            ['Not tagged', $clearance['not_tagged'], 'No status assigned', 'bx-minus', 'bg-slate-100 text-slate-500', 'bg-slate-300', '#d4d1cb'],
+            ['Untagged', $clearance['not_tagged'], 'No status assigned', 'bx-minus', 'bg-slate-100 text-slate-500', 'bg-slate-300', '#d4d1cb'],
         ];
         // Donut slices, clockwise from twelve o'clock, with a hairline of white between neighbours.
         $slices = [];
@@ -284,7 +271,7 @@
                 </div>
 
                 <div class="mt-3 flex flex-col gap-3 cq-sm:mt-4 cq-sm:gap-4 cq-lg:flex-row cq-lg:items-center">
-                    {{-- Pie of all four statuses; cleared share in the middle. Not tagged is never counted as uncleared. --}}
+                    {{-- Pie of all four statuses; cleared share in the middle. Untagged is never counted as uncleared. --}}
                     <div class="flex flex-col items-center gap-1.5 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-2.5 text-center ring-1 ring-inset ring-emerald-100 cq-sm:gap-2 cq-sm:p-4">
                         <div class="relative h-24 w-24 shrink-0 cq-sm:h-32 cq-sm:w-32">
                             <svg viewBox="0 0 108 108" class="h-full w-full -rotate-90" role="img"
@@ -366,7 +353,7 @@
                                         <span class="hidden truncate text-xs text-slate-500 cq-sm:block">{{ $t['organization'] ?: 'No organization' }}@if ($t['by']) · by {{ $t['by'] }}@endif · {{ $t['when'] }}</span>
                                         <span class="block truncate text-[10px] font-semibold cq-sm:hidden {{ ['Cleared' => 'text-emerald-700', 'Pending' => 'text-amber-700', 'Uncleared' => 'text-rose-700'][$t['status']] ?? 'text-slate-500' }}">{{ $t['status'] }}</span>
                                     </span>
-                                    <span class="hidden {{ $badge }} {{ $tone[$clearTone[$t['status']] ?? 'gray'] }} cq-sm:inline-flex">{{ $t['status'] }}</span>
+                                    <x-status-badge :clearance="$t['status'] ?? ''" class="hidden cq-sm:inline-flex" />
                                 </a>
                             </li>
                         @endforeach
@@ -384,7 +371,7 @@
             <div class="{{ $card }} flex flex-col">
                 <div class="{{ $cardHead }}">
                     <h3 class="{{ $cardTitle }}"><i class="bx bx-pen hidden cq-sm:inline" aria-hidden="true"></i>Signatories</h3>
-                    <a href="{{ route('admin.workflow.index', ['tab' => 'signing']) }}" wire:navigate class="{{ $link }}">In signing <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
+                    <a href="{{ route('admin.workflow.index', ['tab' => 'signing']) }}" wire:navigate class="{{ $link }}">Signing <i class='bx bx-right-arrow-alt' aria-hidden="true"></i></a>
                 </div>
                 <div class="mt-1.5 flex flex-wrap gap-1">
                     <span class="{{ $badge }} !px-2 !text-[10px] cq-sm:!px-2.5 cq-sm:!text-xs {{ $tone['blue'] }}">{{ $sig['pending'] }} waiting</span>

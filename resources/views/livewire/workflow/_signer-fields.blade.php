@@ -1,71 +1,80 @@
 {{-- Needs: $fields (WorkflowDocument::signerFields($values)). Binds to "answers.<field>" on the component.
-     What the signer fills in while signing: ratings, scores, comments. Fields that share a 'group'
-     (e.g. one interviewee's three scores) are shown together under the group's name. --}}
+     What the signer fills in while signing (ratings, scores, comments), as blanks on the form (App\Support\DocSheet).
+     Fields that share a 'group' (e.g. one interviewee's three scores) sit together under the group's name. --}}
 @php
-    $control = 'mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-base outline-none focus:border-[#2A57B4] focus:ring-[3px] focus:ring-[#2A57B4]/20 sm:text-sm';
+    $D = \App\Support\DocSheet::class;
     $groups = collect($fields)->groupBy(fn ($f) => $f['group'] ?? '', preserveKeys: true);
 @endphp
-<div class="space-y-4">
+<div class="space-y-6">
     @foreach ($groups as $group => $groupFields)
         @if ($group !== '')
-            <fieldset class="rounded-xl border border-slate-200 p-3.5" wire:key="sg-{{ md5($group) }}">
-                <legend class="px-1 text-sm font-semibold text-slate-900">{{ $loop->iteration }}. {{ $group }}</legend>
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <fieldset wire:key="sg-{{ md5($group) }}">
+                <legend class="text-[15px] font-semibold text-slate-900">{{ $loop->iteration }}. {{ $group }}</legend>
+                <div class="mt-2 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
+        @else
+            <div class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
         @endif
 
         @foreach ($groupFields as $name => $f)
             @php
+                $type = $f['type'] ?? 'text';
                 $label = $group !== '' ? trim(\Illuminate\Support\Str::after($f['label'], '—')) : $f['label'];
+                $required = (bool) ($f['required'] ?? false);
                 $hasError = $errors->has("answers.$name");
                 $describedBy = trim((! empty($f['help']) ? "sfh-$name " : '') . ($hasError ? "sfe-$name" : ''));
+                $aria = ($describedBy ? 'aria-describedby="' . e($describedBy) . '" ' : '') . ($hasError ? 'aria-invalid="true" ' : '') . ($required ? 'aria-required="true"' : '');
+                $req = $required ? '<span class="not-italic text-rose-600" aria-hidden="true"> *</span><span class="sr-only">(required)</span>' : '';
+                $wide = $group === '' && in_array($type, ['radio', 'textarea'], true);
             @endphp
-            <div wire:key="sf-{{ $name }}">
-                @if (($f['type'] ?? 'text') === 'radio')
-                    <p id="sfl-{{ $name }}" class="text-sm font-medium text-slate-700">
-                        {{ $label }} @if ($f['required'] ?? false)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
-                    </p>
-                    <div class="mt-1.5 grid grid-cols-5 gap-1.5" role="radiogroup" aria-labelledby="sfl-{{ $name }}" @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif>
+            <div wire:key="sf-{{ $name }}" class="group/f min-w-0 {{ $wide ? 'sm:col-span-2' : '' }}">
+                @if ($type === 'radio')
+                    <p id="sfl-{{ $name }}" class="text-[15px] text-slate-800">{{ $label }}{!! $req !!}</p>
+                    <div class="mt-1.5 grid grid-cols-5 gap-1.5 {{ $hasError ? 'rounded-lg bg-rose-50 p-1' : '' }}" role="radiogroup" aria-labelledby="sfl-{{ $name }}" @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif>
                         @foreach ($f['options'] as $opt)
-                            <label class="flex min-h-[44px] cursor-pointer flex-col items-center justify-center rounded-lg border border-slate-200 px-1 py-1.5 text-center hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/20">
+                            <label class="flex min-h-11 cursor-pointer flex-col items-center justify-center rounded-lg border border-slate-200 px-1 py-1.5 text-center transition-colors hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-[#2A57B4] has-[:checked]:text-white has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/30">
                                 <input type="radio" name="answers-{{ $name }}" wire:model="answers.{{ $name }}" value="{{ $opt }}" class="sr-only">
-                                <span class="text-sm font-semibold text-slate-800">{{ $opt }}</span>
+                                <span class="text-sm font-semibold">{{ $opt }}</span>
                                 @if (! empty($f['option_labels'][$opt]))
-                                    <span class="text-[10px] leading-tight text-slate-500">{{ $f['option_labels'][$opt] }}</span>
+                                    <span class="text-[10px] leading-tight opacity-80">{{ $f['option_labels'][$opt] }}</span>
                                 @endif
                             </label>
                         @endforeach
                     </div>
+                @elseif ($type === 'textarea')
+                    <textarea id="sf-{{ $name }}" wire:model="answers.{{ $name }}" rows="3" maxlength="{{ $f['max'] ?? 500 }}"
+                              class="{{ $D::LINED }} {{ $hasError ? 'bg-rose-50/60' : '' }}" {!! $aria !!}></textarea>
+                    <label for="sf-{{ $name }}" class="{{ $D::CAPTION }}">{{ $label }}{!! $req !!}</label>
                 @else
-                    <label for="sf-{{ $name }}" class="text-sm font-medium text-slate-700">
-                        {{ $label }} @if ($f['required'] ?? false)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
-                    </label>
-                    @php $aria = ($describedBy ? 'aria-describedby="' . e($describedBy) . '" ' : '') . ($hasError ? 'aria-invalid="true" ' : '') . (($f['required'] ?? false) ? 'aria-required="true"' : ''); @endphp
-                    @if (($f['type'] ?? 'text') === 'select')
-                        <select id="sf-{{ $name }}" wire:model="answers.{{ $name }}" class="{{ $control }}" {!! $aria !!}>
-                            <option value="">Choose…</option>
-                            @foreach ($f['options'] as $opt)
-                                <option value="{{ $opt }}">{{ $f['option_labels'][$opt] ?? $opt }}</option>
-                            @endforeach
-                        </select>
-                    @elseif (($f['type'] ?? 'text') === 'textarea')
-                        <textarea id="sf-{{ $name }}" wire:model="answers.{{ $name }}" rows="3" maxlength="{{ $f['max'] ?? 500 }}" class="{{ $control }}" {!! $aria !!}></textarea>
-                    @elseif (($f['type'] ?? 'text') === 'number')
-                        <input id="sf-{{ $name }}" type="number" inputmode="numeric" wire:model="answers.{{ $name }}"
-                               @isset($f['min']) min="{{ $f['min'] }}" @endisset @isset($f['max_value']) max="{{ $f['max_value'] }}" @endisset
-                               class="{{ $control }} max-w-[8rem]" {!! $aria !!}>
-                    @else
-                        <input id="sf-{{ $name }}" type="text" wire:model="answers.{{ $name }}" maxlength="{{ $f['max'] ?? 120 }}" class="{{ $control }}" {!! $aria !!}>
-                    @endif
+                    <div class="{{ $D::LINE }} {{ $hasError ? $D::ERROR_LINE : '' }} {{ $type === 'number' ? 'max-w-[9rem]' : '' }}">
+                        @if ($type === 'select')
+                            <select id="sf-{{ $name }}" wire:model="answers.{{ $name }}" class="{{ $D::INPUT }} cursor-pointer pr-8" {!! $aria !!}>
+                                <option value="">Choose…</option>
+                                @foreach ($f['options'] as $opt)
+                                    <option value="{{ $opt }}">{{ $f['option_labels'][$opt] ?? $opt }}</option>
+                                @endforeach
+                            </select>
+                        @elseif ($type === 'number')
+                            <input id="sf-{{ $name }}" type="number" inputmode="numeric" wire:model="answers.{{ $name }}"
+                                   @isset($f['min']) min="{{ $f['min'] }}" @endisset @isset($f['max_value']) max="{{ $f['max_value'] }}" @endisset
+                                   class="{{ $D::INPUT }} tabular-nums" {!! $aria !!}>
+                            @isset($f['max_value'])<span class="shrink-0 pr-1 text-xs text-slate-400" aria-hidden="true">/ {{ $f['max_value'] }}</span>@endisset
+                        @else
+                            <input id="sf-{{ $name }}" type="text" wire:model="answers.{{ $name }}" maxlength="{{ $f['max'] ?? 120 }}" class="{{ $D::INPUT }}" {!! $aria !!}>
+                        @endif
+                    </div>
+                    <label for="sf-{{ $name }}" class="{{ $D::CAPTION }}">{{ $label }}{!! $req !!}</label>
                 @endif
 
-                @if (! empty($f['help'])) <p id="sfh-{{ $name }}" class="mt-1 text-xs text-slate-500">{{ $f['help'] }}</p> @endif
-                @error("answers.$name") <p id="sfe-{{ $name }}" class="mt-1 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
+                @if (! empty($f['help'])) <p id="sfh-{{ $name }}" class="{{ $D::HINT }}">{{ $f['help'] }}</p> @endif
+                @error("answers.$name") <p id="sfe-{{ $name }}" class="{{ $D::ERROR }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
             </div>
         @endforeach
 
         @if ($group !== '')
                 </div>
             </fieldset>
+        @else
+            </div>
         @endif
     @endforeach
 </div>

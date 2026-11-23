@@ -1,5 +1,5 @@
 @php
-    $slotInput = 'mt-1 block w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-base outline-none focus:border-[#2A57B4] focus:ring-[3px] focus:ring-[#2A57B4]/20 sm:py-2.5 sm:text-sm';
+    $slotInput = 'block w-full min-w-0 border-0 border-b border-slate-400 bg-transparent px-0.5 py-1.5 text-base font-medium text-slate-900 outline-none focus:border-[#2A57B4] focus:bg-[#2A57B4]/[0.04] focus:ring-0 sm:text-[15px]';
 @endphp
 <div wire:key="f-{{ $name }}">
     <fieldset id="f-{{ $name }}" tabindex="-1" @if (! empty($f['help'])) aria-describedby="h-{{ $name }}" @endif>
@@ -11,7 +11,7 @@
         @if ($editable)
             <ol class="mt-2 space-y-2">
                 @foreach ($values[$name] as $i => $row)
-                    <li wire:key="slot-{{ $name }}-{{ $i }}" class="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                    <li wire:key="slot-{{ $name }}-{{ $i }}" class="py-1">
                         <div class="mb-1 flex items-center justify-between gap-2">
                             <p class="text-xs font-semibold text-slate-600">Date {{ $i + 1 }}</p>
                             @if (count($values[$name]) > 1)

@@ -26,61 +26,45 @@
 <div class="mx-auto w-full max-w-7xl pb-16">
     <x-admin.area-header name="documents" active="uploads" />
 
-    {{-- Filing and status --}}
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex min-w-0 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist" aria-label="File uploads by">
-            @foreach (['folder' => ['bxs-folder', 'By form', 'Forms'], 'student' => ['bxs-user-account', 'By student', 'Students'], 'all' => ['bxs-file', 'All uploads', 'All']] as $b => [$icon, $label, $short])
-                <button type="button" role="tab" wire:click="setBy('{{ $b }}')" aria-selected="{{ $by === $b ? 'true' : 'false' }}"
-                        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition sm:px-4 [@media(pointer:coarse)]:h-11 {{ $focus }} {{ $by === $b ? 'bg-[#2A57B4] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                    <i class="bx {{ $icon }} text-base max-sm:!hidden" aria-hidden="true"></i><span class="sm:hidden">{{ $short }}</span><span class="hidden sm:inline">{{ $label }}</span>
-                </button>
-            @endforeach
-        </div>
-        <div class="-mx-1 flex gap-1.5 overflow-x-auto px-1" role="group" aria-label="Status">
-            @foreach ($statuses as $key => $label)
-                <button type="button" wire:click="$set('filter', '{{ $key }}')" aria-pressed="{{ $filter === $key ? 'true' : 'false' }}"
-                        class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-medium transition [@media(pointer:coarse)]:h-11 {{ $focus }}
-                            {{ $filter === $key ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
-                    {{ $label }} <span class="tabular-nums {{ $filter === $key ? 'text-white/70' : 'text-slate-400' }}">{{ $counts[$key] }}</span>
-                </button>
-            @endforeach
-        </div>
-    </div>
+    {{-- One line: Filters (status and visit date, the Workflow Review pop-up), the filing tabs, the search, then the view --}}
+    @php $fsel = 'h-9 w-full rounded-lg border-slate-300 bg-white py-0 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 [@media(pointer:coarse)]:h-11'; @endphp
+    <div class="relative mb-6 flex items-center gap-2">
+        <x-admin.filters-popup :count="(int) ($filter !== 'needs_action') + (int) ($dateFrom !== '' || $dateTo !== '')" reset="resetFilters">
+            <label class="col-span-2 block">
+                <span class="mb-1 block text-xs font-medium text-slate-600">Status</span>
+                <select wire:model.live="filter" class="{{ $fsel }}">
+                    @foreach ($statuses as $key => $label)
+                        <option value="{{ $key }}">{{ $label }} ({{ $counts[$key] }})</option>
+                    @endforeach
+                </select>
+            </label>
+            <label class="block min-w-0">
+                <span class="mb-1 block text-xs font-medium text-slate-600">Visit date from</span>
+                <input type="date" wire:model.live="dateFrom" @if ($dateTo) max="{{ $dateTo }}" @endif class="{{ $fsel }}">
+            </label>
+            <label class="block min-w-0">
+                <span class="mb-1 block text-xs font-medium text-slate-600">Visit date to</span>
+                <input type="date" wire:model.live="dateTo" @if ($dateFrom) min="{{ $dateFrom }}" @endif class="{{ $fsel }}">
+            </label>
+        </x-admin.filters-popup>
 
-    {{-- Search, dates and view --}}
-    <div class="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm sm:p-3">
-        <div class="relative min-w-0 flex-1 basis-56">
-            <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true"></i>
-            <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search student, student no. or form" aria-label="Search uploads"
-                   class="h-10 w-full rounded-lg border-slate-300 py-0 pl-10 pr-3 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm [@media(pointer:coarse)]:h-11">
+        <div class="flex shrink-0 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist" aria-label="File uploads by">
+            @foreach (['folder' => ['bxs-folder', 'By form', 'Forms'], 'student' => ['bxs-user-account', 'By student', 'Students'], 'all' => ['bxs-file', 'All uploads', 'All']] as $b => [$icon, $label, $short])
+                <button type="button" role="tab" wire:click="setBy('{{ $b }}')" aria-selected="{{ $by === $b ? 'true' : 'false' }}" title="{{ $label }}"
+                        class="inline-flex h-7 items-center justify-center gap-2 rounded-lg px-2.5 text-sm font-medium transition sm:px-3 [@media(pointer:coarse)]:h-9 {{ $focus }} {{ $by === $b ? 'bg-[#2A57B4] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <i class="bx {{ $icon }} text-base" aria-hidden="true"></i><span class="hidden lg:inline">{{ $label }}</span><span class="sr-only lg:hidden">{{ $label }}</span>
+                </button>
+            @endforeach
         </div>
-        <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape="open = false">
-            <button type="button" @click="open = !open" :aria-expanded="open"
-                    class="inline-flex h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium [@media(pointer:coarse)]:h-11 {{ $focus }} {{ $dateLabel ? 'border-[#2A57B4]/40 bg-[#eef3fc] text-[#1E4090]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
-                <i class="bx bx-calendar text-base" aria-hidden="true"></i><span class="whitespace-nowrap">{{ $dateLabel ?? 'Visit date' }}</span><i class="bx bx-chevron-down text-base text-slate-400" aria-hidden="true"></i>
-            </button>
-            {{-- Phones: a sheet from the bottom. Wider: under the button, kept inside the screen. --}}
-            <div x-show="open" x-cloak x-transition.opacity class="fixed inset-0 z-40 bg-slate-900/30 sm:hidden" @click="open = false" aria-hidden="true"></div>
-            <div x-show="open" x-cloak x-transition.opacity
-                 x-init="$watch('open', v => v && $nextTick(() => { if (window.innerWidth < 640) return; const r = $el.getBoundingClientRect(); $el.style.transform = r.right > window.innerWidth - 8 ? `translateX(${window.innerWidth - 8 - r.right}px)` : (r.left < 8 ? `translateX(${8 - r.left}px)` : ''); }))"
-                 class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t border-slate-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:z-30 sm:mt-1.5 sm:w-72 sm:rounded-xl sm:border sm:p-3 sm:shadow-lg"
-                 role="dialog" aria-label="Visit date">
-                <p class="mb-2 text-sm font-semibold text-slate-900 sm:hidden">Visit date</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <label class="block"><span class="mb-0.5 block text-[11px] text-slate-500">From</span><input type="date" wire:model.live="dateFrom" class="h-9 w-full rounded-lg border-slate-300 px-2 py-0 text-sm"></label>
-                    <label class="block"><span class="mb-0.5 block text-[11px] text-slate-500">To</span><input type="date" wire:model.live="dateTo" class="h-9 w-full rounded-lg border-slate-300 px-2 py-0 text-sm"></label>
-                </div>
-                @if ($dateLabel)
-                    <button type="button" wire:click="clearDates" @click="open = false" class="mt-2 text-sm font-medium text-[#2A57B4] hover:underline">Clear dates</button>
-                @endif
-            </div>
-        </div>
+
+        <x-dm.toolbar-search placeholder="Search student, student no. or form" label="Search uploads" />
+
         @if ($inside)
             <div class="inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="View">
                 @foreach (['cards' => ['bx-grid-alt', 'Cards'], 'table' => ['bx-list-ul', 'Table']] as $v => [$vIcon, $vLabel])
                     <button type="button" wire:click="setView('{{ $v }}')" aria-pressed="{{ $view === $v ? 'true' : 'false' }}" title="{{ $vLabel }}"
-                            class="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition {{ $focus }} {{ $view === $v ? 'bg-white text-[#2A57B4] shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-800' }}">
-                        <i class="bx {{ $vIcon }} text-lg" aria-hidden="true"></i><span class="hidden sm:inline">{{ $vLabel }}</span>
+                            class="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition [@media(pointer:coarse)]:h-10 {{ $focus }} {{ $view === $v ? 'bg-white text-[#2A57B4] shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-800' }}">
+                        <i class="bx {{ $vIcon }} text-lg" aria-hidden="true"></i><span class="sr-only">{{ $vLabel }}</span>
                     </button>
                 @endforeach
             </div>
@@ -151,25 +135,29 @@
         </div>
 
         @if ($view === 'cards')
-            <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {{-- Same card as My documents and Issued documents: the whole page, the status on its corner, then who and what --}}
+            <ul class="grid grid-cols-2 content-start gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                 @foreach ($list as $r)
                     @php [$tText, $tCls] = $tag($r); @endphp
                     <li wire:key="up-{{ $r['id'] }}" class="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] motion-reduce:hover:translate-y-0">
-                        <div class="relative aspect-[842/1000] overflow-hidden border-b border-slate-200 bg-[#eef0f3]">
+                        <div class="relative aspect-[842/1171] overflow-hidden border-b border-slate-200 bg-white" aria-hidden="true">
                             @if ($r['photo'])
-                                <img src="{{ $r['photo'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover">
+                                <img src="{{ $r['photo'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full bg-white object-contain">
                             @elseif ($r['form_image'])
-                                <img src="{{ $r['form_image'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top opacity-35 grayscale">
-                                <span class="absolute inset-0 grid place-items-center"><span class="grid h-12 w-12 place-items-center rounded-full bg-white/90 text-slate-500 shadow-sm"><i class="bx bx-camera text-2xl" aria-hidden="true"></i></span></span>
+                                {{-- No photo yet: the blank form, faded, with a camera --}}
+                                <img src="{{ $r['form_image'] }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full bg-white object-contain opacity-40 grayscale">
+                                <span class="absolute inset-0 grid place-items-center"><span class="grid h-12 w-12 place-items-center rounded-full bg-white/95 text-slate-500 shadow ring-1 ring-slate-900/5"><i class="bx bx-camera text-2xl"></i></span></span>
+                            @else
+                                <div class="flex h-full items-center justify-center bg-[#f0f4fb] text-[#1E4090]"><i class="bx bx-file text-4xl"></i></div>
                             @endif
-                            <span class="absolute right-2 top-2 rounded-md px-1.5 py-0.5 text-[11px] font-medium shadow-sm {{ $tCls }}">{{ $tText }}</span>
+                            <span class="absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm {{ $tCls }}">{{ $tText }}</span>
                         </div>
-                        <div class="flex flex-1 flex-col px-3 pb-2 pt-2.5">
-                            <a href="{{ $r['url'] }}" wire:navigate class="truncate rounded text-sm font-semibold text-[#2A57B4] after:absolute after:inset-0 after:content-[''] hover:text-[#1E4090] {{ $focus }}">
+                        <div class="flex flex-1 flex-col p-3 sm:p-3.5">
+                            <a href="{{ $r['url'] }}" wire:navigate class="line-clamp-2 rounded text-sm font-semibold leading-snug text-slate-900 after:absolute after:inset-0 after:content-[''] group-hover:text-[#2A57B4] {{ $focus }}">
                                 {{ $level === 'student' ? $r['type'] : $r['student_name'] }}
                             </a>
                             <p class="mt-0.5 truncate text-xs text-slate-500">{{ $level === 'student' ? $r['student_number'] : ($level === 'all' ? $r['type'] : $r['student_number']) }}</p>
-                            <p class="mt-1 flex items-center gap-1.5 text-xs text-slate-600"><i class="bx bx-calendar-check text-sm text-slate-400" aria-hidden="true"></i>Visited {{ $r['visited_label'] }}</p>
+                            <p class="mt-auto flex items-center gap-1.5 pt-1.5 text-xs text-slate-600"><i class="bx bx-calendar-check text-sm text-slate-400" aria-hidden="true"></i>Visited {{ $r['visited_label'] }}</p>
                         </div>
                         <div class="relative z-10 grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200 text-slate-500">
                             <a href="{{ $r['url'] }}" wire:navigate class="flex h-9 items-center justify-center gap-1 text-xs font-medium hover:bg-slate-50 hover:text-[#2A57B4] [@media(pointer:coarse)]:h-11 {{ $focus }}">

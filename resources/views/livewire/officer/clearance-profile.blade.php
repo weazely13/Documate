@@ -185,10 +185,7 @@
                                         <span class="rounded-full bg-[#2A57B4] px-2 py-0.5 text-[10px] font-bold uppercase text-white">Current</span>
                                     @endif
                                 </div>
-                                <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide sm:px-3 sm:text-xs {{ $groupTheme['badge'] }}">
-                                    <i class='bx {{ $groupTheme['icon'] }} text-sm'></i>
-                                    {{ $group['latest_status'] }}
-                                </span>
+                                <x-status-badge :clearance="$group['latest_status'] ?? ''" class="shrink-0" />
                             </div>
 
                             {{-- LATEST TAG UPDATE (always visible) --}}
@@ -200,9 +197,7 @@
                                         <i class='bx {{ $latestTheme['icon'] }} {{ $latestTheme['iconColor'] }} mt-0.5 shrink-0 text-lg'></i>
                                         <div class="min-w-0">
                                             <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                <span class="rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide {{ $latestTheme['badge'] }}">
-                                                    {{ $group['latest_entry']['status'] }}
-                                                </span>
+                                                <x-status-badge :clearance="$group['latest_entry']['status'] ?? ''" :icon="false" />
                                                 <span class="text-xs text-slate-400">{{ $group['latest_entry']['tagged_at'] }}</span>
                                                 <span class="text-[10px] font-semibold uppercase tracking-wide text-[#2A57B4]/70">Latest update</span>
                                             </div>
@@ -230,9 +225,7 @@
                                                 <i class='bx {{ $entryTheme['icon'] }} {{ $entryTheme['iconColor'] }} mt-0.5 shrink-0 text-base'></i>
                                                 <div class="min-w-0">
                                                     <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                        <span class="rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide {{ $entryTheme['badge'] }}">
-                                                            {{ $entry['status'] }}
-                                                        </span>
+                                                        <x-status-badge :clearance="$entry['status'] ?? ''" :icon="false" />
                                                         <span class="text-xs text-slate-400">{{ $entry['tagged_at'] }}</span>
                                                     </div>
                                                     <p class="mt-1 break-words text-sm text-slate-600">{{ $entry['remarks'] ?: 'No remarks.' }}</p>

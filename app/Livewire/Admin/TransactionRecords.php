@@ -4,13 +4,13 @@ namespace App\Livewire\Admin;
 
 use App\Models\StudentDocumentWorkspace;
 use App\Models\User;
+use App\Support\StatusStyle;
 use App\Support\Issuers;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Component;
-use App\Enums\TransactionStatus;
 use App\Workflow\Documents\DocumentRegistry;
 use Livewire\Attributes\Url;
 
@@ -82,7 +82,7 @@ class TransactionRecords extends Component
     ];
 
     /** Students per page. */
-    public int $perPage = 20;
+    public int $perPage = 50;
 
     protected array $mainTabs = ['transactions', 'logbooks'];
 
@@ -90,7 +90,7 @@ class TransactionRecords extends Component
         'all' => 'All transactions',
         'open' => 'In progress',
         'completed' => 'Completed',
-        'closed' => 'Rejected, voided or missed',
+        'closed' => 'Rejected or voided',
     ];
 
     public const PERIODS = [
@@ -102,7 +102,7 @@ class TransactionRecords extends Component
     ];
 
     /** Statuses that end a transaction without completing it. */
-    private const CLOSED = ['Rejected', 'Voided', 'Missed'];
+    private const CLOSED = ['Rejected', 'Voided'];
 
     public function setActiveTab(string $tab): void
     {
@@ -166,6 +166,50 @@ class TransactionRecords extends Component
         $this->folder = '';
     }
 
+    /** The table's column-header sorting, as on Workflow review ('' = the page's usual order). */
+    public string $tableSort = '';
+    public string $tableDir = 'asc';
+
+    private const TABLE_SORTS = ['student', 'document', 'code', 'mode', 'date', 'status'];
+
+    /** Column-header click: ascending, then descending, then back to the usual order. */
+    public function sortBy(string $key): void
+    {
+        if (! in_array($key, self::TABLE_SORTS, true)) {
+            return;
+        }
+
+        [$this->tableSort, $this->tableDir] = match (true) {
+            $this->tableSort !== $key => [$key, 'asc'],
+            $this->tableDir === 'asc' => [$key, 'desc'],
+            default => ['', 'asc'],
+        };
+
+        $this->currentPage = 1;
+    }
+
+    /** Rows in the table's column order; unchanged when no column is picked. */
+    protected function sortTableRows(Collection $rows): Collection
+    {
+        if (! in_array($this->tableSort, self::TABLE_SORTS, true)) {
+            return $rows;
+        }
+
+        // Statuses in the order work moves, as their legend lists them.
+        $statusOrder = array_flip(['submitted', 'under_review', \App\Support\StatusStyle::SIGNING, 'action_required', 'approved', 'pending', 'completed', 'rejected', 'voided']);
+
+        $value = match ($this->tableSort) {
+            'student' => fn (array $r) => mb_strtolower($r['student_name']),
+            'document' => fn (array $r) => mb_strtolower($r['type']),
+            'code' => fn (array $r) => mb_strtolower($r['transaction_label']),
+            'mode' => fn (array $r) => $r['paperless'] ? 0 : 1,
+            'date' => fn (array $r) => $r['date_sort'],
+            'status' => fn (array $r) => $statusOrder[$r['state']] ?? 99,
+        };
+
+        return $rows->sortBy($value, SORT_REGULAR, $this->tableDir === 'desc')->values();
+    }
+
     public function setSort(string $sort): void
     {
         $this->sort = array_key_exists($sort, self::SORTS) ? $sort : 'newest';
@@ -179,6 +223,16 @@ class TransactionRecords extends Component
     public function resetFilters(): void
     {
         $this->reset(['search', 'result', 'period', 'mode', 'dateFrom', 'dateTo']);
+        if ($this->by !== 'folder') {
+            $this->folder = '';
+        }
+        $this->currentPage = 1;
+    }
+
+    /** The Filters pop-up's Reset: its own filters only; the search stays, as on Workflow review. */
+    public function resetPopupFilters(): void
+    {
+        $this->reset(['result', 'period', 'mode', 'dateFrom', 'dateTo']);
         if ($this->by !== 'folder') {
             $this->folder = '';
         }
@@ -207,6 +261,7 @@ class TransactionRecords extends Component
                 'user.latestVerification',
                 'template.currentVersion.fields',
             ])
+            ->withCount('approvals')   // for the Signing status (StatusStyle::state)
             ->where(fn ($q) => $q->whereNull('workflow_status')->orWhere('workflow_status', '!=', 'draft'))
             ->latest('updated_at')
             ->get();
@@ -219,7 +274,8 @@ class TransactionRecords extends Component
 
         return $workspaces->map(function (StudentDocumentWorkspace $workspace) use ($issuers) {
             $user = $workspace->user;
-            $status = $this->resolveStatus($workspace);
+            $state = $this->resolveState($workspace);
+            $status = StatusStyle::transaction($state)['label'];
             $analysisData = $workspace->analysis_data ?? [];
             $paperless = $workspace->usesWorkflow();
             $document = $paperless ? DocumentRegistry::find($workspace->document_type) : null;
@@ -256,6 +312,7 @@ class TransactionRecords extends Component
                 'appointment' => $paperless ? '' : $this->resolveSessionLabel($workspace),
                 'session_label' => $paperless ? 'Not Applicable' : $this->resolveSessionLabel($workspace),
                 'status' => $status,
+                'state' => $state,
                 'result' => $this->resultFor($status),
                 'ocr_text' => $workspace->ocr_text ?: '',
                 'analysis_summary' => $workspace->analysis_summary ?: '',
@@ -421,29 +478,10 @@ class TransactionRecords extends Component
         return $prefix . $highlighted . $suffix;
     }
 
-    protected function resolveStatus(StudentDocumentWorkspace $workspace): string
+    /** The state behind the status pill: the workflow value, or a paper form's 'pending' / 'completed'. */
+    protected function resolveState(StudentDocumentWorkspace $workspace): string
     {
-        if ($workspace->usesWorkflow()) {
-            return match ($workspace->workflow_status) {
-                TransactionStatus::Completed => 'Completed',
-                TransactionStatus::Rejected => 'Rejected',
-                TransactionStatus::Voided => 'Voided',
-                TransactionStatus::ActionRequired => 'For revision',
-                default => 'In Review',
-            };
-        }
-        $createdAt = $workspace->created_at instanceof Carbon ? $workspace->created_at : Carbon::parse($workspace->created_at);
-        $hasAttendedAppointment = $workspace->hasAttendedAppointment();
-        $hasActiveAppointment = $workspace->appointments()->whereIn('status', ['pending', 'approved'])->exists();
-
-        return match (true) {
-            $workspace->isCompleted() => 'Completed',
-            $workspace->isProcessing() => 'Processing',
-            $hasAttendedAppointment => 'Waiting Upload',
-            $hasActiveAppointment => 'For Appointment',
-            $createdAt->lt(now()->subDays(14)) => 'Missed',
-            default => 'Pending',
-        };
+        return StatusStyle::state($workspace);   // 'signing' while the signatures are being collected
     }
 
     protected function resolveSessionLabel(StudentDocumentWorkspace $workspace): string
@@ -534,11 +572,11 @@ class TransactionRecords extends Component
             default => 'students',
         };
         $items = match ($level) {
-            'folder', 'all' => $records,
+            'folder', 'all' => $this->sortTableRows($records),
             'students' => $students,
             default => collect(),
         };
-        $perPage = in_array($level, ['folder', 'all'], true) ? 24 : $this->perPage;
+        $perPage = $this->perPage;
         $totalCount = $items->count();
         $totalPages = max(1, (int) ceil($totalCount / $perPage));
         $this->currentPage = min(max(1, $this->currentPage), $totalPages);
@@ -566,6 +604,8 @@ class TransactionRecords extends Component
         return view('livewire.admin.transaction-records', [
             'level' => $level,
             'sortOptions' => self::SORTS,
+            // A student's account sorts each folder's documents by the picked column too
+            'sortTableRows' => fn (Collection $rows) => $this->sortTableRows($rows),
             'dateLabel' => $this->period === 'custom'
                 ? trim(($this->parseDate($this->dateFrom)?->format('M j, Y') ?? 'Any') . ' – ' . ($this->parseDate($this->dateTo)?->format('M j, Y') ?? 'today'))
                 : self::PERIODS[$this->period],

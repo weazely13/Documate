@@ -2,7 +2,6 @@
      the details in tabs on the left, the page itself on the right. --}}
 @php
     $focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]/40 focus-visible:ring-offset-1';
-    $tag = ['emerald' => 'bg-emerald-600 text-white', 'slate' => 'bg-slate-500 text-white', 'blue' => 'bg-[#2A57B4] text-white'][$tone];
     $btn = 'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 [@media(pointer:coarse)]:h-11 ' . $focus;
     $row = 'grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4';
     $dt = 'text-sm text-slate-500';
@@ -22,7 +21,7 @@
             <h1 class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xl font-semibold tracking-[-0.015em] text-slate-900 sm:text-2xl">
                 <span class="min-w-0">{{ $documentName }}</span>
                 <span class="rounded-md bg-[#1E4090] px-1.5 py-0.5 font-mono text-xs font-medium text-white">{{ $ws->transaction_code }}</span>
-                <span class="rounded-md px-1.5 py-0.5 text-xs font-medium {{ $tag }}">{{ \Illuminate\Support\Str::before($result, ':') }}</span>
+                <x-status-badge :workspace="$ws" />
             </h1>
             <p class="mt-0.5 truncate text-sm text-slate-500">{{ $studentName }}@if ($studentNumber) · {{ $studentNumber }}@endif</p>
         </div>
@@ -84,8 +83,7 @@
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Document type</dt><dd class="{{ $dd }}">{{ $documentName }}</dd></div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Transaction code</dt><dd class="{{ $dd }} font-mono">{{ $ws->transaction_code }}</dd></div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Result</dt>
-                        <dd class="{{ $dd }}"><span class="rounded-md px-1.5 py-0.5 text-xs font-medium {{ $tag }}">{{ \Illuminate\Support\Str::before($result, ':') }}</span>
-                            @if (str_contains($result, ':'))<span class="ml-1.5 text-slate-500">{{ trim(\Illuminate\Support\Str::after($result, ':')) }}</span>@endif</dd>
+                        <dd class="{{ $dd }}"><x-status-badge :workspace="$ws" /></dd>
                     </div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Mode</dt><dd class="{{ $dd }}">Online</dd></div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Submitted</dt><dd class="{{ $dd }} tabular-nums">{{ $ws->submitted_at?->format('M j, Y · g:i A') ?? '—' }}</dd></div>

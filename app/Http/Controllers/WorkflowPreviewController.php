@@ -112,6 +112,11 @@ class WorkflowPreviewController extends Controller
         $saved = \App\Services\Workflow\TransactionSnapshot::savedPage($ws);
         abort_if($saved === null && ! DocumentRegistry::has($ws->document_type), 404);
 
+        // Pages saved before the mobile fix lack it: stop phones from enlarging the text.
+        if ($saved !== null) {
+            $saved = str_ireplace('</head>', '<style>html,html *{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}</style></head>', $saved);
+        }
+
         return response($saved ?? app(DocumentPdf::class)->previewHtml($ws->load('user')))
             ->header('Content-Type', 'text/html; charset=UTF-8')
             ->header('Cache-Control', 'private, no-store')

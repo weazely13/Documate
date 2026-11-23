@@ -113,7 +113,7 @@
 {{-- Activity/Event --}}
 <div class="ln">
     <div class="lbl" style="left:0; width:84pt;">Activity/Event:</div>
-    <div class="val" style="left:86pt; width:401pt; font-size:{{ $fit($activity, 401) }}pt;">{{ $activity }}</div>
+    <div data-f="activity" class="val" style="left:86pt; width:401pt; font-size:{{ $fit($activity, 401) }}pt;">{{ $activity }}</div>
 </div>
 
 {{-- Purpose/s --}}
@@ -121,7 +121,7 @@
     <div class="lbl">Purpose/s:</div>
     <div class="rows">
         @foreach ($rows as $line)
-            <div class="rrow" style="font-size:{{ $fit($line, 423, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+            <div data-f="purposes" class="rrow" style="font-size:{{ $fit($line, 423, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
         @endforeach
     </div>
 </div>
@@ -131,7 +131,7 @@
     <div class="lbl" style="width:100pt;">Date/s and Time:</div>
     <div class="rows" style="margin-left:102pt;">
         @foreach ($slotLines as $line)
-            <div class="rrow" style="font-size:{{ $fit($line, 385, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
+            <div data-f="activity_slots" class="rrow" style="font-size:{{ $fit($line, 385, 9.5, 6) }}pt;">{{ $line }}&nbsp;</div>
         @endforeach
     </div>
 </div>
@@ -139,13 +139,13 @@
 {{-- Venue --}}
 <div class="ln">
     <div class="lbl" style="left:0; width:44pt;">Venue:</div>
-    <div class="val" style="left:46pt; width:441pt; font-size:{{ $fit($venue, 441) }}pt;">{{ $venue }}</div>
+    <div data-f="venue" class="val" style="left:46pt; width:441pt; font-size:{{ $fit($venue, 441) }}pt;">{{ $venue }}</div>
 </div>
 
 {{-- Persons Involved --}}
 <div class="ln">
     <div class="lbl" style="left:0; width:92pt;">Persons Involved:</div>
-    <div class="val" style="left:94pt; width:393pt; font-size:{{ $fit($persons, 393) }}pt;">{{ $persons }}</div>
+    <div data-f="persons_involved" class="val" style="left:94pt; width:393pt; font-size:{{ $fit($persons, 393) }}pt;">{{ $persons }}</div>
 </div>
 
 {{-- Requested by: the student's name on the line, the caption, then their position - organization under it --}}

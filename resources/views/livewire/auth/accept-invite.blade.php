@@ -16,7 +16,7 @@
         </section>
     @else
         <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h1 class="text-xl font-bold text-slate-900">Welcome, {{ $user->first_name }}</h1>
+            <h1 class="text-xl font-bold text-slate-900">Welcome, {{ $user->display_first_name }}</h1>
             <p class="mt-1 text-sm text-slate-500">
                 Choose a password for your DocuMate account ({{ $user->email }}).
                 @if ($roles->isNotEmpty())
@@ -34,10 +34,7 @@
             <label class="mt-5 block text-sm font-medium text-slate-700">E-signature <span class="text-slate-400">(optional)</span></label>
             <p class="text-xs text-slate-400">Draw it now, or add it later from your profile.</p>
             @include('partials.signature-pad', ['model' => 'signature'])
-            <label class="mt-3 flex items-start gap-2.5 text-sm text-slate-700">
-                <input type="checkbox" wire:model="consentSignature" class="mt-0.5 h-4 w-4 accent-[#2A57B4]">
-                <span>I consent to this signature being applied to documents I approve.</span>
-            </label>
+            <p class="mt-2 text-xs text-slate-500">Your signature is printed on the documents you approve.</p>
             <label class="mt-5 flex items-start gap-2.5 text-sm text-slate-700">
                 <input type="checkbox" wire:model="agree" class="mt-0.5 h-4 w-4 accent-[#2A57B4]">
                 <span>I agree to the Terms and Conditions and the Privacy Policy.</span>

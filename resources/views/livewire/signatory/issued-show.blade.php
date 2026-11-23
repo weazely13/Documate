@@ -14,7 +14,7 @@
                     {{ $ws->transaction_code }}@unless ($toSelf) &middot; {{ $ws->field_values['student_name'] ?? '' }}@endunless
                 </p>
             </div>
-            <div class="shrink-0">@include('livewire.workflow._badge', ['status' => $ws->workflow_status])</div>
+            <div class="shrink-0">@include('livewire.workflow._badge', ['ws' => $ws])</div>
         </div>
     </div>
 
@@ -56,6 +56,13 @@
                     ])
                 </div>
             </section>
+
+            @if (in_array($ws->workflow_status?->value, ['submitted', 'under_review', 'action_required', 'approved'], true) || $ws->ai_flag)
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    @include('livewire.admin.workflow._ai-check', ['ws' => $ws, 'run' => 'runAiCheck',
+                        'canRun' => in_array($ws->workflow_status?->value, ['submitted', 'under_review', 'action_required', 'approved'], true)])
+                </div>
+            @endif
 
             @if ($approvals->isNotEmpty())
                 <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">

@@ -124,7 +124,7 @@ class Dashboard extends Component
                 'title' => $doc->noticeTitle($values),
                 'text' => $doc->noticeLine($values),
                 'url' => route('student.transactions.show', $notice->workspace_id),
-                'action' => 'Open',
+                'action' => 'Pending',
             ];
         }
 
@@ -172,7 +172,7 @@ class Dashboard extends Component
         return [
             'trend' => [
                 DashboardInsights::metric('started', 'Started', $mine(), 'student_document_workspaces.created_at', $days),
-                DashboardInsights::metric('submitted', 'Submitted', $this->submitted($mine()), DashboardInsights::SUBMITTED_AT, $days),
+                DashboardInsights::metric('submitted', 'Filed', $this->submitted($mine()), DashboardInsights::SUBMITTED_AT, $days),
                 DashboardInsights::metric('completed', 'Completed', $mine(), 'student_document_workspaces.completed_at', $days),
                 DashboardInsights::metric('appointments', 'Appointments', Appointment::where('appointments.user_id', $userId), 'appointments.created_at', $days),
             ],
@@ -217,11 +217,13 @@ class Dashboard extends Component
     private function statusRows(int $userId): array
     {
         $labels = [
-            'draft' => 'Drafts',
-            'submitted' => 'With the VPSD office',
-            'under_review' => 'With the VPSD office',
-            'action_required' => 'Changes requested',
-            'approved' => 'Signed, awaiting completion',
+            // The system-wide words (TransactionStatus::label)
+            'draft' => 'Draft',
+            'submitted' => 'Pending',
+            'under_review' => 'Reviewing',
+            'signing' => 'Signing',
+            'action_required' => 'Revision',
+            'approved' => 'Signed',
             'completed' => 'Completed',
             'rejected' => 'Rejected',
             'voided' => 'Voided',
@@ -232,6 +234,13 @@ class Dashboard extends Component
             ->selectRaw('workflow_status, COUNT(*) as n')
             ->groupBy('workflow_status')
             ->pluck('n', 'workflow_status');
+        // Reviewing with the signers already asked is Signing.
+        $signing = StudentDocumentWorkspace::query()->where('user_id', $userId)
+            ->where('workflow_status', 'under_review')->whereHas('approvals')->count();
+        if ($signing) {
+            $counts['under_review'] = max(0, (int) ($counts['under_review'] ?? 0) - $signing);
+            $counts['signing'] = $signing;
+        }
 
         $rows = [];
         foreach ($counts as $status => $n) {
@@ -349,7 +358,7 @@ class Dashboard extends Component
 
         return view('livewire.student.dashboard', [
             'user' => $user,
-            'firstName' => $user->first_name ?: $this->fullName($user),
+            'firstName' => $user->display_first_name ?: $this->fullName($user),
             'facts' => collect([
                 $user->student_number,
                 $user->program?->name,

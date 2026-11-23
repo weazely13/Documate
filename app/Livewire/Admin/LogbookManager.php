@@ -47,7 +47,7 @@ class LogbookManager extends Component
     public string $dateTo = '';
     public ?int $selectedUploadId = null;
     public int $currentPage = 1;
-    public int $perPage = 30;
+    public int $perPage = 50;
 
     protected $listeners = ['logbookUploadConfirmed' => '$refresh'];
 

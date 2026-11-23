@@ -76,105 +76,116 @@
         </x-admin.form-modal>
     @endif
 
-    {{-- Students --}}
-    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="Students">
-        <div class="flex items-center gap-2 border-b border-slate-200 p-3">
-            <div class="relative min-w-0 flex-1 sm:max-w-xs">
-                <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400' aria-hidden="true"></i>
+    {{-- Students: one row, as on Workflow review (Filters, then the search), then the table --}}
+    @php
+        $wfField = 'rounded-lg border-slate-300 bg-white text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm';
+        $fsel = 'h-9 w-full py-0 text-sm [@media(pointer:coarse)]:h-11 ' . $wfField;
+        $vActive = (int) filled($verificationStatusFilter) + (int) filled($accountStatusFilter);
+    @endphp
+    <section class="space-y-3" aria-label="Students">
+        <div class="flex items-center gap-2">
+            <x-admin.filters-popup :count="$vActive" reset="resetFilters">
+                <label class="col-span-2 block">
+                    <span class="mb-1 block text-xs font-medium text-slate-600">Verification</span>
+                    <select wire:model.live="verificationStatusFilter" class="{{ $fsel }}">
+                        <option value="">Any verification</option>
+                        @foreach($statuses as $status)
+                            <option value="{{ $status }}">{{ ucfirst($status) }}</option>
+                        @endforeach
+                        <option value="not_submitted">Not submitted</option>
+                    </select>
+                </label>
+                <label class="col-span-2 block">
+                    <span class="mb-1 block text-xs font-medium text-slate-600">Account</span>
+                    <select wire:model.live="accountStatusFilter" class="{{ $fsel }}">
+                        <option value="">Any account</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </label>
+            </x-admin.filters-popup>
+            <div class="relative min-w-0 flex-1">
+                <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400' aria-hidden="true"></i>
                 <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, student number or email" aria-label="Search students"
-                    class="h-9 w-full rounded-lg border-slate-300 bg-white py-0 pl-9 pr-3 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 cq-sm:text-sm">
-            </div>
-            <div class="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
-                <label class="{{ $pickWrap }}" title="Verification status">
-                    <i class="bx bx-id-card text-lg sm:!hidden" aria-hidden="true"></i>
-                    @if (filled($verificationStatusFilter))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                    <span class="sr-only">Verification status</span>
-                    <select wire:model.live="verificationStatusFilter" class="{{ $pickField }}">
-                    <option value="">Any verification</option>
-                    @foreach($statuses as $status)
-                        <option value="{{ $status }}">{{ ucfirst($status) }}</option>
-                    @endforeach
-                    <option value="not_submitted">Not submitted</option>
-                </select>
-                </label>
-                <label class="{{ $pickWrap }}" title="Account status">
-                    <i class="bx bx-toggle-left text-lg sm:!hidden" aria-hidden="true"></i>
-                    @if (filled($accountStatusFilter))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                    <span class="sr-only">Account status</span>
-                    <select wire:model.live="accountStatusFilter" class="{{ $pickField }}">
-                    <option value="">Any account</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-                </label>
+                       class="h-9 w-full pl-9 pr-3 [@media(pointer:coarse)]:h-11 {{ $wfField }}">
             </div>
         </div>
 
-        {{-- Wide: table --}}
-        <div class="hidden overflow-x-auto cq-md:block">
-            <table class="w-full text-sm">
-                <thead class="text-xs font-medium text-slate-500">
-                    <tr class="border-b border-slate-100">
-                        <th class="px-5 py-3 text-left font-medium">Student</th>
-                        <th class="px-4 py-3 text-left font-medium">Role</th>
-                        <th class="px-4 py-3 text-left font-medium">Verification</th>
-                        <th class="px-4 py-3 text-left font-medium">Account</th>
-                        <th class="px-5 py-3 text-right font-medium"><span class="sr-only">Actions</span></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($records as $record)
-                        <tr wire:key="v-{{ $record['user_id'] }}" class="transition hover:bg-slate-50/70">
-                            <td class="px-5 py-3.5">
-                                <p class="font-semibold text-slate-900">{{ $record['name'] }}</p>
-                                <p class="text-xs text-slate-500">{{ $record['student_number'] }}</p>
-                            </td>
-                            <td class="px-4 py-3.5 text-slate-700">{{ $record['role'] }}</td>
-                            <td class="px-4 py-3.5">
-                                <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold {{ $verificationBadge($record['verification_status']) }}">
-                                    {{ ucfirst(str_replace('_', ' ', $record['verification_status'])) }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3.5">
-                                <span class="inline-flex items-center gap-1.5 text-sm {{ $record['account_status'] === 'active' ? 'text-slate-700' : 'text-rose-700' }}">
-                                    <span class="h-1.5 w-1.5 rounded-full {{ $record['account_status'] === 'active' ? 'bg-emerald-500' : 'bg-rose-500' }}"></span>{{ ucfirst($record['account_status']) }}
-                                </span>
-                            </td>
-                            <td class="px-5 py-3.5">
-                                <div class="flex items-center justify-end gap-2">
-                                    <button wire:click="viewHistory({{ $record['user_id'] }})"
-                                        class="inline-flex min-h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50">
-                                        History ({{ $record['history_count'] }})
-                                    </button>
-                                    <button wire:click="toggleAccountStatus({{ $record['user_id'] }})"
-                                        onclick="return confirm('{{ $record['account_status'] === 'active' ? 'Deactivate' : 'Activate' }} this account?')"
-                                        class="inline-flex min-h-8 items-center rounded-lg px-3 text-xs font-medium transition-colors {{ $record['account_status'] === 'active' ? 'text-rose-700 hover:bg-rose-50' : 'text-emerald-700 hover:bg-emerald-50' }}">
-                                        {{ $record['account_status'] === 'active' ? 'Deactivate' : 'Activate' }}
-                                    </button>
-                                </div>
-                            </td>
+        {{-- Table: the Workflow review table --}}
+        <div class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white transition-opacity cq-md:block"
+             wire:loading.class="opacity-60" wire:target="search, verificationStatusFilter, accountStatusFilter, resetFilters, currentPage">
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="border-b border-slate-200 text-xs">
+                        <tr>
+                            <th scope="col" class="w-12 py-2.5 pl-4 pr-1 text-left font-medium text-slate-500">#</th>
+                            <th scope="col" class="px-4 py-2.5 text-left font-medium text-slate-500">Student</th>
+                            <th scope="col" class="px-4 py-2.5 text-left font-medium text-slate-500">Role</th>
+                            <th scope="col" class="px-4 py-2.5 text-left font-medium text-slate-500">Verification</th>
+                            <th scope="col" class="px-4 py-2.5 text-left font-medium text-slate-500">Account</th>
+                            <th scope="col" class="px-4 py-2.5 text-right font-medium text-slate-500"><span class="sr-only">Actions</span></th>
                         </tr>
-                    @empty
-                        <tr><td colspan="5" class="px-5 py-14 text-center text-sm text-slate-500">No students match these filters.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse($records as $record)
+                            <tr wire:key="v-{{ $record['user_id'] }}" class="transition-colors hover:bg-slate-50">
+                                <td class="py-3 pl-4 pr-1 text-xs tabular-nums text-slate-500">{{ ($currentPage - 1) * $perPage + $loop->iteration }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#e2e9f7] text-xs font-semibold text-[#1E4090]" aria-hidden="true">{{ \App\Support\Honorifics::initials($record['name']) }}</span>
+                                        <div class="min-w-0">
+                                            <p class="max-w-[240px] truncate font-medium text-slate-900">{{ $record['name'] }}</p>
+                                            <p class="mt-0.5 text-xs tabular-nums text-slate-500">{{ $record['student_number'] }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-slate-700">{{ $record['role'] }}</td>
+                                <td class="whitespace-nowrap px-4 py-3">
+                                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {{ $verificationBadge($record['verification_status']) }}">
+                                        {{ ucfirst(str_replace('_', ' ', $record['verification_status'])) }}
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3">
+                                    <span class="inline-flex items-center gap-1.5 text-xs {{ $record['account_status'] === 'active' ? 'text-slate-700' : 'text-rose-700' }}">
+                                        <span class="h-1.5 w-1.5 rounded-full {{ $record['account_status'] === 'active' ? 'bg-emerald-500' : 'bg-rose-500' }}"></span>{{ ucfirst($record['account_status']) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button wire:click="viewHistory({{ $record['user_id'] }})"
+                                            class="inline-flex min-h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50">
+                                            History ({{ $record['history_count'] }})
+                                        </button>
+                                        <button wire:click="toggleAccountStatus({{ $record['user_id'] }})"
+                                            onclick="return confirm('{{ $record['account_status'] === 'active' ? 'Deactivate' : 'Activate' }} this account?')"
+                                            class="inline-flex min-h-8 items-center rounded-lg px-3 text-xs font-medium transition-colors {{ $record['account_status'] === 'active' ? 'text-rose-700 hover:bg-rose-50' : 'text-emerald-700 hover:bg-emerald-50' }}">
+                                            {{ $record['account_status'] === 'active' ? 'Deactivate' : 'Activate' }}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="px-6 py-16 text-center text-sm text-slate-500">No students match these filters.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        {{-- Narrow: one row per student --}}
-        <ul class="divide-y divide-slate-100 cq-md:hidden">
+        {{-- Cards on narrow screens, as on Workflow review --}}
+        <ul class="grid gap-3 cq-md:hidden" aria-label="Students">
             @forelse($records as $record)
-                <li wire:key="vm-{{ $record['user_id'] }}" class="px-4 py-3.5">
+                <li wire:key="vm-{{ $record['user_id'] }}" class="rounded-2xl border border-slate-200 bg-white p-4">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <p class="truncate font-semibold text-slate-900">{{ $record['name'] }}</p>
-                            <p class="text-xs text-slate-500">{{ $record['student_number'] }} · {{ $record['role'] }}</p>
+                            <p class="truncate text-[15px] font-semibold text-slate-900">{{ $record['name'] }}</p>
+                            <p class="mt-0.5 text-xs text-slate-500">{{ $record['student_number'] }} · {{ $record['role'] }}</p>
                         </div>
-                        <span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold {{ $verificationBadge($record['verification_status']) }}">
+                        <span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium {{ $verificationBadge($record['verification_status']) }}">
                             {{ ucfirst(str_replace('_', ' ', $record['verification_status'])) }}
                         </span>
                     </div>
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
                         <span class="mr-auto inline-flex items-center gap-1.5 text-xs {{ $record['account_status'] === 'active' ? 'text-slate-600' : 'text-rose-700' }}">
                             <span class="h-1.5 w-1.5 rounded-full {{ $record['account_status'] === 'active' ? 'bg-emerald-500' : 'bg-rose-500' }}"></span>{{ ucfirst($record['account_status']) }}
                         </span>
@@ -188,12 +199,12 @@
                     </div>
                 </li>
             @empty
-                <li class="px-4 py-12 text-center text-sm text-slate-500">No students match these filters.</li>
+                <li class="rounded-2xl border border-dashed border-slate-300 px-4 py-12 text-center text-sm text-slate-500">No students match these filters.</li>
             @endforelse
         </ul>
 
         @if($totalPages > 1)
-            <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
+            <div class="flex items-center justify-between gap-2">
                 <button wire:click="$set('currentPage', {{ max(1, $currentPage - 1) }})" @disabled($currentPage === 1)
                     class="inline-flex min-h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:text-slate-300 disabled:hover:bg-white">Previous</button>
                 <span class="text-sm text-slate-500">Page {{ $currentPage }} of {{ $totalPages }}</span>

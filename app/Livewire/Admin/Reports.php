@@ -87,7 +87,7 @@ class Reports extends Component
 
     protected const STUDENT_ROLES = ['Student', 'Officer'];
 
-    public const PER_PAGE = 20;
+    public const PER_PAGE = 50;
 
     public const REPORTS = ['forms', 'organizations', 'clearance'];
 
@@ -108,7 +108,7 @@ class Reports extends Component
     public ?string $form = null;
     /** Selected organization (its name), or null for the overview of all organizations. */
     public ?string $org = null;
-    /** Clearance list filter: Cleared, Pending, Uncleared, none (not tagged), or '' for all. */
+    /** Clearance list filter: Cleared, Pending, Uncleared, none (Untagged), or '' for all. */
     public string $status = '';
     public string $clearanceOrg = '';
     public int $page = 1;
@@ -668,11 +668,12 @@ class Reports extends Component
             ->whereRaw(DashboardInsights::SUBMITTED_AT . ' >= ?', [$from->copy()->startOfDay()])
             ->whereRaw(DashboardInsights::SUBMITTED_AT . ' <= ?', [$to->copy()->endOfDay()])
             ->with(['user.program', 'user.organization', 'template'])
+            ->withCount('approvals')
             ->orderByRaw(DashboardInsights::SUBMITTED_AT . ' desc')
             ->get()
             ->map(function (StudentDocumentWorkspace $w) {
                 $paperless = $w->workflow_status !== null;
-                $state = $paperless ? $w->workflow_status->value : ((string) $w->status ?: 'pending');
+                $state = $paperless ? \App\Support\StatusStyle::state($w) : ((string) $w->status ?: 'pending');
 
                 return [
                     'key' => $w->document_type ?: 'paper-' . $w->template_id,
@@ -693,7 +694,7 @@ class Reports extends Component
                         : null,
                     'code' =>$w->transaction_code ?: '#' . str_pad((string) $w->workspace_id, 4, '0', STR_PAD_LEFT),
                     'state' => $state,
-                    'status' => $paperless ? $w->workflow_status->label() : Str::headline($state),
+                    'status' => \App\Support\StatusStyle::transaction($state)['label'],
                     'submitted' => $w->submitted_at ?? $w->created_at,
                     'completed' => $w->completed_at,
                     'url' => $paperless
@@ -787,7 +788,7 @@ class Reports extends Component
     /** The order a request moves through, for the status chart. */
     protected const REQUEST_STATES = ['pending', 'submitted', 'under_review', 'action_required', 'approved', 'completed', 'rejected', 'voided'];
 
-    protected const CLEARANCE_STATUSES = ['Cleared', 'Pending', 'Uncleared', 'Not tagged'];
+    protected const CLEARANCE_STATUSES = ['Cleared', 'Pending', 'Uncleared', 'Untagged'];
 
     /** One line per form: how many requests, how many different students, how many finished. */
     protected function formSummary(Collection $records): Collection
@@ -821,7 +822,7 @@ class Reports extends Component
             ->keyBy('user_id');
     }
 
-    /** Every active student with their clearance for the semester ("Not tagged" when none). */
+    /** Every active student with their clearance for the semester ("Untagged" when none). */
     protected function clearanceRecords(?int $semesterId = null): Collection
     {
         $latest = $this->latestClearance($semesterId);
@@ -843,7 +844,7 @@ class Reports extends Component
                     'year' => $u->year_level,
                     // Named the way Clearance Monitoring names it: the student's organization, else the record's.
                     'organization' => $u->organization?->name ?: ($r?->organization ?: 'No organization'),
-                    'status' => $r?->status ?? 'Not tagged',
+                    'status' => $r?->status ?? 'Untagged',
                     'by' => $r?->taggedByUser?->full_name,
                     'tagged' => $r ? ($r->tagged_at ?? $r->updated_at) : null,
                     'remarks' => $r?->remarks,
@@ -870,7 +871,7 @@ class Reports extends Component
                     'Cleared' => $rows->where('status', 'Cleared')->count(),
                     'Pending' => $rows->where('status', 'Pending')->count(),
                     'Uncleared' => $rows->where('status', 'Uncleared')->count(),
-                    'Not tagged' => $rows->where('status', 'Not tagged')->count(),
+                    'Untagged' => $rows->where('status', 'Untagged')->count(),
                 ];
             })
             // Real organizations first by size; students without one at the end.
@@ -902,7 +903,7 @@ class Reports extends Component
                 ->filter(fn ($r) => $this->matchesSearch($r, ['student', 'number', 'program', 'program_name', 'organization']))
                 ->values(),
             'clearance' => $students
-                ->when($this->status !== '', fn ($c) => $c->where('status', $this->status === 'none' ? 'Not tagged' : $this->status))
+                ->when($this->status !== '', fn ($c) => $c->where('status', $this->status === 'none' ? 'Untagged' : $this->status))
                 ->when($this->clearanceOrg !== '', fn ($c) => $c->where('organization', $this->clearanceOrg))
                 ->map($withActivity)
                 ->filter(fn ($r) => $this->matchesSearch($r, ['student', 'number', 'program', 'program_name', 'organization', 'by']))
@@ -1070,7 +1071,7 @@ class Reports extends Component
                     'student' => $name($w->user),
                     'student_number' => $w->user?->student_number ?: '—',
                     'program' => $w->user?->program?->name ?: '—',
-                    'status' => $w->workflow_status?->label() ?? ucfirst((string) ($w->status ?: 'pending')),
+                    'status' => \App\Support\StatusStyle::transaction($w->workflow_status ?? $w->status)['label'],
                     'submitted' => $submitted,
                     'completed' => $w->completed_at,
                     'days' => $w->completed_at && $submitted ? round($submitted->diffInHours($w->completed_at) / 24, 1) : null,
@@ -1090,7 +1091,7 @@ class Reports extends Component
                 'student' => $name($a->user),
                 'student_number' => $a->user?->student_number ?: '—',
                 'purpose' => $a->purpose ?: '—',
-                'status' => ucfirst((string) $a->status),
+                'status' => \App\Support\StatusStyle::appointment($a->status)['label'],
                 'reschedules' => (int) $a->reschedule_count,
             ])
             ->all();
@@ -1403,7 +1404,7 @@ class Reports extends Component
             'from' => $from,
             'to' => $to,
             'trend' => [
-                DashboardInsights::metricBetween('submitted', 'Submitted', $this->submittedDocuments(), DashboardInsights::SUBMITTED_AT, $from, $to),
+                DashboardInsights::metricBetween('submitted', 'Filed', $this->submittedDocuments(), DashboardInsights::SUBMITTED_AT, $from, $to),
                 DashboardInsights::metricBetween('completed', 'Completed', StudentDocumentWorkspace::query(), 'student_document_workspaces.completed_at', $from, $to),
                 DashboardInsights::metricBetween('appointments', 'Appointments booked', Appointment::query(), 'appointments.created_at', $from, $to),
                 DashboardInsights::metricBetween('accounts', 'New accounts', $students, 'users.created_at', $from, $to),
@@ -1474,9 +1475,9 @@ class Reports extends Component
     public function seriesOptions(): array
     {
         return match ($this->tab) {
-            'organizations' => ['requests' => 'Requests filed', 'filers' => 'Students who filed'],
+            'organizations' => ['requests' => 'Filed', 'filers' => 'Students'],
             'clearance' => ['cleared' => 'Cleared', 'pending' => 'Pending', 'uncleared' => 'Uncleared'],
-            default => ['filed' => 'Filed', 'completed' => 'Completed', 'returned' => 'Returned'],
+            default => ['filed' => 'Filed', 'completed' => 'Completed', 'returned' => 'Rejected'],
         };
     }
 
@@ -1680,8 +1681,8 @@ class Reports extends Component
             $rows = $this->org === null ? $forms : $forms->whereIn('user_id', $students->where('organization', $this->org)->pluck('user_id'));
 
             return ['unit' => $unit, 'buckets' => $buckets, 'series' => [
-                ['requests', 'Requests filed', '#2A57B4', $count($buckets, $rows, 'submitted')],
-                ['filers', 'Students who filed', '#d97706', array_map(
+                ['requests', 'Filed', '#2A57B4', $count($buckets, $rows, 'submitted')],
+                ['filers', 'Students', '#d97706', array_map(
                     fn ($b) => $rows->filter(fn ($r) => $r['submitted'] && $r['submitted']->between($b['start'], $b['end']))->pluck('user_id')->unique()->count(),
                     $buckets
                 )],
@@ -1693,7 +1694,7 @@ class Reports extends Component
         return ['unit' => $unit, 'buckets' => $buckets, 'series' => [
             ['filed', 'Filed', '#2A57B4', $count($buckets, $rows, 'submitted')],
             ['completed', 'Completed', '#0d9488', $count($buckets, $rows->where('state', 'completed'), 'completed')],
-            ['returned', 'Returned', '#e11d48', $count($buckets, $rows->whereIn('state', ['rejected', 'voided']), 'submitted')],
+            ['returned', 'Rejected', '#e11d48', $count($buckets, $rows->whereIn('state', ['rejected', 'voided']), 'submitted')],
         ]];
     }
 
@@ -1760,9 +1761,9 @@ class Reports extends Component
 
         // [series key the chart uses, field in the summary, header]
         $columns = match ($this->tab) {
-            'organizations' => [['requests', 'requests', 'Requests filed'], ['filers', 'availed', 'Students who filed'], [null, 'members', 'Members']],
-            'clearance' => [['cleared', 'Cleared', 'Cleared'], ['pending', 'Pending', 'Pending'], ['uncleared', 'Uncleared', 'Uncleared'], [null, 'Not tagged', 'Not tagged'], [null, 'members', 'Students']],
-            default => [['filed', 'requests', 'Filed'], ['completed', 'completed', 'Completed'], ['returned', 'returned', 'Returned'], [null, 'students', 'Students']],
+            'organizations' => [['requests', 'requests', 'Filed'], ['filers', 'availed', 'Students'], [null, 'members', 'Members']],
+            'clearance' => [['cleared', 'Cleared', 'Cleared'], ['pending', 'Pending', 'Pending'], ['uncleared', 'Uncleared', 'Uncleared'], [null, 'Untagged', 'Untagged'], [null, 'members', 'Students']],
+            default => [['filed', 'requests', 'Filed'], ['completed', 'completed', 'Completed'], ['returned', 'returned', 'Rejected'], [null, 'students', 'Students']],
         };
         $columns = array_map(fn ($c) => ['series' => $c[0], 'field' => $c[1], 'label' => $c[2], 'colour' => null], $columns);
 
@@ -1939,7 +1940,7 @@ class Reports extends Component
                 ? $topOrg['label'] . ' has the most students (' . $topOrg['members'] . '); ' . $topOrg['availed'] . ' of them filed a form in this period and ' . $topOrg['Cleared'] . ' are cleared.'
                 : 'No active student belongs to an organization yet.',
             'clearance' => $pct($cleared, $studentTotal) . '% of active students are cleared for ' . ($semesterLabel ?? 'this semester') . '. '
-                . ($counts['Not tagged'] ?? 0) . ' still need an officer to check them and ' . ($counts['Uncleared'] ?? 0) . ' are uncleared.',
+                . ($counts['Untagged'] ?? 0) . ' still need an officer to check them and ' . ($counts['Uncleared'] ?? 0) . ' are uncleared.',
             default => $topForm
                 ? $topForm['label'] . ' was the most requested form: ' . $topForm['requests'] . ' ' . Str::plural('request', $topForm['requests']) . ' from ' . $topForm['students'] . ' ' . Str::plural('student', $topForm['students']) . '. ' . $formTotals['completed'] . ' of ' . $formTotals['requests'] . ' requests are completed.'
                 : 'No transaction forms were filed in this period. Try a longer period.',
@@ -1957,17 +1958,17 @@ class Reports extends Component
         $tiles = match ($this->tab) {
             'organizations' => [
                 $tile('orgs', 'Organizations', $realOrgs->count()),
-                $tile('members', 'Students in one', $realOrgs->sum('members')),
-                $tile('filed', 'Members who filed', $realOrgs->sum('availed')),
-                $tile('cleared', 'Members cleared', $realOrgs->sum('Cleared')),
+                $tile('members', 'Members', $realOrgs->sum('members')),
+                $tile('filed', 'Filed', $realOrgs->sum('availed')),
+                $tile('cleared', 'Cleared', $realOrgs->sum('Cleared')),
             ],
-            'clearance' => array_map(fn ($label) => $tile($label, $label, $counts[$label] ?? 0, $prevCounts ? ($prevCounts[$label] ?? 0) : null, $label !== 'Cleared', $label === 'Not tagged' ? 'none' : $label),
-                ['Cleared', 'Pending', 'Uncleared', 'Not tagged']),
+            'clearance' => array_map(fn ($label) => $tile($label, $label, $counts[$label] ?? 0, $prevCounts ? ($prevCounts[$label] ?? 0) : null, $label !== 'Cleared', $label === 'Untagged' ? 'none' : $label),
+                ['Cleared', 'Pending', 'Uncleared', 'Untagged']),
             default => [
-                $tile('requests', 'Requests filed', $formTotals['requests'], $prevTotals['requests'] ?? null),
-                $tile('students', 'Students who filed', $formTotals['students'], $prevTotals['students'] ?? null),
+                $tile('requests', 'Filed', $formTotals['requests'], $prevTotals['requests'] ?? null),
+                $tile('students', 'Students', $formTotals['students'], $prevTotals['students'] ?? null),
                 $tile('completed', 'Completed', $formTotals['completed'], $prevTotals['completed'] ?? null),
-                $tile('returned', 'Returned', $formTotals['returned'], $prevTotals['returned'] ?? null, true),
+                $tile('returned', 'Rejected', $formTotals['returned'], $prevTotals['returned'] ?? null, true),
             ],
         };
 
@@ -1976,21 +1977,21 @@ class Reports extends Component
         $help = match ($this->tab) {
             'organizations' => [
                 'Organizations' => ['Organizations with at least one active student member.', 'How many organizations appear in this report.'],
-                'Students in one' => ['Active students whose profile names an organization.', 'The members across every organization. Students with none are listed as “No organization”.'],
-                'Members who filed' => ['Members who submitted at least one form from ' . $rangeLabel . '.', 'How many members used the office in the period.'],
-                'Members cleared' => ['Members whose clearance for ' . ($semesterLabel ?? 'the chosen semester') . ' is Cleared.', 'How many members are cleared, set by the Semester picker.'],
+                'Members' => ['Active students whose profile names an organization.', 'The members across every organization. Students with none are listed as “No organization”.'],
+                'Filed' => ['Members who submitted at least one form from ' . $rangeLabel . '.', 'How many members used the office in the period.'],
+                'Cleared' => ['Members whose clearance for ' . ($semesterLabel ?? 'the chosen semester') . ' is Cleared.', 'How many members are cleared, set by the Semester picker.'],
             ],
             'clearance' => [
                 'Cleared' => ['Students an officer marked Cleared for ' . ($semesterLabel ?? 'the semester') . '.', 'The number and share of active students.' . $vs],
                 'Pending' => ['Students marked Pending: an officer started checking them but has not finished.', 'The number and share of active students. Fewer is better.' . $vs],
                 'Uncleared' => ['Students marked Uncleared: something is still owed or missing.', 'The number and share of active students. Fewer is better.' . $vs],
-                'Not tagged' => ['Students no officer has checked yet this semester. This is not the same as Uncleared.', 'The number and share of active students still waiting.' . $vs],
+                'Untagged' => ['Students no officer has checked yet this semester. This is not the same as Uncleared.', 'The number and share of active students still waiting.' . $vs],
             ],
             default => [
-                'Requests filed' => ['Every form students submitted from ' . $rangeLabel . ', one per request. Drafts are not counted, and one student can file many.', 'The number of requests.' . $vs],
-                'Students who filed' => ['Different students who submitted at least one form in the period. A student who filed five forms counts once.', 'How many students used the office.' . $vs],
+                'Filed' => ['Every form students submitted from ' . $rangeLabel . ', one per request. Drafts are not counted, and one student can file many.', 'The number of requests.' . $vs],
+                'Students' => ['Different students who submitted at least one form in the period. A student who filed five forms counts once.', 'How many students used the office.' . $vs],
                 'Completed' => ['Requests that were finished and issued, counted on the day they were completed.', 'The number completed in the period.' . $vs],
-                'Returned' => ['Requests that were rejected or voided, counted on the day they were filed.', 'The number returned. Fewer is better.' . $vs],
+                'Rejected' => ['Requests that were rejected or voided, counted on the day they were filed.', 'The number rejected. Fewer is better.' . $vs],
             ],
         };
 
@@ -2022,7 +2023,7 @@ class Reports extends Component
 
         $records = match ($this->tab) {
             'organizations' => [$this->org ? 'Students of ' . $this->org : 'Every student, by organization', 'Forms filed in the period, and clearance for ' . ($semesterLabel ?? 'the chosen semester') . '.', 'student'],
-            'clearance' => [($this->status === '' ? 'Every student' : ($this->status === 'none' ? 'Not tagged' : $this->status)) . ($this->clearanceOrg !== '' ? ' in ' . $this->clearanceOrg : ''), '“Tagged by” is the officer who set the status.', 'student'],
+            'clearance' => [($this->status === '' ? 'Every student' : ($this->status === 'none' ? 'Untagged' : $this->status)) . ($this->clearanceOrg !== '' ? ' in ' . $this->clearanceOrg : ''), '“Tagged by” is the officer who set the status.', 'student'],
             default => [$selectedForm ? 'Students who filed ' . $selectedForm['label'] : 'Every request', 'One row per request. Click the transaction code to open it.', 'request'],
         };
 

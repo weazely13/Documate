@@ -1,11 +1,5 @@
 @php
     $focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]/40 focus-visible:ring-offset-1';
-    $tag = match ($status) {
-        'Completed' => 'bg-emerald-600 text-white',
-        'Missed' => 'bg-rose-600 text-white',
-        'For Appointment', 'Pending' => 'bg-amber-500 text-white',
-        default => 'bg-[#2A57B4] text-white',
-    };
     $btn = 'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 [@media(pointer:coarse)]:h-11 ' . $focus;
     $row = 'grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4';
     $dt = 'text-sm text-slate-500';
@@ -26,7 +20,7 @@
             <h1 class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xl font-semibold tracking-[-0.015em] text-slate-900 sm:text-2xl">
                 <span class="min-w-0">{{ $workspace->template?->name ?: 'Untitled template' }}</span>
                 <span class="rounded-md bg-[#1E4090] px-1.5 py-0.5 font-mono text-xs font-medium text-white">{{ $idLabel }}</span>
-                <span class="rounded-md px-1.5 py-0.5 text-xs font-medium {{ $tag }}">{{ $status }}</span>
+                <x-status-badge :status="$status" />
             </h1>
             <p class="mt-0.5 truncate text-sm text-slate-500">{{ $studentName }} · {{ $workspace->user?->student_number ?: 'No student number' }}</p>
         </div>
@@ -72,7 +66,7 @@
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Program</dt><dd class="{{ $dd }}">{{ $programLabel }}</dd></div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Document type</dt><dd class="{{ $dd }}">{{ $workspace->template?->name ?: 'Untitled template' }}</dd></div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Transaction no.</dt><dd class="{{ $dd }} font-mono">{{ $idLabel }}</dd></div>
-                    <div class="{{ $row }}"><dt class="{{ $dt }}">Status</dt><dd class="{{ $dd }}"><span class="rounded-md px-1.5 py-0.5 text-xs font-medium {{ $tag }}">{{ $status }}</span></dd></div>
+                    <div class="{{ $row }}"><dt class="{{ $dt }}">Status</dt><dd class="{{ $dd }}"><x-status-badge :status="$status" /></dd></div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Mode</dt><dd class="{{ $dd }}">Paper</dd></div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Submitted</dt><dd class="{{ $dd }} tabular-nums">{{ optional($workspace->created_at)->format('M j, Y · g:i A') ?: 'N/A' }}</dd></div>
                     <div class="{{ $row }}"><dt class="{{ $dt }}">Appointment</dt><dd class="{{ $dd }}">{{ $appointmentStatus }}@if ($appointment) <span class="text-slate-500">· {{ $appointmentDateLabel }}</span>@endif</dd></div>
@@ -86,7 +80,7 @@
                 <div x-show="tab === 'review'" x-cloak role="tabpanel" class="pt-4">
 
                     @if ($analysisStatus)
-                        <p class="mb-4"><span class="rounded-md px-1.5 py-0.5 text-xs font-medium {{ $isDocApproved ? 'bg-emerald-600 text-white' : ($isTechnicalFailure ? 'bg-[#2A57B4] text-white' : ($analysisStatus === 'rejected' ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white')) }}">{{ $isDocApproved ? 'Approved' : ($isTechnicalFailure ? 'Review failed, retry needed' : ($analysisStatus === 'rejected' ? 'Rejected' : 'Pending review')) }}</span></p>
+                        <p class="mb-4"><span class="{{ \App\Support\StatusStyle::classes($isDocApproved ? 'emerald' : ($isTechnicalFailure ? 'slate' : ($analysisStatus === 'rejected' ? 'rose' : 'amber'))) }}">{{ $isDocApproved ? 'Approved' : ($isTechnicalFailure ? 'Review failed, retry needed' : ($analysisStatus === 'rejected' ? 'Rejected' : 'Pending review')) }}</span></p>
                     @endif
 
                     @if ($rejectionReason)

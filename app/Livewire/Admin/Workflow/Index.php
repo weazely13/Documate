@@ -34,9 +34,11 @@ class Index extends Component
     use WithPagination;
 
     public const TABS = [
-        'attention' => 'To review',
-        'signing' => 'In signing',
-        'action_required' => 'Changes required',
+        // In the order a request finishes (the queue cards show them in this order)
+        'issuance' => 'Issuance',
+        'signing' => 'Signing',
+        'action_required' => 'Revision',
+        'attention' => 'Review',
     ];
 
     /** Tabs whose waiting time is the office's (or a signatory's) to act on, so it is flagged. */
@@ -46,16 +48,16 @@ class Index extends Component
     public const SORTS = [
         'student' => 'Student',
         'status' => 'Status',
-        'waiting' => 'Waiting',
-        'risk' => 'AI check',
+        'waiting' => 'Time elapsed',
+        'risk' => 'AI suggestion',
     ];
 
     /** AI filter: key => label. */
     public const AI_FILTERS = [
         '' => 'All',
-        'flagged' => 'Requires checking',
-        'clean' => 'No issues',
-        'unchecked' => 'Not checked',
+        'flagged' => 'Flagged',
+        'clean' => 'Clear',
+        'unchecked' => 'Unchecked',
     ];
 
     /** Most transactions the AI check is queued for in one click. */
@@ -73,6 +75,25 @@ class Index extends Component
 
     #[Url(except: '')]
     public string $ai = '';
+
+    /* Filters pop-up (besides AI suggestion): time elapsed word, document type, date filed range, year level, program. */
+    #[Url(except: '')]
+    public string $elapsed = '';
+
+    #[Url(as: 'doc', except: '')]
+    public string $docType = '';
+
+    #[Url(as: 'from', except: '')]
+    public string $dateFrom = '';
+
+    #[Url(as: 'to', except: '')]
+    public string $dateTo = '';
+
+    #[Url(except: '')]
+    public string $year = '';
+
+    #[Url(except: '')]
+    public string $program = '';
 
     /** The transaction shown in the side panel. */
     #[Url(as: 'open', except: null)]
@@ -113,6 +134,71 @@ class Index extends Component
             $this->picked = [];
             $this->resetPage();
         }
+    }
+
+    /** Any filter changed: back to page 1, nothing ticked. */
+    public function updated(string $name): void
+    {
+        if (in_array($name, ['ai', 'elapsed', 'docType', 'dateFrom', 'dateTo', 'year', 'program'], true)) {
+            $this->picked = [];
+            $this->resetPage();
+        }
+    }
+
+    /** Filters pop-up: every filter off. */
+    public function resetFilters(): void
+    {
+        $this->reset(['ai', 'elapsed', 'docType', 'dateFrom', 'dateTo', 'year', 'program']);
+        $this->picked = [];
+        $this->resetPage();
+    }
+
+    /** How many filters in the pop-up are on (the number on the Filters button). */
+    private function activeFilters(): int
+    {
+        return collect([$this->ai, $this->elapsed, $this->docType, $this->dateFrom . $this->dateTo, $this->year, $this->program])
+            ->filter(fn ($v) => $v !== '')->count();
+    }
+
+    /** The pop-up's own filters on the list (AI suggestion is applied by applyAiFilter). */
+    private function applyFilters(Builder $q): void
+    {
+        if (isset(WaitingTime::FILTER[$this->elapsed])) {
+            [$atLeast, $under] = WaitingTime::FILTER[$this->elapsed];
+            ReviewQueue::waited($q, $atLeast, $under);
+        }
+        if ($this->docType !== '' && DocumentRegistry::find($this->docType)) {
+            $q->where('document_type', $this->docType);
+        }
+        $date = fn (string $d) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) ? $d : null;
+        if ($from = $date($this->dateFrom)) {
+            $q->whereDate('submitted_at', '>=', $from);
+        }
+        if ($to = $date($this->dateTo)) {
+            $q->whereDate('submitted_at', '<=', $to);
+        }
+        if (in_array($this->year, ['1', '2', '3', '4'], true)) {
+            $q->whereHas('user', fn ($u) => $u->where('year_level', $this->year));
+        }
+        if (ctype_digit($this->program)) {
+            $q->whereHas('user', fn ($u) => $u->where('program_id', (int) $this->program));
+        }
+    }
+
+    /** Choices for the pop-up's selects: documents in the open queues, and programs. */
+    private function filterOptions(): array
+    {
+        $docs = ReviewQueue::base()->whereNotIn('workflow_status', ['completed', 'rejected', 'voided'])
+            ->distinct()->pluck('document_type')
+            ->mapWithKeys(fn ($k) => [$k => DocumentRegistry::find($k)?->name()])
+            ->filter()->sort()->all();
+
+        return [
+            'elapsed' => ['today' => 'Today', 'recent' => 'Recent', 'slow' => 'Slow', 'late' => 'Late', 'overdue' => 'Overdue'],
+            'docs' => $docs,
+            'years' => ['1' => '1st year', '2' => '2nd year', '3' => '3rd year', '4' => '4th year'],
+            'programs' => \App\Models\Program::query()->orderBy('name')->pluck('name', 'id')->all(),
+        ];
     }
 
     /** A queue card: the whole queue, without the AI filter. */
@@ -176,7 +262,7 @@ class Index extends Component
         $ws = $this->checkable()->whereKey($id)->first();
 
         if (! $ws) {
-            $this->toast('error', 'Nothing to check', 'This transaction is filled in by staff, or it is no longer open.');
+            $this->toast('error', 'Nothing to check', 'This transaction is no longer open.');
 
             return;
         }
@@ -352,19 +438,16 @@ class Index extends Component
         $this->dispatch('toast', type: $type, title: $title, message: $message);
     }
 
-    /** Open transactions the AI check applies to: the ones students fill in (not office- or staff-issued). */
+    /** Open transactions the AI check applies to: every one, including documents issued by the office or staff. */
     private function checkable(): Builder
     {
         return ReviewQueue::base()->whereNotIn('document_type', self::uncheckedKeys());
     }
 
-    /** Document keys filled in by the office or staff themselves, which the AI does not check. */
+    /** Document keys the AI does not check. None: issued documents are checked too. */
     public static function uncheckedKeys(): array
     {
-        return collect(DocumentRegistry::all())
-            ->filter(fn ($d) => $d->issuedByOffice() || $d->issuerIsStaff())
-            ->keys()
-            ->all();
+        return [];
     }
 
     /* ----------------------------- sorting ---------------------------- */
@@ -384,19 +467,18 @@ class Index extends Component
     /** Options for the sort menu. */
     private function sortOptions(): array
     {
-        $options = ['' => 'Longest waiting first'];
-
-        foreach (self::SORTS as $key => $label) {
-            $options["{$key}:asc"] = match ($key) {
-                'waiting' => 'Waiting: longest first',
-                'risk' => 'AI check: most concerns first',
-                default => "{$label}: A to Z",
-            };
-            $options["{$key}:desc"] = match ($key) {
-                'waiting' => 'Waiting: shortest first',
-                'risk' => 'AI check: fewest concerns first',
-                default => "{$label}: Z to A",
-            };
+        // One word each. The column headers still flip any of these.
+        $options = [
+            '' => 'Oldest',
+            'waiting:desc' => 'Newest',
+            'student:asc' => 'Name',
+            'status:asc' => 'Status',
+            'risk:asc' => 'AI suggestion',
+        ];
+        // A header click can pick an order not listed: name it so the menu still shows it.
+        if ($this->sort !== '' && ! isset($options[$this->sort])) {
+            [$k, $d] = array_pad(explode(':', $this->sort, 2), 2, 'asc');
+            $options[$this->sort] = (self::SORTS[$k] ?? 'Custom') . ($d === 'desc' ? ' ↓' : ' ↑');
         }
 
         return $options;
@@ -427,7 +509,9 @@ class Index extends Component
 
         match ($key) {
             'waiting' => $q->orderByRaw("{$waitingSince} {$dir}"),
-            'status' => $q->orderBy('workflow_status', $dir),
+            // In the order work moves: New first, Ready to finish last (not the stored value's A-Z,
+            // which put "approved" = Ready to finish before "submitted" = New).
+            'status' => $q->orderByRaw("CASE workflow_status WHEN 'submitted' THEN 0 WHEN 'under_review' THEN 1 WHEN 'action_required' THEN 2 WHEN 'approved' THEN 3 ELSE 4 END {$dir}"),
             'risk' => $q->orderByRaw("CASE ai_flag WHEN 'flagged' THEN 0 WHEN 'review_failed' THEN 1 WHEN 'pending' THEN 2 WHEN 'clean' THEN 4 ELSE 3 END {$flipped}")
                 ->orderByRaw("{$risk} {$riskDir}"),
             'student' => $q->orderBy(
@@ -523,10 +607,6 @@ class Index extends Component
             ->limit(3)
             ->get());
 
-        $overdue = ReviewQueue::withWaitingSince(ReviewQueue::overdue())->with('user')->get()
-            ->each(fn ($w) => $w->waiting_since = ReviewQueue::waitingSince($w))
-            ->sortBy('waiting_since')
-            ->values();
         $lateCounts = collect(self::FLAGGED_TABS)
             ->mapWithKeys(fn ($key) => [$key => ReviewQueue::apply(ReviewQueue::overdue(), $key)->count()]);
 
@@ -559,15 +639,13 @@ class Index extends Component
         }
 
         $this->applyAiFilter($q);
-        $uncheckedInTab = ReviewQueue::apply($this->checkable(), $queue)
-            ->where(fn ($w) => $w->whereNull('ai_flag')->orWhere('ai_flag', 'review_failed'))
-            ->count();
+        $this->applyFilters($q);
 
         $this->applySort($q);
 
         [$sortKey, $sortDir] = $this->parsedSort();
 
-        $rows = $q->paginate(20);
+        $rows = $q->paginate(50);
         $flagged = in_array($queue, self::FLAGGED_TABS, true);
         $skipAi = self::uncheckedKeys();
         // Waiting on student: the student has the next move, so show the plain age only.
@@ -585,13 +663,12 @@ class Index extends Component
             'counts' => $counts,
             'faces' => $faces,
             'lateCounts' => $lateCounts,
-            'overdue' => $overdue,
             'flaggedCount' => $flaggedCount,
             'flaggedFaces' => $flaggedFaces,
-            'uncheckedInTab' => $uncheckedInTab,
-            'readyCount' => ReviewQueue::base()->where('workflow_status', 'approved')->count(),
             'tabs' => self::TABS,
             'aiFilters' => self::AI_FILTERS,
+            'filterOptions' => $this->filterOptions(),
+            'activeFilters' => $this->activeFilters(),
             'sortKey' => $sortKey,
             'sortDir' => $sortDir,
             'sortOptions' => $this->sortOptions(),

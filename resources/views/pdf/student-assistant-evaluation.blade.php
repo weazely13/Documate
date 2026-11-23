@@ -128,7 +128,7 @@
 </div>
 <div class="ln">
     <div class="lbl" style="left:0; width:134pt;">Office/Area Assignment:</div>
-    <div class="val" style="left:136pt; width:351pt; font-size:{{ $fit($office, 351) }}pt;">{{ $office }}</div>
+    <div data-f="office_area" class="val" style="left:136pt; width:351pt; font-size:{{ $fit($office, 351) }}pt;">{{ $office }}</div>
 </div>
 
 <div class="dir">

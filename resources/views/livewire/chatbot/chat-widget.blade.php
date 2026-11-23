@@ -65,7 +65,7 @@
                     <span class="chatbot-mini-avatar" aria-hidden="true"><i class='bx bx-bot'></i></span>
                     <div class="chatbot-bubble chatbot-bubble-bot chatbot-msg-content">
                         @if ($loop->first && $isFresh && $user?->first_name)
-                            <p class="chatbot-hello">Hi, {{ $user->first_name }}.</p>
+                            <p class="chatbot-hello">Hi, {{ $user->display_first_name }}.</p>
                         @endif
                         {!! \App\Support\MarkdownLite::toHtml($message['content']) !!}
                     </div>

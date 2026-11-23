@@ -11,10 +11,10 @@
     [$verdict, $pill] = match (true) {
         $flag === 'pending' => ['Checking…', 'bg-sky-50 text-[#1E4090] ring-sky-200'],
         $flag === 'review_failed' => ['Check failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200'],
-        $flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200'],
-        $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        $flag === 'flagged' => ['Requires checking', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        default => ['No issues', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
+        $flag === null => ['Unchecked', 'bg-slate-100 text-slate-600 ring-slate-200'],
+        $rec === 'reject' => ['Reject', 'bg-rose-50 text-rose-800 ring-rose-200'],
+        $flag === 'flagged' => ['Flagged', 'bg-amber-50 text-amber-800 ring-amber-200'],
+        default => ['Clear', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
     };
     $bar = match (true) {
         $risk === null => 'bg-slate-300',

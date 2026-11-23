@@ -31,6 +31,12 @@ class TemplateManager extends Component
     #[Url(as: 'sort', except: 'recent')]
     public string $sort = 'recent';
 
+    /** The Filters pop-up's Reset: every category, recently edited first (the search stays). */
+    public function resetFilters(): void
+    {
+        $this->reset(['filterCategory', 'sort']);
+    }
+
     // The "New template" dialog
     public bool $showCreate = false;
     public string $name = '';

@@ -73,17 +73,15 @@ class Dashboard extends Component
     }
 
     /**
-     * Counts that each lead to a page where someone has to act. They do not overlap: the 'attention'
-     * queue also holds the fully signed (approved) ones, which are counted under ready instead.
+     * Counts that each lead to a page where someone has to act. They do not overlap, and match the Workflow
+     * Review queues: Review (attention), Issuance (signed, or issued by a signatory), Signing.
      */
     private function workload(): array
     {
-        $ready = ReviewQueue::base()->where('workflow_status', 'approved')->count();
-
         return [
-            'to_review' => ReviewQueue::query('attention')->where('workflow_status', '!=', 'approved')->count(),
-            'overdue' => ReviewQueue::apply(ReviewQueue::overdue(), 'attention')->where('workflow_status', '!=', 'approved')->count(),
-            'ready' => $ready,
+            'to_review' => ReviewQueue::query('attention')->count(),
+            'overdue' => ReviewQueue::apply(ReviewQueue::overdue(), 'attention')->count(),
+            'ready' => ReviewQueue::query('issuance')->count(),
             'signing' => ReviewQueue::query('signing')->count(),
             'signing_late' => ReviewQueue::apply(ReviewQueue::overdue(), 'signing')->count(),
             'appointment_requests' => Appointment::where('status', 'pending')->count(),
@@ -209,7 +207,7 @@ class Dashboard extends Component
                 'avatar' => $r->user?->avatarUrl(),
                 'status' => $r->status,
                 'organization' => $r->organization,
-                'by' => $r->taggedByUser?->first_name,
+                'by' => $r->taggedByUser?->display_first_name,
                 'when' => ($r->tagged_at ?? $r->updated_at)?->diffForHumans(short: true),
                 'url' => $r->user_id ? route('admin.clearance-monitoring.show', $r->user_id) : null,
             ])
@@ -247,7 +245,7 @@ class Dashboard extends Component
         $days = $this->range = DashboardInsights::range($this->range);
         $since = today()->subDays($days - 1);
 
-        $submitted = DashboardInsights::metric('submitted', 'Submitted', $this->submittedDocuments(), DashboardInsights::SUBMITTED_AT, $days);
+        $submitted = DashboardInsights::metric('submitted', 'Filed', $this->submittedDocuments(), DashboardInsights::SUBMITTED_AT, $days);
         $completed = DashboardInsights::metric('completed', 'Completed', StudentDocumentWorkspace::query(), 'student_document_workspaces.completed_at', $days);
 
         $closed = StudentDocumentWorkspace::query()
@@ -268,12 +266,12 @@ class Dashboard extends Component
         // Colours follow the page-wide code (cyan = on the office's desk, violet = signatories, amber = student,
         // green = ready) and pass the dataviz palette checks; paper forms are the neutral "other" slice.
         $stages = [
-            ['Awaiting admin review', $work['to_review'], '#0891b2', 'Staff need to review these'],
-            ['Pending signatory action', $work['signing'], '#9061f9', 'Waiting for officials to sign'],
-            ['Sent back to the student for changes', ReviewQueue::query('action_required')->count(), '#d97706', 'Returned to the student for required changes'],
-            ['Ready to finish', $work['ready'], '#0e9f6e', 'Fully signed, just needs completing'],
+            ['Review', $work['to_review'], '#0891b2', 'For the office to check'],
+            ['Signing', $work['signing'], '#9061f9', 'With the signers'],
+            ['Revision', ReviewQueue::query('action_required')->count(), '#d97706', 'With the student to fix'],
+            ['Issuance', $work['ready'], '#0e9f6e', 'Signed, ready to issue'],
             // Paper forms count as open until missed (two weeks without a visit), as in Transaction Records.
-            ['Paper-based forms', StudentDocumentWorkspace::query()->whereNull('workflow_status')->where('status', '!=', 'completed')
+            ['Paper', StudentDocumentWorkspace::query()->whereNull('workflow_status')->where('status', '!=', 'completed')
                 ->where('created_at', '>=', now()->subDays(14))->count(), '#64748b', 'Printed forms awaiting a visit or upload'],
         ];
 
@@ -286,7 +284,7 @@ class Dashboard extends Component
                 'labels' => array_column($submitted['series'], 'd'),
                 // Cyan = coming in, blue = finished: the same meaning as everywhere else on the page.
                 'series' => [
-                    ['Submitted', '#0891b2', array_column($submitted['series'], 'v')],
+                    ['Filed', '#0891b2', array_column($submitted['series'], 'v')],
                     ['Completed', '#2A57B4', array_column($completed['series'], 'v')],
                 ],
             ],
@@ -468,7 +466,7 @@ class Dashboard extends Component
         $work = $this->workload();
 
         return view('livewire.admin.dashboard', [
-            'firstName' => auth()->user()?->first_name ?: 'there',
+            'firstName' => auth()->user()?->display_first_name ?: 'there',
             'semesterLabel' => $semester?->label(),
             'work' => $work,
             'transactions' => $this->transactions($work),

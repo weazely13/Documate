@@ -11,25 +11,19 @@
 {{-- My documents, laid out like the student's Appointments: header, a one-line toolbar card, then one list card. --}}
 <div class="mx-auto max-w-6xl space-y-5 pb-28">
 
-    {{-- Header --}}
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div class="min-w-0">
-            <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">My documents</h1>
-            <p class="mt-0.5 text-sm text-slate-500">View all transactions you have initiated and documents issued to you.</p>
-        </div>
-        <a href="{{ route('student.home') }}" wire:navigate class="{{ $btnPrimary }} shrink-0">
-            <i class="bx bx-plus text-base" aria-hidden="true"></i> New transaction
-        </a>
-    </div>
+    {{-- The top bar already says "My Documents"; forms are started from Home. --}}
+    <h1 class="sr-only">My documents</h1>
 
-    {{-- Toolbar: tabs and search on one line at every width --}}
+    {{-- Toolbar: tabs, search and layout on one line at every width. On phones the counts become a dot
+         (Issued only, when something new is there) and search is a button that opens over the bar. --}}
     <div class="relative flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-2 sm:gap-2 sm:p-3">
-        <nav class="inline-flex shrink-0 rounded-lg bg-slate-100 p-1" aria-label="Documents">
+        <nav class="inline-flex min-w-0 shrink rounded-lg bg-slate-100 p-1" aria-label="Documents">
             @foreach ($tabs as $key => $label)
                 @php $on = $tab === $key; $count = $this->counts[$key] ?? 0; @endphp
-                <button type="button" wire:click="$set('tab', '{{ $key }}')" wire:key="tab-{{ $key }}" @if ($on) aria-current="page" @endif class="{{ $segS($on) }}">
+                <button type="button" wire:click="$set('tab', '{{ $key }}')" wire:key="tab-{{ $key }}" @if ($on) aria-current="page" @endif class="{{ $segS($on) }} relative whitespace-nowrap max-sm:justify-center max-sm:gap-1 max-sm:px-2">
                     <span class="sm:hidden">{{ $short[$key] }}</span><span class="hidden sm:inline">{{ $label }}</span>
-                    <span class="rounded-full px-1.5 text-[11px] tabular-nums {{ $on ? 'bg-[#e2e9f7] text-[#1E4090]' : ($key === 'issued' && $count ? 'bg-amber-100 text-amber-800' : 'bg-white/80 text-slate-600') }}">{{ $count }}</span>
+                    <span class="rounded-full px-1.5 text-[11px] tabular-nums max-sm:hidden {{ $on ? 'bg-[#e2e9f7] text-[#1E4090]' : ($key === 'issued' && $count ? 'bg-amber-100 text-amber-800' : 'bg-white/80 text-slate-600') }}">{{ $count }}</span>
+                    @if ($key === 'issued' && $count && ! $on)<span class="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-slate-100 sm:hidden" aria-hidden="true"></span>@endif
                 </button>
             @endforeach
         </nav>
@@ -82,7 +76,6 @@
                     No documents match "{{ $search }}". Try another word.
                 @elseif ($tab === 'active')
                     Nothing in progress.
-                    <a href="{{ route('student.home') }}" wire:navigate class="ml-1 font-medium text-[#2A57B4] hover:underline">Start a new transaction</a>
                 @elseif ($tab === 'issued')
                     Nothing issued to you. Slips, advisements and other documents the VPSD office or a signatory issues to you show up here.
                 @else

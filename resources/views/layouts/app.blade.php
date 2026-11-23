@@ -31,12 +31,9 @@
         $role = auth()->user()->role->role_name ?? null;
         $profileActive = request()->routeIs('profile');
         $profileUrl = route('profile');
-        $fullName = trim(preg_replace('/\s+/', ' ', implode(' ', array_filter([
-            auth()->user()->first_name ?? null,
-            auth()->user()->middle_name ?? null,
-            auth()->user()->last_name ?? null,
-        ]))));
-        $sidebarFirstName = auth()->user()->first_name ?: ($fullName ?: 'User');
+        // With the honorific the person chose (Dr., Prof. ...), as everywhere their name is shown.
+        $fullName = auth()->user()->full_name;
+        $sidebarFirstName = auth()->user()->display_first_name ?: ($fullName ?: 'User');
         $roleLabel = auth()->user()->role->role_name ?? 'User';
         $sidebarSub = auth()->user()->student_number
             ? auth()->user()->student_number . ' | ' . $roleLabel
@@ -55,13 +52,12 @@
             $navSections[] = ['key' => 'workspace', 'label' => 'Workspace', 'items' => [
                 ['Home', 'bx-home', 'student.home', ['student.home', 'student.new-transaction*', 'student.transactions.new'], 0],
                 ['My Documents', 'bx-folder', 'student.documents.index', ['student.documents.*', 'student.transactions.show'], $slipCount],
-                ['Appointments', 'bx-calendar', 'student.appointments.index', ['student.appointments.*'], 0],
-                ['Clearance Status', 'bx-check-circle', 'student.clearance-status', ['student.clearance-status'], 0],
-                ['Activity Summary', 'bx-line-chart', 'student.dashboard', ['student.dashboard'], 0],
+                ['Appointments', 'bx-calendar', 'student.appointments.index', ['student.appointments.*'], \App\Support\NavCounts::upcomingAppointments(auth()->user())],
+                ['Clearance Status', 'bx-check-circle', 'student.clearance-status', ['student.clearance-status'], \App\Support\NavCounts::uncleared(auth()->user())],
             ]];
             if ($role === 'Officer') {
                 $navSections[] = ['key' => 'officer', 'label' => 'Student Officer', 'items' => [
-                    ['Clearance Tagging', 'bx-check-shield', 'officer.clearance', ['officer.clearance'], 0],
+                    ['Clearance Tagging', 'bx-check-shield', 'officer.clearance', ['officer.clearance'], \App\Support\NavCounts::untaggedMembers(auth()->user())],
                 ]];
             }
         }
@@ -71,18 +67,18 @@
             $navSections[] = ['key' => 'workspace', 'label' => 'Workspace', 'items' => [
                 ['Dashboard', 'bx-home', 'admin.dashboard', ['admin.dashboard'], 0],
                 ['Workflow Review', 'bx-task', 'admin.workflow.index', ['admin.workflow.*'], $reviewCount],
-                ['Appointments', 'bx-calendar', 'admin.appointments.index', ['admin.appointments.*'], 0],
+                ['Appointments', 'bx-calendar', 'admin.appointments.index', ['admin.appointments.*'], \App\Support\NavCounts::pendingAppointments()],
                 ['Transaction Records', 'bx-transfer', 'admin.transactions.index', ['admin.transactions.*'], 0],
             ]];
             // Templates and Uploads share one area; accounts, verifications, organizations and signatories share another
             $navSections[] = ['key' => 'manage', 'label' => 'Management', 'items' => [
-                ['Templates & Uploads', 'bx-file', 'admin.templates', ['admin.document-uploads.*', 'admin.templates*'], 0],
+                ['Templates & Uploads', 'bx-file', 'admin.templates', ['admin.document-uploads.*', 'admin.templates*'], \App\Support\NavCounts::uploadsToDo()],
                 ['Clearance', 'bx-clipboard', 'admin.clearance-monitoring', ['admin.clearance-monitoring*'], 0],
-                ['Users Manager', 'bx-group', 'admin.users', ['admin.users', 'admin.verification', 'admin.semesters'], 0],
+                ['Users Manager', 'bx-group', 'admin.users', ['admin.users', 'admin.verification', 'admin.semesters'], \App\Support\NavCounts::pendingVerifications()],
                 ['Reports', 'bx-bar-chart', 'admin.reports', ['admin.reports'], 0],
             ]];
             $navSections[] = ['key' => 'system', 'label' => 'System', 'items' => [
-                ['Feedback & Issues', 'bx-message-square-dots', 'admin.feedback', ['admin.feedback'], \App\Models\FeedbackReport::where('status', 'new')->count()],
+                ['Feedback', 'bx-message-square-dots', 'admin.feedback', ['admin.feedback'], \App\Models\FeedbackReport::unread()->count()],
                 ['Audit Trail', 'bx-history', 'admin.audit-trail', ['admin.audit-trail'], 0],
             ]];
         }
@@ -100,7 +96,7 @@
                 if (! $ownAccount) {
                     $signItems[] = ['Issue a Report', 'bx-file', 'signatory.issue', ['signatory.issue'], 0];
                 }
-                $signItems[] = ['Issued Documents', 'bx-folder-open', 'signatory.issued', ['signatory.issued*'], 0];
+                $signItems[] = ['Issued Documents', 'bx-folder-open', 'signatory.issued', ['signatory.issued*'], \App\Support\NavCounts::issuedNeedingChanges(auth()->user())];
             }
             if (auth()->user()->holdsSignatoryRole('guidance_counselor')) {
                 $signItems[] = ['My Availability', 'bx-time', 'signatory.availability', ['signatory.availability'], 0];
@@ -153,7 +149,7 @@
                 <span class="logo-text">DocuMate</span>
             </a>
 
-            <a href="{{ $profileUrl }}" wire:navigate class="nav-account {{ $profileActive ? 'active' : '' }}" data-tooltip="Profile">
+            <a href="{{ $profileUrl }}" wire:navigate data-tour="nav-profile" class="nav-account {{ $profileActive ? 'active' : '' }}" data-tooltip="Profile">
                 <span class="nav-account-img">
                     <img src="{{ $avatarUrl }}" alt="">
                 </span>
@@ -164,20 +160,11 @@
                 <i class='bx bx-chevron-right'></i>
             </a>
 
-            <div class="nav-search">
-                <button type="button" class="nav-search-btn" data-nav-search-open data-tooltip="Search pages" aria-label="Search pages">
-                    <i class='bx bx-search'></i>
-                </button>
-                <span class="nav-search-field">
-                    <input type="search" id="navSearch" placeholder="Search" autocomplete="off" aria-label="Search pages">
-                    <kbd data-nav-kbd>Ctrl K</kbd>
-                </span>
-            </div>
         </div>
 
         <nav class="nav-body">
             @foreach($navSections as $section)
-                <div class="nav-section">
+                <div class="nav-section {{ $section['key'] === 'signing' ? 'is-scroll' : '' }}">
                     @if(! empty($section['parent']))
                         @php [$parentLabel, $parentIcon] = $section['parent']; @endphp
                         <div class="nav-parent" data-nav-parent="{{ $section['key'] }}" @if($section['active']) data-nav-current @endif>
@@ -192,7 +179,7 @@
                             <div class="nav-children">
                                 @foreach($section['items'] as [$label, $icon, $routeName, $patterns, $badge])
                                     @php $isActive = request()->routeIs(...$patterns); @endphp
-                                    <a href="{{ route($routeName) }}" wire:navigate data-nav-item
+                                    <a href="{{ route($routeName) }}" wire:navigate data-nav-item data-tour="nav-{{ $routeName }}"
                                        class="nav-child {{ $isActive ? 'active' : '' }}"
                                        @if($isActive) aria-current="page" @endif>
                                         <span class="nav-label">{{ $label }}</span>
@@ -206,7 +193,7 @@
                     @else
                         @foreach($section['items'] as [$label, $icon, $routeName, $patterns, $badge])
                             @php $isActive = request()->routeIs(...$patterns); @endphp
-                            <a href="{{ route($routeName) }}" wire:navigate data-nav-item
+                            <a href="{{ route($routeName) }}" wire:navigate data-nav-item data-tour="nav-{{ $routeName }}"
                                class="nav-link {{ $isActive ? 'active' : '' }}" data-tooltip="{{ $label }}"
                                @if($isActive) aria-current="page" @endif>
                                 <i class='bx {{ $icon }}'></i>
@@ -225,14 +212,14 @@
 
             <div class="nav-section is-foot">
                 @if($role !== 'Admin')
-                    <a href="{{ route('support.feedback') }}" wire:navigate data-nav-item
-                       class="nav-link {{ request()->routeIs('support.feedback') ? 'active' : '' }}" data-tooltip="Feedback & Issues">
+                    <a href="{{ route('support.feedback') }}" wire:navigate data-nav-item data-tour="nav-support.feedback"
+                       class="nav-link {{ request()->routeIs('support.feedback') ? 'active' : '' }}" data-tooltip="Feedback">
                         <i class='bx bx-message-square-dots'></i>
-                        <span class="nav-label">Feedback & Issues</span>
+                        <span class="nav-label">Feedback</span>
                     </a>
                 @endif
-                @if(in_array($role, ['Student', 'Officer'], true))
-                    <a href="{{ route('handbook') }}" wire:navigate data-nav-item
+                @if(! $inactive)
+                    <a href="{{ route('handbook') }}" wire:navigate data-nav-item data-tour="nav-handbook"
                        class="nav-link {{ request()->routeIs('handbook') ? 'active' : '' }}" data-tooltip="Handbook">
                         <i class='bx bx-book'></i>
                         <span class="nav-label">Handbook</span>
@@ -293,6 +280,11 @@
                 </div>
             </div>
 
+            {{-- CENTER: search every page (Ctrl K); not on the Appointments board, which has its own search --}}
+            @unless (request()->routeIs('admin.appointments.index'))
+                @include('layouts.partials.page-search')
+            @endunless
+
             {{-- RIGHT --}}
             <div class="topbar-right shrink-0">
                 {{-- topbar-right in layouts.app --}}
@@ -326,9 +318,14 @@
 
        
         @livewire('account-lock-banner', key('account-lock-banner-' . auth()->id()))
+
+        {{-- What the sidebar's numbers count, as a pop-up on every page --}}
+        @unless ($inactive)
+            @include('layouts.partials.attention-popup')
+        @endunless
      
 
-        <div class="content flex-1 overflow-y-auto {{ request()->routeIs('handbook*') ? 'p-0' : 'p-4 md:p-6' }}">
+        <div class="content flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none {{ request()->routeIs('handbook*') ? 'p-0' : 'p-4 md:p-6' }}">
             {{ $slot }}
         </div>
         
@@ -339,16 +336,26 @@
                 $chatRoute = request()->route()?->getName();
                 $chatTip = \App\Support\ChatScreen::tip($chatRoute);
             @endphp
-            <button type="button" class="chatbot-btn" id="chatbotBtn" aria-label="Open the DocuMate Assistant" aria-controls="chatbotPanel" aria-expanded="false">
+            <button type="button" class="chatbot-btn" id="chatbotBtn" aria-label="Open the DocuMate Assistant" aria-controls="chatbotPanel" aria-expanded="false"
+                    onmouseenter="window.dispatchEvent(new CustomEvent('chatbot-hover', { detail: true }))"
+                    onmouseleave="window.dispatchEvent(new CustomEvent('chatbot-hover', { detail: false }))">
                 <i class='bx bxs-bot'></i>
             </button>
 
-            {{-- On every page: a short tip from the assistant about what to do here --}}
+            {{-- On every page: a short tip from the assistant about what to do here. It pops up once for a few
+                 seconds when the page opens, and again whenever the pointer is over the assistant button. --}}
             <div class="chatbot-tip" role="status" aria-live="polite"
                  x-data="{
-                    show: false,
+                    show: false, over: false, timer: null,
                     key: @js('documate-tip:' . ($chatRoute ?? request()->path())),
-                    close() { this.show = false; sessionStorage.setItem(this.key, '1'); },
+                    busy() { return !!document.querySelector('.chatbot-panel-open') || !!document.getElementById('dm-tour-title'); },
+                    hideSoon(ms) { clearTimeout(this.timer); this.timer = setTimeout(() => { if (!this.over) this.show = false; }, ms); },
+                    flash() { if (this.busy()) return; this.show = true; this.hideSoon(5000); },
+                    hover(on) {
+                        if (on) { if (this.busy()) return; clearTimeout(this.timer); this.show = true; }
+                        else this.hideSoon(450);
+                    },
+                    close() { clearTimeout(this.timer); this.show = false; try { sessionStorage.setItem(this.key, '1'); } catch (e) {} },
                     help() {
                         this.close();
                         const panel = document.getElementById('chatbotPanel');
@@ -356,11 +363,15 @@
                         setTimeout(() => window.dispatchEvent(new CustomEvent('chatbot-ask', { detail: 'What should I do on this page?' })), 250);
                     },
                  }"
-                 x-init="if (!sessionStorage.getItem(key)) { setTimeout(() => { if (!document.querySelector('.chatbot-panel-open')) show = true; }, 1200); setTimeout(() => show = false, 16000); }"
-                 x-on:chatbot-opened.window="show = false"
+                 x-init="let seen = null; try { seen = sessionStorage.getItem(key); } catch (e) {}
+                         if (!seen) { setTimeout(() => { flash(); try { sessionStorage.setItem(key, '1'); } catch (e) {} }, 1200); }"
+                 x-effect="document.getElementById('chatbotBtn')?.classList.toggle('is-talking', show)"
+                 x-on:chatbot-hover.window="hover($event.detail)"
+                 @mouseenter="over = true; clearTimeout(timer)" @mouseleave="over = false; hideSoon(450)"
+                 x-on:chatbot-opened.window="show = false" x-on:tour-started.window="show = false"
                  x-show="show" x-cloak
-                 x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                 x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0 translate-y-1">
+                 x-transition:enter="chatbot-tip-enter" x-transition:enter-start="chatbot-tip-from" x-transition:enter-end="chatbot-tip-to"
+                 x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 translate-y-1 scale-90">
                 <button type="button" @click="close()" class="chatbot-tip-close" aria-label="Hide this tip"><i class='bx bx-x'></i></button>
                 <p class="chatbot-tip-title"><i class='bx bx-bot' aria-hidden="true"></i>{{ $chatTip['page'] }}</p>
                 <p class="chatbot-tip-text">{{ $chatTip['text'] }}</p>
@@ -652,12 +663,9 @@
 
             document.addEventListener('keydown', (event) => {
                 if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-                    const search = document.getElementById('navSearch');
-                    if (!search) return;
+                    // The page search in the top bar
                     event.preventDefault();
-                    revealSidebar();
-                    search.focus();
-                    search.select();
+                    window.dispatchEvent(new CustomEvent('open-page-search'));
                     return;
                 }
 

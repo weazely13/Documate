@@ -61,7 +61,7 @@ final class DisciplinaryReferralSlip extends WorkflowDocument
         $user = auth()->user();
 
         // A signature is only required when the issuer has signing turned on.
-        if ($user?->signature_enabled && empty($user->signature_path)) {
+        if ($user && empty($user->signature_path)) {
             return 'Upload your signature in your profile before issuing this slip.';
         }
 

@@ -1,5 +1,4 @@
 @php
-    $tones = \App\Support\DocumentProgress::TONES;
 
     $attentionStyle = [
         'amber' => ['icon' => 'bx-edit bg-amber-100 text-amber-700', 'title' => 'text-amber-950'],
@@ -195,7 +194,7 @@
                                         <span class="mt-0.5 block text-xs {{ $doc['tone'] === 'you' ? 'text-amber-800' : 'text-gray-500' }}">{{ $doc['next'] }}</span>
                                     @endif
                                     <span class="mt-2.5 flex items-center justify-between gap-3">
-                                        <span class="min-w-0 truncate rounded-md px-1.5 py-0.5 text-xs font-semibold {{ $tones[$doc['tone']] }}">{{ $doc['label'] }}</span>
+                                        <x-status-badge :status="$doc['state']" class="min-w-0 truncate" />
                                         <span class="shrink-0 text-xs tabular-nums text-gray-500">Step {{ min(4, $doc['step'] + 1) }} of 4</span>
                                     </span>
                                     <span class="mt-2 grid grid-cols-4 gap-1" aria-hidden="true">
@@ -231,7 +230,7 @@
                                             </a>
                                         </td>
                                         <td class="px-4 py-3.5 align-top">
-                                            <span class="inline-block max-w-full break-words rounded-md px-1.5 py-0.5 text-xs font-semibold leading-snug {{ $tones[$doc['tone']] }}">{{ $doc['label'] }}</span>
+                                            <x-status-badge :status="$doc['state']" class="max-w-full" />
                                         </td>
                                         <td class="py-3.5 pl-4 align-top">
                                             <div class="mt-1.5 grid grid-cols-4 gap-1" aria-hidden="true">

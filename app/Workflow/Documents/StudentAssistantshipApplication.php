@@ -147,7 +147,7 @@ final class StudentAssistantshipApplication extends WorkflowDocument
 
         $holder = SignatoryRole::where('key', 'vpsd')->first()?->holdersFor(null, null)->first();
 
-        $values['vpsd_name'] = $holder ? FormSupport::systemValue($holder, 'formatted_full_name') : null;
+        $values['vpsd_name'] = $holder ? FormSupport::systemValue($holder, 'signing_name') : null;
 
         return $values;
     }

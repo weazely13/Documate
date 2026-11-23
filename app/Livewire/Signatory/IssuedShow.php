@@ -28,6 +28,14 @@ class IssuedShow extends Component
         $this->workspaceId = $workspace->workspace_id;
     }
 
+    /** Re-runs the AI check on this document (advice only, as in Workflow Review). */
+    public function runAiCheck(): void
+    {
+        $ws = StudentDocumentWorkspace::findOrFail($this->workspaceId);
+        abort_unless($ws->wasIssuedBy(Auth::user()), 404);
+        \App\Jobs\ReviewTransactionSubmission::start($ws);
+    }
+
     public function render()
     {
         $user = Auth::user();

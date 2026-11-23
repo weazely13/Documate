@@ -281,7 +281,7 @@
                         </fieldset>
                         @error('rating') <p id="ext-rating-error" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
                     @else
-                        <p class="{{ $help }}">Score each item honestly. Your answers are sealed with your signature.</p>
+                        <p class="{{ $help }}">Sealed with your signature.</p>
                         <div class="mt-3">
                             @include('livewire.workflow._signer-fields', ['fields' => $signerFields])
                         </div>
@@ -293,24 +293,24 @@
             <section class="px-4 py-5 sm:px-5" aria-labelledby="ext-sec-sign">
                 <h3 id="ext-sec-sign" class="text-sm font-semibold text-slate-900">Your signature</h3>
 
-                <label for="ext-name" class="{{ $label }} mt-3">Your full name, as it will be printed <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+                <label for="ext-name" class="{{ $label }} mt-3">Your full name <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
                 <div class="{{ $box }} {{ $errors->has('signerName') ? 'border-rose-400' : '' }}">
                     <i class="bx bx-user text-base text-slate-400" aria-hidden="true"></i>
                     <input id="ext-name" type="text" wire:model="signerName" maxlength="120" autocomplete="name" class="{{ $bare }}"
                            aria-required="true" aria-describedby="ext-name-help @error('signerName') ext-name-error @enderror" @error('signerName') aria-invalid="true" @enderror>
                 </div>
-                <p id="ext-name-help" class="{{ $help }}">Include your title, e.g. Dr. Maria Santos or Prof. Juan Dela Cruz. It is printed above the signature line, after "Digitally signed by".</p>
+                <p id="ext-name-help" class="{{ $help }}">With your title, e.g. Dr. Maria Santos. Printed on the signature line.</p>
                 @error('signerName') <p id="ext-name-error" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
 
                 <label for="ext-apply" class="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-3.5 py-3 text-sm text-slate-700 hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50/50">
                     <input id="ext-apply" type="checkbox" wire:model.live="applySignature" class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]">
                     <span><span class="font-medium text-slate-900">Add my handwritten signature image</span>
-                        <span class="block text-xs text-slate-500">Optional. If you leave this off, your name, verified email and a security seal are still recorded, so you can finish with the keyboard alone.</span></span>
+                        <span class="block text-xs text-slate-500">Optional. Your name, email and seal are recorded either way.</span></span>
                 </label>
 
                 <div x-show="$wire.applySignature" x-cloak class="mt-3">
                     <p class="{{ $label }}">Draw your signature</p>
-                    <p class="{{ $help }} mt-0">Use your finger, a stylus or the mouse.</p>
+                    <p class="{{ $help }} mt-0">Finger, stylus or mouse.</p>
                     @include('partials.signature-pad', ['model' => 'signature'])
                     @error('signature') <p class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
                 </div>

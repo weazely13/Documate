@@ -5,18 +5,11 @@
     $wf = $workspace->usesWorkflow();
 
     [
-        'title' => $title, 'href' => $href, 'issued' => $issued, 'label' => $label,
+        'title' => $title, 'href' => $href, 'issued' => $issued, 'state' => $state,
         'tone' => $tone, 'step' => $step, 'next' => $next, 'closed' => $closed,
     ] = \App\Support\DocumentProgress::describe($workspace);
     [$thumb, $thumbIsImage] = \App\Support\DocumentProgress::thumbnail($workspace);
 
-    $pill = match ($tone) {
-        'you' => 'bg-amber-50 text-amber-800 ring-amber-200',
-        'office' => 'bg-[#e2e9f7] text-[#1E4090] ring-sky-200',
-        'signing' => 'bg-violet-50 text-violet-800 ring-violet-200',
-        'done' => 'bg-emerald-50 text-emerald-800 ring-emerald-200',
-        default => 'bg-slate-100 text-slate-600 ring-slate-200',
-    };
     $nextTone = match ($tone) {
         'you' => 'text-amber-800',
         'done' => 'text-emerald-800',
@@ -47,7 +40,7 @@
         @else
             <div class="flex h-full items-center justify-center bg-[#f0f4fb] text-[#1E4090]"><i class="bx bx-file text-4xl"></i></div>
         @endif
-        <span class="absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ring-1 {{ $pill }}">{{ $label }}</span>
+        <x-status-badge :status="$state" class="absolute left-2 top-2 shadow-sm" />
     </div>
 
     <div class="flex flex-1 flex-col p-3 sm:p-3.5">

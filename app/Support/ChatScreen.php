@@ -82,7 +82,7 @@ class ChatScreen
         'admin.dashboard' => ['Dashboard', 'The VPSD office overview: requests to review, signatures, clearance, appointments and trends.', [
             'Open a card to go to that queue.',
         ]],
-        'admin.workflow.index' => ['Workflow Review', 'Online transactions awaiting admin review: To review, In signing, Waiting on student, and those flagged by the AI check.', [
+        'admin.workflow.index' => ['Workflow Review', 'Online transactions awaiting the office: Issuance, Signing, Revision, Review, and those Flagged by the AI check.', [
             'Open a row to check it, then send it for signing, ask for changes or reject it.',
             'Tick rows to run the AI check on several at once.',
         ]],
@@ -93,7 +93,7 @@ class ChatScreen
             'Choose the document, find the student, fill in the form, then issue it; save a draft to finish later.',
         ]],
         'admin.appointments.index' => ['Appointments', 'The office calendar of student visits, by month, week, day or list.', [
-            'Approve or reject requests, see today\'s queue, mark visits attended or missed, and set office hours.',
+            'Approve or reject requests, see today\'s queue, mark visits attended or missed, and, on the calendar, set how many appointments each session allows.',
         ]],
         'admin.appointments.show' => ['Appointment', 'One appointment request.', ['Approve, reject (with a reason), reschedule, or mark it attended or missed.']],
         'admin.transactions.index' => ['Transaction Records', 'The archive of every transaction, online and paper: by folder (document type), by student, or all documents.', [
@@ -127,7 +127,7 @@ class ChatScreen
         'admin.semesters' => ['Semesters', 'The school calendar: create semesters and see which one is current.', []],
         'admin.reports' => ['Reports', 'Reports on transactions, appointments and clearance.', ['Pick a report and a period, then view or download it.']],
         'admin.audit-trail' => ['Audit Trail', 'Who did what and when, across the system.', ['Filter by person, action or date.']],
-        'admin.feedback' => ['Feedback & Issues', 'Feedback and problem reports from users.', []],
+        'admin.feedback' => ['Feedback', 'Feedback from users.', []],
 
         // Signatories
         'signatory.home' => ['Signing home', 'Documents waiting for your signature and the roles you sign for.', []],
@@ -147,6 +147,12 @@ class ChatScreen
             'page' => $page ?? 'Need a hand?',
             'text' => $actions[0] ?? $purpose ?? 'Not sure what to do here? I can walk you through this page.',
         ];
+    }
+
+    /** What a page is for, in one line (the page search shows it under the page name). */
+    public static function purpose(?string $routeName): ?string
+    {
+        return self::GUIDES[$routeName][1] ?? null;
     }
 
     /** The page's plain name for a route, e.g. "Workflow Review". */

@@ -34,10 +34,27 @@ class Issue extends Component
     /** The saved draft being worked on (Save draft / Home "Pick up where you left off"). */
     public ?int $draftId = null;
 
+    /** The admin gets a dropdown of the documents they may issue; signatories pick on Home or Explore first. */
+    public bool $showPicker = false;
+
+    /** Documents this person may issue, for the picker: key => [name, description]. */
+    #[Computed]
+    public function documentChoices(): array
+    {
+        return collect($this->officeDocuments())
+            ->map(fn (WorkflowDocument $d) => [$d->name(), (string) $d->description()])
+            ->sortBy(fn ($c) => $c[0])
+            ->all();
+    }
+
     public function mount(): void
     {
         $docs = $this->officeDocuments();
         abort_if(empty($docs), 404);
+        // The admin picks the document here, whichever way they came in (Workflow review's "Issue a document" or the
+        // sidebar's "Issue a Report"). Dedicated signatories pick it on their Home / Explore first.
+        $this->showPicker = count($docs) > 1
+            && (request()->routeIs('admin.workflow.issue') || Auth::user()->isAdmin());
 
         // Home links straight to one report with ?doc=<key>; anything unknown falls back to the first.
         $asked = (string) request()->query('doc', '');
@@ -266,13 +283,15 @@ class Issue extends Component
                 ? 'Saved. The VPSD office will do the final verification.'
                 : 'Issued. The student was notified.';
             if ($mine) {
-                $msg .= $manual ? ' Sign it now, then send it to the committee members.' : ' It is waiting in your signing inbox.';
+                $msg .= $manual ? ' Sign it now, then send it to the committee members.' : ' Your signature is waiting in your signing inbox.';
             }
             session()->flash('signing_message', $msg);
 
+            // Back to Issued documents, where the new one is listed. Only a form that needs the issuer to sign
+            // and then invite the committee by hand goes straight to its signing page.
             return $mine && $manual
                 ? $this->redirectRoute('signatory.show', ['approval' => $mine->id], navigate: true)
-                : $this->redirectRoute('signatory.inbox', navigate: true);
+                : $this->redirectRoute('signatory.issued', navigate: true);
         }
 
         return $this->redirectRoute('admin.workflow.show', ['workspace' => $ws->workspace_id], navigate: true);
@@ -343,7 +362,7 @@ class Issue extends Component
         }
         if ($doc->issuedBySignatory()) {
             $snapshot += [
-                'reporter_name' => FormSupport::systemValue(Auth::user(), 'formatted_full_name'),
+                'reporter_name' => FormSupport::systemValue(Auth::user(), 'signing_name'),
                 'reporter_user_id' => Auth::id(),
             ];
         }

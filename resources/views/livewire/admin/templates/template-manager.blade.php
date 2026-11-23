@@ -1,5 +1,5 @@
 {{-- Admin › Templates & Uploads › Templates: the paper forms, like a design tool's home.
-     Start a form from a paper size (or a PDF), then browse every form as a page thumbnail. --}}
+     Create form template from a paper size (or a PDF), then browse every form as a page thumbnail. --}}
 @php
     $focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]/40 focus-visible:ring-offset-1';
     $input = 'h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-0 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-[#2A57B4] focus:outline-none focus:ring-2 focus:ring-[#2A57B4]/15 [@media(pointer:coarse)]:h-11';
@@ -21,13 +21,10 @@
         <p class="mb-4 rounded-lg bg-[#d9f3e1] px-4 py-2.5 text-sm text-[#1f6b3a]" role="status">{{ session('message') }}</p>
     @endif
 
-    {{-- ===== Start a form ===== --}}
+    {{-- ===== Create form template===== --}}
     <section class="mb-8 rounded-2xl bg-gradient-to-br from-[#e6f0fc] via-[#eee9f9] to-[#fdeef4] p-4 sm:p-6" aria-labelledby="start-h">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
-            <div>
-                <h2 id="start-h" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">Start a form</h2>
-                <p class="text-sm text-slate-600">Pick the paper, add the form as an image or a PDF, then place the blanks students fill in.</p>
-            </div>
+            <h2 id="start-h" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">Create form template</h2>
             <p class="text-xs text-slate-500">{{ $totalCount }} {{ Str::plural('template', $totalCount) }} · {{ $publicCount }} public</p>
         </div>
         <div class="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">
@@ -61,46 +58,45 @@
         </div>
     </section>
 
-    {{-- ===== Browse ===== --}}
-    <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div class="relative lg:w-72">
+    {{-- ===== Browse: Filters (sort and category, the Workflow Review pop-up), then the search ===== --}}
+    <div class="mb-4 flex items-center gap-2">
+        <x-admin.filters-popup :count="(int) ($filterCategory !== '') + (int) ($sort !== 'recent')" reset="resetFilters">
+            <label class="col-span-2 block">
+                <span class="mb-1 block text-xs font-medium text-slate-600">Sort by</span>
+                <select wire:model.live="sort" class="{{ $input }}">
+                    <option value="recent">Recently edited</option>
+                    <option value="name">Name A–Z</option>
+                    <option value="used">Most used</option>
+                </select>
+            </label>
+            <label class="col-span-2 block">
+                <span class="mb-1 block text-xs font-medium text-slate-600">Category</span>
+                <select wire:model.live="filterCategory" class="{{ $input }}">
+                    <option value="">All ({{ $totalCount }})</option>
+                    @foreach ($categories as $c)
+                        <option value="{{ $c['value'] }}">{{ $c['label'] }} ({{ $c['count'] }})</option>
+                    @endforeach
+                    @if ($uncategorised)
+                        <option value="none">No category ({{ $uncategorised }})</option>
+                    @endif
+                </select>
+            </label>
+        </x-admin.filters-popup>
+        <div class="relative min-w-0 flex-1">
             <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-slate-400" aria-hidden="true"></i>
             <input type="search" wire:model.live.debounce.250ms="search" placeholder="Search templates" aria-label="Search templates" class="{{ $input }} pl-10">
         </div>
-        <div class="-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 pb-0.5">
-            <button type="button" wire:click="$set('filterCategory', '')" aria-pressed="{{ $filterCategory === '' ? 'true' : 'false' }}"
-                    class="{{ $chip }} {{ $filterCategory === '' ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">All</button>
-            @foreach ($categories as $c)
-                <button type="button" wire:click="$set('filterCategory', '{{ $c['value'] }}')" aria-pressed="{{ $filterCategory === $c['value'] ? 'true' : 'false' }}"
-                        class="{{ $chip }} {{ $filterCategory === $c['value'] ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
-                    {{ $c['label'] }} <span class="tabular-nums {{ $filterCategory === $c['value'] ? 'text-white/70' : 'text-slate-400' }}">{{ $c['count'] }}</span>
-                </button>
-            @endforeach
-            @if ($uncategorised)
-                <button type="button" wire:click="$set('filterCategory', 'none')" aria-pressed="{{ $filterCategory === 'none' ? 'true' : 'false' }}"
-                        class="{{ $chip }} {{ $filterCategory === 'none' ? 'border-amber-500 bg-amber-500 text-white' : 'border-amber-200 bg-[#fef3c7] text-[#8a5a00] hover:bg-amber-100' }}">
-                    <i class="bx bx-error-circle text-sm" aria-hidden="true"></i> No category <span class="tabular-nums">{{ $uncategorised }}</span>
-                </button>
-            @endif
-        </div>
-        <label class="flex shrink-0 items-center gap-2 text-sm text-slate-500">
-            <span class="hidden sm:inline">Sort</span>
-            <select wire:model.live="sort" class="h-9 rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-sm text-slate-700 shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/15">
-                <option value="recent">Recently edited</option>
-                <option value="name">Name A–Z</option>
-                <option value="used">Most used</option>
-            </select>
-        </label>
     </div>
 
     @if ($templates->isEmpty())
         <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-16 text-center">
             <i class="bx bx-layout text-4xl text-slate-300" aria-hidden="true"></i>
-            <p class="mt-2 text-sm font-medium text-slate-700">{{ $totalCount ? 'No template matches.' : 'No templates yet.' }}</p>
-            <p class="text-sm text-slate-500">{{ $totalCount ? 'Try another search or category.' : 'Start a form above.' }}</p>
+            <p class="mt-2 text-sm font-medium text-slate-700">{{ $totalCount ? 'No template matches.' : 'No form templates created yet.' }}</p>
+            <p class="text-sm text-slate-500">{{ $totalCount ? 'Try another search or category.' : 'Create your first form template.' }}</p>
         </div>
     @else
-        <ul class="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {{-- Same card as My documents, Issued documents and Uploads: the whole page, its status on the corner, then the details --}}
+        <ul class="grid grid-cols-2 content-start gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
             @foreach ($templates as $t)
                 @php
                     $v = $t->currentVersion;
@@ -108,23 +104,23 @@
                     $public = $t->status === 'active';
                     $cat = $t->category?->value ?? $t->category;
                 @endphp
-                <li wire:key="tpl-{{ $t->template_id }}" class="group min-w-0">
+                <li wire:key="tpl-{{ $t->template_id }}" class="group relative flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(13,37,61,0.35)] motion-reduce:hover:translate-y-0">
                     <div class="relative">
                         <a href="{{ route('admin.templates.editor', $t->template_id) }}"
-                           class="relative grid aspect-[4/5] place-items-center overflow-hidden rounded-xl bg-[#eef0f3] p-4 ring-1 ring-slate-200 transition group-hover:ring-2 group-hover:ring-[#2A57B4]/50 {{ $focus }}"
+                           class="relative block aspect-[842/1171] overflow-hidden rounded-t-xl border-b border-slate-200 bg-white {{ $focus }}"
                            aria-label="Open {{ $t->name }}">
                             @if ($v?->image_path)
                                 <img src="{{ Storage::disk('public')->url($v->image_path) }}" alt="" loading="lazy"
-                                     class="max-h-full max-w-full bg-white object-contain shadow-[0_1px_2px_rgba(15,23,42,0.12),0_10px_24px_-12px_rgba(15,23,42,0.4)] transition duration-300 group-hover:-translate-y-0.5">
+                                     class="absolute inset-0 h-full w-full bg-white object-contain">
                             @else
-                                <span class="grid aspect-[210/297] h-full place-items-center rounded bg-white text-slate-300 shadow-sm"><i class="bx bx-image text-3xl"></i></span>
+                                <span class="absolute inset-0 grid place-items-center bg-[#f0f4fb] text-[#1E4090]"><i class="bx bx-image text-4xl"></i></span>
                             @endif
                             <span class="absolute inset-x-0 bottom-0 flex translate-y-2 justify-center pb-3 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
                                 <span class="inline-flex h-8 items-center gap-1 rounded-lg bg-[#2A57B4] px-3.5 text-[13px] font-medium text-white shadow-md"><i class="bx bx-edit-alt text-sm"></i> Open editor</span>
                             </span>
                         </a>
 
-                        <span class="pointer-events-none absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium shadow-sm {{ $public ? 'bg-emerald-600 text-white' : 'bg-white/95 text-slate-600 ring-1 ring-slate-200' }}">
+                        <span class="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm ring-1 {{ $public ? 'bg-emerald-50 text-emerald-800 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-slate-200' }}">
                             <i class="bx {{ $public ? 'bx-globe' : 'bx-lock-alt' }} text-xs" aria-hidden="true"></i>{{ $public ? 'Public' : 'Private' }}
                         </span>
 
@@ -157,12 +153,12 @@
                         </div>
                     </div>
 
-                    <div class="mt-2.5 px-0.5">
-                        <a href="{{ route('admin.templates.editor', $t->template_id) }}" class="block truncate text-sm font-semibold text-slate-900 hover:text-[#2A57B4]" title="{{ $t->name }}">{{ $t->name }}</a>
+                    <div class="flex flex-1 flex-col p-3 sm:p-3.5">
+                        <a href="{{ route('admin.templates.editor', $t->template_id) }}" class="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-[#2A57B4]" title="{{ $t->name }}">{{ $t->name }}</a>
                         <p class="mt-0.5 truncate text-xs text-slate-500">
                             {{ $sizeLabel($v) }} · {{ $fields }} {{ Str::plural('field', $fields) }}@if ($t->student_workspaces_count) · used {{ number_format($t->student_workspaces_count) }}×@endif
                         </p>
-                        <p class="mt-1 flex items-center justify-between gap-2 text-xs">
+                        <p class="mt-auto flex pt-1.5 items-center justify-between gap-2 text-xs">
                             @if ($cat)
                                 <span class="truncate text-slate-500">{{ \App\Enums\DocumentCategory::from($cat)->label() }}</span>
                             @else
@@ -227,7 +223,7 @@
                 <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                     <div>
                         <h2 id="new-tpl-h" class="text-lg font-semibold tracking-[-0.01em] text-slate-900">New template</h2>
-                        <p class="text-sm text-slate-500">Add the form, name it, and you'll go straight to the editor.</p>
+                        <p class="text-sm text-slate-500">Add the form and its required fields and proceed to the form editor.</p>
                     </div>
                     <button type="button" wire:click="closeCreate" class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 {{ $focus }}" aria-label="Close"><i class="bx bx-x text-2xl"></i></button>
                 </div>
@@ -260,8 +256,8 @@
                                 <template x-if="!preview">
                                     <span class="flex flex-col items-center">
                                         <span class="grid h-12 w-12 place-items-center rounded-xl bg-[#dcecfa] text-[#2A57B4]"><i class="bx bx-cloud-upload text-2xl"></i></span>
-                                        <span class="mt-3 text-sm font-semibold text-slate-900">Drop the form here, or click to choose</span>
-                                        <span class="mt-1 text-xs text-slate-500">PDF, PNG or JPG. A PDF page is turned into an image for you.</span>
+                                        <span class="mt-3 text-sm font-semibold text-slate-900">Drag your file here or select one from your device.</span>
+                                        <span class="mt-1 text-xs text-slate-500">PDF, PNG or JPG. A PDF page is converted into an image for you.</span>
                                     </span>
                                 </template>
                                 <span x-show="preview" class="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#2A57B4]"><i class="bx bx-refresh"></i>Choose another file</span>
@@ -282,7 +278,7 @@
                         <label class="block">
                             <span class="mb-1 block text-sm font-medium text-slate-700">Category</span>
                             <select wire:model="category" class="{{ $input }} @error('category') !border-rose-400 @enderror">
-                                <option value="">Choose where students find it…</option>
+                                <option value="">Select the form category…</option>
                                 @foreach ($allCategories as $c)
                                     <option value="{{ $c->value }}">{{ $c->label() }}</option>
                                 @endforeach
@@ -294,7 +290,6 @@
                             <span class="mb-1 block text-sm font-medium text-slate-700">About this form <span class="font-normal text-slate-400">(optional)</span></span>
                             <textarea wire:model="description" rows="2" maxlength="300" placeholder="e.g. Permission from a parent or guardian for an off-campus activity."
                                       class="{{ str_replace('h-9 ', '', $input) }} resize-none py-2"></textarea>
-                            <span class="mt-1 block text-xs text-slate-500">Students see this under the form's name when they pick a form.</span>
                         </label>
 
                         <div>
@@ -309,8 +304,6 @@
                                 <p class="mt-2 flex items-center gap-1.5 rounded-lg bg-[#e2e9f7] px-3 py-2 text-xs text-[#1E4090]">
                                     <i class="bx bx-ruler text-sm" aria-hidden="true"></i> {{ $custom_width }} × {{ $custom_height }} cm, taken from the file. Pick a size above to change it.
                                 </p>
-                            @else
-                                <p class="mt-1 text-xs text-slate-500">Set for you from the file: a PDF page's size, or the shape of an image.</p>
                             @endif
                         </div>
 
@@ -325,7 +318,6 @@
                                 @endforeach
                             </div>
                         </div>
-                        <p class="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500">For a sharp printout use a clear scan, 200 DPI or more. From a PDF, the paper size is set from the page.</p>
                     </div>
                 </div>
 

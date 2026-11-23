@@ -46,6 +46,13 @@ class ManageUsers extends Component
 
     public function updatingShowRemoved() { $this->resetPage(); }
 
+    /** The Filters pop-up's Reset: its own filters only; the search stays, as on Workflow review. */
+    public function resetFilters(): void
+    {
+        $this->reset(['roleFilter', 'statusFilter', 'yearFilter', 'showRemoved']);
+        $this->resetPage();
+    }
+
     /** Which Users and Accounts Manager sidebar item is open, read from the page URL once. */
     public string $navKey = 'accounts';
 
@@ -254,7 +261,7 @@ class ManageUsers extends Component
     {
         $currentPage = $this->getPage();
 
-        if ($currentPage > 1 && ! $this->getUsersQuery()->forPage($currentPage, 30)->exists()) {  // was 15
+        if ($currentPage > 1 && ! $this->getUsersQuery()->forPage($currentPage, 50)->exists()) {
             $this->previousPage();
         }
     }
@@ -306,7 +313,7 @@ class ManageUsers extends Component
 
     public function render()
     {
-        $users = $this->getUsersQuery()->paginate(20);
+        $users = $this->getUsersQuery()->paginate(50);
 
         $roles = Role::orderBy('role_name')->get();
 

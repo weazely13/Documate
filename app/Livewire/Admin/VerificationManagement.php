@@ -28,7 +28,7 @@ class VerificationManagement extends Component
     public string $verificationStatusFilter = '';
     public string $accountStatusFilter = '';
     public int $currentPage = 1;
-    public int $perPage = 20;
+    public int $perPage = 50;
 
     // --- History modal ---
     public bool $showHistoryModal = false;
@@ -81,6 +81,13 @@ class VerificationManagement extends Component
         $this->verification_end_date = $end->toDateString();
 
         $this->showRaiseModal = true;
+    }
+
+    /** The Filters pop-up's Reset: its own filters only; the search stays, as on Workflow review. */
+    public function resetFilters(): void
+    {
+        $this->reset(['verificationStatusFilter', 'accountStatusFilter']);
+        $this->currentPage = 1;
     }
 
     public function closeRaise(): void

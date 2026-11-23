@@ -1,6 +1,6 @@
 {{-- "Before you start": a popup that opens with the form. Reopen it with $dispatch('open-intro').
      Needs: $items (plain-text lines), $storageKey (remembers "don't show again" per form).
-     Optional: $title, $lead, $note (amber notice), $startLabel. --}}
+     Optional: $title, $lead, $note (amber notice), $startLabel, $steps ([[title, text], …]: numbered, in order). --}}
 <div x-data="{
         open: false, opener: null, skip: false,
         key: @js('documate.intro.' . $storageKey),
@@ -15,7 +15,7 @@
             this.$nextTick(() => this.opener && this.opener !== document.body && this.opener.focus());
         }
      }"
-     @open-intro.window="show()">
+     @open-intro.window="show()" @tour-started.window="open = false">
     <template x-teleport="body">
         <div x-show="open" x-cloak x-transition.opacity
              class="fixed inset-0 z-[86] flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-6"
@@ -45,7 +45,28 @@
                     </button>
                 </div>
 
-                <ul class="space-y-2.5 px-5 py-4">
+                @if (! empty($steps))
+                    {{-- How the transaction goes, start to finish, numbered in order --}}
+                    <div class="px-5 pt-4">
+                        <h3 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">How it goes</h3>
+                        <ol class="mt-3 space-y-3">
+                            @foreach ($steps as $i => [$stepTitle, $stepText])
+                                <li class="flex gap-3">
+                                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#2A57B4] text-xs font-semibold tabular-nums text-white" aria-hidden="true">{{ $i + 1 }}</span>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-slate-900"><span class="sr-only">Step {{ $i + 1 }}: </span>{{ $stepTitle }}</p>
+                                        <p class="mt-0.5 whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ $stepText }}</p>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ol>
+                    </div>
+                @endif
+
+                @if (! empty($steps) && ! empty($items))
+                    <h3 class="px-5 pt-5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Have ready</h3>
+                @endif
+                <ul class="space-y-2.5 px-5 py-4 {{ empty($items) ? 'hidden' : '' }}">
                     @foreach ($items as $item)
                         <li class="flex items-start gap-2.5 text-sm leading-relaxed text-slate-700">
                             <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2A57B4]" aria-hidden="true"></span>

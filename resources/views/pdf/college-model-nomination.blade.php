@@ -96,19 +96,19 @@
 
 <div class="ln">
     <div class="lbl" style="left:0; width:124pt;">Name of Nominee:</div>
-    <div class="val" style="left:127pt; width:360pt; font-size:{{ $fit($name, 360) }}pt;">{{ $name }}</div>
+    <div data-f="__nominee" class="val" style="left:127pt; width:360pt; font-size:{{ $fit($name, 360) }}pt;">{{ $name }}</div>
 </div>
 <div class="ln">
     <div class="lbl" style="left:0; width:52pt;">College:</div>
-    <div class="val" style="left:54pt; width:433pt; font-size:{{ $fit($college, 433) }}pt;">{{ $college }}</div>
+    <div data-f="__nominee" class="val" style="left:54pt; width:433pt; font-size:{{ $fit($college, 433) }}pt;">{{ $college }}</div>
 </div>
 <div class="ln">
     <div class="lbl" style="left:0; width:208pt;">Program Being Pursued of Nominee:</div>
-    <div class="val" style="left:211pt; width:276pt; font-size:{{ $fit($program, 276) }}pt;">{{ $program }}</div>
+    <div data-f="__nominee" class="val" style="left:211pt; width:276pt; font-size:{{ $fit($program, 276) }}pt;">{{ $program }}</div>
 </div>
 <div class="ln">
     <div class="lbl" style="left:0; width:102pt;">Year and Section:</div>
-    <div class="val" style="left:105pt; width:382pt; font-size:{{ $fit($yearSection, 382) }}pt;">{{ $yearSection }}</div>
+    <div data-f="__nominee" class="val" style="left:105pt; width:382pt; font-size:{{ $fit($yearSection, 382) }}pt;">{{ $yearSection }}</div>
 </div>
 <div class="ln">
     <div class="lbl" style="left:0; width:82pt;">Address:</div>
@@ -119,7 +119,7 @@
 </div>
 <div class="ln">
     <div class="lbl" style="left:0; width:124pt;">Contact Number:</div>
-    <div class="val" style="left:127pt; width:360pt; font-size:{{ $fit($contact, 360) }}pt;">{{ $contact }}</div>
+    <div data-f="__nominee" class="val" style="left:127pt; width:360pt; font-size:{{ $fit($contact, 360) }}pt;">{{ $contact }}</div>
 </div>
 
 <table style="margin-top:22pt;">

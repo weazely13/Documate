@@ -114,46 +114,103 @@
                             </div>
                         @endif
 
+                        {{-- Phone photos (iPhone HEIC, big screenshots) are turned into a JPEG of at most 2000px in the browser
+                             before they are sent, so any photo works and stays under the server's upload limit.
+                             The capture of the filled-in form for the AI gives up after 8s instead of hanging. --}}
                         <form
                             x-data="{
-                                capturing: false,
-                                async submitUpload() {
-                                    this.capturing = true;
+                                state: 'idle', progress: 0, error: '',
+                                get busy() { return ['converting', 'uploading', 'capturing'].includes(this.state); },
+                                async toJpeg(file) {
+                                    const url = URL.createObjectURL(file);
+                                    try {
+                                        const img = await new Promise((ok, fail) => {
+                                            const i = new Image();
+                                            i.onload = () => ok(i);
+                                            i.onerror = () => fail(new Error('decode'));
+                                            i.src = url;
+                                        });
+                                        const r = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+                                        const c = document.createElement('canvas');
+                                        c.width = Math.round(img.naturalWidth * r);
+                                        c.height = Math.round(img.naturalHeight * r);
+                                        const ctx = c.getContext('2d');
+                                        ctx.fillStyle = '#ffffff';
+                                        ctx.fillRect(0, 0, c.width, c.height);
+                                        ctx.drawImage(img, 0, 0, c.width, c.height);
+                                        const blob = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.85));
+                                        if (! blob) throw new Error('encode');
+                                        return new File([blob], (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+                                    } finally {
+                                        URL.revokeObjectURL(url);
+                                    }
+                                },
+                                async pick(e) {
+                                    const file = e.target.files && e.target.files[0];
+                                    if (! file) return;
+                                    this.error = ''; this.progress = 0;
+                                    let send = file;
+                                    if (file.type !== 'application/pdf' && ! /\.pdf$/i.test(file.name)) {
+                                        this.state = 'converting';
+                                        try { send = await this.toJpeg(file); } catch (err) { send = file; }
+                                    }
+                                    this.state = 'uploading';
+                                    $wire.upload('supportingFile', send,
+                                        () => { this.state = 'ready'; },
+                                        () => { this.state = 'idle'; this.error = 'The photo could not be uploaded. Check your connection and try again.'; },
+                                        (ev) => { this.progress = ev.detail.progress; });
+                                },
+                                async capture() {
                                     const el = document.getElementById('document-preview-canvas-mobile')
                                         ?? document.getElementById('document-preview-canvas');
                                     const visibleEl = (el && el.offsetParent !== null) ? el
                                         : document.getElementById('document-preview-canvas');
+                                    if (! visibleEl || ! window.html2canvas) return;
                                     const wrap = document.getElementById('doc-scale-wrap');
                                     const shrunk = wrap ? wrap.style.transform : '';
                                     if (wrap) wrap.style.transform = 'none';
                                     try {
-                                        if (el && window.html2canvas) {
-                                            const canvas = await html2canvas(visibleEl, { backgroundColor: '#ffffff', scale: 1, useCORS: true });
-                                            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                                            await $wire.set('referenceImageBase64', dataUrl);
-                                        }
+                                        const canvas = await Promise.race([
+                                            html2canvas(visibleEl, { backgroundColor: '#ffffff', scale: 1, useCORS: true }),
+                                            new Promise((_, fail) => setTimeout(() => fail(new Error('timeout')), 8000)),
+                                        ]);
+                                        await $wire.set('referenceImageBase64', canvas.toDataURL('image/jpeg', 0.8), false);
                                     } catch (e) {
                                         console.warn('Could not capture preview frame', e);
                                     } finally {
                                         if (wrap) wrap.style.transform = shrunk;
-                                        this.capturing = false;
-                                        $wire.uploadSupportingFile();
+                                    }
+                                },
+                                async submitUpload() {
+                                    if (this.state !== 'ready') return;
+                                    this.state = 'capturing';
+                                    await this.capture();
+                                    this.state = 'sending';
+                                    try { await $wire.uploadSupportingFile(); } finally {
+                                        this.state = 'idle';
+                                        if (this.$refs.file) this.$refs.file.value = '';
                                     }
                                 }
                             }"
                             @submit.prevent="submitUpload"
                             class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center"
                         >
-                            <input type="file" wire:model="supportingFile" accept=".jpg,.jpeg,.png,.pdf"
-                                class="block w-full min-w-0 text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-200/60 file:px-3 file:py-2.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
+                            <div class="min-w-0 flex-1">
+                                <input x-ref="file" type="file" accept="image/*,.heic,.heif,application/pdf" @change="pick($event)" :disabled="busy"
+                                    class="block w-full min-w-0 text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-200/60 file:px-3 file:py-2.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
+                                <p x-show="state === 'converting'" x-cloak class="mt-1.5 text-xs text-slate-500">Optimizing the photo…</p>
+                                <p x-show="state === 'uploading'" x-cloak class="mt-1.5 text-xs tabular-nums text-slate-500">Uploading the photo… <span x-text="progress + '%'"></span></p>
+                                <p x-show="state === 'ready'" x-cloak class="mt-1.5 text-xs text-emerald-700">Photo ready. Tap Upload photo to send it for review.</p>
+                                <p x-show="error" x-cloak class="mt-1.5 text-xs font-medium text-rose-600" x-text="error"></p>
+                            </div>
 
-                            <button type="submit" :disabled="capturing" wire:loading.attr="disabled" wire:target="uploadSupportingFile"
+                            <button type="submit" :disabled="state !== 'ready'"
                                 class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#2A57B4] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#24499A] disabled:opacity-50 sm:w-auto">
-                                <span x-show="!capturing" wire:loading.remove wire:target="uploadSupportingFile">Upload file</span>
-                                <span x-show="capturing" class="flex items-center gap-1.5">
+                                <span x-show="! busy && state !== 'sending'">Upload photo</span>
+                                <span x-show="busy" x-cloak class="flex items-center gap-1.5">
                                     <i class='bx bx-loader-alt animate-spin'></i> Preparing...
                                 </span>
-                                <span wire:loading wire:target="uploadSupportingFile" class="flex items-center gap-1.5">
+                                <span x-show="state === 'sending'" x-cloak class="flex items-center gap-1.5">
                                     <i class='bx bx-loader-alt animate-spin'></i> Uploading...
                                 </span>
                             </button>

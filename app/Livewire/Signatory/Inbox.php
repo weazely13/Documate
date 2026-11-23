@@ -94,7 +94,7 @@ class Inbox extends Component
         $pending = $this->filtered($this->pendingQuery($user))
             ->with(['workspace.user', 'role'])
             ->orderBy('opened_at', $this->sort === 'newest' ? 'desc' : 'asc')
-            ->paginate(20, pageName: 'waitingPage');
+            ->paginate(50, pageName: 'waitingPage');
 
         $history = $this->filtered(
                 TransactionApproval::where('acted_by', $user->id)
@@ -104,7 +104,7 @@ class Inbox extends Component
             ->when($this->result === 'rejected', fn ($q) => $q->where('status', ApprovalStatus::Rejected->value))
             ->with(['workspace.user', 'role'])
             ->orderByDesc('acted_at')
-            ->paginate(20, pageName: 'historyPage');
+            ->paginate(50, pageName: 'historyPage');
 
         // Only the document types actually in this tab of the inbox, so the filter never offers an empty list.
         $typesHere = ($tab === 'history'

@@ -17,7 +17,7 @@ class ClearanceMonitoring extends Component
 {
     use ManagesClearanceTagging;
 
-    public const STATUS_NOT_TAGGED = 'Not Tagged';
+    public const STATUS_NOT_TAGGED = 'Untagged';
 
     public ?int $selectedSemesterId = null;
 
@@ -27,8 +27,13 @@ class ClearanceMonitoring extends Component
     public string $yearFilter = '';
     public string $dateFrom = '';
     public string $dateTo = '';
-    public bool $showFilters = false;
     public int $currentPage = 1;
+
+    // Column-header sorting, as on Workflow review: ascending, then descending, then back to the default order.
+    public string $sortKey = '';
+    public string $sortDir = 'asc';
+
+    private const SORTS = ['student', 'organization', 'year', 'status', 'tagged'];
     
     // 1. Updated perPage to 50
     public int $perPage = 50;
@@ -62,22 +67,25 @@ class ClearanceMonitoring extends Component
         }
     }
 
-    public function toggleFilters(): void
-    {
-        $this->showFilters = ! $this->showFilters;
-    }
-
-    public function applyFilters(): void
-    {
-        $this->currentPage = 1;
-        $this->showFilters = false;
-    }
-
     public function resetFilters(): void
     {
         $this->reset(['search', 'statusFilter', 'organizationFilter', 'yearFilter', 'dateFrom', 'dateTo']);
         $this->currentPage = 1;
-        $this->showFilters = false;
+    }
+
+    public function sortBy(string $key): void
+    {
+        if (! in_array($key, self::SORTS, true)) {
+            return;
+        }
+
+        [$this->sortKey, $this->sortDir] = match (true) {
+            $this->sortKey !== $key => [$key, 'asc'],
+            $this->sortDir === 'asc' => [$key, 'desc'],
+            default => ['', 'asc'],
+        };
+
+        $this->currentPage = 1;
     }
 
     public function previousPage(): void
@@ -213,8 +221,28 @@ class ClearanceMonitoring extends Component
             ->when($this->yearFilter !== '', fn (Collection $r) => $r->filter(fn (array $rec) => (string) $rec['year_sort_value'] === $this->yearFilter))
             ->when($this->dateFrom !== '', fn (Collection $r) => $r->filter(fn (array $rec) => $rec['tagged_date'] !== '' && $rec['tagged_date'] >= $this->dateFrom))
             ->when($this->dateTo !== '', fn (Collection $r) => $r->filter(fn (array $rec) => $rec['tagged_date'] !== '' && $rec['tagged_date'] <= $this->dateTo))
-            ->sortBy('year_sort_value', SORT_NUMERIC)
+            ->pipe(fn (Collection $r) => $this->sortRecords($r))
             ->values();
+    }
+
+    protected function sortRecords(Collection $records): Collection
+    {
+        if (! in_array($this->sortKey, self::SORTS, true)) {
+            return $records->sortBy('year_sort_value', SORT_NUMERIC);
+        }
+
+        // Statuses in the order of the summary cards; untagged dates sort last.
+        $statusOrder = array_flip([self::STATUS_NOT_TAGGED, 'Pending', 'Cleared', 'Uncleared']);
+
+        $value = match ($this->sortKey) {
+            'student' => fn (array $r) => Str::lower($r['student_name']),
+            'organization' => fn (array $r) => Str::lower($r['organization']),
+            'year' => fn (array $r) => $r['year_sort_value'],
+            'status' => fn (array $r) => $statusOrder[$r['status']] ?? 99,
+            'tagged' => fn (array $r) => $r['tagged_date'] ?: '0000-00-00',
+        };
+
+        return $records->sortBy($value, SORT_REGULAR, $this->sortDir === 'desc');
     }
 
     public function render()

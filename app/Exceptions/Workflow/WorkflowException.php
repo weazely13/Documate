@@ -126,7 +126,7 @@ class WorkflowException extends RuntimeException
     }
     public static function scopeMissing(string $scope): self
     {
-        $what = ['organization' => 'organization', 'program' => 'program', 'college' => 'college'][$scope] ?? $scope;
+        $what = ['organization' => 'organization', 'program' => 'program', 'college' => 'college', 'year_level' => 'year level'][$scope] ?? $scope;
 
         return new self("The student's account has no {$what}, so the right signatory can't be found. Ask them to update their profile.");
     }

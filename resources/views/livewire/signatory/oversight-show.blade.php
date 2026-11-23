@@ -10,7 +10,7 @@
                 <h2 class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{{ $document->name() }}</h2>
                 <p class="mt-0.5 font-mono text-xs text-slate-400">{{ $ws->transaction_code }} &middot; {{ $ws->field_values['student_name'] ?? '' }}</p>
             </div>
-            <div class="shrink-0">@include('livewire.workflow._badge', ['status' => $ws->workflow_status])</div>
+            <div class="shrink-0">@include('livewire.workflow._badge', ['ws' => $ws])</div>
         </div>
         <a href="{{ route('signatory.oversight.report', $ws->workspace_id) }}"
            class="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto">

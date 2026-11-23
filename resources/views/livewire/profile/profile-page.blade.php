@@ -46,11 +46,13 @@
      }"
      @hashchange.window="fromHash()">
 
-    {{-- Title --}}
-    <div class="mb-5 sm:mb-6">
-        <h1 class="text-2xl font-semibold tracking-[-0.02em] text-[#0d253d]">Account settings</h1>
-        <p class="mt-1 text-sm text-[#66707f]">Your details fill in your forms automatically, so keep them current.</p>
-    </div>
+    <h1 class="sr-only">Account settings</h1>
+
+    @if (session('status'))
+        <p role="status" class="mb-5 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <i class="bx bx-check-circle mt-0.5 text-base text-emerald-600" aria-hidden="true"></i>{{ session('status') }}
+        </p>
+    @endif
 
     @if ($errorTab)
         <div wire:key="error-tab-{{ md5(json_encode($errors->keys())) }}" x-init="go(@js($errorTab))" class="hidden"></div>
@@ -61,7 +63,7 @@
         {{-- ============ SETTINGS MENU ============ --}}
         <aside class="min-w-0 lg:sticky lg:top-4 lg:self-start">
             {{-- Phones and tablets: a scrolling tab strip --}}
-            <nav class="-mx-4 overflow-x-auto border-b border-[#e7e5e1] px-4 [scrollbar-width:none] md:-mx-6 md:px-6 lg:hidden [&::-webkit-scrollbar]:hidden" aria-label="Settings sections">
+            <nav class="-mx-4 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b border-[#e7e5e1] px-4 [scrollbar-width:none] md:-mx-6 md:px-6 lg:hidden [&::-webkit-scrollbar]:hidden" aria-label="Settings sections">
                 <div class="flex gap-1" role="tablist">
                     @foreach ($tabs as $key => [$name, $icon])
                         <button type="button" role="tab" @click="go('{{ $key }}')" :aria-selected="(tab === '{{ $key }}').toString()"
@@ -75,8 +77,8 @@
                 </div>
             </nav>
 
-            {{-- Desktop: menu card --}}
-            <div class="hidden overflow-hidden rounded-xl border border-[#e7e5e1] bg-white shadow-[0_1px_2px_rgba(13,37,61,0.04)] lg:block">
+            {{-- Desktop: a plain menu (no box around it), then the completeness and Save / Discard --}}
+            <div class="hidden lg:block">
                 <nav class="p-2" aria-label="Settings sections">
                     @foreach ($tabs as $key => [$name, $icon, $hint])
                         <button type="button" @click="go('{{ $key }}')" :aria-current="tab === '{{ $key }}' ? 'page' : null"
@@ -129,7 +131,8 @@
                 {{-- ---------- PROFILE ---------- --}}
                 <div x-show="tab === 'profile'" class="p-4 sm:p-6">
                     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
-                        <div class="relative h-24 w-24 shrink-0 sm:h-28 sm:w-28">
+                        {{-- Tapping the photo picks a new one --}}
+                        <label for="photo-upload" class="relative block h-24 w-24 shrink-0 cursor-pointer sm:h-28 sm:w-28" title="Change your photo">
                             <div class="h-full w-full overflow-hidden rounded-full bg-[#dcecfa] ring-4 ring-white shadow-[0_6px_16px_-6px_rgba(13,37,61,0.3)]">
                                 @if ($this->photoUrl)
                                     <img src="{{ $this->photoUrl }}" class="h-full w-full object-cover" alt="{{ $this->fullName }}">
@@ -137,27 +140,26 @@
                                     <span class="grid h-full w-full place-items-center text-3xl font-semibold text-[#2a57b4]">{{ $this->initials }}</span>
                                 @endif
                             </div>
-                            <label for="photo-upload" class="absolute bottom-0.5 right-0.5 grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-[#2a57b4] text-white ring-[3px] ring-white transition hover:bg-[#24499a]" title="Upload a new photo">
+                            <span class="absolute bottom-0.5 right-0.5 grid h-9 w-9 place-items-center rounded-full bg-[#2a57b4] text-white ring-[3px] ring-white transition hover:bg-[#24499a]">
                                 <i class="bx bx-camera text-lg" aria-hidden="true"></i>
-                                <span class="sr-only">Upload a new photo</span>
-                            </label>
+                                <span class="sr-only">Change your photo</span>
+                            </span>
                             <div wire:loading.flex wire:target="photo,removePhoto" class="absolute inset-0 items-center justify-center rounded-full bg-[#0d253d]/45">
                                 <i class="bx bx-loader-alt animate-spin text-2xl text-white" aria-hidden="true"></i>
                             </div>
-                        </div>
+                        </label>
 
                         <div class="min-w-0 flex-1">
-                            <p class="truncate text-lg font-semibold tracking-[-0.012em] text-[#0d253d]">{{ $this->fullName }}</p>
+                            {{-- The name as forms print it: honorific before, post-nominals after ("Dr. Maria Santos, PhD") --}}
+                            @php $shownName = \App\Support\Honorifics::decorate($honorific, $this->fullName, $post_nominals) ?: $this->fullName; @endphp
+                            <p class="truncate text-lg font-semibold tracking-[-0.012em] text-[#0d253d]" title="{{ $shownName }}">{{ $shownName }}</p>
                             <p class="mt-0.5 text-sm text-[#66707f]">{{ $this->academicLine }}</p>
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                <label for="photo-upload" class="{{ $btnPrimary }} cursor-pointer">
-                                    <i class="bx bx-upload text-base" aria-hidden="true"></i> Upload
-                                </label>
-                                @if ($profile_picture)
+                            @if ($profile_picture)
+                                <div class="mt-3 flex flex-wrap gap-2">
                                     <button type="button" wire:click="removePhoto" wire:confirm="Remove your profile photo?" class="{{ $btnSecondary }}">Remove photo</button>
-                                @endif
-                            </div>
-                            <p class="mt-2 text-xs text-[#66707f]">JPG, PNG or WebP, up to 2 MB. It saves as soon as you pick it.</p>
+                                </div>
+                            @endif
+                            <p class="mt-2 text-xs text-[#66707f]">Tap your photo to change it. JPG, PNG, or WebP, maximum of 2 MB. Saved automatically once an image is selected.</p>
                             <input id="photo-upload" type="file" wire:model="photo" accept="image/png,image/jpeg,image/webp" class="sr-only">
                             @error('photo') <p class="{{ $err }}"><i class="bx bx-error-circle"></i>{{ $message }}</p> @enderror
                         </div>
@@ -167,6 +169,21 @@
 
                     <h2 class="text-[15px] font-semibold text-[#0d253d]">Personal details</h2>
                     <div class="mt-4 grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+                        @unless ($isStudentSide)
+                            {{-- Printed with the signature on forms and PDFs: "Dr. Maria Santos, PhD" --}}
+                            <div>
+                                <label for="honorific" class="{{ $label }}">Honorifics</label>
+                                <x-dm.honorific-input id="honorific" model="honorific" class="{{ $input }}" />
+                                <p class="mt-1 text-xs text-[#66707f]">Pick one or type your own, e.g. Dr., Prof., Engr.</p>
+                                @error('honorific') <p class="{{ $err }}"><i class="bx bx-error-circle"></i>{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="post_nominals" class="{{ $label }}">Post nominals</label>
+                                <x-dm.honorific-input id="post_nominals" model="post_nominals" kind="post" class="{{ $input }}" />
+                                <p class="mt-1 text-xs text-[#66707f]">Degrees or licenses after your name, e.g. PhD, LPT. Separate several with commas.</p>
+                                @error('post_nominals') <p class="{{ $err }}"><i class="bx bx-error-circle"></i>{{ $message }}</p> @enderror
+                            </div>
+                        @endunless
                         <div>
                             <label for="first_name" class="{{ $label }}">First name {!! $req !!}</label>
                             <input wire:model="first_name" id="first_name" type="text" autocomplete="given-name" class="{{ $input }}">
@@ -335,9 +352,9 @@
                     </div>
                 @endif
 
-                {{-- Save bar for Profile and Academic --}}
+                {{-- Save / Discard at the bottom of the Profile (and Academic) form: part of the page, not floating over it --}}
                 <div x-show="tab === 'profile' || tab === 'academic'"
-                     class="sticky bottom-0 z-10 flex flex-col-reverse gap-2 rounded-b-xl border-t border-[#e7e5e1] bg-white py-3 pl-4 pr-[4.75rem] sm:flex-row sm:items-center sm:justify-end sm:py-4 sm:pl-6 sm:pr-24">
+                     class="flex flex-col-reverse gap-2 rounded-b-xl border-t border-[#e7e5e1] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:py-4">
                     @if ($errors->any() && ! in_array($errorTab, ['password', 'signature'], true))
                         <p class="text-xs text-[#dc2626] sm:mr-auto" role="alert"><i class="bx bx-error-circle align-[-2px]"></i> Some details need fixing before they can be saved.</p>
                     @endif
@@ -353,7 +370,7 @@
             {{-- ---------- PASSWORD ---------- --}}
             <div x-show="tab === 'password'" x-cloak class="p-4 sm:p-6">
                 <h2 class="text-[15px] font-semibold text-[#0d253d]">Change password</h2>
-                <p class="mt-1 text-sm text-[#66707f]">Use at least 8 characters. You'll stay signed in on this device.</p>
+                <p class="mt-1 text-sm text-[#66707f]">Password requires at least 8 characters. You will remain logged in on this device.</p>
 
                 <form wire:submit="updatePassword" class="mt-5 max-w-md space-y-4">
                     @foreach ([
@@ -399,9 +416,6 @@
                                 <p class="text-center text-sm text-[#9a978f]">No signature saved yet</p>
                             @endif
                         </div>
-                        @if (! $signature_enabled)
-                            <p class="mt-2 rounded-lg bg-[#fef3c7] px-3 py-2 text-xs text-[#78350f]">Your signature isn't being placed on documents. Save one to start using it.</p>
-                        @endif
                     </div>
 
                     <div wire:ignore
@@ -426,7 +440,7 @@
                                     @pointerdown.prevent="start($event)" @pointermove.prevent="move($event)"
                                     @pointerup="end()" @pointerleave="end()"></canvas>
                             <div x-show="!has" class="pointer-events-none absolute inset-x-6 bottom-[22%] border-b border-[#d4d1cb]"></div>
-                            <p x-show="!has" class="pointer-events-none absolute inset-x-0 top-1/3 text-center text-sm text-[#9a978f]">Sign here with your finger, stylus or mouse</p>
+                            <p x-show="!has" class="pointer-events-none absolute inset-x-0 top-1/3 text-center text-sm text-[#9a978f]">Sign here</p>
                         </div>
                     </div>
                 </div>
@@ -485,17 +499,67 @@
                             </dd>
                         </div>
                     @endif
-                    @if ($user->signatoryAssignments->isNotEmpty())
-                        <div class="flex flex-col gap-1.5 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4">
-                            <dt class="text-[13px] text-[#66707f] sm:w-44">Signs as</dt>
-                            <dd class="min-w-0 flex-1"><x-admin.signatory-badges :user="$user" /></dd>
-                        </div>
-                    @endif
                     <div class="flex flex-col gap-1 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4">
                         <dt class="text-[13px] text-[#66707f] sm:w-44">Member since</dt>
                         <dd class="text-sm text-[#0d253d]">{{ $user->created_at?->format('F j, Y') ?? '—' }}</dd>
                     </div>
                 </dl>
+
+                {{-- Signing roles (signatories, and students who also sign): each role held today, what waits on it,
+                     and the documents it signs. This used to be on Home; it lives here now. --}}
+                @php $roles = $user->signatoryAssignments->isNotEmpty() ? \App\Support\SigningRoles::for($user) : null; @endphp
+                @if ($roles && $roles['assignments']->isNotEmpty())
+                    @php $waitingAll = (int) collect($roles['waitingByRole'])->sum(); @endphp
+                    <section class="mt-6" aria-labelledby="roles-title">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                            <h3 id="roles-title" class="text-sm font-semibold text-[#0d253d]">Signing {{ $roles['assignments']->count() === 1 ? 'role' : 'roles' }}</h3>
+                            <a href="{{ route('signatory.inbox') }}" wire:navigate class="text-[13px] font-medium text-[#2a57b4] hover:underline">
+                                Signing inbox{{ $waitingAll ? ' · ' . $waitingAll . ' waiting' : '' }} &rarr;
+                            </a>
+                        </div>
+                        <ul class="mt-3 divide-y divide-[#e7e5e1] rounded-lg border border-[#e7e5e1]">
+                            @foreach ($roles['assignments'] as $a)
+                                @php
+                                    $n = (int) ($roles['waitingByRole'][$a->signatory_role_id] ?? 0);
+                                    $docs = $roles['docsByRole'][$a->role->key ?? ''] ?? [];
+                                @endphp
+                                <li wire:key="prole-{{ $a->id }}" x-data="{ all: false }" class="px-4 py-3.5">
+                                    <div class="flex items-start gap-3">
+                                        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#e2e9f7] text-[#1E4090]" aria-hidden="true"><i class="bx bx-id-card text-lg"></i></span>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-[#0d253d]">{{ $a->role->label ?? 'Signing role' }}</p>
+                                            <p class="text-xs text-[#66707f]">{{ $a->scope_name ? 'For ' . $a->scope_name : 'All students' }} · {{ $a->active_until ? 'until ' . $a->active_until->format('M j, Y') : 'no end date' }}</p>
+                                        </div>
+                                        <a href="{{ route('signatory.inbox') }}" wire:navigate
+                                           class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ring-1 {{ $n ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-emerald-50 text-emerald-800 ring-emerald-200' }}">
+                                            {{ $n ? $n . ' waiting' : 'Clear' }}
+                                        </a>
+                                    </div>
+                                    <div class="mt-2.5 sm:pl-12">
+                                        @if ($docs)
+                                            <p class="text-xs text-[#66707f]">Documents you sign in this role</p>
+                                            <ul class="mt-1.5 flex flex-wrap gap-1.5">
+                                                @foreach ($docs as $i => $d)
+                                                    <li @if ($i >= 6) x-show="all" x-cloak @endif>
+                                                        <a href="{{ route('signatory.inbox', ['type' => $d['key']]) }}" wire:navigate
+                                                           title="{{ $d['as'] ? 'You sign as ' . $d['as'] : $d['name'] }}"
+                                                           class="inline-flex max-w-full items-center rounded-md bg-[#f5f4f2] px-2 py-1 text-xs text-[#273951] hover:bg-[#ecebe7]">{{ $d['name'] }}</a>
+                                                    </li>
+                                                @endforeach
+                                                @if (count($docs) > 6)
+                                                    <li><button type="button" @click="all = ! all" class="rounded-md px-2 py-1 text-xs font-medium text-[#2a57b4] hover:underline"
+                                                                x-text="all ? 'Show fewer' : '+{{ count($docs) - 6 }} more'">+{{ count($docs) - 6 }} more</button></li>
+                                                @endif
+                                            </ul>
+                                        @else
+                                            <p class="text-xs text-[#66707f]">No student form lists this role as a fixed signer. Documents can still be routed to you.</p>
+                                        @endif
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
 
                 {{-- Phones: the completeness card lives here --}}
                 <div class="mt-5 rounded-lg bg-[#f0f4fb] p-4 lg:hidden">

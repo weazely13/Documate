@@ -1,0 +1,755 @@
+{
+    "administrative": [
+        {
+            "office": "Office of the University President",
+            "people": [
+                {
+                    "name": "Dr. Gil Nicetas B. Villarino",
+                    "title": "University President"
+                },
+                {
+                    "name": "Mr. Ronnyl E. Taldo",
+                    "title": "Executive Assistant III"
+                },
+                {
+                    "name": "Atty. Divina Patty B. Sibay",
+                    "title": "Attorney IV",
+                    "note": "Legal/Data Protection Officer and Concurrent OIC University and Board Secretary"
+                },
+                {
+                    "name": "Ms. Nora C. Cabriana",
+                    "title": "Internal Auditor III",
+                    "note": "Head, Internal Audit Office"
+                },
+                {
+                    "name": "Ms. Danielle Anne S. Durna",
+                    "title": "Planning Officer III",
+                    "note": "Head, Planning Office"
+                },
+                {
+                    "name": "Ms. Roselle Y. Almayda",
+                    "title": "Project Development Officer III",
+                    "note": "Head, Project Development Office"
+                },
+                {
+                    "name": "Ms. Michell T. Acala",
+                    "title": "Director, Gender and Development Office"
+                },
+                {
+                    "name": "Mr. Jobert C. Narte",
+                    "title": "Director, LNU Heritage Museum"
+                },
+                {
+                    "name": "Dr. Generoso N. Mazo",
+                    "title": "Director, Alumni Affairs Office"
+                },
+                {
+                    "name": "Mr. Miguel Lemuel Emmanuel T. Dumas",
+                    "title": "Director, Student/Institutional Performing Arts"
+                },
+                {
+                    "name": "Dr. Gillian Mae G. Villaflor",
+                    "title": "Director, Public Affairs and Marketing Communications Office"
+                },
+                {
+                    "name": "Dr. Mark Lester P. Laurente",
+                    "title": "Director, Information Technology Support Office"
+                },
+                {
+                    "name": "Prof. Jose Ismael S. Salamia",
+                    "title": "Director, Sustainability, Climate, and Disaster Resilience Office"
+                }
+            ]
+        },
+        {
+            "office": "Office of the Vice President for Administration and Finance",
+            "people": [
+                {
+                    "name": "Dr. Solomon D. Faller, Jr.",
+                    "title": "Vice President for Administration and Finance"
+                },
+                {
+                    "name": "Mr. Oreste M. Ortega, Jr.",
+                    "title": "Chief Administrative Officer for Administration"
+                },
+                {
+                    "name": "Ms. Josisa C. Conchada",
+                    "title": "Chief Administrative Officer for Finance"
+                },
+                {
+                    "name": "Prof. Michael Jun M. Ponciano",
+                    "title": "Director, Physical Plants and Facilities Office"
+                },
+                {
+                    "name": "Dr. Ma. Victoria D. Naboya",
+                    "title": "Director, Quality Management System – SUC Levelling and ISO"
+                },
+                {
+                    "name": "Dr. Luis Luigi Eugenio A. Valencia",
+                    "title": "Director, Auxiliary Services"
+                },
+                {
+                    "name": "Ms. Maria Gina C. Durango",
+                    "title": "Administrative Officer V",
+                    "note": "Head, Supply and Property Management Office"
+                },
+                {
+                    "name": "Ms. Jasmin M. Graveles",
+                    "title": "Administrative Officer V",
+                    "note": "Head, Human Resource Management Office"
+                },
+                {
+                    "name": "Mr. Jumar O. Lumapak",
+                    "title": "Administrative Officer V",
+                    "note": "Head, Procurement Office"
+                },
+                {
+                    "name": "Mr. Cesar B. Blanco",
+                    "title": "Administrative Officer V",
+                    "note": "Head, Records Management Office; Concurrent Head, Income Generating Office"
+                },
+                {
+                    "name": "Ms. Jocelyn C. Aboy",
+                    "title": "Administrative Officer V",
+                    "note": "Head, Cashiering Office"
+                },
+                {
+                    "name": "Ms. Arra Jen L. Dagalea, CPA",
+                    "title": "Accountant II",
+                    "note": "OIC Head, Accounting Office"
+                },
+                {
+                    "name": "Ms. Cherylin E. Pido",
+                    "title": "Administrative Officer IV",
+                    "note": "OIC Head, Budget Office"
+                },
+                {
+                    "name": "Dr. Ruthchel C. Zeta",
+                    "title": "Medical Officer III",
+                    "note": "Head, Medical Services Office"
+                },
+                {
+                    "name": "Mr. Jan-Carlo L. De Veyra",
+                    "title": "Dormitory Manager"
+                }
+            ]
+        },
+        {
+            "office": "Office of the Vice President for Student Development",
+            "people": [
+                {
+                    "name": "Dr. Joyce M. Magtolis",
+                    "title": "Vice President for Student Development"
+                },
+                {
+                    "name": "Prof. Melba M. Navarra",
+                    "title": "Director, Guidance Office"
+                },
+                {
+                    "name": "Prof. Glenn Rey A. Estrada",
+                    "title": "Director, Sports Development Office"
+                },
+                {
+                    "name": "Prof. Ariel G. Salarda",
+                    "title": "Director, Student Organizations and Activities Office"
+                },
+                {
+                    "name": "Prof. Liza T. Bacierra",
+                    "title": "Head, Scholarship and Financial Assistance Office"
+                },
+                {
+                    "name": "Mr. Mark Kim I. Herbon",
+                    "title": "Adviser, Supreme Student Council"
+                }
+            ]
+        },
+        {
+            "office": "Office of the Vice President for Research, Innovation, Extension, and Internationalization",
+            "people": [
+                {
+                    "name": "Dr. Jonas P. Villas",
+                    "title": "Vice President for Research, Innovation, Extension, and Internationalization"
+                },
+                {
+                    "name": "Dr. Myra A. Abayon",
+                    "title": "Executive Director, Office of Research and Innovation"
+                },
+                {
+                    "name": "Dr. Michael Dell A. Tuazon",
+                    "title": "Director, Center for Teacher Education Research, Technology, and Innovation (CTERTI)"
+                },
+                {
+                    "name": "Prof. Jufran C. Agustin",
+                    "title": "Journal Manager, Journal of Education and Society (JES)"
+                },
+                {
+                    "name": "Dr. Lowell A. Quisumbing",
+                    "title": "Director, Community Extension Services Office"
+                },
+                {
+                    "name": "Prof. Christian G. Abalos",
+                    "title": "Director, Research Ethics Office"
+                },
+                {
+                    "name": "Dr. Myra Grace F. Loayon",
+                    "title": "Director, Knowledge Creation and Innovation Center (KCIC)"
+                },
+                {
+                    "name": "Dr. Orlando P. Vinculado, Jr.",
+                    "title": "Director, Center for International Studies, Collaborations, Mobility, and University Rankings"
+                }
+            ]
+        },
+        {
+            "office": "Office of the Vice President for Academic Services",
+            "people": [
+                {
+                    "name": "Dr. Lina G. Fabian",
+                    "title": "Vice President for Academic Services"
+                },
+                {
+                    "name": "Dr. Nelson D. Bernardo",
+                    "title": "Director, Curriculum Development Office"
+                },
+                {
+                    "name": "Dr. Marife N. Daga",
+                    "title": "Director, Center for Continuing Education and Lifelong Learning (C-CELL)"
+                },
+                {
+                    "name": "Dr. Perlita M. Vivero",
+                    "title": "Director, Expanded Tertiary Education Equivalency and Accreditation Program (ETEEAP)"
+                },
+                {
+                    "name": "Dr. Justina T. Lantajo",
+                    "title": "Director, Quality Management System for Academic Services"
+                },
+                {
+                    "name": "Dr. Rowena N. Ariaso",
+                    "title": "Director, Sentro ng Wika at Kultura"
+                },
+                {
+                    "name": "Prof. Ryan G. Destura",
+                    "title": "Director, Admissions Office"
+                },
+                {
+                    "name": "Dr. Gay A. Pinote",
+                    "title": "Registrar III",
+                    "note": "Head, Registrar's Office"
+                },
+                {
+                    "name": "Ms. Luzviminda F. Alcober",
+                    "title": "College Librarian I",
+                    "note": "OIC Head, Learning Resource Center"
+                }
+            ]
+        }
+    ],
+    "academic": [
+        {
+            "office": "College Deans and Campus Directors",
+            "people": [
+                {
+                    "name": "Dr. Billy A. Danday",
+                    "title": "Dean, College of Education"
+                },
+                {
+                    "name": "Dr. Rommel L. Verecio",
+                    "title": "Dean, College of Arts and Sciences"
+                },
+                {
+                    "name": "Dr. Evangeline V. Sanchez",
+                    "title": "Dean, College of Management and Entrepreneurship"
+                },
+                {
+                    "name": "Dr. Cleofe L. Lajara",
+                    "title": "Dean, Graduate School"
+                },
+                {
+                    "name": "Dr. Victoria Y. Naboya",
+                    "title": "Associate Dean, College of Education"
+                },
+                {
+                    "name": "Dr. Las Johansen B. Caluza",
+                    "title": "Associate Dean, College of Arts and Sciences"
+                },
+                {
+                    "name": "Prof. Emily Jill T. Nival",
+                    "title": "Associate Dean, College of Management and Entrepreneurship"
+                },
+                {
+                    "name": "Dr. Leo Reaywen M. Tugonon",
+                    "title": "Associate Dean, Graduate School"
+                },
+                {
+                    "name": "Dr. Rulf J. Alcober",
+                    "title": "Director, San Isidro Campus"
+                }
+            ]
+        },
+        {
+            "office": "Unit Heads and Supervisors",
+            "people": [
+                {
+                    "name": "Prof. Lorena M. Ripalda",
+                    "title": "Supervisor, Integrated Laboratory School (ILS)"
+                },
+                {
+                    "name": "Dr. Maria Lourdes G. Tan",
+                    "title": "Unit Head, Professional Education"
+                },
+                {
+                    "name": "Prof. Cristina N. Estolano",
+                    "title": "Unit Head, BEED, BSNED, and BTLED"
+                },
+                {
+                    "name": "Prof. Ronald E. Mocorro",
+                    "title": "Unit Head, Mathematics Unit"
+                },
+                {
+                    "name": "Dr. Jose G. Enrile",
+                    "title": "Unit Head, Filipino Unit"
+                },
+                {
+                    "name": "Dr. Maricar C. Tegero",
+                    "title": "Unit Head, BPED Unit"
+                },
+                {
+                    "name": "Prof. Charie Ann C. Padullo",
+                    "title": "Unit Head, Social Science Unit"
+                },
+                {
+                    "name": "Mr. Marc Y. Llarenas",
+                    "title": "Unit Head, Tourism and Hospitality Management Unit"
+                },
+                {
+                    "name": "Dr. Myrna O. Piedad",
+                    "title": "Unit Head, Entrepreneurship Unit"
+                },
+                {
+                    "name": "Prof. Eva L. Rosal",
+                    "title": "Unit Head, BA Comm Unit"
+                },
+                {
+                    "name": "Ms. Genevieve T. Bactasa",
+                    "title": "Unit Head, English Unit"
+                },
+                {
+                    "name": "Prof. Lilibeth B. Fallorina",
+                    "title": "Unit Head, Social Work Unit"
+                },
+                {
+                    "name": "Ms. Mary Ann S. Dalan",
+                    "title": "Unit Head, BLIS Unit"
+                },
+                {
+                    "name": "Dr. Micheline G. Apolinar",
+                    "title": "Unit Head, BSIT and Computer Education Unit"
+                },
+                {
+                    "name": "Prof. Facundo Rey M. Ladiao",
+                    "title": "Unit Head, Science Unit"
+                },
+                {
+                    "name": "Dr. Victor P. Bactol",
+                    "title": "Unit Head, BAPOS Unit"
+                },
+                {
+                    "name": "Ms. Marisol C. Abanilla",
+                    "title": "Unit Head, BMME"
+                }
+            ]
+        }
+    ],
+    "coordinators": [
+        {
+            "office": "Program Coordinators",
+            "people": [
+                {
+                    "name": "Dr. Maria Lourdes G. Tan",
+                    "title": "Program Coordinator, Professional Education"
+                },
+                {
+                    "name": "Prof. Cristina N. Estolano",
+                    "title": "Program Coordinator, Bachelor of Elementary Education (BEED), Bachelor of Special Needs Education (BSNED) and Bachelor of Technology and Livelihood Education (BTLED)"
+                },
+                {
+                    "name": "Prof. Ronald E. Mocorro",
+                    "title": "Program Coordinator, Bachelor of Secondary Education Major in Mathematics (BSED Mathematics)"
+                },
+                {
+                    "name": "Dr. Jose G. Enrile",
+                    "title": "Program Coordinator, Bachelor of Secondary Education Major in Filipino (BSED Filipino)"
+                },
+                {
+                    "name": "Dr. Maricar C. Tegero",
+                    "title": "Program Coordinator, Bachelor of Physical Education (BPED)"
+                },
+                {
+                    "name": "Prof. Charie Ann C. Padullo",
+                    "title": "Program Coordinator, Bachelor of Secondary Education Major in Social Studies (BSED Social Science)"
+                },
+                {
+                    "name": "Mr. Marc Y. Llarenas",
+                    "title": "Program Coordinator, Bachelor of Science in Tourism Management (BSTM) and Bachelor of Science in Hospitality Management (BSHM)"
+                },
+                {
+                    "name": "Dr. Myrna O. Piedad",
+                    "title": "Program Coordinator, Bachelor of Science in Entrepreneurship (BSEntrep)"
+                },
+                {
+                    "name": "Prof. Eva L. Rosal",
+                    "title": "Program Coordinator, Bachelor of Arts in Communication (BAComm)"
+                },
+                {
+                    "name": "Ms. Genevieve T. Bactasa",
+                    "title": "Program Coordinator, Bachelor of Secondary Education Major in English (BSED English)"
+                },
+                {
+                    "name": "Prof. Lilibeth B. Fallorina",
+                    "title": "Program Coordinator, Bachelor of Science in Social Work (BSSW)"
+                },
+                {
+                    "name": "Ms. Mary Ann S. Dalan",
+                    "title": "Program Coordinator, Bachelor of Library and Information Science (BLIS)"
+                },
+                {
+                    "name": "Dr. Micheline G. Apolinar",
+                    "title": "Program Coordinator, Bachelor of Science in Information Technology (BSIT)"
+                },
+                {
+                    "name": "Prof. Facundo Rey M. Ladiao",
+                    "title": "Program Coordinator, Bachelor of Secondary Education Major in Science (BSED Science) and Bachelor of Science in Biology (BSBio)"
+                },
+                {
+                    "name": "Dr. Victor P. Bactol",
+                    "title": "Program Coordinator, Bachelor of Arts in Political Science (BAPos)"
+                },
+                {
+                    "name": "Ms. Marisol C. Abanilla",
+                    "title": "Program Coordinator, Bachelor of Music in Music Education (BMME)"
+                },
+                {
+                    "name": "Prof. Michelle Torreros",
+                    "title": "Program Coordinator, Bachelor of Secondary Education Major in Values Education (BSED Values)"
+                }
+            ]
+        }
+    ],
+    "org_advisers": [
+        {
+            "office": "Student Organization Advisers",
+            "people": [
+                {
+                    "name": "Jean Edith Anne Costelo",
+                    "title": "Organization Adviser, Association of Political Science Students (APSS)",
+                    "note": "program: Bachelor of Arts in Political Science"
+                },
+                {
+                    "name": "Michelle Torreros",
+                    "title": "Organization Adviser, Association of Values Educators (AVED)",
+                    "note": "program: Bachelor of Secondary Education Major in Values Education"
+                },
+                {
+                    "name": "Camille Rose Serante",
+                    "title": "Organization Adviser, LNU Book Enthusiast Organization (LNU-BEO)",
+                    "note": "program: Bachelor of Library and Information Science (BLIS)"
+                },
+                {
+                    "name": "Eva Rosal",
+                    "title": "Organization Adviser, BACOMMUNITY",
+                    "note": "program: Bachelor of Arts in Communication"
+                },
+                {
+                    "name": "Maricar Tegero",
+                    "title": "Organization Adviser, Bachelor of Physical Education Movers (BPED MOVERS)",
+                    "note": "program: Bachelor of Physical Education"
+                },
+                {
+                    "name": "Jose Ismael Salamia",
+                    "title": "Organization Adviser, Circle of Future Educators (COFED)",
+                    "note": "program: Bachelor of Elementary Education"
+                },
+                {
+                    "name": "Louvesa Idda Galban",
+                    "title": "Organization Adviser, Developmental Integrated Group of Information Technology Students (DIGITS)",
+                    "note": "program: Bachelor of Science in Information Technology"
+                },
+                {
+                    "name": "Allyson Kenchi Salvo",
+                    "title": "Organization Adviser, English Circle",
+                    "note": "program: Bachelor of Secondary Education Major in English and Bachelor of Arts in English Language"
+                },
+                {
+                    "name": "Ma. Sheila Quintero",
+                    "title": "Organization Adviser, Early Childhood Educators' Organization (ECEO)",
+                    "note": "program: Bachelor of Early Childhood Education"
+                },
+                {
+                    "name": "Hanz Jude Luigi Villarino",
+                    "title": "Organization Adviser, Entrepreneur's Association (EA)",
+                    "note": "program: Bachelor of Science in Entrepreneurship"
+                },
+                {
+                    "name": "",
+                    "title": "Organization Adviser, English Language Studies Enthusiasts (ELSE)",
+                    "note": "No adviser listed yet; program: Bachelor of Arts in English Language (BAEL)"
+                },
+                {
+                    "name": "Marc Llarenas",
+                    "title": "Organization Adviser, EASE"
+                },
+                {
+                    "name": "Jude Anthony Gatela",
+                    "title": "Organization Adviser, Hoteliers and Restaurateurs Circle (HRC)",
+                    "note": "program: Bachelor of Science in Hospitality Management"
+                },
+                {
+                    "name": "Arvin Jay Cordeta",
+                    "title": "Organization Adviser, Juniors Social Workers Association of the Philippines (JSWAP)",
+                    "note": "program: Bachelor of Science in Social Work"
+                },
+                {
+                    "name": "Daril Formanes",
+                    "title": "Organization Adviser, Kapisanang Maka-Filipino (KMF)",
+                    "note": "program: Bachelor of Secondary Education Major in Filipino"
+                },
+                {
+                    "name": "Neil M. Murillo",
+                    "title": "Organization Adviser, Interact Society (LNU INTERSOC)",
+                    "note": "program: Bachelor of Secondary Education Major in Social Studies"
+                },
+                {
+                    "name": "Daniel Llovia",
+                    "title": "Organization Adviser, Math Students' Society (LNU MSS)",
+                    "note": "program: Bachelor of Secondary Education Major in Math"
+                },
+                {
+                    "name": "Mariel Diaz",
+                    "title": "Organization Adviser, Science Questers Unlimited (SQU)",
+                    "note": "program: Bachelor of Secondary Education Major in Science, and Bachelor of Science in Biology"
+                },
+                {
+                    "name": "Ethel Marcellano",
+                    "title": "Organization Adviser, Special Educators' League (SPEL)",
+                    "note": "program: Bachelor of Special Needs Education"
+                },
+                {
+                    "name": "",
+                    "title": "Organization Adviser, TLE Guild (TLEG)",
+                    "note": "No adviser listed yet; program: Bachelor of Secondary Education Major in Technology and Livelihood Education"
+                },
+                {
+                    "name": "Gracielle Mae Cinco",
+                    "title": "Organization Adviser, Tourism Circle (TC)",
+                    "note": "program: Bachelor of Science in Tourism Management and Bachelor of Science in Entrepreneurship"
+                },
+                {
+                    "name": "Ms. Marisol C. Abanilla",
+                    "title": "Organization Adviser, Tutdo Musikero (TM)",
+                    "note": "program: Bachelor of Music in Music Education"
+                }
+            ]
+        }
+    ],
+    "programs": [
+        {
+            "acronym": "BSIT",
+            "name": "Bachelor of Science in Information Technology"
+        },
+        {
+            "acronym": "BAPos",
+            "name": "Bachelor of Arts in Political Science"
+        },
+        {
+            "acronym": "BAComm",
+            "name": "Bachelor of Arts in Communication"
+        },
+        {
+            "acronym": "BAEL",
+            "name": "Bachelor of Arts in English Language"
+        },
+        {
+            "acronym": "BSBio",
+            "name": "Bachelor of Science in Biology"
+        },
+        {
+            "acronym": "BSSW",
+            "name": "Bachelor of Science in Social Work"
+        },
+        {
+            "acronym": "BSEntrep",
+            "name": "Bachelor of Science in Entrepreneurship"
+        },
+        {
+            "acronym": "BSHM",
+            "name": "Bachelor of Science in Hospitality Management"
+        },
+        {
+            "acronym": "BSTM",
+            "name": "Bachelor of Science in Tourism Management"
+        },
+        {
+            "acronym": "BEED",
+            "name": "Bachelor of Elementary Education"
+        },
+        {
+            "acronym": "BECEd",
+            "name": "Bachelor of Early Childhood Education"
+        },
+        {
+            "acronym": "BSNED",
+            "name": "Bachelor of Special Needs Education"
+        },
+        {
+            "acronym": "BTLED",
+            "name": "Bachelor of Technology and Livelihood Education"
+        },
+        {
+            "acronym": "BPED",
+            "name": "Bachelor of Physical Education"
+        },
+        {
+            "acronym": "BMME",
+            "name": "Bachelor of Music in Music Education"
+        },
+        {
+            "acronym": "BLIS",
+            "name": "Bachelor of Library and Information Science"
+        },
+        {
+            "acronym": "BSED English",
+            "name": "Bachelor of Secondary Education Major in English"
+        },
+        {
+            "acronym": "BSED Filipino",
+            "name": "Bachelor of Secondary Education Major in Filipino"
+        },
+        {
+            "acronym": "BSED Mathematics",
+            "name": "Bachelor of Secondary Education Major in Mathematics"
+        },
+        {
+            "acronym": "BSED Science",
+            "name": "Bachelor of Secondary Education Major in Science"
+        },
+        {
+            "acronym": "BSED Social Science",
+            "name": "Bachelor of Secondary Education Major in Social Studies"
+        },
+        {
+            "acronym": "BSED Values",
+            "name": "Bachelor of Secondary Education Major in Values Education"
+        },
+        {
+            "acronym": "BSED TLE",
+            "name": "Bachelor of Secondary Education Major in Technology and Livelihood Education"
+        }
+    ],
+    "organizations": [
+        {
+            "acronym": "APSS",
+            "name": "Association of Political Science Students",
+            "programs": "Bachelor of Arts in Political Science"
+        },
+        {
+            "acronym": "AVED",
+            "name": "Association of Values Educators",
+            "programs": "Bachelor of Secondary Education Major in Values Education"
+        },
+        {
+            "acronym": "BACOMMUNITY",
+            "name": "BACOMMUNITY",
+            "programs": "Bachelor of Arts in Communication"
+        },
+        {
+            "acronym": "BPED MOVERS",
+            "name": "Bachelor of Physical Education Movers",
+            "programs": "Bachelor of Physical Education"
+        },
+        {
+            "acronym": "COFED",
+            "name": "Circle of Future Educators",
+            "programs": "Bachelor of Elementary Education"
+        },
+        {
+            "acronym": "DIGITS",
+            "name": "Developmental Integrated Group of Information Technology Students",
+            "programs": "Bachelor of Science in Information Technology"
+        },
+        {
+            "acronym": "ENGLISH CIRCLE",
+            "name": "English Circle",
+            "programs": "Bachelor of Secondary Education Major in English and Bachelor of Arts in English Language"
+        },
+        {
+            "acronym": "ECEO",
+            "name": "Early Childhood Educators' Organization",
+            "programs": "Bachelor of Early Childhood Education"
+        },
+        {
+            "acronym": "EA",
+            "name": "Entrepreneur's Association",
+            "programs": "Bachelor of Science in Entrepreneurship"
+        },
+        {
+            "acronym": "HRC",
+            "name": "Hoteliers and Restaurateurs Circle",
+            "programs": "Bachelor of Science in Hospitality Management"
+        },
+        {
+            "acronym": "JSWAP",
+            "name": "Juniors Social Workers Association of the Philippines",
+            "programs": "Bachelor of Science in Social Work"
+        },
+        {
+            "acronym": "KMF",
+            "name": "Kapisanang Maka-Filipino",
+            "programs": "Bachelor of Secondary Education Major in Filipino"
+        },
+        {
+            "acronym": "LNU MSS",
+            "name": "Math Students' Society",
+            "programs": "Bachelor of Secondary Education Major in Math"
+        },
+        {
+            "acronym": "LNU INTERSOC",
+            "name": "Interact Society",
+            "programs": "Bachelor of Secondary Education Major in Social Studies"
+        },
+        {
+            "acronym": "SQU",
+            "name": "Science Questers Unlimited",
+            "programs": "Bachelor of Secondary Education Major in Science, and Bachelor of Science in Biology"
+        },
+        {
+            "acronym": "SPEL",
+            "name": "Special Educators' League",
+            "programs": "Bachelor of Special Needs Education"
+        },
+        {
+            "acronym": "TC",
+            "name": "Tourism Circle",
+            "programs": "Bachelor of Science in Tourism Management and Bachelor of Science in Entrepreneurship"
+        },
+        {
+            "acronym": "TLEG",
+            "name": "TLE Guild",
+            "programs": "Bachelor of Secondary Education Major in Technology and Livelihood Education"
+        },
+        {
+            "acronym": "TM",
+            "name": "Tutdo Musikero",
+            "programs": "Bachelor of Music in Music Education"
+        },
+        {
+            "acronym": "LNU-BEO",
+            "name": "LNU Book Enthusiast Organization",
+            "programs": "Bachelor of Library and Information Science (BLIS)"
+        },
+        {
+            "acronym": "ELSE",
+            "name": "English Language Studies Enthusiasts",
+            "programs": "Bachelor of Arts in English Language (BAEL)"
+        }
+    ]
+}

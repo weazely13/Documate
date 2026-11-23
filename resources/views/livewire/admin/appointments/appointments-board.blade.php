@@ -11,14 +11,10 @@
         . ($on ? 'bg-white font-medium text-[#24499A] shadow-sm' : 'text-slate-600 hover:text-slate-900');
 
     // Status as a pill (DESIGN.md: tint + deep text + 200 ring): [text, classes].
-    $statusFor = fn ($a) => match ($a->status) {
-        'pending' => ['Pending', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        'approved' => ['Approved' . ($a->queue_number ? ' · #' . $a->queue_number : ''), 'bg-[#e2e9f7] text-[#1E4090] ring-sky-200'],
-        'attended' => ['Attended', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
-        'missed' => ['Missed', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        'rejected' => ['Rejected', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        'retracted' => ['Withdrawn', 'bg-slate-100 text-slate-600 ring-slate-200'],
-        default => [ucfirst($a->status), 'bg-slate-100 text-slate-600 ring-slate-200'],
+    $statusFor = function ($a) {
+        $s = \App\Support\StatusStyle::appointment($a->status);
+
+        return [$s['label'] . ($a->status === 'approved' && $a->queue_number ? ' · #' . $a->queue_number : ''), \App\Support\StatusStyle::TONES[$s['tone']]];
     };
 
     // AI check as a compact pill: [text, classes, spinning?].
@@ -28,12 +24,12 @@
 
         return match (true) {
             $a->ai_flag === 'pending' => ['Checking', 'bg-sky-50 text-[#1E4090] ring-sky-200', true],
-            $a->ai_flag === 'review_failed' => ['Check failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200', false],
-            $a->ai_flag === null => ['Not checked', 'bg-slate-100 text-slate-600 ring-slate-200', false],
-            $rec === 'reject' => ['Suggests reject', 'bg-rose-50 text-rose-800 ring-rose-200', false],
-            ! $fits => ['Purpose mismatch', 'bg-amber-50 text-amber-800 ring-amber-200', false],
-            $a->ai_flag === 'flagged' => ['Requires further review', 'bg-amber-50 text-amber-800 ring-amber-200', false],
-            default => ['No issues detected', 'bg-emerald-50 text-emerald-800 ring-emerald-200', false],
+            $a->ai_flag === 'review_failed' => ['Failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200', false],
+            $a->ai_flag === null => ['Unchecked', 'bg-slate-100 text-slate-600 ring-slate-200', false],
+            $rec === 'reject' => ['Reject', 'bg-rose-50 text-rose-800 ring-rose-200', false],
+            ! $fits => ['Mismatch', 'bg-amber-50 text-amber-800 ring-amber-200', false],
+            $a->ai_flag === 'flagged' => ['Flagged', 'bg-amber-50 text-amber-800 ring-amber-200', false],
+            default => ['Clear', 'bg-emerald-50 text-emerald-800 ring-emerald-200', false],
         };
     };
 
@@ -64,28 +60,82 @@
 
 <div class="mx-auto max-w-[1440px] space-y-5 pb-32" x-data @if ($polling) wire:poll.5s @endif>
 
-    {{-- Header --}}
-    <div class="flex items-end justify-between gap-3">
-        <div class="min-w-0">
-            <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">Appointments</h1>
-            <p class="mt-0.5 hidden text-sm text-slate-500 sm:block">Manage appointment requests, office hours, and the appointment queue.</p>
-        </div>
-        <button type="button" wire:click="toggleEditingHours" aria-pressed="{{ $editingHours ? 'true' : 'false' }}"
-                class="{{ $editingHours ? $btnPrimary : $btnSecondary }} shrink-0 max-sm:!px-3">
-            <i class="bx bx-time text-base {{ $editingHours ? '' : 'text-slate-500' }}" aria-hidden="true"></i>
-            <span class="sm:hidden">{{ $editingHours ? 'Done' : 'Hours' }}</span><span class="hidden sm:inline">{{ $editingHours ? 'Done setting hours' : 'Set office hours' }}</span>
-        </button>
-    </div>
+    <h1 class="sr-only">Appointments</h1>
 
-    {{-- Toolbar: one line at every width. On phones the labels drop to icons, search opens over the bar,
-         and the date and status fields become icons with the native picker laid over them. --}}
+    {{-- Toolbar: one line at every width. On phones the labels drop to icons and search opens over the bar. --}}
     @php
         $segM = fn ($on) => 'inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-sm transition-colors sm:px-3 [@media(pointer:coarse)]:min-h-10 ' . $focus . ' '
             . ($on ? 'bg-white font-medium text-[#24499A] shadow-sm' : 'text-slate-600 hover:text-slate-900');
         $pickWrap = 'relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 focus-within:ring-[3px] focus-within:ring-[#2A57B4]/30 sm:block sm:h-auto sm:w-auto sm:border-0 sm:bg-transparent sm:focus-within:ring-0 max-sm:[@media(pointer:coarse)]:h-11 max-sm:[@media(pointer:coarse)]:w-11';
         $pickField = 'absolute inset-0 h-full w-full cursor-pointer opacity-0 sm:static sm:h-9 sm:py-0 sm:opacity-100 sm:[@media(pointer:coarse)]:h-11 ' . $field;
     @endphp
-    <div class="relative flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-2 sm:gap-2 sm:p-3">
+    <div class="relative flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-2 max-sm:flex-wrap sm:gap-2 sm:p-3">
+        {{-- Calendar: how many students may book each session, as an icon with a tooltip, before the view tabs --}}
+        @if ($viewMode === 'calendar')
+            @php $limitsTip = $editingHours ? 'Done: stop setting limits' : 'Set appointment limits: choose days and how many students each session takes'; @endphp
+            <span class="group relative shrink-0">
+                <button type="button" wire:click="toggleEditingHours" aria-pressed="{{ $editingHours ? 'true' : 'false' }}" aria-label="{{ $limitsTip }}"
+                        class="{{ $editingHours ? $btnPrimary : $btnSecondary }} !w-9 !px-0 [@media(pointer:coarse)]:!w-11">
+                    <i class="bx {{ $editingHours ? 'bx-check' : 'bx-calendar-edit' }} text-lg {{ $editingHours ? '' : 'text-slate-600' }}" aria-hidden="true"></i>
+                </button>
+                <span class="pointer-events-none absolute left-0 top-full z-30 mt-2 w-60 rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100" role="tooltip" aria-hidden="true">
+                    {{ $limitsTip }}
+                </span>
+            </span>
+        @endif
+
+        {{-- All: the Filters pop-up (date and status), before the view tabs, as on Workflow Review --}}
+        @if ($viewMode === 'history')
+            @php $fsel = 'h-9 w-full py-0 text-sm [@media(pointer:coarse)]:h-11 ' . $field; @endphp
+            @php $opts = $this->filterOptions(); @endphp
+            <x-admin.filters-popup :count="$this->activeFilters()" reset="resetFilters">
+                <label class="block min-w-0">
+                    <span class="mb-1 block text-xs font-medium text-slate-600">Date from</span>
+                    <input type="date" wire:model.live="filterFrom" @if ($filterTo) max="{{ $filterTo }}" @endif class="{{ $fsel }}">
+                </label>
+                <label class="block min-w-0">
+                    <span class="mb-1 block text-xs font-medium text-slate-600">Date to</span>
+                    <input type="date" wire:model.live="filterTo" @if ($filterFrom) min="{{ $filterFrom }}" @endif class="{{ $fsel }}">
+                </label>
+                <label class="block min-w-0">
+                    <span class="mb-1 block text-xs font-medium text-slate-600">Status</span>
+                    <select wire:model.live="filterStatus" class="{{ $fsel }}">
+                        <option value="">All</option>
+                        @foreach (\App\Support\StatusStyle::APPOINTMENT as $v => [$l])
+                            <option value="{{ $v }}">{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label class="block min-w-0">
+                    <span class="mb-1 block text-xs font-medium text-slate-600">AI suggestion</span>
+                    <select wire:model.live="filterAi" class="{{ $fsel }}">
+                        <option value="">All</option>
+                        @foreach ($opts['ai'] as $v => $l)
+                            <option value="{{ $v }}">{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label class="col-span-2 block">
+                    <span class="mb-1 block text-xs font-medium text-slate-600">Program</span>
+                    <select wire:model.live="filterProgram" class="{{ $fsel }}">
+                        <option value="">All</option>
+                        @foreach ($opts['programs'] as $id => $name)
+                            <option value="{{ $id }}">{{ \Illuminate\Support\Str::limit($name, 48) }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label class="col-span-2 block">
+                    <span class="mb-1 block text-xs font-medium text-slate-600">Year level</span>
+                    <select wire:model.live="filterYear" class="{{ $fsel }}">
+                        <option value="">All</option>
+                        @foreach ($opts['years'] as $v => $l)
+                            <option value="{{ $v }}">{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            </x-admin.filters-popup>
+        @endif
+
         <div class="inline-flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="View">
             @foreach (['calendar' => ['bx-calendar', 'Calendar'], 'list' => ['bx-list-ol', 'Day list'], 'history' => ['bx-history', 'All']] as $key => [$icon, $label])
                 <button type="button" wire:click="setViewMode('{{ $key }}')" aria-pressed="{{ $viewMode === $key ? 'true' : 'false' }}" class="{{ $segM($viewMode === $key) }}" title="{{ $label }}">
@@ -93,6 +143,10 @@
                 </button>
             @endforeach
         </div>
+
+        @if ($viewMode !== 'calendar')
+            <x-dm.toolbar-search placeholder="Search name, number or purpose" label="Search by name, student number or purpose" />
+        @endif
 
         @if ($viewMode === 'calendar')
             <div class="ml-auto inline-flex shrink-0 rounded-lg bg-slate-100 p-1" role="group" aria-label="Calendar range">
@@ -109,43 +163,14 @@
                     <i class="bx bx-calendar text-lg sm:!hidden" aria-hidden="true"></i>
                     <span class="text-sm font-medium tabular-nums text-slate-800 sm:hidden" aria-hidden="true">{{ $day->isToday() ? 'Today' : $day->format('M j') }}</span>
                     <span class="sr-only">Go to a day</span>
-                    <input type="date" wire:model.live="selectedDate" class="{{ $pickField }} sm:w-40" @click="try { $el.showPicker() } catch (e) {}">
+                    <input type="date" wire:model.live="selectedDate" class="{{ $pickField }} sm:w-40" @click="(() => { try { $el.showPicker() } catch (e) {} })()">
                 </label>
                 <button type="button" wire:click="step(1)" class="{{ $iconBtn }}" aria-label="Next day"><i class="bx bx-chevron-right text-xl" aria-hidden="true"></i></button>
                 @unless ($day->isToday())
                     <button type="button" wire:click="jumpToday" class="{{ $btnBase }} !px-2.5 text-[#2A57B4] hover:bg-[#f0f4fb] max-sm:hidden">Today</button>
                 @endunless
             </div>
-            <p class="hidden min-w-0 truncate text-sm font-medium tabular-nums text-slate-900 xl:block" aria-live="polite">{{ $rangeLabel }}</p>
-        @endif
-
-        @if ($viewMode !== 'calendar')
-            <x-dm.toolbar-search class="ml-auto sm:max-w-xs" placeholder="Search name, number or purpose" label="Search by name, student number or purpose" />
-        @endif
-
-        @if ($viewMode === 'history')
-            <label class="{{ $pickWrap }}" title="Filter by date">
-                <i class="bx bx-calendar text-lg sm:!hidden" aria-hidden="true"></i>
-                @if ($filterDate)<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                <span class="sr-only">Filter by date</span>
-                <input type="date" wire:model.live="filterDate" class="{{ $pickField }} sm:w-40" @click="try { $el.showPicker() } catch (e) {}">
-            </label>
-            <label class="{{ $pickWrap }}" title="Filter by status">
-                <i class="bx bx-filter-alt text-lg sm:!hidden" aria-hidden="true"></i>
-                @if ($filterStatus)<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white sm:hidden" aria-hidden="true"></span>@endif
-                <span class="sr-only">Filter by status</span>
-                <select wire:model.live="filterStatus" class="{{ $pickField }} sm:w-40">
-                    <option value="">All statuses</option>
-                    @foreach (['pending' => 'Pending', 'approved' => 'Approved', 'attended' => 'Attended', 'missed' => 'Missed', 'rejected' => 'Rejected', 'retracted' => 'Withdrawn'] as $v => $l)
-                        <option value="{{ $v }}">{{ $l }}</option>
-                    @endforeach
-                </select>
-            </label>
-            @if ($filterDate || $filterStatus || $search)
-                <button type="button" wire:click="clearHistoryFilters" class="{{ $iconBtn }} shrink-0 text-[#2A57B4]" aria-label="Clear filters" title="Clear filters">
-                    <i class="bx bx-reset text-lg" aria-hidden="true"></i>
-                </button>
-            @endif
+            <span class="sr-only" aria-live="polite">{{ $rangeLabel }}</span>
         @endif
     </div>
 
@@ -155,9 +180,9 @@
             <p class="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-[#1E4090]" role="status">
                 <i class="bx bx-info-circle mt-0.5 text-base" aria-hidden="true"></i>
                 @if ($calendarMode === 'month')
-                    Select the weekdays to change, then set their hours. Weekends are always closed.
+                    Select the weekdays to change, then set how many appointments each session allows. Weekends are always closed, and days that are over can't be changed.
                 @else
-                    Use the clock on a day to set its hours, or switch to Month to change several days at once.
+                    Use the button on a day to set how many appointments it allows, or switch to Month to change several days at once.
                 @endif
             </p>
         @endif
@@ -188,7 +213,7 @@
                             <button type="button" wire:click="openDay('{{ $d['date'] }}')"
                                     class="mx-auto mt-0.5 grid h-8 w-8 place-items-center rounded-full text-base font-semibold tabular-nums {{ $focus }}
                                         {{ $d['isToday'] ? 'bg-[#2A57B4] text-white shadow-sm' : ($d['closed'] ? 'text-rose-500 hover:bg-white' : 'text-slate-900 hover:bg-white') }}"
-                                    aria-label="Open the list for {{ $d['carbon']->format('l, F j') }}">{{ $d['day'] }}</button>
+                                    aria-label="{{ $editingHours ? 'Set appointment limits for ' : 'Open the list for ' }}{{ $d['carbon']->format('l, F j') }}">{{ $d['day'] }}</button>
                             @if ($d['weekend'])
                                 <p class="mt-1 text-[11px] font-medium text-rose-400">Closed</p>
                             @else
@@ -198,11 +223,13 @@
                                         @else {{ $d['morning']['open'] ? $d['morning']['left'] : '–' }} · {{ $d['afternoon']['open'] ? $d['afternoon']['left'] : '–' }} left
                                         @endif
                                     </p>
+                                    @unless ($d['isPast'])
                                     <button type="button" wire:click="editDayHours('{{ $d['date'] }}')"
                                             class="grid h-6 w-6 place-items-center rounded-md text-slate-400 hover:bg-white hover:text-[#2A57B4] [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9 {{ $focus }} {{ $editingHours || $d['custom'] ? 'text-[#2A57B4]' : '' }}"
-                                            aria-label="Set office hours for {{ $d['carbon']->format('l, F j') }}" title="Set hours">
-                                        <i class="bx bx-time-five text-sm" aria-hidden="true"></i>
+                                            aria-label="Set appointment limits for {{ $d['carbon']->format('l, F j') }}" title="Set appointment limits">
+                                        <i class="bx bx-slider-alt text-sm" aria-hidden="true"></i>
                                     </button>
+                                    @endunless
                                 </div>
                             @endif
                         </div>
@@ -237,7 +264,7 @@
                                                         <img src="{{ $avatar($a->user) }}" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">
                                                     @endif
                                                 </span>
-                                                <span class="truncate text-xs font-medium text-slate-900">{{ $a->user?->first_name }}</span>
+                                                <span class="truncate text-xs font-medium text-slate-900">{{ $a->user?->display_first_name }}</span>
                                                 @if ($a->queue_number)
                                                     <span class="ml-auto shrink-0 text-[10px] tabular-nums text-slate-600">#{{ $a->queue_number }}</span>
                                                 @endif
@@ -285,11 +312,11 @@
                         @endphp
                         <button type="button" wire:key="m-{{ $cell['date'] }}"
                                 wire:click="{{ $editingHours ? "toggleHoursDate('{$cell['date']}')" : "openDay('{$cell['date']}')" }}"
-                                @disabled($editingHours && $cell['weekend'])
+                                @disabled($editingHours && ($cell['weekend'] || $cell['isPast']))
                                 @if ($editingHours) aria-pressed="{{ $picked ? 'true' : 'false' }}" @endif
                                 @if ($cell['isToday']) aria-current="date" @endif
                                 aria-label="{{ $label }}"
-                                class="relative flex h-[4.5rem] min-w-0 flex-col justify-between border-b border-r border-slate-100 p-1.5 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2A57B4] sm:h-24 {{ $box }} {{ $editingHours && $cell['weekend'] ? 'cursor-not-allowed' : '' }}">
+                                class="relative flex h-[4.5rem] min-w-0 flex-col justify-between border-b border-r border-slate-100 p-1.5 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2A57B4] sm:h-24 {{ $box }} {{ $editingHours && ($cell['weekend'] || $cell['isPast']) ? 'cursor-not-allowed opacity-50' : '' }}">
                             <span class="flex items-start justify-between gap-1">
                                 <span @class([
                                     'flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums',
@@ -297,7 +324,7 @@
                                     'text-rose-500' => ! $cell['isToday'] && $cell['closed'],
                                     'text-slate-800' => ! $cell['isToday'] && ! $cell['closed'],
                                 ])>{{ $cell['day'] }}</span>
-                                @if ($editingHours && ! $cell['weekend'])
+                                @if ($editingHours && ! $cell['weekend'] && ! $cell['isPast'])
                                     <span class="mt-0.5 grid h-4 w-4 place-items-center rounded border {{ $picked ? 'border-[#2A57B4] bg-[#2A57B4] text-white' : 'border-slate-300 bg-white' }}" aria-hidden="true">
                                         @if ($picked)<i class="bx bx-check text-xs"></i>@endif
                                     </span>
@@ -358,9 +385,9 @@
         {{-- Several days picked for new hours --}}
         @if ($editingHours && $calendarMode === 'month' && count($hoursDates))
             <div class="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
-                <div class="pointer-events-auto flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 pl-3 shadow-lg" role="region" aria-label="Days selected for new hours">
+                <div class="pointer-events-auto flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 pl-3 shadow-lg" role="region" aria-label="Days selected for new appointment limits">
                     <span class="mr-1 text-sm font-medium tabular-nums text-slate-800" role="status">{{ count($hoursDates) }} {{ str('day')->plural(count($hoursDates)) }} selected</span>
-                    <button type="button" wire:click="openDialog('availability')" class="{{ $btnPrimary }} !min-h-9">Set hours</button>
+                    <button type="button" wire:click="openDialog('availability')" class="{{ $btnPrimary }} !min-h-9">Set limits</button>
                     <button type="button" wire:click="$set('hoursDates', [])" aria-label="Clear the selected days"
                             class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 {{ $focus }}">
                         <i class="bx bx-x text-xl" aria-hidden="true"></i>
@@ -428,32 +455,6 @@
         </section>
         </div>
 
-        {{-- Two phases: review the requests, then serve the approved ones --}}
-        <nav aria-label="Phases">
-            <ol class="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
-                @foreach (AppointmentsBoard::PHASES as $key => $label)
-                    @php $on = $phase === $key; $n = $this->phaseCounts[$key]; @endphp
-                    <li>
-                        <button type="button" wire:click="setPhase('{{ $key }}')" @if ($on) aria-current="step" @endif
-                                class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors [@media(pointer:coarse)]:min-h-11 {{ $focus }}
-                                    {{ $on ? 'bg-white shadow-sm' : 'hover:bg-white/60' }}">
-                            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold {{ $on ? 'bg-[#2A57B4] text-white' : 'bg-white text-slate-600' }}">{{ $loop->iteration }}</span>
-                            <span class="min-w-0">
-                                <span class="block truncate text-sm font-medium {{ $on ? 'text-slate-900' : 'text-slate-700' }}">{{ $label }}</span>
-                                <span class="block truncate text-xs text-slate-500">
-                                    @if ($key === 'review')
-                                        {{ $n }} waiting{{ $this->phaseCounts['flagged'] ? ' · ' . $this->phaseCounts['flagged'] . ' flagged by AI' : '' }}
-                                    @else
-                                        {{ $n }} in the queue · {{ $this->phaseCounts['attended'] }} attended
-                                    @endif
-                                </span>
-                            </span>
-                        </button>
-                    </li>
-                @endforeach
-            </ol>
-        </nav>
-
         @if ($capacityWarning)
             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4" role="alert">
                 <p class="text-sm font-semibold text-amber-900">This doesn't fit the remaining slots or the queue order</p>
@@ -476,22 +477,14 @@
         @endif
 
         <div class="cq space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <p class="text-sm text-slate-500">
-                    {{ $phase === 'review' ? 'Requests with the AI\'s concerns first, then in the order they came in.' : 'In queue order. Call a number, then mark who attended.' }}
-                </p>
-                <div class="flex items-center gap-2">
-                    @if ($phase === 'review' && $this->dayRows->isNotEmpty())
-                        <button type="button" wire:click="selectAllPending" class="{{ $btnBase }} !px-3 text-[#2A57B4] hover:bg-[#f0f4fb]">Select all</button>
-                    @endif
-                    @if ($phase === 'queue' && $this->dayRows->where('status', 'approved')->isNotEmpty())
-                        <button type="button" wire:click="emergencyRescheduleDay" class="{{ $btnBase }} !px-3 text-rose-700 hover:bg-rose-50">
-                            <i class="bx bx-error-circle text-base" aria-hidden="true"></i> Move the whole day
-                        </button>
-                    @endif
+            @if ($this->dayRows->where('status', 'approved')->isNotEmpty())
+                <div class="flex justify-end">
+                    <button type="button" wire:click="emergencyRescheduleDay" class="{{ $btnBase }} !px-3 text-rose-700 hover:bg-rose-50">
+                        <i class="bx bx-error-circle text-base" aria-hidden="true"></i> Move the whole day
+                    </button>
                 </div>
-            </div>
-            @include('livewire.admin.appointments.partials.rows', ['rows' => $this->dayRows, 'mode' => $phase])
+            @endif
+            @include('livewire.admin.appointments.partials.rows', ['rows' => $this->dayRows, 'mode' => 'day'])
         </div>
     @endif
 
@@ -500,17 +493,14 @@
 
         @php $hist = $this->historyRows; @endphp
         <div class="cq space-y-3">
-            @include('livewire.admin.appointments.partials.rows', ['rows' => $hist->getCollection(), 'mode' => 'history'])
+            @include('livewire.admin.appointments.partials.rows', ['rows' => $hist->getCollection(), 'mode' => 'history', 'offset' => max(0, ($hist->firstItem() ?? 1) - 1)])
             @if ($hist->hasPages())
-                <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
-                    <span>Showing {{ $hist->firstItem() }}–{{ $hist->lastItem() }} of {{ $hist->total() }} entries</span>
-                    <div>{{ $hist->links() }}</div>
-                </div>
+                <div>{{ $hist->links() }}</div>
             @endif
         </div>
     @endif
 
-    {{-- Bulk bar (review phase) --}}
+    {{-- Bulk bar (day list) --}}
     @if (count($selectedIds) && $viewMode === 'list')
         <div class="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
             <div class="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 pl-3 shadow-lg" role="region" aria-label="Selected appointments">
@@ -540,7 +530,7 @@
             $who = $oneAppt ? ($oneAppt->user?->full_name ?? 'this student') : $n . ' ' . str('appointment')->plural($n);
             $reasons = $dialog === 'reschedule' ? AppointmentsBoard::RESCHEDULE_REASONS : AppointmentsBoard::REJECT_REASONS;
             $title = match ($dialog) {
-                'availability' => 'Office hours',
+                'availability' => 'Allowed appointments',
                 'approve' => 'Approve ' . ($oneAppt ? 'appointment' : $who),
                 'reject' => 'Reject ' . ($oneAppt ? 'appointment' : $who),
                 default => 'Reschedule ' . ($oneAppt ? 'appointment' : $who),
@@ -557,7 +547,7 @@
                 <p id="appt-dialog-lead" class="mt-1 text-sm text-slate-500">
                     @if ($dialog === 'availability')
                         For {{ collect($hoursDates)->sort()->map(fn ($d) => \Carbon\Carbon::parse($d)->format('D, M j'))->implode(', ') }}.
-                        Students can only book open sessions, up to the number of slots.
+                        Students can only book open sessions, up to the number of appointments allowed.
                     @elseif ($dialog === 'approve')
                         {{ $oneAppt ? $who . ' gets the next queue number for their session' : 'Queue numbers are given in order of submission' }}, and is notified. This cannot be undone.
                     @elseif ($dialog === 'reject')
@@ -580,7 +570,7 @@
                                 </label>
                                 @if (${$s . 'Open'})
                                     <label class="mt-2 flex items-center justify-between gap-3 text-sm text-slate-600">
-                                        Slots
+                                        Appointments allowed
                                         <input type="number" wire:model="{{ $s }}Slots" min="0" max="500" class="h-9 w-24 py-0 text-right tabular-nums [@media(pointer:coarse)]:h-11 {{ $field }}">
                                     </label>
                                     @error($s . 'Slots') <p class="mt-1 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror
@@ -634,7 +624,7 @@
                     @php $action = $dialog === 'availability' ? 'saveHours' : $dialog; @endphp
                     <button type="button" wire:click="{{ $action }}" wire:loading.attr="disabled" wire:target="{{ $action }}"
                             class="{{ $dialog === 'reject' ? $btnBase . ' bg-rose-600 text-white shadow-sm hover:bg-rose-700' : $btnPrimary }}">
-                        {{ match ($dialog) { 'availability' => 'Save hours', 'approve' => 'Approve', 'reject' => 'Reject', default => 'Reschedule' } }}{{ $dialogScope === 'one' || $dialog === 'availability' ? '' : ' ' . $n }}
+                        {{ match ($dialog) { 'availability' => 'Save limits', 'approve' => 'Approve', 'reject' => 'Reject', default => 'Reschedule' } }}{{ $dialogScope === 'one' || $dialog === 'availability' ? '' : ' ' . $n }}
                     </button>
                 </div>
             </div>

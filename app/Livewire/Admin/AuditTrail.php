@@ -22,7 +22,7 @@ class AuditTrail extends Component
 {
     use WithPagination;
 
-    public const PER_PAGE = 25;
+    public const PER_PAGE = 50;
     private const EXPORT_LIMIT = 20000;
 
     public const PERIODS = [
@@ -56,6 +56,9 @@ class AuditTrail extends Component
 
     public ?string $openRow = null;
 
+    public string $sortKey = '';
+    public string $sortDir = 'asc';
+
     public function updating($name): void
     {
         if (in_array($name, ['search', 'action', 'module', 'role', 'period', 'dateFrom', 'dateTo'], true)) {
@@ -76,6 +79,19 @@ class AuditTrail extends Component
     {
         $this->reset(['search', 'action', 'module', 'role', 'period', 'dateFrom', 'dateTo', 'openRow']);
         $this->resetPage();
+    }
+
+    /** The Filters pop-up's Reset: its own filters only, the search stays (as on Workflow review). */
+    public function resetFilters(): void
+    {
+        $this->reset(['action', 'module', 'role', 'period', 'dateFrom', 'dateTo', 'openRow']);
+        $this->resetPage();
+    }
+
+    /** How many of the pop-up's filters are on (the number on the Filters button). */
+    private function activeFilterCount(): int
+    {
+        return collect([$this->role, $this->action, $this->module, $this->period])->filter(fn ($v) => $v !== '')->count();
     }
 
     public function toggleRow(string $key): void
@@ -108,9 +124,9 @@ class AuditTrail extends Component
 
         return $this->union()
             ->leftJoin('users as u', 'u.id', '=', 't.user_id')
-            ->select('t.*', 'u.first_name', 'u.middle_name', 'u.last_name', 'u.suffix', 'u.email', 'u.profile_picture')
+            ->select('t.*', 'u.honorific', 'u.first_name', 'u.middle_name', 'u.last_name', 'u.suffix', 'u.email', 'u.profile_picture')
             ->when($this->action !== '', fn ($q) => $q->where('t.action', $this->action))
-            ->when($this->module !== '', fn ($q) => $q->where('t.module', $this->module))
+            ->when($this->module !== '', fn ($q) => $q->whereIn('t.module', AuditLog::moduleNames($this->module)))
             ->when($this->role !== '', fn ($q) => $this->role === 'System'
                 ? $q->whereNull('t.user_id')
                 : $q->where('t.user_role', $this->role))
@@ -127,8 +143,35 @@ class AuditTrail extends Component
                     ->orWhere('u.email', 'like', $term)
                     ->orWhere(DB::raw("CONCAT(u.first_name, ' ', u.last_name)"), 'like', $term));
             })
+            ->when($this->sortKey !== '', function ($q) {
+                $dir = $this->sortDir === 'desc' ? 'desc' : 'asc';
+                match ($this->sortKey) {
+                    'user' => $q->orderByRaw("CASE WHEN t.user_id IS NULL THEN 1 ELSE 0 END")->orderBy('u.first_name', $dir)->orderBy('u.last_name', $dir),
+                    'action' => $q->orderBy('t.action', $dir),
+                    'module' => $q->orderBy('t.module', $dir),
+                    'date' => $q->orderBy('t.created_at', $dir),
+                    default => null,
+                };
+            })
             ->orderByDesc('t.created_at')
             ->orderByDesc('t.id');
+    }
+
+    /** Column-header click, as on Workflow review: ascending, then descending, then back to newest first. */
+    public function sortBy(string $key): void
+    {
+        if (! in_array($key, ['user', 'action', 'module', 'date'], true)) {
+            return;
+        }
+
+        [$this->sortKey, $this->sortDir] = match (true) {
+            $this->sortKey !== $key => [$key, 'asc'],
+            $this->sortDir === 'asc' => [$key, 'desc'],
+            default => ['', 'asc'],
+        };
+
+        $this->resetPage();
+        $this->openRow = null;
     }
 
     /** @return array{0: ?\Carbon\CarbonInterface, 1: ?\Carbon\CarbonInterface} */
@@ -162,14 +205,14 @@ class AuditTrail extends Component
             'key' => $row->source . '-' . $row->id,
             'at' => \Carbon\Carbon::parse($row->created_at),
             'user' => $row->user_id
-                ? (User::formatName($row->first_name, $row->middle_name, $row->last_name, $row->suffix) ?: ($row->email ?: 'User #' . $row->user_id))
+                ? (\App\Support\Honorifics::prefix($row->honorific ?? null, User::formatName($row->first_name, $row->middle_name, $row->last_name, $row->suffix)) ?: ($row->email ?: 'User #' . $row->user_id))
                 : 'System',
             'email' => $row->email,
             'avatar' => User::avatarUrlFor($row->profile_picture),
             'role' => $row->user_role ?: ($row->user_id ? null : 'Automatic'),
             'action' => $row->action,
             'action_label' => AuditLog::ACTIONS[$row->action] ?? Str::headline($row->action),
-            'module' => $row->module,
+            'module' => AuditLog::moduleLabel($row->module),
             'description' => $description,
             'changes' => is_array($changes) ? $changes : [],
             'is_diff' => ! $isWorkflow && $row->action === 'updated',
@@ -237,6 +280,7 @@ class AuditTrail extends Component
 
         $modules = collect(AuditLog::MODULES)
             ->merge(DB::table('audit_logs')->distinct()->pluck('module'))
+            ->map(fn ($m) => AuditLog::moduleLabel($m))
             ->unique()->sort()->values();
         $roles = DB::table('audit_logs')->whereNotNull('user_role')->distinct()->pluck('user_role')
             ->merge(DB::table('transaction_audit_logs')->whereNotNull('actor_role')->distinct()->pluck('actor_role'))
@@ -250,6 +294,7 @@ class AuditTrail extends Component
             'actions' => AuditLog::ACTIONS,
             'periods' => self::PERIODS,
             'hasFilters' => $this->activeFilterSummary() !== '',
+            'activeFilters' => $this->activeFilterCount(),
             'today' => [
                 'events' => AuditLog::where('created_at', '>=', today())->count()
                     + DB::table('transaction_audit_logs')->where('created_at', '>=', today())->count(),

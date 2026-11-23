@@ -112,13 +112,13 @@
 </div>
 <div class="ln">
     <div class="lbl" style="left:0; width:90pt;">Type of Offense:</div>
-    <div class="val" style="left:92pt; width:395pt; font-size:{{ $fit($offense, 395) }}pt;">{{ $offense }}</div>
+    <div data-f="offense" class="val" style="left:92pt; width:395pt; font-size:{{ $fit($offense, 395) }}pt;">{{ $offense }}</div>
 </div>
 <div class="ln s">
     <div class="lbl" style="left:0; width:487pt;">Date &amp; Time the Offense was Committed:</div>
 </div>
 <div class="ln">
-    <div class="val" style="left:0; width:487pt; font-size:{{ $fit($when, 487) }}pt;">{{ $when }}</div>
+    <div data-f="offense_date offense_time" class="val" style="left:0; width:487pt; font-size:{{ $fit($when, 487) }}pt;">{{ $when }}</div>
 </div>
 
 {{-- Reported by (right) --}}

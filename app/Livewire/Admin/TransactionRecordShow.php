@@ -50,20 +50,10 @@ class TransactionRecordShow extends Component
             ->first();
     }
 
+    /** A paper form is Pending until it is completed (the system-wide words, as on Reports). */
     protected function resolveStatus(): string
     {
-        $createdAt = $this->workspace->created_at instanceof Carbon
-            ? $this->workspace->created_at
-            : Carbon::parse($this->workspace->created_at);
-
-        return match (true) {
-            $this->workspace->isCompleted() => 'Completed',
-            $this->workspace->isProcessing() => 'Processing',
-            $this->workspace->hasAttendedAppointment() => 'Waiting Upload',
-            $this->workspace->appointments()->whereIn('status', ['pending', 'approved'])->exists() => 'For Appointment',
-            $createdAt->lt(now()->subDays(14)) => 'Missed',
-            default => 'Pending',
-        };
+        return $this->workspace->isCompleted() ? 'completed' : 'pending';
     }
 
     protected function appointmentStatus(?object $appointment): string

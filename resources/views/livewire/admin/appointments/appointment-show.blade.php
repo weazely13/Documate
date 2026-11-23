@@ -12,15 +12,9 @@
     $field = 'w-full rounded-lg border-slate-300 bg-white text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm';
     $row = 'grid grid-cols-[minmax(104px,128px)_minmax(0,1fr)] items-baseline gap-3 py-2.5';
 
-    [$statusText, $statusPill] = match ($a->status) {
-        'pending' => ['Pending review', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        'approved' => ['Approved', 'bg-[#e2e9f7] text-[#1E4090] ring-sky-200'],
-        'attended' => ['Attended', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
-        'missed' => ['Missed', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        'rejected' => ['Rejected', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        'retracted' => ['Withdrawn by the student', 'bg-slate-100 text-slate-600 ring-slate-200'],
-        default => [ucfirst($a->status), 'bg-slate-100 text-slate-600 ring-slate-200'],
-    };
+    // Status in the system-wide words and colours (App\Support\StatusStyle), as on Reports.
+    $st = \App\Support\StatusStyle::appointment($a->status);
+    [$statusText, $statusPill] = [$st['label'], \App\Support\StatusStyle::TONES[$st['tone']]];
 
     $parts = preg_split('/\s+/', trim($u?->full_name ?? '')) ?: [];
     $initials = mb_strtoupper(mb_substr($parts[0] ?? '', 0, 1) . (count($parts) > 1 ? mb_substr(end($parts), 0, 1) : '')) ?: '?';
@@ -30,12 +24,13 @@
     $previewSrc = $paperless ? route('admin.workflow.preview', $ws->workspace_id) : null;
 
     $clearance = $this->selectedClearance;
-    [$clrTint, $clrText, $clrDot] = match ($clearance['status']) {
-        'Cleared' => ['bg-emerald-50', 'text-emerald-800', 'bg-emerald-600'],
-        'Pending' => ['bg-amber-50', 'text-amber-800', 'bg-amber-500'],
-        'Uncleared' => ['bg-rose-50', 'text-rose-800', 'bg-red-600'],
-        default => ['bg-slate-100', 'text-slate-700', 'bg-slate-400'],
-    };
+    // Clearance in the system-wide words and hues (App\Support\StatusStyle), as on Reports.
+    $clr = \App\Support\StatusStyle::clearance($clearance['status']);
+    [$clrTint, $clrText, $clrDot] = [
+        ['emerald' => 'bg-emerald-50', 'amber' => 'bg-amber-50', 'rose' => 'bg-rose-50', 'slate' => 'bg-slate-100'][$clr['tone']],
+        ['emerald' => 'text-emerald-700', 'amber' => 'text-amber-700', 'rose' => 'text-rose-700', 'slate' => 'text-slate-600'][$clr['tone']],
+        \App\Support\StatusStyle::DOTS[$clr['tone']],
+    ];
     $tone = ['green' => 'bg-emerald-600 ring-emerald-600', 'red' => 'bg-red-600 ring-red-600', 'amber' => 'bg-white ring-amber-500', 'blue' => 'bg-white ring-[#2A57B4]'];
 @endphp
 
@@ -51,12 +46,15 @@
                 @endif
             </span>
             <div class="min-w-0">
-                <h1 class="break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $u?->full_name }}</h1>
+                <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <h1 class="break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $u?->full_name }}</h1>
+                    <span class="{{ \App\Support\StatusStyle::BADGE }} {{ $statusPill }}">{{ $statusText }}</span>
+                </div>
                 <p class="mt-0.5 text-sm text-slate-500">
                     {{ collect([$u?->student_number, $u?->program?->name, $u?->year_level ? 'Year ' . $u->year_level : null])->filter()->implode(' · ') }}
                 </p>
+                @if ($a->queue_number || $this->isNowServing)
                 <p class="mt-2 flex flex-wrap items-center gap-2">
-                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $statusPill }}">{{ $statusText }}</span>
                     @if ($a->queue_number)
                         <span class="inline-flex items-center rounded-full bg-[#2A57B4] px-2.5 py-0.5 text-xs font-medium tabular-nums text-white">Queue #{{ $a->queue_number }}</span>
                     @endif
@@ -66,6 +64,7 @@
                         </span>
                     @endif
                 </p>
+                @endif
             </div>
         </div>
         <a href="{{ route('admin.appointments.index', ['view' => 'list', 'date' => $a->appointment_date->toDateString()]) }}" wire:navigate class="{{ $secondary }} shrink-0 self-start">
@@ -129,7 +128,7 @@
                         <p class="mt-0.5 text-sm text-slate-500">
                             @if ($ws)
                                 {{ $ws->documentName() }}@if ($ws->transaction_code) · <span class="tabular-nums">{{ $ws->transaction_code }}</span>@endif
-                                · {{ $ws->workflow_status?->label() ?? ucfirst($ws->status ?? '') }}
+                                · {{ \App\Support\StatusStyle::transaction($ws->workflow_status ?? $ws->status)['label'] }}
                             @else
                                 The student did not attach a document.
                             @endif
@@ -179,13 +178,14 @@
         <div class="contents lg:block lg:space-y-5">
             @if (in_array($a->status, ['pending', 'approved'], true))
                 <section class="{{ $card }} order-2" aria-labelledby="rec-decide">
-                    <h2 id="rec-decide" class="text-[15px] font-semibold text-slate-900">{{ $a->status === 'pending' ? 'Decide' : 'At the counter' }}</h2>
-                    <p class="mt-0.5 text-sm text-slate-500">
-                        {{ $a->status === 'pending'
-                            ? 'Approving gives the student the next queue number for this session and notifies them.'
-                            : 'Mark the visit as attended once the student has been served.' }}
-                    </p>
-                    <div class="mt-4 grid gap-2 sm:flex sm:flex-wrap">
+                    {{-- A pending request shows just its buttons; an approved visit keeps its "At the counter" note --}}
+                    @if ($a->status === 'pending')
+                        <h2 id="rec-decide" class="sr-only">Decide</h2>
+                    @else
+                        <h2 id="rec-decide" class="text-[15px] font-semibold text-slate-900">At the counter</h2>
+                        <p class="mt-0.5 text-sm text-slate-500">Mark the visit as attended once the student has been served.</p>
+                    @endif
+                    <div class="{{ $a->status === 'pending' ? '' : 'mt-4' }} grid gap-2 sm:flex sm:flex-wrap">
                         @if ($a->status === 'pending')
                             <button type="button" wire:click="$set('showApproveConfirm', true)" class="{{ $primary }}">Approve</button>
                             <button type="button" wire:click="$set('showReject', true)" class="{{ $danger }}">Reject</button>
@@ -219,7 +219,7 @@
 
                 <div class="mt-4 flex items-center gap-3 rounded-xl px-4 py-3 {{ $clrTint }}">
                     <span class="h-3 w-3 shrink-0 rounded-full {{ $clrDot }}" aria-hidden="true"></span>
-                    <p class="text-lg font-semibold tracking-[-0.01em] {{ $clrText }}">{{ $clearance['status_word'] }}</p>
+                    <p class="text-lg font-semibold tracking-[-0.01em] {{ $clrText }}">{{ $clr['label'] }}</p>
                 </div>
 
                 <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
@@ -313,7 +313,7 @@
                         @case('approve') {{ $u?->full_name }} gets the next queue number for {{ $a->appointment_date->format('M j') }}, {{ $a->session }}, and is notified. @break
                         @case('reject') The student sees this reason. @break
                         @case('reschedule') An approved visit goes back to pending and loses its queue number. The student is notified. @break
-                        @default Queue #{{ $a->queue_number }} ({{ $u?->first_name }}) is recorded as attended. This cannot be undone. Any notes above are saved with it.
+                        @default Queue #{{ $a->queue_number }} ({{ $u?->display_first_name }}) is recorded as attended. This cannot be undone. Any notes above are saved with it.
                     @endswitch
                 </p>
 

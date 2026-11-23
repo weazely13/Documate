@@ -5,13 +5,6 @@
     $btnSecondary = $btnBase . ' border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50';
 
     $done = $workspace->isCompleted();
-    $status = $workspace->displayStatus();
-    $pill = match ($status['tone']) {
-        'green' => 'bg-emerald-50 text-emerald-800 ring-emerald-200',
-        'amber' => 'bg-amber-50 text-amber-800 ring-amber-200',
-        'red' => 'bg-rose-50 text-rose-800 ring-rose-200',
-        default => 'bg-slate-100 text-slate-600 ring-slate-200',
-    };
     $title = $workspace->template?->name
         ? \Illuminate\Support\Str::title(str_replace('_', ' ', $workspace->template->name))
         : 'Document';
@@ -33,7 +26,7 @@
         </a>
         <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <h1 class="min-w-0 break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $title }}</h1>
-            <span class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $pill }}">{{ $status['label'] }}</span>
+            <x-status-badge :paper="$done" />
         </div>
         <p class="mt-0.5 text-sm text-slate-500">Paper form · Started {{ $workspace->created_at->format('M j, Y') }}</p>
     </div>
@@ -58,8 +51,13 @@
                     </div>
                 @endif
             @else
-                <p class="text-sm font-medium text-slate-900">Next: print it and bring it to the VPSD office.</p>
-                <p class="mt-0.5 text-xs text-slate-500">Book a visit so the office expects you.</p>
+                @if ($this->visitCompleted)
+                    <p class="text-sm font-medium text-slate-900">Visit completed.</p>
+                    <p class="mt-0.5 text-xs text-slate-500">The VPSD personnel will upload a photo of this document for it to become an online copy.</p>
+                @else
+                    <p class="text-sm font-medium text-slate-900">Next: print it and bring it to the VPSD office.</p>
+                    <p class="mt-0.5 text-xs text-slate-500">Book a visit so the office expects you.</p>
+                @endif
 
                 @if (! empty($workspace->analysis_data['error_code']))
                     <p class="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
@@ -73,7 +71,7 @@
                         <a href="{{ route('student.appointments.show', $this->activeAppointment) }}" wire:navigate class="{{ $btnPrimary }} col-span-2 lg:col-span-1">
                             <i class="bx bx-calendar-check text-lg" aria-hidden="true"></i> View appointment
                         </a>
-                    @else
+                    @elseif (! $this->visitCompleted)
                         <a href="{{ route('student.appointments.new', ['workspace' => $workspace->workspace_id]) }}" wire:navigate class="{{ $btnPrimary }} col-span-2 lg:col-span-1">
                             <i class="bx bx-calendar-plus text-lg" aria-hidden="true"></i> Book an appointment
                         </a>

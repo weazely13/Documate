@@ -5,34 +5,42 @@
     $editable = $this->isEditable;
     $document = $this->document;
 
-    // One bordered box per field: the label sits inside the box, above the value (with an optional icon).
-    $box = 'group/box relative mt-1 flex min-w-0 items-center gap-2.5 rounded-lg border border-slate-300 bg-white px-3.5 transition focus-within:border-[#2A57B4] focus-within:ring-[3px] focus-within:ring-[#2A57B4]/20';
-    $boxLocked = 'relative mt-1 flex min-w-0 items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3.5';
-    $bare = 'w-full min-w-0 border-0 bg-transparent p-0 py-3 text-base text-slate-900 placeholder-slate-400 outline-none focus:ring-0 sm:py-2.5 sm:text-sm';
+    // Filled in on the form itself (<x-doc.sheet>): each answer is a blank line with its caption under it, as on paper.
+    $D = \App\Support\DocSheet::class;
+    $box = 'mt-1 ' . $D::LINE;
+    $boxLocked = 'mt-1 relative flex min-w-0 items-center gap-2 border-b border-dashed border-slate-300';
+    $bare = $D::INPUT;
     $label = 'block text-[13px] font-medium text-slate-700';
-    $help = 'mt-1 text-xs leading-relaxed text-slate-500';
-    $err = 'mt-1 flex items-start gap-1 text-xs font-medium text-rose-600';
+    $caption = $D::CAPTION;
+    $help = $D::HINT;
+    $err = $D::ERROR;
 
     $signedCount = $approvals->where('status', ApprovalStatus::Approved)->count();
     $waitingOn = $approvals->firstWhere('status', ApprovalStatus::Pending);
 
-    // One "what happens next" message. Amber = the student has to act.
-    [$nextTitle, $nextText, $nextTone] = match (true) {
-        ! $ws || $status === TransactionStatus::Draft => [null, null, null],
-        $status === TransactionStatus::ActionRequired => ['Your next step: update and resubmit', $ws->workflow_note ? '"' . $ws->workflow_note . '" (VPSD office)' : 'The VPSD office asked for changes. Update the form below and resubmit.', 'amber'],
-        $status === TransactionStatus::Rejected => ['Rejected', $ws->workflow_note ?: 'This transaction was rejected.', 'rose'],
-        $status === TransactionStatus::Voided => ['Voided by the VPSD office', $ws->void_reason ?: 'This document was withdrawn.', 'slate'],
-        $status === TransactionStatus::Completed => ['Completed and signed', 'Save your copy as a PDF. Print it only if a paper copy is required.', 'emerald'],
-        $status === TransactionStatus::Approved => ['Almost done', $afterReviewNote ?: 'Everyone has signed. The VPSD office will finish it.', 'blue'],
-        $status === TransactionStatus::UnderReview && $approvals->isNotEmpty() => ['In signing', 'Signed ' . $signedCount . ' of ' . $approvals->count() . '.' . ($waitingOn ? ' Waiting for ' . ($waitingOn->role->label ?? $waitingOn->label) . '. They are notified automatically.' : '') . ($afterReviewNote ? "\n" . $afterReviewNote : ''), 'blue'],
-        default => ['With the VPSD office', $afterReviewNote ?: 'The VPSD office is checking your submission. Nothing to do yet.', 'blue'],
+    // One "what happens next" message under the status pill (the system-wide words and colours).
+    // Amber = the student has to act.
+    $nextText = match (true) {
+        ! $ws || $status === TransactionStatus::Draft => null,
+        $status === TransactionStatus::ActionRequired => 'Your next step: update the form below and resubmit.' . ($ws->workflow_note ? "\n" . '"' . $ws->workflow_note . '" (VPSD office)' : ' The VPSD office asked for changes.'),
+        $status === TransactionStatus::Rejected => $ws->workflow_note ?: 'This transaction was rejected.',
+        $status === TransactionStatus::Voided => $ws->void_reason ?: 'Voided by the VPSD office.',
+        $status === TransactionStatus::Completed => 'Signed and finished. Save your copy as a PDF. Print it only if a paper copy is required.',
+        $status === TransactionStatus::Approved => $afterReviewNote ?: 'Everyone has signed. The VPSD office will finish it.',
+        $status === TransactionStatus::UnderReview && $approvals->isNotEmpty() => 'Signed ' . $signedCount . ' of ' . $approvals->count() . '.' . ($waitingOn ? ' Waiting for ' . ($waitingOn->role->label ?? $waitingOn->label) . '. They are notified automatically.' : '') . ($afterReviewNote ? "\n" . $afterReviewNote : ''),
+        default => $afterReviewNote ?: 'The VPSD office is checking your submission. Nothing to do yet.',
     };
+    $nextTone = $nextText !== null ? $status->tone() : null;
     $toneBox = [
         'amber' => 'bg-amber-50 text-amber-900',
         'rose' => 'bg-rose-50 text-rose-900',
         'slate' => 'bg-slate-100 text-slate-800',
         'emerald' => 'bg-emerald-50 text-emerald-900',
-        'blue' => 'bg-[#2A57B4]/5 text-slate-800',
+        'green' => 'bg-green-50 text-green-900',
+        'orange' => 'bg-orange-50 text-orange-900',
+        'violet' => 'bg-violet-50/60 text-slate-800',
+        'blue' => 'bg-blue-50/60 text-slate-800',
+        'indigo' => 'bg-indigo-50/60 text-slate-800',
     ];
     $closed = in_array($status, [TransactionStatus::Rejected, TransactionStatus::Voided], true);
 
@@ -48,19 +56,34 @@
     };
     $guideAmber = $status === TransactionStatus::ActionRequired;
 
-    $fieldIcon = function (string $name, array $f): ?string {
-        if (! empty($f['icon'])) return $f['icon'];
+    // Filled in on the printed page (resources/js/pdf-fill.js): the blanks the PDF prints, and which editor an error belongs to.
+    $printed = \App\Support\PdfFill::printed($document);
+    $editorFor = function (string $key) use ($document): ?string {
+        if ($key === 'nomineeId') {
+            return '__nominee';
+        }
+        if (! str_starts_with($key, 'values.')) {
+            return null;
+        }
+        $n = explode('.', substr($key, 7))[0];
+        $f = $document->fields()[$n] ?? [];
+
         return match (true) {
-            ($f['type'] ?? '') === 'date' => 'bx-calendar',
-            ($f['type'] ?? '') === 'time' => 'bx-time-five',
-            str_ends_with($name, '_email') => 'bx-envelope',
-            str_ends_with($name, '_name') || $name === 'professor' => 'bx-user',
-            in_array($name, ['venue', 'address'], true) => 'bx-map',
-            in_array($name, ['subject', 'activity'], true) => 'bx-book-open',
-            str_contains($name, 'contact') || str_contains($name, 'phone') => 'bx-phone',
-            default => null,
+            ($f['group'] ?? null) === 'schedule' => '__schedule',
+            ! empty($f['salutation_of']) => $f['salutation_of'],
+            default => $n,
         };
     };
+    $errorEditors = collect($errors->keys())->map($editorFor)->filter()->unique()->values()->all();
+
+    // Plain lines, as on paper: no icons in the blanks.
+    $fieldIcon = fn (string $name, array $f): ?string => null;
+
+    // Short answers share a row on wider screens; longer ones take the whole width.
+    $isShort = fn (string $name, array $f): bool => empty($f['question']) && empty($f['salutation']) && (
+        in_array($f['type'] ?? 'text', ['date', 'time', 'select', 'number'], true)
+        || (($f['type'] ?? 'text') === 'text' && ($f['max'] ?? 255) <= 150)
+    );
 
     $sysFields = $document->systemFields();
     $missing = collect($sysFields)->filter(fn ($l, $key) => trim((string) ($student[$key] ?? '')) === '')->values();
@@ -81,10 +104,10 @@
     ]));
 @endphp
 
-<div class="mx-auto w-full max-w-2xl xl:grid xl:max-w-[1440px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-start xl:gap-6">
-<div class="min-w-0 space-y-5">
+<div class="mx-auto w-full max-w-3xl">
+<div class="min-w-0 space-y-4 sm:space-y-5">
 
-    {{-- Header. The full A4 document (narrow screens), from the live answers while editable. Nothing is saved by previewing. --}}
+    {{-- Header. "PDF" opens the exact printed copy, from the live answers while editable. Nothing is saved by it. --}}
     <div x-data="{
             open: false, loading: false, html: '', w: 842, h: 1171, scale: 1, wrapEl: null, frameEl: null,
             async show() {
@@ -107,13 +130,12 @@
          @message.window="measure($event)"
          @resize.window="fit()">
 
-        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2">
-            <div class="min-w-0 flex-1">
-                <h1 class="break-words text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">{{ $document->name() }}</h1>
-                <p class="mt-0.5 text-sm text-slate-500">
-                    {{ $document->description() }}
-                    @if ($ws?->submitted_at) <span class="whitespace-nowrap">&middot; Submitted {{ $ws->submitted_at->format('M j, Y') }}</span> @endif
-                </p>
+        <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0 flex-1" data-tour="form-head">
+                <h1 class="truncate text-lg font-semibold tracking-[-0.015em] text-slate-900 sm:text-xl">{{ $document->name() }}</h1>
+                @if ($ws?->submitted_at)
+                    <p class="text-xs text-slate-500">Submitted {{ $ws->submitted_at->format('M j, Y') }}</p>
+                @endif
             </div>
             <div class="flex shrink-0 items-center gap-2">
                 @if ($editable)
@@ -123,16 +145,14 @@
                         <i class="bx bx-info-circle text-xl" aria-hidden="true"></i>
                     </button>
                 @endif
-                @if ($guide)
-                    <button type="button" @click="$dispatch('open-guide')" x-ref="guideBtn"
-                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:w-11"
-                            aria-label="How this works: steps and checklist" title="How this works">
-                        <i class="bx bx-help-circle text-xl" aria-hidden="true"></i>
-                    </button>
-                @endif
-                <button type="button" @click="show()"
-                        class="inline-flex min-h-9 items-center gap-1.5 py-1.5 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] xl:hidden [@media(pointer:coarse)]:min-h-[44px]">
-                    <i class="bx bx-show text-base text-slate-500" aria-hidden="true"></i> Preview document
+                <button type="button" @click="$dispatch('start-tour')" x-ref="guideBtn" data-tour="form-help"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-[#2A57B4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:w-11"
+                        aria-label="How this works: take a tour of this form" title="How this works">
+                    <i class="bx bx-help-circle text-xl" aria-hidden="true"></i>
+                </button>
+                <button type="button" @click="show()" data-tour="form-preview" title="See the printed copy"
+                        class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4] [@media(pointer:coarse)]:min-h-11">
+                    <i class="bx bxs-file-pdf text-base text-rose-600" aria-hidden="true"></i> PDF<span class="sr-only"> preview of the printed copy</span>
                 </button>
             </div>
         </div>
@@ -146,15 +166,8 @@
                      @click.outside="open = false">
                     <div class="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
                         <div class="min-w-0">
-                            <h2 id="doc-preview-title" class="text-sm font-semibold text-slate-900">Document preview</h2>
-                            <p class="text-xs text-slate-500">
-                                @if ($editable)
-                                    Shows your current answers. Nothing is saved or submitted by previewing.
-                                @else
-                                    The document as it stands now.
-                                @endif
-                                Signatures appear as they are given; the QR code and fingerprint appear once the document is issued.
-                            </p>
+                            <h2 id="doc-preview-title" class="text-sm font-semibold text-slate-900">Printed copy</h2>
+                            <p class="text-xs text-slate-500">{{ $editable ? 'With your answers so far. Nothing is saved.' : 'As it stands now.' }}</p>
                         </div>
                         <button type="button" @click="open = false" x-init="$watch('open', v => v && $nextTick(() => $el.focus()))"
                                 class="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]"
@@ -287,8 +300,9 @@
                     @endphp
                     <li>
                         @if ($target)
+                            {{-- Opens the blank on the page when the field is printed; otherwise scrolls to it in the list. --}}
                             <a href="#{{ $target }}" class="underline decoration-rose-300 underline-offset-2 hover:decoration-rose-600"
-                               @click.prevent="const t = document.getElementById('{{ $target }}'); if (t) { t.scrollIntoView({ block: 'center' }); t.focus({ preventScroll: true }); }">{{ $messages[0] }}</a>
+                               @click.prevent="$dispatch('fill-open', { name: @js($editorFor($key)) }); $nextTick(() => { const t = document.getElementById('{{ $target }}'); if (t && t.offsetParent && ! t.closest('[data-editor].fixed')) { t.scrollIntoView({ block: 'center' }); t.focus({ preventScroll: true }); } })">{{ $messages[0] }}</a>
                         @else
                             {{ $messages[0] }}
                         @endif
@@ -300,12 +314,12 @@
 
     {{-- Status: one stepper and one next-step message --}}
     @if ($ws && $status !== TransactionStatus::Draft)
-        <section x-data="{ signers: false }" class="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 sm:p-5" aria-labelledby="status-title">
+        <section x-data="{ signers: false }" data-tour="form-status" class="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-4 sm:p-5" aria-labelledby="status-title">
             <h2 id="status-title" class="sr-only">Status</h2>
             @unless ($closed)
                 @php $step = $progress ?? 0; @endphp
                 <ol class="grid grid-cols-4 gap-2">
-                    @foreach (['Submitted', 'VPSD review', 'Signatures', 'Done'] as $i => $stepLabel)
+                    @foreach (['Submitted', 'Review', 'Signing', 'Done'] as $i => $stepLabel)
                         @php
                             $done = $step >= 4 || $i < $step;
                             $current = ! $done && $i === $step;
@@ -321,10 +335,10 @@
                 </ol>
             @endunless
 
-            @if ($nextTitle)
-                <div class="rounded-xl px-4 py-3.5 {{ $toneBox[$nextTone] }}" @if ($nextTone === 'amber') role="status" @endif>
-                    <p class="text-sm font-semibold">{{ $nextTitle }}</p>
-                    <p class="mt-0.5 whitespace-pre-line text-sm leading-relaxed opacity-90">{{ $nextText }}</p>
+            @if ($nextText !== null)
+                <div class="rounded-xl px-4 py-3.5 {{ $toneBox[$nextTone] ?? $toneBox['slate'] }}" @if ($nextTone === 'amber') role="status" @endif>
+                    <p><x-status-badge :workspace="$ws" /></p>
+                    <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed opacity-90">{{ $nextText }}</p>
 
                     @if ($status === TransactionStatus::Completed)
                         <div class="mt-3 flex flex-wrap items-center gap-3">
@@ -364,10 +378,10 @@
                             };
                             $text = match ($a->status) {
                                 ApprovalStatus::Approved => 'Signed' . ($a->acted_at ? ' · ' . $a->acted_at->format('M j, g:i A') : ''),
-                                ApprovalStatus::Pending => 'Waiting for signature',
+                                ApprovalStatus::Pending => 'Pending',
                                 ApprovalStatus::Rejected => 'Rejected',
                                 ApprovalStatus::Skipped => 'Cancelled',
-                                default => 'Not started',
+                                default => 'Queued',
                             };
                         @endphp
                         <li class="flex items-start gap-3" wire:key="appr-{{ $a->id }}">
@@ -386,105 +400,78 @@
         </section>
     @endif
 
-    {{-- The form. Edits tell the side preview to refresh. --}}
+    {{-- The form itself: answers are typed straight onto the sheet. Edits tell the PDF view to refresh. --}}
     <form wire:submit="submit" novalidate
           @if ($editable) wire:confirm="Submit to the VPSD office? You can't edit it afterwards unless they ask for changes." @endif
-          class="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
-          x-data @input="$dispatch('doc-changed')" @change="$dispatch('doc-changed')"
+          class="space-y-4"
+          x-data="pdfFill({ editable: @js($editable), placed: @js($editable ? $printed : []), deps: @js(\App\Support\PdfFill::deps($document)) })"
+          @input.debounce.500ms="refresh()" @change.debounce.250ms="refresh()" @fill-refresh.debounce.400ms="refresh()"
+          @fill-open.window="$event.detail.name && placed[$event.detail.name] && open($event.detail.name)"
           aria-labelledby="form-title">
+        <template x-ref="errs" data-errors="{{ json_encode($errorEditors) }}"></template>
         <h2 id="form-title" class="sr-only">{{ $editable ? 'Fill in the form' : 'Your answers' }}</h2>
 
         {{-- Before you start: a popup that opens with the form (reopen it from the info button). --}}
         @if ($editable)
             @include('livewire.workflow._intro-modal', [
                 'storageKey' => 'student.' . $document->key(),
-                'lead' => $document->name() . ': ' . $document->description(),
-                'items' => array_merge(
-                    ['Fields marked * are required. Greyed-out fields come from your account and can only be changed in your profile.'],
-                    array_map(fn ($n) => 'You will need: ' . $n, $needs),
-                    ['You can save a draft at any time and finish later. Submitting asks you to confirm and give your consent.'],
-                ),
+                'title' => $document->name(),
+                'lead' => $document->description(),
+                // Start to finish, in order (WorkflowDocument::guide: the real signers of this form, in their order).
+                'steps' => $guide,
+                'items' => $needs,
                 'note' => $document->studentNote(),
             ])
         @elseif ($document->studentNote())
-            <p class="border-b border-slate-100 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:px-5">{{ $document->studentNote() }}</p>
+            <p class="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ $document->studentNote() }}</p>
         @endif
 
-        {{-- 1. Student information: from the account, shown locked so the student sees what is printed. --}}
-        <section x-data="{ open: {{ $editable && ($missing->isNotEmpty() || ($needsSig && ! $sigImg)) ? 'true' : 'false' }} }"
-                 class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-student">
-            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <button type="button" @click="open = !open" :aria-expanded="open" aria-controls="student-info"
-                        class="-ml-1 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
-                    <i class="bx text-xl text-slate-400 transition-transform" :class="open ? 'bx-chevron-down' : 'bx-chevron-right'" aria-hidden="true"></i>
-                    <span id="sec-student" class="text-sm font-semibold text-slate-900">Student information</span>
-                    <span class="rounded-full bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">From your account</span>
-                </button>
-                @if ($editable)
-                    <a href="{{ route('profile') }}" wire:navigate class="inline-flex items-center gap-1 text-sm font-medium text-[#2A57B4] hover:underline">
-                        <i class="bx bx-edit-alt" aria-hidden="true"></i> Edit in profile
-                    </a>
-                @endif
-            </div>
+        {{-- The printed page itself: tap a blue blank to fill it in. What you see is what prints. --}}
+        <div data-tour="form-details">
+            <x-doc.pdf-page :label="$document->name() . ($editable ? ': tap a blank to fill it in' : '')" />
+        </div>
 
-            <div id="student-info" x-show="open" x-cloak class="mt-3">
-                <p class="{{ $help }} mt-0">These details are filled in for you and printed on the form. They cannot be typed over here.</p>
-                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    @foreach ($sysFields as $key => $sysLabel)
-                        @php $sysVal = trim((string) ($student[$key] ?? '')); @endphp
-                        <div wire:key="sys-{{ $key }}" class="{{ $key === 'student_program' ? 'sm:col-span-2' : '' }}">
-                            <label for="sys-{{ $key }}" class="{{ $label }}">{{ $sysLabel }}</label>
-                            <div class="{{ $boxLocked }} {{ $sysVal === '' ? 'border-amber-300 bg-amber-50' : '' }}">
-                                <i class="bx bx-lock-alt text-base text-slate-400" aria-hidden="true"></i>
-                                <input id="sys-{{ $key }}" type="text" value="{{ $sysVal }}" disabled
-                                       placeholder="{{ $sysVal === '' ? 'Missing — add it in your profile' : '' }}"
-                                       class="{{ $bare }} cursor-not-allowed text-slate-700 disabled:text-slate-700 {{ $sysVal === '' ? 'placeholder-amber-700' : '' }}">
-                            </div>
-                        </div>
-                    @endforeach
-                    @if ($needsSig)
-                        <div class="sm:col-span-2" wire:key="sys-signature">
-                            <p class="{{ $label }}">Signature (from your profile)</p>
-                            <div class="mt-1 flex items-center gap-3 rounded-xl border {{ $sigImg ? 'border-slate-200 bg-slate-50' : 'border-amber-300 bg-amber-50' }} px-3.5 py-2">
-                                <i class="bx bx-lock-alt text-base text-slate-400" aria-hidden="true"></i>
-                                @if ($sigImg)
-                                    <img src="{{ $sigImg }}" alt="Your saved e-signature" class="h-12 rounded-lg bg-white p-1">
-                                @else
-                                    <span class="text-sm font-semibold text-amber-800">Not set — add your e-signature in your profile</span>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
+        {{-- Your details print from your account --}}
+        <section aria-labelledby="sec-student" data-tour="form-student">
+            <h3 id="sec-student" class="sr-only">Your details, from your account</h3>
             @if ($editable && ($missing->isNotEmpty() || ($needsSig && ! $sigImg)))
-                <p class="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
+                <p class="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
                     <i class="bx bx-error mt-0.5 text-base" aria-hidden="true"></i>
                     <span>
-                        Missing from your account: {{ $missing->implode(', ') }}{{ $needsSig && ! $sigImg ? ($missing->isNotEmpty() ? ', ' : '') . 'e-signature' : '' }}.
-                        <a href="{{ route('profile') }}" wire:navigate class="font-semibold underline">Update your profile</a> before submitting.
+                        Missing: {{ $missing->implode(', ') }}{{ $needsSig && ! $sigImg ? ($missing->isNotEmpty() ? ', ' : '') . 'e-signature' : '' }}.
+                        <button type="button" wire:click="saveAndEditProfile" class="font-semibold underline">Add it in your profile</button>
                     </span>
+                </p>
+            @elseif ($editable)
+                {{-- Saves what was typed as a draft before leaving for the profile --}}
+                <p class="flex flex-wrap items-center justify-between gap-x-3 text-xs text-slate-500">
+                    <span class="inline-flex items-center gap-1"><i class="bx bx-lock-alt" aria-hidden="true"></i>Your name and program print from your profile.</span>
+                    <button type="button" wire:click="saveAndEditProfile" wire:loading.attr="disabled" wire:target="saveAndEditProfile"
+                            class="inline-flex min-h-8 items-center gap-1 rounded font-medium text-[#2A57B4] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
+                        <i class="bx bx-loader-alt animate-spin" aria-hidden="true" wire:loading wire:target="saveAndEditProfile"></i> Edit in profile
+                    </button>
                 </p>
             @endif
         </section>
 
+        {{-- What the page does not print (and, on a phone, each blank's editor sheet): a short list under the page. --}}
+        <div data-extra class="space-y-6" :class="hasExtra ? 'rounded-xl bg-white px-4 py-5 shadow-sm ring-1 ring-slate-200/80 sm:px-6' : ''">
+            <h3 x-show="hasExtra" x-cloak class="{{ $D::HEADING }} mb-4">{{ $editable ? 'Also needed (not printed)' : 'Other details' }}</h3>
         {{-- 2. Officer check (permits): asked first; the rest of the form opens only for officers. --}}
         @if ($document->requiresOfficer())
             @php $officerField = $document->fields()['is_officer'] ?? null; @endphp
-            <section class="border-b border-slate-100 px-4 py-4 sm:px-5" aria-labelledby="sec-officer">
-                <h3 id="sec-officer" class="text-sm font-semibold text-slate-900">Organization officer</h3>
-                <p class="{{ $help }}">{{ $officerField['help'] ?? '' }}</p>
+            <section data-always aria-labelledby="sec-officer">
+                <h3 id="sec-officer" class="sr-only">Organization officer</h3>
 
                 @if ($editable && $officerField)
-                    <fieldset class="mt-3" id="f-is_officer" tabindex="-1"
+                    <fieldset id="f-is_officer" tabindex="-1"
                               @error('values.is_officer') aria-describedby="e-is_officer" @enderror>
-                        <legend class="{{ $label }}">{{ $officerField['label'] }} <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></legend>
-                        <div class="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <legend class="text-[15px] text-slate-800">{{ $officerField['label'] }} <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></legend>
+                        <div class="mt-1 flex flex-wrap gap-x-4">
                             @foreach ($officerField['options'] as $opt)
-                                <label class="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm transition hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/20">
+                                <label class="{{ $D::OPTION }}">
                                     <input type="radio" name="is_officer" wire:model.live="values.is_officer" value="{{ $opt }}" class="h-4 w-4 accent-[#2A57B4]">
-                                    <span class="font-medium text-slate-800">{{ $officerField['option_labels'][$opt] ?? $opt }}</span>
+                                    <span>{{ $officerField['option_labels'][$opt] ?? $opt }}</span>
                                 </label>
                             @endforeach
                         </div>
@@ -494,27 +481,18 @@
                     @if (($values['is_officer'] ?? null) === 'No')
                         <p class="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-900" role="status">
                             <i class="bx bx-block mt-0.5 text-base" aria-hidden="true"></i>
-                            Only officers of a student organization can request this permit. Ask an officer of your organization to file it for your group.
+                            Only organization officers can request this. Ask an officer to file it.
                         </p>
                     @endif
                 @endif
 
                 @if (! $editable || ($values['is_officer'] ?? null) === 'Yes')
                     <div class="mt-3">
-                        <label for="sys-officer" class="{{ $label }}">Position held in the organization</label>
-                        <div class="{{ $boxLocked }} {{ $officerLine ? '' : 'border-amber-300 bg-amber-50' }}">
-                            <i class="bx bx-lock-alt text-base text-slate-400" aria-hidden="true"></i>
-                            <input id="sys-officer" type="text" value="{{ $officerLine }}" disabled
-                                   placeholder="No officer record on your account"
-                                   class="{{ $bare }} cursor-not-allowed text-slate-700 placeholder-amber-700">
-                        </div>
-                        <p class="{{ $help }}">
-                            @if ($officerLine)
-                                Printed beside your signature on the permit.
-                            @else
-                                Your organization adviser or the VPSD office must add your officer record before you can submit.
-                            @endif
-                        </p>
+                        <p id="sys-officer" class="{{ $D::VALUE }} {{ $officerLine ? '' : '!border-amber-400 !font-normal italic !text-amber-700' }}">{{ $officerLine ?: 'No officer record on your account' }}</p>
+                        <span class="{{ $caption }} inline-flex items-center gap-1"><i class="bx bx-lock-alt not-italic" aria-hidden="true"></i>Position in the organization</span>
+                        @unless ($officerLine)
+                            <p class="mt-1 text-xs text-amber-800">Your adviser or the VPSD office must add it first.</p>
+                        @endunless
                     </div>
                 @endif
             </section>
@@ -522,17 +500,12 @@
 
         {{-- 3. Request details --}}
         <div @if ($officerGate) x-show="$wire.values.is_officer === 'Yes'" x-cloak @endif>
-        <section class="px-4 py-5 sm:px-5" aria-labelledby="sec-details">
-            <h3 id="sec-details" class="text-sm font-semibold text-slate-900">{{ $editable ? 'Request details' : 'Your answers' }}</h3>
-            @if ($editable)
-                <p class="{{ $help }}">Answer each item as it should appear on the printed form. The preview shows the result as you type.</p>
-            @endif
+        <section aria-labelledby="sec-details">
+            <h3 id="sec-details" class="sr-only">{{ $editable ? 'Your answers: type on the lines' : 'Your answers' }}</h3>
 
-            @if ($document->usesNomineePicker())
-                <div class="relative mt-4" x-data @keydown.escape="$wire.set('nomineeSearch', '')">
-                    <label for="f-nominee" class="{{ $label }}">
-                        Nominee @if ($editable)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
-                    </label>
+            @if ($document->usesNomineePicker() && ($editable || ! in_array('__nominee', $printed, true)))
+                <x-doc.pop name="__nominee" :pop="$editable">
+                <div data-field class="group/f relative mb-5" x-data @keydown.escape="$wire.set('nomineeSearch', '')">
 
                     @if ($nomineeCard)
                         <div class="mt-1 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
@@ -553,16 +526,17 @@
                                     </button>
                                 @endif
                             </div>
-                            <p class="mt-2 text-[11px] text-slate-500">Filled in from the nominee's profile. Their address and contact number are added to the form automatically.</p>
+                            <p class="mt-2 text-[11px] italic text-slate-500">Nominee · from their profile</p>
                         </div>
                     @elseif ($editable)
-                        <div class="{{ $box }}">
+                        <div class="{{ $box }} {{ $errors->has('nomineeId') ? $D::ERROR_LINE : '' }}">
                             <i class="bx bx-search text-base text-slate-400" aria-hidden="true"></i>
                             <input id="f-nominee" type="search" wire:model.live.debounce.300ms="nomineeSearch" autocomplete="off" @keydown.enter.prevent
-                                   placeholder="Search by name or student number" class="{{ $bare }}"
+                                   placeholder="Type a name or student number" class="{{ $bare }}"
                                    aria-describedby="h-nominee @error('nomineeId') e-nominee @enderror" @error('nomineeId') aria-invalid="true" @enderror>
                         </div>
-                        <p id="h-nominee" class="{{ $help }}">Type at least 2 letters, then pick the student from the list.</p>
+                        <label for="f-nominee" class="{{ $caption }}">Nominee <span class="not-italic text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+                        <p id="h-nominee" class="{{ $help }}">Pick the student from the list.</p>
 
                         @if (strlen($nomineeSearch) >= 2)
                             <div class="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg" role="list" aria-label="Matching students">
@@ -584,9 +558,10 @@
 
                     @error('nomineeId') <p id="e-nominee" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
                 </div>
+                </x-doc.pop>
             @endif
 
-            <div class="mt-4 space-y-4">
+            <div class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
                 @foreach ($document->fields() as $name => $f)
                     @php
                         $type = $f['type'] ?? 'text';
@@ -616,18 +591,25 @@
                     @continue($name === 'is_officer' && $document->requiresOfficer())
                     @continue(! $editable && (($dep && ($values[$depKey] ?? null) !== $depVal) || $hiddenNow))
                     @continue(($f['group'] ?? null) === 'schedule')
+                    {{-- Read-only: what the page prints is read there, not repeated here. --}}
+                    @continue(! $editable && in_array($name, $printed, true))
                     @if ($type === 'slots')
-                        @include('livewire.workflow._slots-field', ['name' => $name, 'f' => $f])
+                        <x-doc.pop :name="$name" :pop="$editable"><div data-field class="sm:col-span-2">@include('livewire.workflow._slots-field', ['name' => $name, 'f' => $f])</div></x-doc.pop>
                         @continue
                     @endif
 
-                    <div wire:key="f-{{ $name }}" @if ($editable && $xShow) x-show="{{ $xShow }}" x-cloak @endif>
+                    <x-doc.pop :name="$name" :pop="$editable">
+                    <div wire:key="f-{{ $name }}" class="group/f min-w-0 {{ $isShort($name, $f) ? '' : 'sm:col-span-2' }}" @if ($editable && $xShow) x-show="{{ $xShow }}" x-cloak @endif>
+                        {{-- 'question' => '...' puts a question above a field (e.g. before a set of checkboxes) --}}
+                        @if (! empty($f['question']))
+                            <p class="mb-1 text-[15px] text-slate-800">{{ $f['question'] }}@if ($editable && ! empty($f['question_required']))<span class="text-rose-600" aria-hidden="true"> *</span><span class="sr-only">(required)</span>@endif</p>
+                        @endif
                         @if ($type === 'checkbox')
                             @if ($editable)
-                                <label for="f-{{ $name }}" class="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-3.5 py-3 text-sm text-slate-700 hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50/50">
+                                <label for="f-{{ $name }}" class="{{ $D::OPTION }} -mx-2 items-start">
                                     <input id="f-{{ $name }}" type="checkbox" wire:model="values.{{ $name }}"
-                                           class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]" @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif>
-                                    <span class="font-medium">{{ $f['label'] }}</span>
+                                           class="mt-1 h-4 w-4 shrink-0 rounded-sm accent-[#2A57B4]" @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif>
+                                    <span>{{ $f['label'] }}</span>
                                 </label>
                             @else
                                 <p class="flex items-center gap-2 text-sm text-slate-800">
@@ -643,7 +625,7 @@
                                 $max = $f['max_items'] ?? 10;
                             @endphp
                             <div class="flex flex-wrap items-baseline justify-between gap-2">
-                                <p class="{{ $label }}" id="l-{{ $name }}">
+                                <p class="text-[15px] text-slate-800" id="l-{{ $name }}">
                                     {{ $f['label'] }} @if ($editable && $required)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
                                 </p>
                                 <span class="text-xs tabular-nums text-slate-500" aria-live="polite">{{ count($list) }} of {{ $max }} added</span>
@@ -714,45 +696,40 @@
 
                         @elseif ($type === 'choice')
                             <fieldset id="f-{{ $name }}" tabindex="-1" @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif>
-                                <legend class="{{ $label }}">{{ $f['label'] }} @if ($editable && $required)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif</legend>
+                                <legend class="text-[15px] text-slate-800">{{ $f['label'] }} @if ($editable && $required)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif</legend>
                                 @if ($editable)
-                                    <div class="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    <div class="-mx-2 mt-0.5 flex flex-wrap gap-x-3 {{ $hasError ? 'rounded-md bg-rose-50/60' : '' }}">
                                         @foreach ($f['options'] as $opt)
-                                            <label class="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm hover:bg-slate-50 has-[:checked]:border-[#2A57B4] has-[:checked]:bg-blue-50">
+                                            <label class="{{ $D::OPTION }}">
                                                 <input type="radio" name="{{ $name }}" wire:model.live="values.{{ $name }}" value="{{ $opt }}" class="h-4 w-4 accent-[#2A57B4]">
-                                                <span class="font-medium text-slate-800">{{ $f['option_labels'][$opt] ?? $opt }}</span>
+                                                <span>{{ $f['option_labels'][$opt] ?? $opt }}</span>
                                             </label>
                                         @endforeach
                                     </div>
                                 @else
-                                    <p class="mt-1 text-sm text-slate-800">{{ $f['option_labels'][$values[$name] ?? ''] ?? ($values[$name] ?? '—') }}</p>
+                                    <p class="{{ $D::VALUE }}">{{ $f['option_labels'][$values[$name] ?? ''] ?? ($values[$name] ?? '—') }}</p>
                                 @endif
                             </fieldset>
                             @if (! empty($f['help']) && $editable) <p id="h-{{ $name }}" class="{{ $help }}">{{ $f['help'] }}</p> @endif
 
                         @else
-                            <label for="f-{{ $name }}" class="{{ $label }}">
-                                {{ $f['label'] }} @if ($editable && $required)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
-                            </label>
+                            @php
+                                // The caption under the line names what goes there, like the printed form.
+                                $captionHtml = e($f['label']) . ($editable && $required ? '<span class="not-italic text-rose-600" aria-hidden="true"> *</span><span class="sr-only">(required)</span>' : '');
+                            @endphp
 
                             @if ($editable)
                                 @if ($titleKey)
-                                    {{-- Title (Mr./Ms./Dr./Prof.…) and name on one row. --}}
+                                    {{-- Honorifics (Mr./Ms./Dr./Prof.… or typed) and name on one line. --}}
                                     @php $titleField = $document->fields()[$titleKey] ?? []; @endphp
-                                    <div class="mt-1 grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
-                                        <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $errors->has("values.$titleKey") ? 'border-rose-400' : '' }} pr-2">
-                                            <label for="f-{{ $titleKey }}" class="sr-only">Title for {{ strtolower($f['label']) }}</label>
-                                            <select id="f-{{ $titleKey }}" wire:model="values.{{ $titleKey }}" class="{{ $bare }} cursor-pointer pr-1"
-                                                    @if ($titleField['required'] ?? false) aria-required="true" @endif
-                                                    @error("values.$titleKey") aria-invalid="true" aria-describedby="e-{{ $name }}" @enderror>
-                                                <option value="">Title</option>
-                                                @foreach ($titleField['options'] ?? [] as $opt)
-                                                    <option value="{{ $opt }}">{{ $opt }}</option>
-                                                @endforeach
-                                            </select>
+                                    <div class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 sm:grid-cols-[7rem_minmax(0,1fr)]">
+                                        <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $errors->has("values.$titleKey") ? $D::ERROR_LINE : '' }}">
+                                            <label for="f-{{ $titleKey }}" class="sr-only">Honorifics for {{ strtolower($f['label']) }}</label>
+                                            <x-dm.honorific-input id="f-{{ $titleKey }}" model="values.{{ $titleKey }}" class="{{ $bare }} pr-1"
+                                                    :aria-required="($titleField['required'] ?? false) ? 'true' : null"
+                                                    :aria-invalid="$errors->has('values.' . $titleKey) ? 'true' : null" />
                                         </div>
-                                        <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $errors->has("values.$name") ? 'border-rose-400' : '' }}">
-                                            @if ($icon)<i class="bx {{ $icon }} text-base text-slate-400" aria-hidden="true"></i>@endif
+                                        <div class="{{ str_replace('mt-1 ', '', $box) }} {{ $errors->has("values.$name") ? $D::ERROR_LINE : '' }}">
                                             <input id="f-{{ $name }}" type="text" wire:model="values.{{ $name }}" autocomplete="off"
                                                    @if (isset($f['max'])) maxlength="{{ $f['max'] }}" @endif
                                                    placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $bare }}"
@@ -761,21 +738,26 @@
                                                    @error("values.$name") aria-invalid="true" @enderror>
                                         </div>
                                     </div>
+                                    <div class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 sm:grid-cols-[7rem_minmax(0,1fr)]">
+                                        <label for="f-{{ $titleKey }}" class="{{ $caption }}">Title</label>
+                                        <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
+                                    </div>
                                 @elseif ($type === 'textarea')
+                                    {{-- Ruled lines, as on paper --}}
                                     <div x-data="{ n: ($wire.values['{{ $name }}'] || '').length }"
-                                         class="{{ $box }} items-start {{ $hasError ? 'border-rose-400' : '' }}">
+                                         class="relative rounded-sm transition-colors focus-within:bg-[#2A57B4]/[0.03] {{ $hasError ? 'bg-rose-50/50' : '' }}">
                                         <textarea id="f-{{ $name }}" wire:model="values.{{ $name }}" rows="4" maxlength="{{ $f['max'] ?? 500 }}"
                                                   @input="n = $el.value.length" placeholder="{{ $f['placeholder'] ?? '' }}"
-                                                  class="{{ $bare }} resize-y"
+                                                  class="{{ $D::LINED }}"
                                                   @if ($required) aria-required="true" @endif
                                                   @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif
                                                   @if ($hasError) aria-invalid="true" @endif></textarea>
-                                        <span class="pointer-events-none absolute bottom-1.5 right-3 text-[11px] tabular-nums text-slate-500" aria-hidden="true"><span x-text="n"></span>/{{ $f['max'] ?? 500 }}</span>
+                                        <span class="pointer-events-none absolute -bottom-5 right-0 hidden text-[11px] tabular-nums text-slate-400 group-focus-within/f:block" aria-hidden="true"><span x-text="n"></span>/{{ $f['max'] ?? 500 }}</span>
                                     </div>
+                                    <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
                                 @elseif ($type === 'select')
-                                    <div class="{{ $box }} {{ $hasError ? 'border-rose-400' : '' }}">
-                                        @if ($icon)<i class="bx {{ $icon }} text-base text-slate-400" aria-hidden="true"></i>@endif
-                                        <select id="f-{{ $name }}" wire:model{{ ! empty($f['live']) ? '.live' : '' }}="values.{{ $name }}" class="{{ $bare }} cursor-pointer"
+                                    <div class="{{ $box }} {{ $hasError ? $D::ERROR_LINE : '' }}">
+                                        <select id="f-{{ $name }}" wire:model{{ ! empty($f['live']) ? '.live' : '' }}="values.{{ $name }}" class="{{ $bare }} cursor-pointer pr-8"
                                                 @if ($required) aria-required="true" @endif
                                                 @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif
                                                 @if ($hasError) aria-invalid="true" @endif>
@@ -785,6 +767,7 @@
                                             @endforeach
                                         </select>
                                     </div>
+                                    <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
                                 @else
                                     @php
                                         $inputType = $isEmail ? 'email' : (['date' => 'date', 'time' => 'time'][$type] ?? 'text');
@@ -795,8 +778,7 @@
                                             default => [null, now()->toDateString()],
                                         };
                                     @endphp
-                                    <div class="{{ $box }} {{ $hasError ? 'border-rose-400' : '' }}">
-                                        @if ($icon)<i class="bx {{ $icon }} text-base text-slate-400" aria-hidden="true"></i>@endif
+                                    <div class="{{ $box }} {{ $hasError ? $D::ERROR_LINE : '' }}">
                                         <input id="f-{{ $name }}" wire:model{{ $isEmail ? '.blur' : '' }}="values.{{ $name }}"
                                                type="{{ $inputType }}"
                                                @if ($isEmail) inputmode="email" autocomplete="off" spellcheck="false" @endif
@@ -806,19 +788,24 @@
                                                placeholder="{{ $f['placeholder'] ?? '' }}" class="{{ $bare }}"
                                                @if ($required) aria-required="true" @endif
                                                @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif
-                                               @if ($hasError) aria-invalid="true" @endif>
+                                               @if ($hasError) aria-invalid="true" @endif
+                                               @if ($type === 'date' && ! empty($f['today_warning']))
+                                                   x-data x-on:change="if ($event.target.value === @js(now()->toDateString())) $dispatch('today-warning', { text: @js($f['today_warning']) })"
+                                               @endif>
                                     </div>
+                                    <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
                                 @endif
 
                                 @if (! empty($f['help'])) <p id="h-{{ $name }}" class="{{ $help }}">{{ $f['help'] }}</p> @endif
                                 @if ($isEmail && ! empty($values[$name]) && \App\Services\Workflow\ExternalSigning::accountFor($values[$name], auth()->id()))
-                                    <p class="mt-1 text-xs font-medium text-emerald-700">This person has a DocuMate signatory account. They will sign from their account, no email link needed.</p>
+                                    <p class="mt-1 text-xs font-medium text-emerald-700">Has a DocuMate account: signs from there, no email link.</p>
                                 @endif
                             @else
                                 @php
                                     $shown = $titleKey ? $document->personName($values, $name) : $document->formatValue($f, $values[$name] ?? null);
                                 @endphp
-                                <p class="mt-1 whitespace-pre-wrap rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800">{{ $shown ?: '—' }}</p>
+                                <p class="{{ $D::VALUE }}">{{ $shown ?: '—' }}</p>
+                                <span class="{{ $caption }}">{{ $f['label'] }}</span>
                             @endif
                         @endif
 
@@ -829,26 +816,27 @@
                             </p>
                         @endif
                     </div>
+                    </x-doc.pop>
                 @endforeach
-                @if ($document->key() === 'student_assistantship_application')
-                    @include('livewire.workflow._schedule-grid')
+                @if ($document->key() === 'student_assistantship_application' && ($editable || ! in_array('__schedule', $printed, true)))
+                    <x-doc.pop name="__schedule" :pop="$editable"><div data-field class="sm:col-span-2">@include('livewire.workflow._schedule-grid')</div></x-doc.pop>
                 @endif
             </div>
         </section>
 
         @if ($document->requiresItemPhoto())
-            <section class="border-t border-slate-100 px-4 py-5 sm:px-5" aria-labelledby="sec-photo">
-                <h3 id="sec-photo" class="text-sm font-semibold text-slate-900">
+            <section data-always aria-labelledby="sec-photo">
+                <h3 id="sec-photo" class="text-[15px] text-slate-800">
                     Photo of the item @if ($editable)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
                 </h3>
-                <p class="{{ $help }}">JPG or PNG, up to 10 MB. Used by the office to identify the item; not printed on the form.</p>
+                <p class="text-xs text-slate-500">JPG or PNG, up to 10 MB. Not printed.</p>
 
                 @if ($itemPhoto)
                     <img src="{{ $itemPhoto->temporaryUrl() }}" alt="Preview of the item photo you selected"
-                         class="mt-3 max-h-56 rounded-xl border border-slate-200 bg-white object-contain p-1">
+                         class="mt-3 max-h-56 rounded-lg border border-slate-200 bg-white object-contain p-1">
                 @elseif ($hasPhoto)
                     <img src="{{ route('workflow.item-photo', $ws->workspace_id) }}?v={{ $ws->updated_at?->timestamp }}" alt="Photo of the item attached to this request"
-                         class="mt-3 max-h-56 rounded-xl border border-slate-200 bg-white object-contain p-1">
+                         class="mt-3 max-h-56 rounded-lg border border-slate-200 bg-white object-contain p-1">
                 @endif
 
                 @if ($editable)
@@ -859,7 +847,7 @@
                             <input type="file" wire:model="itemPhoto" accept="image/png,image/jpeg" capture="environment" class="sr-only">
                         </label>
                         <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-center text-sm font-medium text-slate-700 hover:bg-slate-50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-[#2A57B4]/20 md:border-transparent md:bg-[#2A57B4] md:text-white md:hover:bg-[#24499A]">
-                            <span class="md:hidden">Choose from gallery</span>
+                            <span class="md:hidden">From gallery</span>
                             <span class="hidden md:inline"><i class="bx bx-upload mr-1" aria-hidden="true"></i> Upload a photo</span>
                             <input id="f-photo" type="file" wire:model="itemPhoto" accept="image/png,image/jpeg" class="sr-only"
                                    @error('itemPhoto') aria-invalid="true" aria-describedby="e-photo" @enderror>
@@ -873,43 +861,43 @@
         @endif
         </div>{{-- officer gate --}}
 
-        {{-- Consent and actions --}}
+        </div>{{-- also needed --}}
+        {{-- Consent and actions: below the form page. --}}
         @if ($editable)
-            <div class="sticky bottom-0 z-10 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5">
-                <label for="f-consent" class="flex cursor-pointer items-start gap-3 rounded-xl border {{ $errors->has('consent') ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-slate-50/70' }} px-3.5 py-3 text-sm text-slate-700">
+            <div class="py-2" data-tour="form-actions">
+                <label for="f-consent" class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-slate-700">
                     <input id="f-consent" type="checkbox" wire:model="consent" class="mt-0.5 h-4 w-4 shrink-0 accent-[#2A57B4]"
                            aria-required="true" aria-describedby="consent-text @error('consent') e-consent @enderror"
                            @error('consent') aria-invalid="true" @enderror>
-                    <span id="consent-text">
-                        <span class="font-semibold text-slate-900">I confirm and consent.</span>
-                        The information I entered is true and complete. I agree that Leyte Normal University may process my personal data,
-                        and share it with the people who sign this form, for this request only, under the Data Privacy Act of 2012.
+                    <span id="consent-text" class="{{ $errors->has('consent') ? 'text-rose-700' : '' }}">
+                        This is true, and LNU may share it with the signers for this request (Data Privacy Act of 2012).
                     </span>
                 </label>
                 @error('consent') <p id="e-consent" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
-                <p class="mt-1.5 text-xs text-slate-500">Only submitting needs the consent box. Drafts are private to you.</p>
 
-                <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
-                        <button type="button" wire:click="saveDraft" wire:loading.attr="disabled" wire:target="saveDraft,submit"
-                                class="inline-flex w-full items-center justify-center gap-1.5 min-h-11 py-2 text-center leading-snug rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9 sm:py-1.5 sm:w-auto [@media(pointer:coarse)]:min-h-11">
-                            <i class="bx bx-save text-base" aria-hidden="true"></i>
-                            <span wire:loading.remove wire:target="saveDraft">Save as draft</span>
-                            <span wire:loading wire:target="saveDraft">Saving…</span>
-                        </button>
-                        <button type="submit" wire:loading.attr="disabled" wire:target="saveDraft,submit"
-                                @if ($officerGate) :disabled="$wire.values.is_officer !== 'Yes'" @endif
-                                class="inline-flex w-full items-center justify-center gap-1.5 min-h-11 py-2 text-center leading-snug rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9 sm:py-1.5 sm:w-auto [@media(pointer:coarse)]:min-h-11">
-                            <i class="bx bx-send text-base" aria-hidden="true"></i>
-                            <span wire:loading.remove wire:target="submit">{{ $status === TransactionStatus::ActionRequired ? 'Resubmit to the VPSD office' : 'Submit to the VPSD office' }}</span>
-                            <span wire:loading wire:target="submit">Submitting…</span>
-                        </button>
-                    </div>
+                <div class="mt-3 flex gap-2 sm:justify-end">
+                    {{-- Phones: step through the blanks on the page, one at a time --}}
+                    <button type="button" @click="start()" x-show="order.length" x-cloak
+                            class="inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-lg border border-[#2A57B4]/40 bg-[#2A57B4]/5 px-3 text-sm font-medium text-[#2A57B4] hover:bg-[#2A57B4]/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:min-h-9">
+                        <i class="bx bx-edit-alt text-base" aria-hidden="true"></i> Fill in
+                    </button>
+                    <button type="button" wire:click="saveDraft" wire:loading.attr="disabled" wire:target="saveDraft,submit"
+                            class="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9 sm:flex-none">
+                        <i class="bx bx-save text-base" aria-hidden="true"></i>
+                        <span wire:loading.remove wire:target="saveDraft">Draft</span>
+                        <span wire:loading wire:target="saveDraft">Saving…</span>
+                    </button>
+                    <button type="submit" wire:loading.attr="disabled" wire:target="saveDraft,submit"
+                            @if ($officerGate) :disabled="$wire.values.is_officer !== 'Yes'" @endif
+                            class="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-5 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9 sm:flex-none">
+                        <i class="bx bx-send text-base" aria-hidden="true"></i>
+                        <span wire:loading.remove wire:target="submit">{{ $status === TransactionStatus::ActionRequired ? 'Resubmit' : 'Submit' }}</span>
+                        <span wire:loading wire:target="submit">Submitting…</span>
+                    </button>
                 </div>
             </div>
         @endif
     </form>
-
     {{-- Activity, folded away --}}
     @if (count($timeline))
         <div x-data="{ open: false }" class="text-center">
@@ -931,58 +919,62 @@
     @endif
 </div>{{-- left column --}}
 
-    {{-- Wide screens: the document beside the form, refreshed from the live answers (nothing is saved). --}}
-    <aside class="hidden rounded-2xl border border-slate-200/70 bg-white p-4 xl:sticky xl:top-0 xl:block xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto"
-           aria-label="Document preview"
-           x-data="{
-                html: '', busy: false, w: 842, h: 1171, scale: 1, seq: 0,
-                wide() { return window.matchMedia('(min-width: 1280px)').matches; },
-                async refresh() {
-                    if (! this.wide()) return;
-                    const n = ++this.seq;
-                    this.busy = true;
-                    const html = await this.$wire.previewDocument();
-                    if (n !== this.seq) return;
-                    this.html = html;
-                    this.busy = false;
-                },
-                fit() {
-                    const cw = this.$refs.box ? this.$refs.box.clientWidth : 0;
-                    if (cw > 0) this.scale = Math.min(1, cw / this.w);
-                },
-                measure(e) {
-                    if (this.$refs.frame && e.source === this.$refs.frame.contentWindow && e.data && e.data.documatePreviewHeight) {
-                        this.h = Math.ceil(e.data.documatePreviewHeight);
-                    }
-                }
-           }"
-           x-init="fit(); new ResizeObserver(() => fit()).observe($refs.box); refresh()"
-           @doc-changed.window.debounce.900ms="refresh()"
-           @resize.window.debounce.300ms="html ? fit() : refresh()"
-           @message.window="measure($event)">
-        <div class="mb-3 flex items-center justify-between gap-3">
-            <div class="min-w-0">
-                <h2 class="text-base font-semibold text-slate-900">Preview</h2>
-                <p class="text-xs text-slate-500">
-                    {{ $editable ? 'Updates as you type. Nothing is saved by previewing.' : 'The document as it stands now.' }}
-                </p>
+
+    {{-- A date field with 'today_warning' => '...' shows this when today is picked (e.g. an absence starting today). --}}
+    <div x-data="{ text: null }" @today-warning.window="text = $event.detail.text" @keydown.escape.window="text = null">
+        <template x-teleport="body">
+            <div x-show="text" x-cloak x-transition.opacity class="fixed inset-0 z-[120] flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4"
+                 role="alertdialog" aria-modal="true" aria-labelledby="today-warning-title" @click.self="text = null">
+                <div class="w-full max-w-md rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-2xl sm:p-6">
+                    <div class="flex items-start gap-3">
+                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-600"><i class="bx bx-error text-2xl" aria-hidden="true"></i></span>
+                        <div class="min-w-0">
+                            <h2 id="today-warning-title" class="text-base font-semibold text-slate-900">Your date of absence is today</h2>
+                            <p class="mt-1 text-sm leading-relaxed text-slate-600" x-text="text"></p>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end">
+                        <button type="button" @click="text = null" x-effect="if (text) $nextTick(() => $el.focus())"
+                                class="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 [@media(pointer:coarse)]:min-h-11">I understand</button>
+                    </div>
+                </div>
             </div>
-            <div class="flex shrink-0 items-center gap-2">
-                <span x-show="busy && html" x-cloak class="inline-flex items-center gap-1 text-xs text-slate-500" role="status">
-                    <i class="bx bx-loader-alt bx-spin" aria-hidden="true"></i> Updating
-                </span>
-                <span class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500">
-                    <i class="bx bxs-file-pdf text-sm" aria-hidden="true"></i> A4 PDF
-                </span>
+        </template>
+    </div>
+
+    {{-- "How this works": a guided tour of this form, from the question mark in the header --}}
+    @php
+        $tourSteps = array_values(array_filter([
+            ['target' => 'form-head', 'title' => $document->name(), 'text' => 'You fill this in right on the form. Here is how.'],
+            ['target' => 'form-status', 'title' => 'Where it stands', 'text' => 'After you submit: VPSD checks it, signers sign, then you download it.'],
+            ['target' => 'form-student', 'title' => 'Your details', 'text' => 'Printed from your account. Wrong? Use Edit in profile.'],
+            ['target' => 'form-details', 'type' => 'Sample answer', 'title' => 'Type on the lines', 'text' => 'Type each answer on its line, like this sample. * means required.'],
+            ['target' => 'form-preview', 'title' => 'The printed copy', 'text' => 'PDF shows exactly how it prints. Nothing is saved.'],
+            ['target' => 'form-actions', 'title' => 'Save or submit', 'text' => 'Save a draft to finish later. Tick the box, then Submit.'],
+            $guide ? ['target' => 'form-help', 'title' => 'Steps and checklist', 'text' => 'Tap the question mark anytime to see this tour again.', 'cta' => ['label' => 'See the steps and checklist', 'event' => 'open-guide']]
+                   : ['target' => 'form-help', 'title' => 'Need this again?', 'text' => 'Tap the question mark anytime to see this tour again.'],
+        ]));
+    @endphp
+    <x-dm.tour key="documate.tour.form.v2" :steps="$tourSteps" :auto="false" />
+
+    {{-- Officer-only forms: a student without an officer record is stopped here (save and submit refuse too). --}}
+    @if ($this->blockedNotOfficer)
+        <template x-teleport="body">
+            <div class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+                 role="alertdialog" aria-modal="true" aria-labelledby="officer-only-title" aria-describedby="officer-only-text">
+                <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl" x-data x-init="$nextTick(() => $el.querySelector('a')?.focus())">
+                    <span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-amber-50 text-amber-600"><i class="bx bx-lock-alt text-2xl" aria-hidden="true"></i></span>
+                    <h2 id="officer-only-title" class="mt-3 text-lg font-semibold text-slate-900">For organization officers only</h2>
+                    <p id="officer-only-text" class="mt-1.5 text-sm leading-relaxed text-slate-600">
+                        Only officers of a recognized student organization can use the {{ $document->name() }}.
+                        Your account has no officer record. If you are an officer, ask your organization adviser or the VPSD office to add you.
+                    </p>
+                    <div class="mt-5 grid gap-2">
+                        <a href="{{ route('student.home') }}" wire:navigate
+                           class="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#2A57B4] px-4 text-sm font-medium text-white hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30">Back to Home</a>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div x-ref="box" wire:ignore class="overflow-hidden rounded-xl border border-slate-200 bg-[#e7e5e1]" :style="`height:${h * scale}px`">
-            <div x-show="! html" class="flex h-64 items-center justify-center gap-2 text-sm text-slate-600" role="status">
-                <i class="bx bx-loader-alt bx-spin text-xl" aria-hidden="true"></i> Preparing preview…
-            </div>
-            <iframe x-ref="frame" x-show="html" :srcdoc="html" title="Document preview"
-                    class="block border-0 bg-[#e7e5e1]"
-                    :style="`width:${w}px;height:${h}px;transform:scale(${scale});transform-origin:top left;`"></iframe>
-        </div>
-    </aside>
+        </template>
+    @endif
 </div>

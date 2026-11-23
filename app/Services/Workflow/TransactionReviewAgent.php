@@ -165,12 +165,16 @@ class TransactionReviewAgent
             ];
         })->all();
 
+        $issued = $document->issuedByOffice() || $document->issuerIsStaff();
+
         return [
             'today' => now()->toDateString(),
             'document' => [
                 'name' => $document->name(),
                 'purpose' => $document->description(),
                 'form_code' => method_exists($document, 'formCode') ? $document->formCode() : null,
+                // Filled in by the VPSD office or a signatory and issued to the student, not filled in by the student.
+                'filled_in_by' => $issued ? 'issuer (VPSD office or signatory)' : 'student',
             ],
             'student_account' => [
                 'name' => $user?->full_name,
@@ -277,6 +281,11 @@ class TransactionReviewAgent
 
         Be fair and practical. Do not flag minor typos, informal wording, or Filipino/English mixing. Do not invent
         rules the form does not state. If you cannot tell, use "warn", not "fail".
+
+        Issued documents: when document.filled_in_by is "issuer", the VPSD office or a signatory filled the form in
+        and issued it to the student (a slip, an advisement, a report). Check it the same way, but the answers are the
+        issuer's, not the student's: do not expect the student to have written them, and address "message" to the
+        issuer ("Please ...") instead of the student.
 
         Recommendation:
         - "send_for_signing": nothing a person needs to fix.

@@ -21,7 +21,7 @@ class SystemValueResolver
         $ordinalYear = $this->ordinalYearLevel((string) ($user->year_level ?? ''));
         $programYearSection = trim(implode(' ', array_filter([
             $programAbbr,
-            $ordinalYear ? $ordinalYear . '-' . (string) ($user->section ?? '') : (string) ($user->section ?? ''),
+            $ordinalYear ? $ordinalYear . ($user->section ? '-' . $user->section : '') : (string) ($user->section ?? ''),
         ])));
 
         return match ($key) {
@@ -193,15 +193,8 @@ class SystemValueResolver
             return trim($yearLevel);
         }
 
-        $suffix = match (true) {
-            $number % 100 >= 11 && $number % 100 <= 13 => 'th',
-            $number % 10 === 1 => 'st',
-            $number % 10 === 2 => 'nd',
-            $number % 10 === 3 => 'rd',
-            default => 'th',
-        };
-
-        return $number . $suffix;
+        // Forms print the bare number (4-AI45), not 4th.
+        return (string) $number;
     }
 
 }

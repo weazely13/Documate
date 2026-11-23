@@ -8,6 +8,10 @@
     $h2 = 'text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] text-[#0d253d] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]';
     $lead = 'text-[14.5px] leading-relaxed text-[#4a5568] sm:text-base lg:text-[17px]';
 
+    // Helper for styled DocuMate instances matching the custom font family while keeping original color
+    $styledDocuMate = '<span style="font-family: \'Gveret Levin\', cursive;" class="text-[#2a57b4]">DocuMate</span>';
+    // Helper for headings/sentences font styling (preserving their original colors)
+    $customHeadingStyle = 'font-family: \'Gveret Levin\', cursive;';
 @endphp
 
 @section('content')
@@ -18,20 +22,16 @@
 
             <div class="relative z-10 pb-2 lg:pb-24">
                 <h1 class="text-[2.05rem] font-semibold leading-[1.06] tracking-[-0.03em] text-[#0d253d] sm:text-[3.4rem] lg:text-[4.2rem] [text-wrap:balance]">
-                    Request, track and sign student documents
-                    <span class="relative whitespace-nowrap text-[#2a57b4]">in one place<svg class="absolute -bottom-2 left-0 h-3 w-full text-[#2a57b4]/35" viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 80 2, 160 12, 298 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>
+                    <span style="{{ $customHeadingStyle }}">Request, track and sign student documents</span>
+                    <span class="relative whitespace-nowrap text-[#2a57b4]"><span style="{{ $customHeadingStyle }}">All in One Place</span><svg class="absolute -bottom-2 left-0 h-3 w-full text-[#2a57b4]/35" viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 80 2, 160 12, 298 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>
                 </h1>
                 <p class="mt-5 max-w-xl sm:mt-7 {{ $lead }}">
-                    DocuMate is the digital desk of the Office of the Vice President for Student Development at Leyte Normal University.
+                    <span style="font-family: 'Gveret Levin', cursive; " class="text-[#2a57b4]">DocuMate</span> is the digital desk of the Office of the Vice President for Student Development at Leyte Normal University.
                     Fill in forms online, book a visit, follow every signature, and download the finished document.
                 </p>
                 <div class="mt-7 grid grid-cols-2 gap-2 sm:mt-9 sm:flex sm:gap-3">
-                    <a href="{{ route('login') }}" class="{{ $btnPrimary }}">Sign in <i class="bx bx-right-arrow-alt text-lg" aria-hidden="true"></i></a>
                     <a href="{{ route('register') }}" class="{{ $btnSecondary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
                 </div>
-                <a href="{{ route('document.lookup') }}" class="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2a57b4] underline-offset-4 hover:underline sm:mt-6 sm:text-sm">
-                    <i class="bx bx-shield-quarter text-base" aria-hidden="true"></i> Verify a DocuMate document
-                </a>
             </div>
 
             {{-- The students --}}
@@ -45,7 +45,7 @@
     </section>
 
     {{-- ================= WHERE IT'S USED ================= --}}
-    <section id="about" class="border-y border-[#e7e5e1] bg-white">
+    <section id="about" class="bg-white">
         <div class="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 sm:gap-4 sm:px-8 sm:py-6 md:flex-row md:items-center md:justify-between">
             <div class="flex items-center gap-3">
                 <img src="{{ asset('images/lnulogo.png') }}" alt="Leyte Normal University" class="h-8 w-8 object-contain sm:h-9 sm:w-9">
@@ -60,7 +60,7 @@
     <section id="how" class="bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-end">
-                <h2 class="{{ $h2 }}">Every request travels the same route. Now you can watch it.</h2>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Every request travels the same route. Now you can watch it.</span></h2>
                 <p class="{{ $lead }} lg:pb-1">No more asking at the window whether the Dean has signed. Each step is stamped the moment it happens, and you get an email when it's your turn.</p>
             </div>
 
@@ -87,7 +87,7 @@
                             ['DocuMate', 'The finished document is sealed. Any change after this would break the seal.', 'Nov 2 · 9:03 AM', 'Sealed', '#059669', '4deg'],
                         ] as [$desk, $what, $when, $stamp, $color, $rot])
                             <tr>
-                                <td class="px-6 py-5 align-top font-medium text-[#0d253d]">{{ $desk }}</td>
+                                <td class="px-6 py-5 align-top font-medium text-[#0d253d]">{!! $desk !!}</td>
                                 <td class="px-6 py-5 align-top leading-relaxed text-[#4a5568]">{{ $what }}</td>
                                 <td class="px-6 py-5 align-top font-mono text-[12.5px] text-[#4a5568]">{{ $when }}</td>
                                 <td class="px-6 py-4 align-top">
@@ -109,7 +109,7 @@
                 ] as [$desk, $what, $stamp, $color])
                     <li class="flex items-start justify-between gap-3 rounded-xl border border-[#e7e5e1] bg-white p-3.5">
                         <div class="min-w-0">
-                            <p class="text-[15px] font-medium text-[#0d253d]">{{ $desk }}</p>
+                            <p class="text-[15px] font-medium text-[#0d253d]">{!! $desk !!}</p>
                             <p class="mt-0.5 text-[13px] leading-relaxed text-[#4a5568]">{{ $what }}</p>
                         </div>
                         <span class="dm-rubber dm-rubber-sm shrink-0" style="--c: {{ $color }}; transform: rotate(-3deg)">{{ $stamp }}</span>
@@ -122,7 +122,7 @@
     {{-- ================= TWO DESKS (file folders) ================= --}}
     <section id="features" class="bg-white py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
-            <h2 class="{{ $h2 }} max-w-3xl">One record, two sides of the counter</h2>
+            <h2 class="{{ $h2 }} max-w-3xl"><span style="{{ $customHeadingStyle }}">One record, two sides of the counter</span></h2>
             <p class="mt-5 max-w-2xl {{ $lead }}">Students and the office work on the same document, so what you see is exactly what they see.</p>
 
             <div class="mt-10 grid sm:mt-14 grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-14 lg:grid-cols-2">
@@ -137,7 +137,6 @@
                                     <li class="flex gap-2.5"><i class="bx bx-check mt-0.5 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{{ $item }}</span></li>
                                 @endforeach
                             </ul>
-                            <a href="{{ route('register') }}" class="mt-6 inline-flex items-center gap-1 text-sm font-medium sm:mt-7 sm:text-[15px] text-[#1e4090] underline-offset-4 hover:underline">Create your account <i class="bx bx-right-arrow-alt text-lg"></i></a>
                         </div>
                         <img src="{{ asset('images/coverstudent.png') }}" alt="A student with his phone and his printed form"
                              class="absolute -bottom-6 -right-4 hidden h-[105%] w-auto object-contain sm:block">
@@ -152,13 +151,13 @@
                         <p class="mt-3 max-w-md text-sm leading-relaxed text-[#273951] sm:text-[15px]">See what is new, what an AI check flagged, and what has waited too long, then send it for signing in one move.</p>
                         <div class="mt-6 overflow-hidden rounded-lg border border-white bg-white shadow-[0_18px_36px_-24px_rgba(13,37,61,0.5)]" aria-hidden="true">
                             <div class="flex items-center justify-between border-b border-[#e7e5e1] px-4 py-2.5">
-                                <span class="text-[13px] font-semibold text-[#0d253d]">To review</span>
+                                <span class="text-[13px] font-semibold text-[#0d253d]">Review</span>
                                 <span class="text-[11px] text-[#9f1239]">3 waiting 7+ school days</span>
                             </div>
                             @foreach ([
-                                ['Permit to Conduct an In-Campus Activity', 'No issues', 'bg-[#d9f3e1] text-[#065f46]'],
-                                ['Disciplinary Action Slip', 'Requires checking', 'bg-[#fef3c7] text-[#78350f]'],
-                                ['Model Student Peer Rating', 'No issues', 'bg-[#d9f3e1] text-[#065f46]'],
+                                ['Permit to Conduct an In-Campus Activity', 'Clear', 'bg-[#d9f3e1] text-[#065f46]'],
+                                ['Disciplinary Action Slip', 'Flagged', 'bg-[#fef3c7] text-[#78350f]'],
+                                ['Model Student Peer Rating', 'Clear', 'bg-[#d9f3e1] text-[#065f46]'],
                             ] as [$doc, $ai, $tone])
                                 <div class="flex items-center gap-3 border-b border-[#f0eeea] px-4 py-2.5 last:border-0">
                                     <img src="{{ asset('images/lnulogo.png') }}" alt="" class="h-6 w-6 shrink-0 rounded-full object-contain">
@@ -167,7 +166,6 @@
                                 </div>
                             @endforeach
                         </div>
-                        <a href="{{ route('login') }}" class="mt-6 inline-flex items-center gap-1 text-sm font-medium sm:mt-7 sm:text-[15px] text-[#4c2f9e] underline-offset-4 hover:underline">Sign in to the office desk <i class="bx bx-right-arrow-alt text-lg"></i></a>
                     </div>
                 </article>
             </div>
@@ -175,11 +173,11 @@
     </section>
 
     {{-- ================= ASSISTANT (index cards) ================= --}}
-    <section id="assistant" class="dm-ledger overflow-hidden border-t border-[#e7e5e1] py-14 sm:py-20 lg:py-28">
+    <section id="assistant" class="dm-ledger overflow-hidden border-t py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
-                <h2 class="{{ $h2 }}">Ask before you line up</h2>
-                <p class="{{ $lead }}">The DocuMate Assistant sits on every page. It knows which screen you're on, LNU's offices and buildings, and the Student Handbook, and it tells you when something isn't in its records.</p>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Ask before you line up</span></h2>
+                <p class="{{ $lead }}">The <span style="font-family: 'Gveret Levin', cursive;" class="text-[#2a57b4]">DocuMate</span> Assistant sits on every page. It knows which screen you're on, LNU's offices and buildings, and the Student Handbook, and it tells you when something isn't in its records.</p>
             </div>
 
             <div class="mt-8 grid gap-4 sm:mt-14 sm:gap-6 md:grid-cols-3">
@@ -191,13 +189,13 @@
                     <figure class="dm-index-card" style="transform: rotate({{ $rot }})">
                         <blockquote>
                             <p class="text-sm font-medium text-[#0d253d] sm:text-[15px]">“{{ $q }}”</p>
-                            <p class="mt-3 flex gap-2 border-t border-[#f3c2c8] pt-3 text-sm leading-relaxed text-[#273951] sm:mt-4 sm:pt-4 sm:text-[15px]"><i class="bx bx-bot mt-0.5 shrink-0 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{{ $a }}</span></p>
+                            <p class="mt-3 flex gap-2 border-t border-[#f3c2c8] pt-3 text-sm leading-relaxed text-[#273951] sm:mt-4 sm:pt-4 sm:text-[15px]"><i class="bx bx-bot mt-0.5 shrink-0 text-lg text-[#2a57b4]" aria-hidden="true"></i><span>{!! $a !!}</span></p>
                         </blockquote>
                         <figcaption class="mt-4 text-xs text-[#66707f]">{{ $src }}</figcaption>
                     </figure>
                 @endforeach
             </div>
-            <p class="mt-8 text-center text-[13px] text-[#4a5568] sm:mt-10 sm:text-sm"><a href="{{ route('login') }}" class="font-medium text-[#2a57b4] underline-offset-4 hover:underline">Sign in</a> and look for the robot in the corner of any page.</p>
+            <p class="mt-8 text-center text-[13px] text-[#4a5568] sm:mt-10 sm:text-sm"><a href="{{ route('register') }}" class="font-medium text-[#2a57b4] underline-offset-4 hover:underline">Sign up</a> and look for the robot in the corner of any page.</p>
         </div>
     </section>
 
@@ -205,7 +203,7 @@
     <section class="bg-[#0d253d] py-14 text-white sm:py-20 lg:py-28">
         <div class="mx-auto grid max-w-7xl gap-8 px-5 sm:gap-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-20">
             <div>
-                <h2 class="text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]">A copy anyone can check, years from now</h2>
+                <h2 class="text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]"><span style="{{ $customHeadingStyle }}">A copy anyone can check, years from now</span></h2>
                 <p class="mt-4 text-[14.5px] leading-relaxed text-[#c3cedd] sm:mt-5 sm:text-base lg:text-[17px]">
                     Every signature is sealed the moment it is given. If one word of a finished document changed, the seal would no longer match,
                     and the verify page would say so.
@@ -218,7 +216,7 @@
                 @foreach ([
                     ['A QR code on every copy', 'Scan it to open the sealed record behind the paper.'],
                     ['A fingerprint you can type', 'No camera? The reference and fingerprint printed at the bottom work too.'],
-                    ['Withdrawn copies say so', 'If the office voids a document, its page shows it, and points to the corrected one.'],
+                    ['Voided copies say so', 'If the office voids a document, its page shows it, and points to the corrected one.'],
                     ['Records that outlast the form', 'Finished documents stay readable even after a form is changed or retired.'],
                 ] as [$t, $d])
                     <div class="bg-[#0d253d] p-4 sm:p-6">
@@ -234,7 +232,7 @@
     <section id="orgchart" class="bg-white py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
-                <h2 class="{{ $h2 }}">Who's who at Leyte Normal University</h2>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Who's who at Leyte Normal University</span></h2>
                 <p class="{{ $lead }}">The university's academic and administrative staff, by office. Search for a name or a role, or pick an office.</p>
             </div>
 
@@ -265,10 +263,10 @@
     </section>
 
     {{-- ================= LOCATION ================= --}}
-    <section id="location" class="border-t border-[#e7e5e1] bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
+    <section id="location" class="bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
         <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-8 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
             <div>
-                <h2 class="{{ $h2 }}">Where to find the VPSD office</h2>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Where to find the VPSD office</span></h2>
                 <p class="mt-5 {{ $lead }}">Administration Building, 2nd Floor, at the main campus in Tacloban City.</p>
                 <dl class="mt-6 divide-y divide-[#e7e5e1] border-y border-[#e7e5e1] sm:mt-8">
                     @foreach ([
@@ -298,7 +296,7 @@
     <section id="faqs" class="bg-white py-14 sm:py-20 lg:py-28">
         <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
             <div>
-                <h2 class="{{ $h2 }}">Questions people ask first</h2>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Questions people ask first</span></h2>
                 <p class="mt-5 {{ $lead }}">Short answers to the common ones. The full list covers accounts, forms, appointments and privacy.</p>
                 <a href="{{ route('faqs') }}" class="{{ $btnSecondary }} mt-6 sm:mt-8">Browse all FAQs <i class="bx bx-right-arrow-alt text-lg"></i></a>
             </div>
@@ -318,13 +316,12 @@
     </section>
 
     {{-- ================= CLOSING ================= --}}
-    <section class="border-t border-[#e7e5e1] bg-[#fafaf9] px-5 py-14 sm:px-8 sm:py-20 lg:py-24">
+    <section class="bg-[#fafaf9] px-5 py-14 sm:px-8 sm:py-20 lg:py-24">
         <div class="mx-auto max-w-4xl text-center">
             <p class="text-[2.1rem] leading-none text-[#2a57b4] sm:text-[3rem] lg:text-[3.4rem]" style="font-family: 'Gveret Levin', cursive;">Signed, sealed, done.</p>
             <p class="mx-auto mt-5 max-w-xl {{ $lead }}">Your next form is a few taps away. Most requests never need a trip to the office.</p>
             <div class="mt-6 grid grid-cols-2 gap-2 sm:mt-8 sm:flex sm:justify-center sm:gap-3">
                 <a href="{{ route('register') }}" class="{{ $btnPrimary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
-                <a href="{{ route('login') }}" class="{{ $btnSecondary }}">Sign in</a>
             </div>
         </div>
     </section>
@@ -333,8 +330,8 @@
     <section id="creators" class="bg-white py-14 sm:py-20 lg:py-24">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
-                <h2 class="{{ $h2 }}">Made at LNU, by LNU students</h2>
-                <p class="{{ $lead }}">A team of four LNU students built DocuMate to make student transactions simpler for everyone.</p>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Made at LNU, by LNU students</span></h2>
+                <p class="{{ $lead }}">A team of four LNU students built <span style="font-family: 'Gveret Levin', cursive;" class="text-[#2a57b4]">DocuMate</span> to make student transactions simpler for everyone.</p>
             </div>
             <div class="mt-8 overflow-hidden rounded-xl bg-[#dcecfa] sm:mt-10">
                 <img src="{{ asset('images/coverpeople.png') }}" alt="The DocuMate team" class="mx-auto h-auto w-full max-w-4xl object-contain">
@@ -437,103 +434,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     /* Source: Leyte Normal University, Academic & Administrative Staffs directory */
-    var orgChartData = {
-        administrative: [
-            { office: "Office of the University President", people: [
-                { name: "Dr. Gil Nicetas B. Villarino", title: "University President" },
-                { name: "Mr. Ronnyl E. Taldo", title: "Executive Assistant III" },
-                { name: "Atty. Divina Patty B. Sibay", title: "Attorney IV", note: "Legal/Data Protection Officer and Concurrent OIC University and Board Secretary" },
-                { name: "Ms. Nora C. Cabriana", title: "Internal Auditor III", note: "Head, Internal Audit Office" },
-                { name: "Ms. Danielle Anne S. Durna", title: "Planning Officer III", note: "Head, Planning Office" },
-                { name: "Ms. Roselle Y. Almayda", title: "Project Development Officer III", note: "Head, Project Development Office" },
-                { name: "Ms. Michell T. Acala", title: "Director, Gender and Development Office" },
-                { name: "Mr. Jobert C. Narte", title: "Director, LNU Heritage Museum" },
-                { name: "Dr. Generoso N. Mazo", title: "Director, Alumni Affairs Office" },
-                { name: "Mr. Miguel Lemuel Emmanuel T. Dumas", title: "Director, Student/Institutional Performing Arts" },
-                { name: "Dr. Gillian Mae G. Villaflor", title: "Director, Public Affairs and Marketing Communications Office" },
-                { name: "Dr. Mark Lester P. Laurente", title: "Director, Information Technology Support Office" },
-                { name: "Prof. Jose Ismael S. Salamia", title: "Director, Sustainability, Climate, and Disaster Resilience Office" }
-            ]},
-            { office: "Office of the Vice President for Administration and Finance", people: [
-                { name: "Dr. Solomon D. Faller, Jr.", title: "Vice President for Administration and Finance" },
-                { name: "Mr. Oreste M. Ortega, Jr.", title: "Chief Administrative Officer for Administration" },
-                { name: "Ms. Josisa C. Conchada", title: "Chief Administrative Officer for Finance" },
-                { name: "Prof. Michael Jun M. Ponciano", title: "Director, Physical Plants and Facilities Office" },
-                { name: "Dr. Ma. Victoria D. Naboya", title: "Director, Quality Management System – SUC Levelling and ISO" },
-                { name: "Dr. Luis Luigi Eugenio A. Valencia", title: "Director, Auxiliary Services" },
-                { name: "Ms. Maria Gina C. Durango", title: "Administrative Officer V", note: "Head, Supply and Property Management Office" },
-                { name: "Ms. Jasmin M. Graveles", title: "Administrative Officer V", note: "Head, Human Resource Management Office" },
-                { name: "Mr. Jumar O. Lumapak", title: "Administrative Officer V", note: "Head, Procurement Office" },
-                { name: "Mr. Cesar B. Blanco", title: "Administrative Officer V", note: "Head, Records Management Office; Concurrent Head, Income Generating Office" },
-                { name: "Ms. Jocelyn C. Aboy", title: "Administrative Officer V", note: "Head, Cashiering Office" },
-                { name: "Ms. Arra Jen L. Dagalea, CPA", title: "Accountant II", note: "OIC Head, Accounting Office" },
-                { name: "Ms. Cherylin E. Pido", title: "Administrative Officer IV", note: "OIC Head, Budget Office" },
-                { name: "Dr. Ruthchel C. Zeta", title: "Medical Officer III", note: "Head, Medical Services Office" },
-                { name: "Mr. Jan-Carlo L. De Veyra", title: "Dormitory Manager" }
-            ]},
-            { office: "Office of the Vice President for Student Development", people: [
-                { name: "Dr. Joyce M. Magtolis", title: "Vice President for Student Development" },
-                { name: "Prof. Melba M. Navarra", title: "Director, Guidance Office" },
-                { name: "Prof. Glenn Rey A. Estrada", title: "Director, Sports Development Office" },
-                { name: "Prof. Ariel G. Salarda", title: "Director, Student Organizations and Activities Office" },
-                { name: "Prof. Liza T. Bacierra", title: "Head, Scholarship and Financial Assistance Office" },
-                { name: "Mr. Mark Kim I. Herbon", title: "Adviser, Supreme Student Council" }
-            ]},
-            { office: "Office of the Vice President for Research, Innovation, Extension, and Internationalization", people: [
-                { name: "Dr. Jonas P. Villas", title: "Vice President for Research, Innovation, Extension, and Internationalization" },
-                { name: "Dr. Myra A. Abayon", title: "Executive Director, Office of Research and Innovation" },
-                { name: "Dr. Michael Dell A. Tuazon", title: "Director, Center for Teacher Education Research, Technology, and Innovation (CTERTI)" },
-                { name: "Prof. Jufran C. Agustin", title: "Journal Manager, Journal of Education and Society (JES)" },
-                { name: "Dr. Lowell A. Quisumbing", title: "Director, Community Extension Services Office" },
-                { name: "Prof. Christian G. Abalos", title: "Director, Research Ethics Office" },
-                { name: "Dr. Myra Grace F. Loayon", title: "Director, Knowledge Creation and Innovation Center (KCIC)" },
-                { name: "Dr. Orlando P. Vinculado, Jr.", title: "Director, Center for International Studies, Collaborations, Mobility, and University Rankings" }
-            ]},
-            { office: "Office of the Vice President for Academic Services", people: [
-                { name: "Dr. Lina G. Fabian", title: "Vice President for Academic Services" },
-                { name: "Dr. Nelson D. Bernardo", title: "Director, Curriculum Development Office" },
-                { name: "Dr. Marife N. Daga", title: "Director, Center for Continuing Education and Lifelong Learning (C-CELL)" },
-                { name: "Dr. Perlita M. Vivero", title: "Director, Expanded Tertiary Education Equivalency and Accreditation Program (ETEEAP)" },
-                { name: "Dr. Justina T. Lantajo", title: "Director, Quality Management System for Academic Services" },
-                { name: "Dr. Rowena N. Ariaso", title: "Director, Sentro ng Wika at Kultura" },
-                { name: "Prof. Ryan G. Destura", title: "Director, Admissions Office" },
-                { name: "Dr. Gay A. Pinote", title: "Registrar III", note: "Head, Registrar's Office" },
-                { name: "Ms. Luzviminda F. Alcober", title: "College Librarian I", note: "OIC Head, Learning Resource Center" }
-            ]}
-        ],
-        academic: [
-            { office: "College Deans and Campus Directors", people: [
-                { name: "Dr. Billy A. Danday", title: "Dean, College of Education" },
-                { name: "Dr. Rommel L. Verecio", title: "Dean, College of Arts and Sciences" },
-                { name: "Dr. Evangeline V. Sanchez", title: "Dean, College of Management and Entrepreneurship" },
-                { name: "Dr. Cleofe L. Lajara", title: "Dean, Graduate School" },
-                { name: "Dr. Victoria Y. Naboya", title: "Associate Dean, College of Education" },
-                { name: "Dr. Las Johansen B. Caluza", title: "Associate Dean, College of Arts and Sciences" },
-                { name: "Prof. Emily Jill T. Nival", title: "Associate Dean, College of Management and Entrepreneurship" },
-                { name: "Dr. Leo Reaywen M. Tugonon", title: "Associate Dean, Graduate School" },
-                { name: "Dr. Rulf J. Alcober", title: "Director, San Isidro Campus" }
-            ]},
-            { office: "Unit Heads and Supervisors", people: [
-                { name: "Prof. Lorena M. Ripalda", title: "Supervisor, Integrated Laboratory School (ILS)" },
-                { name: "Dr. Maria Lourdes G. Tan", title: "Unit Head, Professional Education" },
-                { name: "Prof. Cristina N. Estolano", title: "Unit Head, BEED, BSNED, and BTLED" },
-                { name: "Prof. Ronald E. Mocorro", title: "Unit Head, Mathematics Unit" },
-                { name: "Dr. Jose G. Enrile", title: "Unit Head, Filipino Unit" },
-                { name: "Dr. Maricar C. Tegero", title: "Unit Head, BPED Unit" },
-                { name: "Prof. Charie Ann C. Padullo", title: "Unit Head, Social Science Unit" },
-                { name: "Mr. Marc Y. Llarenas", title: "Unit Head, Tourism and Hospitality Management Unit" },
-                { name: "Dr. Myrna O. Piedad", title: "Unit Head, Entrepreneurship Unit" },
-                { name: "Prof. Eva L. Rosal", title: "Unit Head, BA Comm Unit" },
-                { name: "Ms. Genevieve T. Bactasa", title: "Unit Head, English Unit" },
-                { name: "Prof. Lilibeth B. Fallorina", title: "Unit Head, Social Work Unit" },
-                { name: "Ms. Mary Ann S. Dalan", title: "Unit Head, BLIS Unit" },
-                { name: "Dr. Micheline G. Apolinar", title: "Unit Head, BSIT and Computer Education Unit" },
-                { name: "Prof. Facundo Rey M. Ladiao", title: "Unit Head, Science Unit" },
-                { name: "Dr. Victor P. Bactol", title: "Unit Head, BAPOS Unit" },
-                { name: "Ms. Marisol C. Abanilla", title: "Unit Head, BMME" }
-            ]}
-        ]
-    };
+    /* Source: resources/data/lnu-personnel.json (also what the DocuMate Assistant knows) */
+    @php $orgChartData = \Illuminate\Support\Arr::only(json_decode(file_get_contents(resource_path('data/lnu-personnel.json')), true) ?: [], ['administrative', 'academic']); @endphp
+    var orgChartData = @json($orgChartData);
 
     /* ---------- Directory: tabs, office filter, search. Everyone gets the LNU seal until photos arrive. ---------- */
     var LOGO = @json(asset('images/lnulogo.png'));
@@ -627,6 +530,7 @@ document.addEventListener('DOMContentLoaded', function () {
 @endpush
 
 @push('head')
+<link href="https://fonts.googleapis.com/css2?family=Gveret+Levin&display=swap" rel="stylesheet">
 <style>
 
     /* A rubber stamp on the routing slip */

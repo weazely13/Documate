@@ -7,14 +7,10 @@
     $btnSecondary = $btnBase . ' border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50';
     $iconBtn = 'grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 ' . $focus;
 
-    $statusFor = fn ($a) => match ($a->status) {
-        'pending' => ['Waiting for approval', 'bg-amber-50 text-amber-800 ring-amber-200'],
-        'approved' => ['Approved' . ($a->queue_number ? ' · #' . $a->queue_number : ''), 'bg-[#e2e9f7] text-[#1E4090] ring-sky-200'],
-        'attended' => ['Attended', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
-        'missed' => ['Missed', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        'rejected' => ['Not approved', 'bg-rose-50 text-rose-800 ring-rose-200'],
-        'retracted' => ['Withdrawn', 'bg-slate-100 text-slate-600 ring-slate-200'],
-        default => [ucfirst($a->status), 'bg-slate-100 text-slate-600 ring-slate-200'],
+    $statusFor = function ($a) {
+        $s = \App\Support\StatusStyle::appointment($a->status);
+
+        return [$s['label'] . ($a->status === 'approved' && $a->queue_number ? ' · #' . $a->queue_number : ''), \App\Support\StatusStyle::TONES[$s['tone']]];
     };
 
     // The live queue line on approved visits: [text, classes, pulsing?].
@@ -39,16 +35,7 @@
 
 <div class="mx-auto max-w-6xl space-y-5 pb-28" @if ($live) wire:poll.5s @endif>
 
-    {{-- Header --}}
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div class="min-w-0">
-            <h1 class="text-xl font-semibold tracking-[-0.02em] text-slate-900 sm:text-2xl">Appointments</h1>
-            <p class="mt-0.5 text-sm text-slate-500">Your visits to the VPSD office, with your queue number once they are approved.</p>
-        </div>
-        <a href="{{ route('student.appointments.new') }}" wire:navigate class="{{ $btnPrimary }} shrink-0">
-            <i class="bx bx-plus text-base" aria-hidden="true"></i> Book an appointment
-        </a>
-    </div>
+    <h1 class="sr-only">Appointments</h1>
 
     @if ($booked)
         <p class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">
@@ -67,7 +54,7 @@
                 @php $on = $filter === $key; @endphp
                 <button type="button" wire:click="setFilter('{{ $key }}')" @if ($on) aria-current="page" @endif class="{{ $segS($on && $viewMode === 'list') }}">
                     @if ($key === 'past')<span class="sm:hidden">Past</span><span class="hidden sm:inline">{{ $label }}</span>@else{{ $label }}@endif
-                    <span class="rounded-full px-1.5 text-[11px] tabular-nums {{ $on && $viewMode === 'list' ? 'bg-[#e2e9f7] text-[#1E4090]' : 'bg-white/80 text-slate-600' }}">{{ $counts[$key] }}</span>
+                    <span class="rounded-full px-1.5 text-[11px] tabular-nums max-sm:hidden {{ $on && $viewMode === 'list' ? 'bg-[#e2e9f7] text-[#1E4090]' : 'bg-white/80 text-slate-600' }}">{{ $counts[$key] }}</span>
                 </button>
             @endforeach
         </nav>
@@ -81,6 +68,9 @@
                 </button>
             @endforeach
         </div>
+        <a href="{{ route('student.appointments.new') }}" wire:navigate class="{{ $btnPrimary }} shrink-0 !px-2.5 sm:!px-3" title="Book an appointment" aria-label="Book an appointment">
+            <i class="bx bx-plus text-base" aria-hidden="true"></i><span class="max-sm:sr-only">Book</span>
+        </a>
     </div>
 
     {{-- ============ List: one row per visit, date first ============ --}}
@@ -116,11 +106,11 @@
                         @if ($a->status === 'rejected' && $a->rejection_reason)
                             <p class="mt-1 text-xs text-rose-800">Reason: {{ $a->rejection_reason }}</p>
                         @endif
-                        <span class="mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 sm:hidden {{ $sPill }}">{{ $sText }}</span>
+                        <span class="{{ \App\Support\StatusStyle::BADGE }} mt-2 sm:hidden {{ $sPill }}">{{ $sText }}</span>
                     </div>
 
                     <div class="relative z-10 hidden shrink-0 items-center gap-2 sm:flex">
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $sPill }}">{{ $sText }}</span>
+                        <span class="{{ \App\Support\StatusStyle::BADGE }} {{ $sPill }}">{{ $sText }}</span>
                     </div>
                     @if ($a->canBeDeleted())
                         <button type="button" wire:click="confirmRetract({{ $a->appointment_id }})"
@@ -197,7 +187,7 @@
         </x-dm.wall-calendar>
         </div>
         <p class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span> Waiting for approval</span>
+            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span> Pending</span>
             <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-rose-50 ring-1 ring-rose-200" aria-hidden="true"></span> Office closed</span>
             <span>Select a visit to see its details.</span>
         </p>

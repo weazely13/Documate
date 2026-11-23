@@ -30,13 +30,18 @@ final class StudentIdRenewal extends WorkflowDocument
     public function fields(): array
     {
         return [
-            'not_presentable' => ['label' => 'It does not look presentable anymore', 'type' => 'checkbox'],
+            'not_presentable' => [
+                'label' => 'It does not look presentable anymore', 'type' => 'checkbox',
+                'question' => 'Why are you requesting a new student ID? Tick all that apply.',
+                'question_required' => true,
+            ],
             'destroyed' => ['label' => 'It has been destroyed', 'type' => 'checkbox'],
             'lost' => ['label' => 'It was lost', 'type' => 'checkbox'],
             'other' => ['label' => 'Other reason/s', 'type' => 'checkbox'],
             'other_specify' => [
                 'label' => 'If other, please explain', 'type' => 'textarea', 'max' => 300,
                 'sensitive' => true,
+                'show_when' => ['other' => true], // printed only when "other" is ticked
             ],
             'surrender_ack' => [
                 'label' => 'Since the use of more than one ID is a ground for disciplinary action, my old ID is, therefore, surrendered to this office.',

@@ -310,7 +310,7 @@ class Login extends Component
 
             try {
                 Mail::raw(
-                    "Hi {$user->first_name},\n\nWe received a request to recover your DocuMate account.\n\n"
+                    "Hi {$user->display_first_name},\n\nWe received a request to recover your DocuMate account.\n\n"
                     . "Open this link within 60 minutes to restore it:\n{$url}\n\n"
                     . "If this wasn't you, ignore this email and your account stays removed.",
                     fn ($m) => $m->to($user->email)->subject('Recover your DocuMate account')

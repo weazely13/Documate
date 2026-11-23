@@ -18,19 +18,20 @@ use App\Models\StudentDocumentWorkspace;
  */
 abstract class WorkflowDocument
 {
-    /** Courtesy titles offered in front of the names of teachers, officials and other personnel. */
-    public const SALUTATIONS = ['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Prof.', 'Engr.', 'Atty.', 'Rev.'];
+    /** Honorifics suggested in front of the names of teachers, officials and other personnel. */
+    public const SALUTATIONS = \App\Support\Honorifics::HONORIFICS;
 
     /**
-     * A "Title" select for a person's name. Put it right before the name field and give the name
-     * field 'salutation' => '<this key>': the form shows both on one row and the title is printed in front.
+     * An "Honorifics" box for a person's name: pick a suggestion or type one that is not listed.
+     * Put it right before the name field and give the name field 'salutation' => '<this key>':
+     * the form shows both on one row and the honorific is printed in front.
      */
     protected function salutationField(string $nameField, bool $required = true): array
     {
         return [
-            'label' => 'Title', 'type' => 'select', 'required' => $required,
+            'label' => 'Honorifics', 'type' => 'text', 'required' => $required, 'max' => 40,
             'options' => self::SALUTATIONS,
-            'rules' => [\Illuminate\Validation\Rule::in(self::SALUTATIONS)],
+            'rules' => array_slice(\App\Support\Honorifics::rules(), 1),
             'salutation_of' => $nameField,
         ];
     }
@@ -385,6 +386,15 @@ abstract class WorkflowDocument
         return $this->issuedByRole() !== null || $this->issuedBySignatory();
     }
 
+    /**
+     * A staff-issued document the VPSD office only receives once every signer has signed: while the chain is open
+     * it sits in Signing, not Issuance. (Other staff-issued documents reach Issuance as soon as they are issued.)
+     */
+    public function signedBeforeOffice(): bool
+    {
+        return false;
+    }
+
     /** May issue a new one now. Retired documents can't be issued, but their issuers still finish older records. */
     public function canBeIssuedBy(User $user): bool
     {
@@ -421,10 +431,31 @@ abstract class WorkflowDocument
     {
         return $answers;
     }
-    /** True when the signer records an inspection (remarks) while signing. */
+    /** True when the signer records an inspection (remarks) while signing. The remarks are then required. */
     public function signerRecordsInspection(): bool
     {
         return false;
+    }
+
+    /**
+     * Where a signer's remarks and date are saved, by the signer's role.
+     * @return array{remarks: string, date: string}
+     */
+    public function inspectionKeys(?string $roleKey): array
+    {
+        return ['remarks' => 'inspection_remarks', 'date' => 'inspection_date'];
+    }
+
+    /** The label of the remarks box the signer fills in. */
+    public function inspectionLabel(?string $roleKey): string
+    {
+        return 'Inspection remarks';
+    }
+
+    /** A placeholder for the remarks box. */
+    public function inspectionPlaceholder(?string $roleKey): string
+    {
+        return 'e.g. Haircut done. Cleared.';
     }
 
 
@@ -441,7 +472,7 @@ abstract class WorkflowDocument
         }
 
         $holder = SignatoryRole::where('key', 'vpsd')->first()?->holdersFor(null, null)->first();
-        $values['vpsd_name'] = $holder ? FormSupport::systemValue($holder, 'formatted_full_name') : null;
+        $values['vpsd_name'] = $holder ? FormSupport::systemValue($holder, 'signing_name') : null;
 
         return $values;
     }
@@ -492,28 +523,35 @@ abstract class WorkflowDocument
         return false;
     }
 
+    /** True when only a student with an officer record may open and file this form at all. */
+    public function restrictedToOfficers(): bool
+    {
+        return $this->requiresOfficer();
+    }
+
     /** Plain-language steps from start to finish, built from this form's own rules. */
     public function guide(array $values = []): array
     {
         $steps = [];
 
-        $fill = 'Your name, program, year and section come from your profile and are shown locked. You only enter the details that are specific to this request.';
+        // Six steps, always in this order: the form page's "How this works" ticks them off by position.
+        $fill = 'Click or tap each blue blank on the form and type your answer. Your name, program, year and section print from your profile.';
         if ($this->requiresOfficer()) {
             $fill = 'Confirm that you are an officer of a student organization. ' . $fill;
         }
         if ($this->usesNomineePicker()) {
-            $fill .= ' Search for the nominee and pick them from the list.';
+            $fill .= ' Pick the nominee from the list.';
         }
         if ($this->requiresItemPhoto()) {
-            $fill .= ' Take or upload a clear photo of the item.';
+            $fill .= ' Add a clear photo of the item.';
         }
         if ($this->requiresStudentSignature()) {
             $fill .= ' Your profile e-signature is applied, so add it in your profile first.';
         }
         $steps[] = ['Fill in the form', $fill];
 
-        $steps[] = ['Submit to the VPSD office', 'You can save a draft first. Submitting sends it to the VPSD office for review. No printing, scanning or handwriting is needed.'];
-        $steps[] = ['VPSD review', 'The VPSD office checks your answers. If something needs fixing you are notified, edit the form and resubmit. A rejection ends the request.'];
+        $steps[] = ['Submit it', 'Save a draft anytime. Tick the consent box and submit: it goes to the VPSD office. No printing or scanning.'];
+        $steps[] = ['VPSD office review', 'The VPSD office checks it. If something needs fixing, you are notified: edit it and resubmit. A rejection ends the request.'];
 
         try {
             $chain = $this->chain($values);
@@ -522,22 +560,24 @@ abstract class WorkflowDocument
         }
 
         if ($chain === []) {
-            $steps[] = ['Signing', 'No other signatures are needed for this form.'];
+            $steps[] = ['Signatures', 'No other signatures are needed for this form.'];
         } else {
+            // Signers in their order, lettered (a, b, c…) so they don't read as more steps.
             $lines = [];
-            foreach ($chain as $i => $s) {
+            foreach (array_values($chain) as $i => $s) {
+                $letter = chr(ord('a') + min($i, 25)) . '. ';
                 if (($s['type'] ?? 'internal') === 'external') {
-                    $lines[] = ($i + 1) . '. ' . $s['label'] . ': gets an email link and confirms with a one-time code (no account needed)';
+                    $lines[] = $letter . $s['label'] . ': gets an email link (no account needed)';
                 } else {
                     $role = SignatoryRole::where('key', $s['role'] ?? '')->value('label') ?: ($s['label'] ?? '');
-                    $lines[] = ($i + 1) . '. ' . $s['label'] . ': ' . $role;
+                    $lines[] = $letter . $s['label'] . ': ' . $role;
                 }
             }
-            $steps[] = ['Signatures, in order', "Each signer is notified in turn. You can follow progress on this page.\n" . implode("\n", $lines)];
+            $steps[] = ['Signatures, in order', "Each signer is notified in turn. Follow it on this page.\n" . implode("\n", $lines)];
         }
 
-        $steps[] = ['Final verification', 'Once every signature is in, the VPSD office does the final check and marks the transaction Completed.'];
-        $steps[] = ['Transaction form', 'Once the VPSD office completes and issues the transaction form to you, the official PDF becomes available on this page. It cannot be saved before then. Print it only if a physical copy is required. Anyone can verify it with the QR code or Reference No. and Fingerprint printed on it.'];
+        $steps[] = ['Final check', 'Once everyone has signed, the VPSD office does the final check and marks it Completed.'];
+        $steps[] = ['Download your copy', 'The official PDF opens on this page. Print it only if a paper copy is required. Anyone can verify it with its QR code.'];
 
         return $steps;
     }

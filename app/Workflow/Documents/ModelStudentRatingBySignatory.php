@@ -44,7 +44,7 @@ class ModelStudentRatingBySignatory extends WorkflowDocument
         }
 
         $user = auth()->user();
-        if ($user?->signature_enabled && empty($user->signature_path)) {
+        if ($user && empty($user->signature_path)) {
             return 'Upload your signature in your profile before issuing this rating.';
         }
 
@@ -55,7 +55,7 @@ class ModelStudentRatingBySignatory extends WorkflowDocument
 
     public function issueNote(): ?string
     {
-        return 'Pick the student and choose the rating. You appear as the rater, signed with your profile signature. The student is not notified. The VPSD office then does the final verification.';
+        return 'Search for the student and choose the rating. You appear as the rater, signed with your digital signature. The student is not notified. The VPSD office then does the final verification.';
     }
 
     public function issuedMessage(array $values): string

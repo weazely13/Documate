@@ -119,23 +119,23 @@
 {{-- Boxes --}}
 <div class="box" style="min-height:22pt;">
     <div class="bl">VIOLATION:</div>
-    <div class="bt">{!! nl2br(e($v['violation'] ?? '')) !!}</div>
+    <div data-f="violation" class="bt">{!! nl2br(e($v['violation'] ?? '')) !!}</div>
 </div>
 <div class="box" style="min-height:80pt;">
     <div class="bl">INCIDENT REPORT:</div>
-    <div class="bt">{!! nl2br(e($v['incident_report'] ?? '')) !!}</div>
+    <div data-f="incident_report" class="bt">{!! nl2br(e($v['incident_report'] ?? '')) !!}</div>
 </div>
 <div class="box" style="min-height:80pt;">
     <div class="bl">RESOLUTION:</div>
-    <div class="bt">{!! nl2br(e($v['resolution'] ?? '')) !!}</div>
+    <div data-f="resolution" class="bt">{!! nl2br(e($v['resolution'] ?? '')) !!}</div>
 </div>
 <div class="box">
     <div class="bl">RECOMMENDATIONS:</div>
     <div class="rec">
-        {!! $tick(! empty($v['rec_closed'])) !!} Closed/ Resolved
-        &nbsp;&nbsp; {!! $tick(! empty($v['rec_hearing'])) !!} For continuing hearing - Hearing Date:
-        <span class="ul">{{ ! empty($v['rec_hearing']) ? $hearing : '' }}&nbsp;</span><br>
-        {!! $tick(! empty($v['rec_formal'])) !!} For Formal Investigation
+        <span data-f="rec_closed">{!! $tick(! empty($v['rec_closed'])) !!} Closed/ Resolved</span>
+        &nbsp;&nbsp; <span data-f="rec_hearing">{!! $tick(! empty($v['rec_hearing'])) !!} For continuing hearing - Hearing Date:</span>
+        <span data-f="hearing_date" class="ul">{{ ! empty($v['rec_hearing']) ? $hearing : '' }}&nbsp;</span><br>
+        <span data-f="rec_formal">{!! $tick(! empty($v['rec_formal'])) !!} For Formal Investigation</span>
     </div>
 </div>
 

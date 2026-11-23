@@ -3,8 +3,7 @@
 @props(['user' => null, 'name' => null])
 @php
     $label = trim((string) ($user?->full_name ?: $name));
-    $initials = collect(preg_split('/\s+/', $label))->filter()->map(fn ($p) => mb_substr($p, 0, 1))
-        ->pipe(fn ($c) => $c->count() > 1 ? $c->first() . $c->last() : $c->first()) ?: '?';
+    $initials = \App\Support\Honorifics::initials($label);   // skips a leading honorific (Dr. Maria Santos → MS)
     $src = $user?->profile_picture ? asset('storage/' . $user->profile_picture) : null;
 @endphp
 <span {{ $attributes->merge(['class' => 'relative grid shrink-0 place-items-center overflow-hidden rounded-full bg-[#e2e9f7] font-semibold uppercase text-[#1E4090]']) }} aria-hidden="true">

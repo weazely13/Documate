@@ -8,23 +8,18 @@ use App\Workflow\Documents\DocumentRegistry;
 use Illuminate\Support\Str;
 
 /**
- * How a student's document is doing, in plain words: a status label, a tone, which of the
- * four steps it is on, and one sentence on what happens next.
+ * How a student's document is doing, in plain words: its status (the system-wide words and
+ * colours, see StatusStyle), who acts next (tone), which of the four steps it is on, and one
+ * sentence on what happens next.
  * Expects approvals_count, approved_count and approvals.role to be loaded for paperless rows.
  */
 class DocumentProgress
 {
-    /** Tones: you = the student has to act, office = with the VPSD office, signing, done, closed. */
-    public const TONES = [
-        'you' => 'bg-amber-50 text-amber-800',
-        'office' => 'bg-[#2A57B4]/10 text-[#1E4090]',
-        'signing' => 'bg-slate-100 text-slate-700',
-        'done' => 'bg-emerald-50 text-emerald-700',
-        'closed' => 'bg-slate-100 text-slate-500',
-    ];
+    // Tones say who acts next: you = the student, office = the VPSD office, signing, done, closed.
+    // The status pill itself is <x-status-badge :status="state" />.
 
     /**
-     * @return array{title: string, href: string, paperless: bool, issued: bool, label: string, tone: string, step: int, next: string, closed: bool}
+     * @return array{title: string, href: string, paperless: bool, issued: bool, state: string, label: string, tone: string, step: int, next: string, closed: bool}
      */
     public static function describe(StudentDocumentWorkspace $workspace): array
     {
@@ -34,16 +29,20 @@ class DocumentProgress
             $done = $workspace->isCompleted();
             $display = $workspace->displayStatus();
 
-            [$label, $tone, $step, $next] = $done
-                ? ['Completed', 'done', 4, 'Completed. Open it to view or download.']
-                : [$display['label'], $display['tone'] === 'red' ? 'you' : 'office', 1, 'Paper form: print it and bring it to the VPSD office.'];
+            [$tone, $step, $next] = $done
+                ? ['done', 4, 'Completed. Open it to view or download.']
+                : [$display['tone'] === 'red' ? 'you' : 'office', 1,
+                    $display['label'] === 'Appointment visit completed'
+                        ? 'Visit completed. The VPSD personnel will upload a photo of this document for it to become an online copy.'
+                        : 'Paper form: print it and bring it to the VPSD office.'];
 
             return [
                 'title' => $workspace->template?->name ? Str::title(str_replace('_', ' ', $workspace->template->name)) : 'Untitled document',
                 'href' => route('student.documents.show', $workspace->workspace_id),
                 'paperless' => false,
                 'issued' => false,
-                'label' => $label,
+                'state' => $done ? 'completed' : 'pending',
+                'label' => StatusStyle::paper($done)['label'],
                 'tone' => $tone,
                 'step' => $step,
                 'next' => $next,
@@ -57,21 +56,21 @@ class DocumentProgress
         $current = $signing ? $workspace->approvals->firstWhere('status', ApprovalStatus::Pending) : null;
         $finishedAt = $workspace->issued_at ?? $workspace->completed_at ?? $workspace->updated_at;
 
-        [$label, $tone, $step, $next] = match (true) {
-            $status === 'draft' => ['Draft', 'you', 0, 'Not sent yet. Finish the form and submit it.'],
-            $status === 'action_required' => ['Needs your changes', 'you', 1,
+        [$tone, $step, $next] = match (true) {
+            $status === 'draft' => ['you', 0, 'Not sent yet. Finish the form and submit it.'],
+            $status === 'action_required' => ['you', 1,
                 'The office asked for changes' . ($workspace->workflow_note ? ': ' . Str::limit($workspace->workflow_note, 90) : '.')],
-            $status === 'submitted' => ['In review', 'office', 1, 'The VPSD office will check it. Nothing to do yet.'],
-            $signing => ['In signing', 'signing', 2,
+            $status === 'submitted' => ['office', 1, 'The VPSD office will check it. Nothing to do yet.'],
+            $signing => ['signing', 2,
                 'Signed ' . $workspace->approved_count . ' of ' . $workspace->approvals_count . '.'
                     . ($current ? ' Waiting for ' . ($current->role->label ?? $current->label) . '.' : '')],
-            $status === 'under_review' => ['In review', 'office', 1, 'The VPSD office is checking it. Nothing to do yet.'],
-            $status === 'approved' => ['Almost done', 'office', 3, 'Everyone has signed. The VPSD office will finish it.'],
-            $status === 'completed' => ['Completed', 'done', 4,
+            $status === 'under_review' => ['office', 1, 'The VPSD office is checking it. Nothing to do yet.'],
+            $status === 'approved' => ['office', 3, 'Everyone has signed. The VPSD office will finish it.'],
+            $status === 'completed' => ['done', 4,
                 'Completed' . ($finishedAt ? ' ' . $finishedAt->format('M j, Y') : '') . '. Open it to download the PDF.'],
-            $status === 'rejected' => ['Rejected', 'closed', 0, $workspace->workflow_note ? Str::limit($workspace->workflow_note, 100) : 'This transaction was rejected.'],
-            $status === 'voided' => ['Voided', 'closed', 0, $workspace->void_reason ? Str::limit($workspace->void_reason, 100) : 'Withdrawn by the VPSD office.'],
-            default => [$workspace->workflow_status?->label() ?? '-', 'office', 1, ''],
+            $status === 'rejected' => ['closed', 0, $workspace->workflow_note ? Str::limit($workspace->workflow_note, 100) : 'This transaction was rejected.'],
+            $status === 'voided' => ['closed', 0, $workspace->void_reason ? Str::limit($workspace->void_reason, 100) : 'Voided by the VPSD office.'],
+            default => ['office', 1, ''],
         };
 
         $issued = (bool) $document?->issuedByOffice();
@@ -87,7 +86,8 @@ class DocumentProgress
             'href' => route('student.transactions.show', $workspace->workspace_id),
             'paperless' => true,
             'issued' => $issued,
-            'label' => $label,
+            'state' => StatusStyle::state($workspace),
+            'label' => StatusStyle::transaction($status)['label'],
             'tone' => $tone,
             'step' => $step,
             'next' => $next,

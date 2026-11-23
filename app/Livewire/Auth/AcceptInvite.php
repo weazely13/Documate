@@ -22,7 +22,6 @@ class AcceptInvite extends Component
     public string $password_confirmation = '';
     public bool $agree = false;
     public string $signature = ''; 
-    public bool $consentSignature = true;
     public bool $declined = false;
 
     public function mount(string $token): void
@@ -102,7 +101,6 @@ class AcceptInvite extends Component
         if (trim($this->signature) !== '') {
             try {
                 app(SignatureStore::class)->storeFromDataUrl($user, $this->signature);
-                $user->forceFill(['signature_enabled' => $this->consentSignature])->save();
             } catch (\InvalidArgumentException $e) {
                 // non-blocking: they can add it later in Profile
             }
