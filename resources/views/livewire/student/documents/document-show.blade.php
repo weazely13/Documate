@@ -6,7 +6,7 @@
 
     $done = $workspace->isCompleted();
     $title = $workspace->template?->name
-        ? \Illuminate\Support\Str::title(str_replace('_', ' ', $workspace->template->name))
+        ? \App\Support\TemplateName::display($workspace->template->name)
         : 'Document';
     $pdfUrl = $workspace->generated_pdf_path ? Storage::disk('public')->url($workspace->generated_pdf_path) : null;
     $canvasW = $this->canvas['width'] ?? 794;
@@ -14,7 +14,7 @@
     $hasContentAnalysis = array_key_exists('matches_document', $workspace->analysis_data ?? []);
 @endphp
 
-{{-- A paper form the student filled in: the page itself, what to do with it, and what has happened so far.
+{{-- A paper form the student filled out: the page itself, what to do with it, and what has happened so far.
      Phones: header, actions, page, review, timeline. Desktop: the page on the left, actions and timeline on the right. --}}
 <div x-data="{ confirmDelete: false, confirmEdit: false }" class="mx-auto max-w-6xl space-y-5 pb-28">
 
@@ -201,7 +201,7 @@
                             $checks = [
                                 'matches_document' => 'Matches the form layout',
                                 'readable' => 'Text is readable',
-                                'fields_complete' => 'Required fields filled in',
+                                'fields_complete' => 'Required fields filled out',
                                 'has_signature_or_stamp' => 'Has a stamp or signature',
                                 'fields_match_expected' => 'Details match your record',
                             ];

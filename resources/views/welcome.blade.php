@@ -22,12 +22,12 @@
 
             <div class="relative z-10 pb-2 lg:pb-24">
                 <h1 class="text-[2.05rem] font-semibold leading-[1.06] tracking-[-0.03em] text-[#0d253d] sm:text-[3.4rem] lg:text-[4.2rem] [text-wrap:balance]">
-                    <span style="{{ $customHeadingStyle }}">Request, track and sign student documents</span>
+                    <span style="{{ $customHeadingStyle }}">Request, track, and sign student documents</span>
                     <span class="relative whitespace-nowrap text-[#2a57b4]"><span style="{{ $customHeadingStyle }}">All in One Place</span><svg class="absolute -bottom-2 left-0 h-3 w-full text-[#2a57b4]/35" viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 80 2, 160 12, 298 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>
                 </h1>
                 <p class="mt-5 max-w-xl sm:mt-7 {{ $lead }}">
                     <span style="font-family: 'Gveret Levin', cursive; " class="text-[#2a57b4]">DocuMate</span> is the digital desk of the Office of the Vice President for Student Development at Leyte Normal University.
-                    Fill in forms online, book a visit, follow every signature, and download the finished document.
+                    Fill out forms online, book a visit, follow every signature, and download the finished document.
                 </p>
                 <div class="mt-7 grid grid-cols-2 gap-2 sm:mt-9 sm:flex sm:gap-3">
                     <a href="{{ route('register') }}" class="{{ $btnSecondary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
@@ -52,7 +52,7 @@
                 <img src="{{ asset('images/osdas-logo-256.png') }}" alt="Office of Student Development and Auxiliary Services" class="h-8 w-8 object-contain sm:h-9 sm:w-9">
                 <p class="text-[13px] leading-snug sm:text-sm text-[#4a5568]"><span class="block font-medium text-[#0d253d] sm:inline">Leyte Normal University</span><span class="hidden sm:inline"> · </span>Office of the VP for Student Development, Tacloban City</p>
             </div>
-            <p class="text-[13px] text-[#66707f] sm:text-sm">Used by students, organization officers, VPSD staff and the officials who sign.</p>
+            <p class="text-[13px] text-[#66707f] sm:text-sm">Used by students, organization officers, VPSD staff, and the officials who sign the document.</p>
         </div>
     </section>
 
@@ -60,8 +60,8 @@
     <section id="how" class="bg-[#fafaf9] py-14 sm:py-20 lg:py-28">
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-end">
-                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Every request travels the same route. Now you can watch it.</span></h2>
-                <p class="{{ $lead }} lg:pb-1">No more asking at the window whether the Dean has signed. Each step is stamped the moment it happens, and you get an email when it's your turn.</p>
+                <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Every request travels the same route. Now you can track it.</span></h2>
+                <p class="{{ $lead }} lg:pb-1">No more asking at the window whether or not the Dean has signed. Each step is stamped the moment it happens, and you get an email when it's your turn.</p>
             </div>
 
             {{-- Desktop: a routing slip --}}
@@ -81,8 +81,8 @@
                     </thead>
                     <tbody class="divide-y divide-[#ecebe7]">
                         @foreach ([
-                            ['You', 'Pick the form. Your name, program and section are already filled in from your profile.', 'Nov 1 · 9:14 AM', 'Received', '#2a57b4', '-4deg'],
-                            ['VPSD office', 'Staff check it, helped by an AI reading of anything you attached, or send it back with a note.', 'Nov 1 · 10:02 AM', 'Checked', '#0891b2', '3deg'],
+                            ['You', 'Pick the form. Your name, program and section are already filled out from your profile.', 'Nov 1 · 9:14 AM', 'Received', '#2a57b4', '-4deg'],
+                            ['VPSD office', 'Staff checks it, helped by an AI reading of anything you attached, or they send it back with a note.', 'Nov 1 · 10:02 AM', 'Checked', '#0891b2', '3deg'],
                             ['Signatories', 'Each official gets an email in turn and signs online, in the order the form needs.', 'Nov 2 · 8:55 AM', 'Signed', '#6d4fc2', '-2deg'],
                             ['DocuMate', 'The finished document is sealed. Any change after this would break the seal.', 'Nov 2 · 9:03 AM', 'Sealed', '#059669', '4deg'],
                         ] as [$desk, $what, $when, $stamp, $color, $rot])
@@ -102,8 +102,8 @@
             {{-- Phones: the same route, top to bottom --}}
             <ol class="mt-8 space-y-2.5 md:hidden">
                 @foreach ([
-                    ['You', 'Pick the form. Your details are already filled in.', 'Received', '#2a57b4'],
-                    ['VPSD office', 'Staff check it, or send it back with a note.', 'Checked', '#0891b2'],
+                    ['You', 'Pick the form. Your details are already filled out.', 'Received', '#2a57b4'],
+                    ['VPSD office', 'Staff checks it, or they send it back with a note.', 'Checked', '#0891b2'],
                     ['Signatories', 'Each official signs online, in order.', 'Signed', '#6d4fc2'],
                     ['DocuMate', 'The finished document is sealed.', 'Sealed', '#059669'],
                 ] as [$desk, $what, $stamp, $color])
@@ -177,7 +177,7 @@
         <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
                 <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Ask before you line up</span></h2>
-                <p class="{{ $lead }}">The <span style="font-family: 'Gveret Levin', cursive;" class="text-[#2a57b4]">DocuMate</span> Assistant sits on every page. It knows which screen you're on, LNU's offices and buildings, and the Student Handbook, and it tells you when something isn't in its records.</p>
+                <p class="{{ $lead }}">The <span style="font-family: 'Gveret Levin', cursive;" class="text-[#2a57b4]">DocuMate</span> Assistant is available on every page. It recognizes the screen you are currently viewing and is familiar with the offices and buildings of LNU and the Student Handbook. It also informs you when the information you need is not in its records.</p>
             </div>
 
             <div class="mt-8 grid gap-4 sm:mt-14 sm:gap-6 md:grid-cols-3">
@@ -205,8 +205,8 @@
             <div>
                 <h2 class="text-[1.6rem] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[2.3rem] lg:text-[2.75rem] [text-wrap:balance]"><span style="{{ $customHeadingStyle }}">A copy anyone can check, years from now</span></h2>
                 <p class="mt-4 text-[14.5px] leading-relaxed text-[#c3cedd] sm:mt-5 sm:text-base lg:text-[17px]">
-                    Every signature is sealed the moment it is given. If one word of a finished document changed, the seal would no longer match,
-                    and the verify page would say so.
+                    Every signature is secured upon signing. Any changes made to the completed document will invalidate its digital seal,
+                    and the verification page will indicate that the document has been altered.
                 </p>
                 <a href="{{ route('document.lookup') }}" class="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-medium sm:mt-8 sm:h-11 sm:px-5 sm:text-[15px] text-[#0d253d] transition hover:bg-[#f0f4fb]">
                     <i class="bx bx-shield-quarter text-lg text-[#2a57b4]" aria-hidden="true"></i> Verify a document
@@ -215,7 +215,7 @@
             <dl class="grid gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-2">
                 @foreach ([
                     ['A QR code on every copy', 'Scan it to open the sealed record behind the paper.'],
-                    ['A fingerprint you can type', 'No camera? The reference and fingerprint printed at the bottom work too.'],
+                    ['A digital fingerprint you can type', 'No camera? The reference and digital fingerprint printed at the bottom work too.'],
                     ['Voided copies say so', 'If the office voids a document, its page shows it, and points to the corrected one.'],
                     ['Records that outlast the form', 'Finished documents stay readable even after a form is changed or retired.'],
                 ] as [$t, $d])
@@ -258,7 +258,7 @@
                     <div id="org-people" class="org-scroll p-3 sm:p-6 lg:max-h-[42rem] lg:overflow-y-auto" aria-live="polite"></div>
                 </div>
             </div>
-            <p class="mt-3 text-[11px] text-[#9a978f] sm:mt-4 sm:text-xs">Source: Leyte Normal University, Academic &amp; Administrative Staffs directory. Photos will be added when available.</p>
+            <p class="mt-3 text-[11px] text-[#9a978f] sm:mt-4 sm:text-xs">Source: Leyte Normal University, Academic &amp; Administrative Staff directory. Photos will be added when available.</p>
         </div>
     </section>
 
@@ -267,10 +267,10 @@
         <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-8 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
             <div>
                 <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Where to find the VPSD office</span></h2>
-                <p class="mt-5 {{ $lead }}">Administration Building, 2nd Floor, at the main campus in Tacloban City.</p>
+                <p class="mt-5 {{ $lead }}">Administration Building, 2nd Floor, at the Main campus in Tacloban City.</p>
                 <dl class="mt-6 divide-y divide-[#e7e5e1] border-y border-[#e7e5e1] sm:mt-8">
                     @foreach ([
-                        ['bx-map', 'Address', 'P. Paterno St., Brgy. 50, Tacloban City, Leyte', null],
+                        ['bx-map', 'Address', 'Paterno St., Brgy. 50, Tacloban City, Leyte', null],
                         ['bx-time-five', 'Office hours', 'Monday to Friday, 8:00 AM to 5:00 PM', null],
                         ['bx-phone', 'Phone', '+63 (53) 832 3205', 'tel:+63538323205'],
                         ['bx-envelope', 'Email', 'info@lnu.edu.ph', 'mailto:info@lnu.edu.ph'],
@@ -297,7 +297,7 @@
         <div class="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6 px-5 sm:gap-10 sm:px-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
             <div>
                 <h2 class="{{ $h2 }}"><span style="{{ $customHeadingStyle }}">Questions people ask first</span></h2>
-                <p class="mt-5 {{ $lead }}">Short answers to the common ones. The full list covers accounts, forms, appointments and privacy.</p>
+                <p class="mt-5 {{ $lead }}">Brief answers to the common queries. The full list covers accounts, forms, appointments, and privacy.</p>
                 <a href="{{ route('faqs') }}" class="{{ $btnSecondary }} mt-6 sm:mt-8">Browse all FAQs <i class="bx bx-right-arrow-alt text-lg"></i></a>
             </div>
             @php $preview = collect(config('faqs'))->flatten(1)->take(5); @endphp
@@ -319,7 +319,7 @@
     <section class="bg-[#fafaf9] px-5 py-14 sm:px-8 sm:py-20 lg:py-24">
         <div class="mx-auto max-w-4xl text-center">
             <p class="text-[2.1rem] leading-none text-[#2a57b4] sm:text-[3rem] lg:text-[3.4rem]" style="font-family: 'Gveret Levin', cursive;">Signed, sealed, done.</p>
-            <p class="mx-auto mt-5 max-w-xl {{ $lead }}">Your next form is a few taps away. Most requests never need a trip to the office.</p>
+            <p class="mx-auto mt-5 max-w-xl {{ $lead }}">Your next form is few taps away. Most requests never need a trip to the office.</p>
             <div class="mt-6 grid grid-cols-2 gap-2 sm:mt-8 sm:flex sm:justify-center sm:gap-3">
                 <a href="{{ route('register') }}" class="{{ $btnPrimary }}"><span class="sm:hidden">Create account</span><span class="hidden sm:inline">Create a student account</span></a>
             </div>
@@ -433,7 +433,7 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    /* Source: Leyte Normal University, Academic & Administrative Staffs directory */
+    /* Source: Leyte Normal University, Academic & Administrative Staff directory */
     /* Source: resources/data/lnu-personnel.json (also what the DocuMate Assistant knows) */
     @php $orgChartData = \Illuminate\Support\Arr::only(json_decode(file_get_contents(resource_path('data/lnu-personnel.json')), true) ?: [], ['administrative', 'academic']); @endphp
     var orgChartData = @json($orgChartData);

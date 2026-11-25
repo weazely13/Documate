@@ -112,12 +112,12 @@
                             @foreach ($statuses as $key => $name) <option value="{{ $key }}">{{ $name }}</option> @endforeach
                         </select>
                     </label>
-                    <label class="{{ $pick }}" title="Order">
+                    <label class="{{ $pick }}" title="Sort">
                         <i class="bx bx-sort text-lg" aria-hidden="true"></i>
-                        <span class="sr-only">Order</span>
+                        <span class="sr-only">Sort</span>
                         <select wire:model.live="sort" class="{{ $control }} absolute inset-0 h-full w-full cursor-pointer opacity-0">
-                            <option value="newest">Newest first</option>
-                            <option value="oldest">Oldest first</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="newest">Latest</option>
                         </select>
                     </label>
                 </div>
@@ -147,10 +147,10 @@
                         @foreach ($statuses as $key => $name) <option value="{{ $key }}">{{ $name }}</option> @endforeach
                     </select>
                 </label>
-                <label class="flex items-center gap-2 text-xs text-slate-500">Order
+                <label class="flex items-center gap-2 text-xs text-slate-500">Sort
                     <select wire:model.live="sort" class="{{ $control }} w-36 pl-3 pr-8">
-                        <option value="newest">Newest first</option>
-                        <option value="oldest">Oldest first</option>
+                        <option value="oldest">Oldest</option>
+                        <option value="newest">Latest</option>
                     </select>
                 </label>
                 <span class="ml-auto truncate text-xs tabular-nums text-slate-500" title="{{ $stats['total'] }} issued · {{ $stats['open'] }} in progress · {{ $stats['completed'] }} completed · {{ $stats['closed'] }} rejected or voided">

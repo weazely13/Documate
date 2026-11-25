@@ -105,7 +105,7 @@ trait HasTransactionWorkflow
         return $this->hasMany(TransactionApproval::class, 'workspace_id', 'workspace_id')->orderBy('step_order');
     }
 
-    /** The answers plus what each signer filled in while signing (ratings, scores): what the form prints. */
+    /** The answers plus what each signer filled out while signing (ratings, scores): what the form prints. */
     public function printedValues(): array
     {
         $values = $this->field_values ?? [];

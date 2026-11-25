@@ -31,10 +31,10 @@ const TOUR_KEY = 'documate.editorTour.v1';
 const TOUR = [
     { target: 'canvas', title: 'This is your form', text: 'The page is the form itself. Scroll to move around, Ctrl + scroll (or pinch) to zoom, and drag on empty paper to select several fields at once.' },
     { target: 'fields', title: 'Add the blanks', text: 'Add a Text, Number, Paragraph or Date field, then drag it onto the blank line of the form. Pull the handles to resize it.' },
-    { target: 'auto', title: 'Filled in for the student', text: 'Automatic fields come from the student\'s profile (name, student number, program…) or the current term. Students never type them.' },
+    { target: 'auto', title: 'Filled out for the student', text: 'Automatic fields come from the student\'s profile (name, student number, program…) or the current term. Students never type them.' },
     { target: 'layers', title: 'Layers and groups', text: 'Every field is listed here. Drag to reorder, and pick a group to select all of its fields. Right-click fields on the page to group them.' },
     { target: 'design', title: 'Field settings', text: 'With a field selected: the label students read, its type, whether it is required, its group and its text style. With nothing selected: the page and its paper size.' },
-    { target: 'steps', title: 'Instructions', text: 'Steps students read before they fill in and print the form, like "Have your parent sign the bottom".' },
+    { target: 'steps', title: 'Instructions', text: 'Steps students read before they fill out and print the form, like "Have your parent sign the bottom".' },
     { target: 'preview', title: 'Check it as a student', text: 'Preview opens the form exactly as students will see it, with sample details. Nothing is saved there.' },
     { target: 'publish', title: 'Publish when ready', text: 'Private forms are hidden from students. Switch to Public when the form is ready. Everything you change is saved as you go.' },
 ];

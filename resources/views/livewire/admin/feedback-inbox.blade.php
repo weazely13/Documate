@@ -8,7 +8,7 @@
     $focus = 'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30';
     $wfField = 'rounded-lg border-slate-300 bg-white text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm';
 
-    $loadTargets = 'tab, search, sortBy, nextPage, previousPage, gotoPage';
+    $loadTargets = 'tab, setTab, search, sortBy, nextPage, previousPage, gotoPage';
     $emptyText = $search !== '' ? 'No feedback matches your search.' : ($tab === 'all' ? 'No feedback yet. What users send will appear here.' : 'Nothing here.');
 @endphp
 
@@ -16,48 +16,42 @@
 
     <h1 class="sr-only">Feedback</h1>
 
-    {{-- Summary --}}
+    {{-- Summary cards, which are also the filters: pick one to list that feedback, pick it again for the whole inbox --}}
     @php
+        // [key, icon, hint]
         $tiles = [
-            ['Unread', $stats['unread'], 'bx-envelope', '', 'not opened by the office yet'],
-            ['Received', $stats['received_30'], 'bx-message-square-dots', '', 'in the last 30 days'],
-            ['Replied', $stats['replied_30'], 'bx-reply', '', 'in the last 30 days'],
+            ['replied', 'bx-reply', 'the office replied to'],
+            ['all', 'bx-message-square-dots', 'all feedback received'],
+            ['unread', 'bx-envelope', 'not opened by the office yet'],
+            ['rated', 'bxs-star', null],
         ];
     @endphp
-    <div class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        @foreach ($tiles as [$label, $value, $icon, $gradient, $hint])
-            <div class="{{ \App\Support\SummaryCard::BOX }} {{ \App\Support\SummaryCard::IDLE }}">
+    <nav class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Show feedback">
+        @foreach ($tiles as [$key, $icon, $hint])
+            @php $on = $tab === $key; $n = (int) $counts[$key]; @endphp
+            <button type="button" wire:click="setTab('{{ $key }}')" wire:key="fcard-{{ $key }}" aria-pressed="{{ $on ? 'true' : 'false' }}"
+                    class="{{ \App\Support\SummaryCard::BOX }} {{ \App\Support\SummaryCard::tone($on) }} {{ $focus }}">
                 <i class="bx {{ $icon }} {{ \App\Support\SummaryCard::ICON }}" aria-hidden="true"></i>
-                <p class="text-2xl font-semibold leading-none tabular-nums">{{ $value }}</p>
-                <p class="mt-2 text-sm font-semibold leading-tight sm:text-[15px]">{{ $label }}</p>
-                <p class="mt-0.5 hidden truncate text-xs text-slate-600 sm:block">{{ $hint }}</p>
-            </div>
-        @endforeach
-        <div class="{{ \App\Support\SummaryCard::BOX }} {{ \App\Support\SummaryCard::IDLE }}">
-            <i class="bx bxs-star {{ \App\Support\SummaryCard::ICON }}" aria-hidden="true"></i>
-            <p class="flex items-baseline gap-1.5 text-2xl font-semibold leading-none tabular-nums">
-                @if ($stats['ratings'])
-                    {{ number_format($stats['avg_rating'], 1) }}<span class="text-sm font-medium">/ 5</span>
+                @if ($key === 'rated')
+                    <span class="flex items-baseline gap-1.5 text-2xl font-semibold leading-none tabular-nums">
+                        @if ($n)
+                            {{ number_format($stats['avg_rating'], 1) }}<span class="text-sm font-medium">/ 5</span>
+                        @else
+                            —
+                        @endif
+                    </span>
                 @else
-                    —
+                    <span class="text-2xl font-semibold leading-none tabular-nums">{{ number_format($n) }}</span>
                 @endif
-            </p>
-            <p class="mt-2 text-sm font-semibold leading-tight sm:text-[15px]">Rating</p>
-            <p class="mt-0.5 hidden truncate text-xs text-slate-600 sm:block">{{ $stats['ratings'] }} {{ Str::plural('rating', $stats['ratings']) }} in the last 30 days</p>
-        </div>
-    </div>
+                <span class="mt-2 block text-sm font-semibold leading-tight sm:text-[15px]">{{ $tabs[$key] }}</span>
+                <span class="mt-0.5 hidden truncate text-xs text-slate-600 sm:block">{{ $hint ?? number_format($n) . ' ' . Str::plural('rating', $n) . ' given' }}</span>
+            </button>
+        @endforeach
+    </nav>
 
     <div class="space-y-3">
-        {{-- One row, as on Workflow review: which feedback to show (a dropdown), then the search --}}
+        {{-- The search (the summary cards above are the filters) --}}
         <div class="flex items-center gap-2">
-            <label class="shrink-0">
-                <span class="sr-only">Status</span>
-                <select wire:model.live="tab" class="h-9 w-36 py-0 text-sm sm:w-44 [@media(pointer:coarse)]:h-11 {{ $wfField }}">
-                    @foreach ($tabs as $key => $label)
-                        <option value="{{ $key }}">{{ $label }} ({{ number_format($counts[$key]) }})</option>
-                    @endforeach
-                </select>
-            </label>
             <div class="relative min-w-0 flex-1">
                 <i class="bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" aria-hidden="true"></i>
                 <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search subject, message or person"

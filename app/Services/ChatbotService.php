@@ -2338,7 +2338,7 @@ HYMN
         if ($isSignatoryAccount) {
             $transaction = <<<'TXT'
     SIGNATORY VIEW OF TRANSACTIONS:
-    Students fill in and submit online forms; the VPSD office reviews them and sends them for signing. A request reaches the signatory's Signing Inbox when it is their step. After every signer approves, the VPSD office completes it and the student gets the official PDF. Documents the signatory issued are followed in Issued Documents. Paper forms are handled by the VPSD office, not by signatories.
+    Students fill out and submit online forms; the VPSD office reviews them and sends them for signing. A request reaches the signatory's Signing Inbox when it is their step. After every signer approves, the VPSD office completes it and the student gets the official PDF. Documents the signatory issued are followed in Issued Documents. Paper forms are handled by the VPSD office, not by signatories.
     TXT;
         }
 
@@ -2405,7 +2405,7 @@ HYMN
         if ($isAdmin) {
             $parts[] = <<<'TXT'
     ADMIN DASHBOARD REFERENCE:
-    The dashboard refreshes every 60 seconds and its transaction/signature trend period is the last 30 days. At a glance: Review counts open work with the office; Time elapsed is counted in school days: Today (under 1), Recent (1-2), Slow (3-4), Late (5-6), Overdue (7 or more); Issuance counts signed requests and signatory-issued reports the office issues next. Waiting for signatures counts open approval steps. Cleared is based on active students/officers and current-semester status; Untagged is separate from Uncleared. Appointments counts pending appointments.
+    The dashboard refreshes every 60 seconds and its transaction/signature trend period is the last 30 days. At a glance: Review counts open work with the office; Processing period is counted in school days: New (within 24 hours), Recent (1-2), Pending (3-4), Delayed (5-6), Overdue (7 or more); Issuance counts signed requests and signatory-issued reports the office issues next. Waiting for signatures counts open approval steps. Cleared is based on active students/officers and current-semester status; Untagged is separate from Uncleared. Appointments counts pending appointments.
     Transactions shows submitted/completed trends, open workflow stages (with the office, signatories, student action required, ready to finish, and recent paper forms), completion and turnaround metrics, most-requested forms, and submission origins by college/program. Clearance shows the current-semester totals, organizations, and latest tags. Signatories shows pending work by role, assigned holders, and the longest-waiting signatures. Today at the office shows morning/afternoon bookings, attended counts, now-serving queue numbers, a month calendar, and the selected day's appointment list.
     Use the live dashboard summary tool for current figures or queries about any of these sections. Related pages: Workflow Review handles digital transaction review and signatures; Transaction Records shows all transactions including paper forms; Appointments manages requests and calendar availability; Clearance manages student clearance; Users and Accounts Manager handles accounts, verification periods, organizations, and signatories; Templates & Uploads handles paper forms and uploaded copies; Reports provides system reports.
     TXT;

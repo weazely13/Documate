@@ -3,7 +3,7 @@
 namespace App\Support;
 
 /**
- * The look of filling in a form on the page itself (<x-doc.sheet>): a blank line to type on, the small
+ * The look of filling out a form on the page itself (<x-doc.sheet>): a blank line to type on, the small
  * caption under it (as printed forms have), a value already printed, and ruled lines for longer answers.
  * Student forms, paper forms, the issue page and signers' answers all use these, so they read the same.
  */
@@ -32,7 +32,7 @@ final class DocSheet
     /** A value already on the form (from the account, or the answer once sent). */
     public const VALUE = 'min-h-[2.25rem] whitespace-pre-wrap break-words border-b border-slate-300 px-0.5 py-1.5 text-base font-medium text-slate-900 sm:text-[15px]';
 
-    /** A short note that only shows while its line is being filled in (the field's wrapper needs "group/f"). */
+    /** A short note that only shows while its line is being filled out (the field's wrapper needs "group/f"). */
     public const HINT = 'mt-1 hidden text-xs leading-relaxed text-slate-500 group-focus-within/f:block';
 
     public const ERROR = 'mt-1 flex items-start gap-1 text-xs font-medium text-rose-600';

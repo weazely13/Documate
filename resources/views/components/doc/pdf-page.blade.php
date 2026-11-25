@@ -1,4 +1,4 @@
-{{-- The printed page itself, as the place to fill in (Alpine "pdfFill"). Two frames take turns so redrawing never flashes.
+{{-- The printed page itself, as the place to fill out (Alpine "pdfFill"). Two frames take turns so redrawing never flashes.
      Must sit inside the pdfFill element. wire:ignore: Livewire must not reset the frames. --}}
 @props(['label' => 'The form'])
 <div wire:ignore {{ $attributes->merge(['class' => 'relative']) }}>

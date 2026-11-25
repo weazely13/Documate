@@ -86,7 +86,7 @@ class VerifyDocumentController extends Controller
         }
 
         if (blank($data['fingerprint'] ?? null)) {
-            return redirect()->route('document.lookup')->withInput()->withErrors(['fingerprint' => 'Enter the Fingerprint printed under the Reference No., or paste the link from the QR code.']);
+            return redirect()->route('document.lookup')->withInput()->withErrors(['fingerprint' => 'Enter the digital fingerprint printed below the Reference No., or paste the link from the QR code.']);
         }
 
         $ref = strtoupper(trim($data['reference']));
@@ -104,7 +104,7 @@ class VerifyDocumentController extends Controller
 
         if (! $ok) {
             // Always the verify page (the form also sits on the home page), with one message for every miss.
-            return redirect()->route('document.lookup')->withInput()->withErrors(['reference' => 'No completed document matches that Reference No. and Fingerprint. Check both against the bottom of the document.']);
+            return redirect()->route('document.lookup')->withInput()->withErrors(['reference' => 'No completed document matches that Reference No. and digital fingerprint. Check both against the bottom of the document.']);
         }
 
         return redirect()->route('document.verify', $ws->verification_token);

@@ -8,5 +8,5 @@
 @endphp
 <div class="space-y-4">
     @include('livewire.workflow.issue-paper._details', ['student' => $student, 'rows' => $rows])
-    @include('livewire.workflow.issue-paper._note', ['text' => 'Nothing else to fill in. You appear as the recommending signatory, signed with your profile signature and today\'s date.'])
+    @include('livewire.workflow.issue-paper._note', ['text' => 'Nothing else to fill out. You appear as the recommending signatory, signed with your profile signature and today\'s date.'])
 </div>

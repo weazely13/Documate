@@ -222,7 +222,7 @@ class Issue extends Component
         return $attrs;
     }
 
-    /** Keeps what is filled in so far, without checks, so the report can be finished later. */
+    /** Keeps what is filled out so far, without checks, so the report can be finished later. */
     public function saveDraft(): void
     {
         $draft = IssueDraft::updateOrCreate(
@@ -381,7 +381,7 @@ class Issue extends Component
         } catch (\Throwable $e) {
             report($e);
 
-            return '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#4a5568;padding:24px">The preview will appear once the required details are filled in.</body></html>';
+            return '<!DOCTYPE html><html><body style="font-family:sans-serif;color:#4a5568;padding:24px">The preview will appear once the required details are filled out.</body></html>';
         }
     }
 

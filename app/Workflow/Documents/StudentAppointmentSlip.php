@@ -6,7 +6,7 @@ use Carbon\Carbon;
 
 /**
  * F-SDM-005 Rev. 1 (03-31-23): Student Appointment Slip Form.
- * Issued BY the VPSD office TO a student (the student never starts it). The office fills in
+ * Issued BY the VPSD office TO a student (the student never starts it). The office fills out
  * every field, the transaction goes straight to signing, and the Vice President signs it.
  */
 final class StudentAppointmentSlip extends WorkflowDocument
@@ -36,7 +36,7 @@ final class StudentAppointmentSlip extends WorkflowDocument
         return true;
     }
 
-    /** Filled in by the VPSD office when issuing (not by the student). */
+    /** Filled out by the VPSD office when issuing (not by the student). */
     public function fields(): array
     {
         return [

@@ -57,7 +57,7 @@
             @if ($seal)
                 <section class="rounded-2xl border p-4 shadow-sm sm:p-5 {{ $seal['valid'] ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50' }}">
                     <h3 class="text-sm font-semibold {{ $seal['valid'] ? 'text-emerald-800' : 'text-rose-800' }}">{{ $seal['valid'] ? 'Seal intact' : 'Seal check failed' }}</h3>
-                    <p class="mt-0.5 break-all text-xs {{ $seal['valid'] ? 'text-emerald-700' : 'text-rose-700' }}">Fingerprint {{ $seal['fingerprint'] }}</p>
+                    <p class="mt-0.5 break-all text-xs {{ $seal['valid'] ? 'text-emerald-700' : 'text-rose-700' }}">Digital fingerprint {{ $seal['fingerprint'] }}</p>
                 </section>
             @endif
         </div>

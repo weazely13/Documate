@@ -10,7 +10,7 @@
 <h4>2. What we collect</h4>
 <p><strong>Account and profile:</strong> your name, student number, sex, date of birth, mobile number, home address, the personal email you register with (Gmail, Yahoo or Outlook), college, program, year level, section, academic status, organization, profile photo, role, and your password (stored only in a scrambled, one-way form that no one can read).</p>
 <p><strong>Enrollment verification:</strong> photos of your enrollment slip and the details read from them, used to confirm you are enrolled for the current period.</p>
-<p><strong>Transactions:</strong> the forms you fill in and their answers, files you attach, appointment requests and queue numbers, clearance status for each semester, notes from the office, and the history of each request.</p>
+<p><strong>Transactions:</strong> the forms you fill out and their answers, files you attach, appointment requests and queue numbers, clearance status for each semester, notes from the office, and the history of each request.</p>
 <p><strong>Signatures:</strong> the e-signature image you save in your profile, and for officials, the time and details of each approval. Each approval is sealed so that later changes can be detected.</p>
 <p><strong>Assistant conversations:</strong> the questions you ask the DocuMate Assistant and, if you leave page sharing on, the name and visible text of the page you are on.</p>
 <p><strong>Technical records:</strong> sign-in attempts, the actions you take in the system, your IP address and browser details, kept in an audit trail for security.</p>
@@ -18,7 +18,7 @@
 <h4>3. Why we use it</h4>
 <ul>
     <li>To create and secure your account and confirm you are an enrolled LNU student;</li>
-    <li>To fill in your forms, process your requests, route them to the officials who sign, and issue the finished documents;</li>
+    <li>To fill out your forms, process your requests, route them to the officials who sign the document, and issue the finished documents;</li>
     <li>To manage appointments, clearance and the records the VPSD office must keep;</li>
     <li>To let anyone holding a DocuMate document confirm that it is genuine (section 6);</li>
     <li>To answer your questions through the DocuMate Assistant;</li>
@@ -39,7 +39,7 @@
     <li><strong>Authorized VPSD staff and system administrators</strong>, for the work their role requires;</li>
     <li><strong>The officials who sign</strong> a document, for that document only. Officials outside DocuMate receive a private, time-limited email link to the document they must sign;</li>
     <li><strong>Officers of your organization</strong>, for your clearance status only; and</li>
-    <li><strong>Anyone holding a finished DocuMate document.</strong> Each issued document carries a QR code, a reference number and a fingerprint. Whoever has these can open its verification page, which shows the document type, your name, your program, year and section, the document's details (except fields marked sensitive, such as reasons), and who signed it and when. This is how schools, offices and employers confirm a document is genuine, so share your documents only with people who need them.</li>
+    <li><strong>Anyone holding a finished DocuMate document.</strong> Each issued document carries a QR code, a reference number and a digital fingerprint. Whoever has these can open its verification page, which shows the document type, your name, your program, year and section, the document's details (except fields marked sensitive, such as reasons), and who signed it and when. This is how schools, offices and employers confirm a document is genuine, so share your documents only with people who need them.</li>
 </ul>
 
 <h4>7. Service providers and transfers outside the Philippines</h4>

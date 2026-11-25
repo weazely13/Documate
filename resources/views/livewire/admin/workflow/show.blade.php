@@ -100,9 +100,9 @@
                     <h2 id="rec-seal" class="text-[15px] font-semibold {{ $seal['valid'] ? 'text-emerald-900' : 'text-rose-900' }}">
                         {{ $seal['valid'] ? 'Seal intact' : 'Seal check failed' }}
                     </h2>
-                    <p class="mt-0.5 break-all text-xs {{ $seal['valid'] ? 'text-emerald-800' : 'text-rose-800' }}">Fingerprint {{ $seal['fingerprint'] }}. Rechecked from the database every time you open this page.</p>
+                    <p class="mt-0.5 break-all text-xs {{ $seal['valid'] ? 'text-emerald-800' : 'text-rose-800' }}">Digital fingerprint {{ $seal['fingerprint'] }}. Rechecked from the database every time you open this page.</p>
                     <ul class="mt-3 space-y-1.5 text-sm text-slate-800">
-                        @foreach (['content_ok' => 'Answers match the sealed fingerprint', 'signers_ok' => 'Every signature seal and image is intact', 'audit_ok' => 'Activity history was not altered'] as $k => $label)
+                        @foreach (['content_ok' => 'Answers match the sealed digital fingerprint', 'signers_ok' => 'Every signature seal and image is intact', 'audit_ok' => 'Activity history was not altered'] as $k => $label)
                             <li class="flex items-center gap-2">
                                 <span class="h-2 w-2 shrink-0 rounded-full {{ $seal[$k] ? 'bg-emerald-600' : 'bg-red-600' }}" aria-hidden="true"></span>
                                 {{ $label }}
@@ -320,7 +320,7 @@
                           class="mt-1 w-full rounded-lg border-slate-300 px-3 py-2.5 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm"></textarea>
                 <p id="modal-hint" class="mt-1 text-xs text-slate-500">
                     @if ($message !== '' && $message === ($ws->ai_findings['message'] ?? null))
-                        Filled in from the AI suggestion. Read it and edit before sending.
+                        Filled out from the AI suggestion. Read it and edit before sending.
                     @else
                         Up to 500 characters.
                     @endif

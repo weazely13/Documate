@@ -42,7 +42,7 @@ class Show extends Component
 
     public ?string $rating = null;
 
-    /** What the signer fills in while signing, for documents with signer fields. */
+    /** What the signer fills out while signing, for documents with signer fields. */
     public array $answers = [];
         
 
@@ -111,7 +111,7 @@ class Show extends Component
     }
 
     /**
-     * The signer's part (remarks, rating, scores) is filled in on the document itself, so it stays put when the
+     * The signer's part (remarks, rating, scores) is filled out on the document itself, so it stays put when the
      * confirm dialog opens and closes. Approving checks it first: problems show on the page, not in the dialog.
      */
     public function openModal(string $which): void
@@ -137,7 +137,7 @@ class Show extends Component
         $this->resetErrorBag();
     }
 
-    /** Validates what the signer filled in on the document (throws, so the errors land on the page). */
+    /** Validates what the signer filled out on the document (throws, so the errors land on the page). */
     protected function checkSignerPart(): void
     {
         $kind = $this->approval->signer_user_id ? ExternalSigning::kindFor($this->approval) : null;

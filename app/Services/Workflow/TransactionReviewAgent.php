@@ -22,7 +22,7 @@ class TransactionReviewAgent
 {
     /** The checklist the model answers, in display order. */
     public const CHECKS = [
-        'completeness' => 'Required answers filled in',
+        'completeness' => 'Required answers filled out',
         'clarity' => 'Answers are clear and real',
         'consistency' => 'Dates and details add up',
         'identity' => 'Names match the student',
@@ -173,7 +173,7 @@ class TransactionReviewAgent
                 'name' => $document->name(),
                 'purpose' => $document->description(),
                 'form_code' => method_exists($document, 'formCode') ? $document->formCode() : null,
-                // Filled in by the VPSD office or a signatory and issued to the student, not filled in by the student.
+                // Filled out by the VPSD office or a signatory and issued to the student, not filled out by the student.
                 'filled_in_by' => $issued ? 'issuer (VPSD office or signatory)' : 'student',
             ],
             'student_account' => [

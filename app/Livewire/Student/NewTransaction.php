@@ -552,7 +552,7 @@ class NewTransaction extends Component
 
         $this->templates = $templates->map(function (Template $template) {
             // What the form is for (set in the template editor), not its fill-in instructions.
-            $description = trim(Str::limit($template->description ?: 'Paper form: fill it in, print it and bring it to the VPSD office.', 120));
+            $description = trim(Str::limit($template->description ?: 'Paper form: fill it out, print it and bring it to the VPSD office.', 120));
 
             $lastUpdated = $template->currentVersion?->updated_at ?? $template->updated_at;
 

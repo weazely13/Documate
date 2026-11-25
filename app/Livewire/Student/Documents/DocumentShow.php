@@ -21,6 +21,14 @@ class DocumentShow extends Component
     public function mount(StudentDocumentWorkspace $workspace): void
     {
         abort_unless($workspace->user_id === Auth::id(), 403);
+
+        // Online forms have no paper template: they live on the transaction page.
+        if ($workspace->document_type) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                new \Illuminate\Http\RedirectResponse(route('student.transactions.show', $workspace->workspace_id))
+            );
+        }
+
         $this->workspace = $workspace->load('template.currentVersion.fields');
     }
 

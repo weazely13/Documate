@@ -42,7 +42,7 @@ class Sign extends Component
 
     public ?string $rating = null;
 
-    /** What the signer fills in, for documents with signer fields (e.g. the ten evaluation criteria). */
+    /** What the signer fills out, for documents with signer fields (e.g. the ten evaluation criteria). */
     public array $answers = [];
     public string $signerName = '';
     public bool $attest = false;
@@ -291,7 +291,7 @@ class Sign extends Component
     }
 
     /**
-     * The whole document as it will print, with this signer's answers, name and drawn signature filled in live.
+     * The whole document as it will print, with this signer's answers, name and drawn signature filled out live.
      * Only for a verified signer on an open request. Nothing is saved, sealed or audited.
      */
     #[Renderless]

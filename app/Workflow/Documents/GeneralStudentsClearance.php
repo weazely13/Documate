@@ -7,7 +7,7 @@ use App\Models\User;
 
 /**
  * F-SDM-020 Rev. 2 (05-09-25): General Students' Clearance.
- * Nothing to fill in: everything comes from the student's profile.
+ * Nothing to fill out: everything comes from the student's profile.
  *  - Profile organization: if academic -> its Treasurer and Adviser sign as the Academic Organization;
  *    if non-academic -> they sign as the Non-Academic Organization. (A profile holds one organization.)
  *  - Profile year level -> the year level organization (organizations.year_level = 1..4);
@@ -70,6 +70,6 @@ final class GeneralStudentsClearance extends ClearanceBase
 
     public function studentNote(): ?string
     {
-        return 'Nothing to fill in. The signers are picked from your profile: your organization, the organization for your year level, your Year-level Adviser, the College Chief Librarian and the Vice President. Keep your organization, program and year level up to date on your profile before submitting. Your profile e-signature is applied.';
+        return 'Nothing to fill out. The signers are picked from your profile: your organization, the organization for your year level, your Year-level Adviser, the College Chief Librarian and the Vice President. Keep your organization, program and year level up to date on your profile before submitting. Your profile e-signature is applied.';
     }
 }

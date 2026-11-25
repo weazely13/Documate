@@ -137,7 +137,7 @@
             </ul>
             <p class="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-500">
                 <span class="font-medium text-slate-700">Online</span> forms are signed and finished here.
-                <span class="font-medium text-amber-800">Print</span> forms are filled in here, then brought to the VPSD office.
+                <span class="font-medium text-amber-800">Print</span> forms are filled out here, then brought to the VPSD office.
             </p>
         </div>
     </div>

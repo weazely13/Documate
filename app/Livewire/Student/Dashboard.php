@@ -285,7 +285,7 @@ class Dashboard extends Component
                 return [
                     'text' => $text,
                     'document' => DocumentRegistry::find($ws?->document_type)?->name()
-                        ?? ($ws?->template?->name ? \Illuminate\Support\Str::title(str_replace('_', ' ', $ws->template->name)) : 'Document'),
+                        ?? ($ws?->template?->name ? \App\Support\TemplateName::display($ws->template->name) : 'Document'),
                     'url' => $ws?->document_type
                         ? route('student.transactions.show', $log->workspace_id)
                         : route('student.documents.show', $log->workspace_id),

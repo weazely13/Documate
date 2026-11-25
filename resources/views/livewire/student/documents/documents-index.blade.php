@@ -77,9 +77,9 @@
                 @elseif ($tab === 'active')
                     Nothing in progress.
                 @elseif ($tab === 'issued')
-                    Nothing issued to you. Slips, advisements and other documents the VPSD office or a signatory issues to you show up here.
+                    No issued documents yet. Documents issued to you by the VPSD office or signatories show up here.
                 @else
-                    No finished documents yet. Completed, rejected and voided documents are kept here.
+                    No archived documents yet. Completed, rejected, and voided documents show up here.
                 @endif
             </li>
         @endforelse

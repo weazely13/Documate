@@ -12,5 +12,5 @@
 @endphp
 <div class="space-y-4">
     @include('livewire.workflow.issue-paper._details', ['student' => $student, 'rows' => $rows, 'heading' => "Nominee details (from the student's profile)"])
-    @include('livewire.workflow.issue-paper._note', ['text' => 'Nothing else to fill in. If something shows a dash, ask the student to complete their profile first. You appear as the nominator, signed with your profile signature and today\'s date.'])
+    @include('livewire.workflow.issue-paper._note', ['text' => 'Nothing else to fill out. If something shows a dash, ask the student to complete their profile first. You appear as the nominator, signed with your profile signature and today\'s date.'])
 </div>

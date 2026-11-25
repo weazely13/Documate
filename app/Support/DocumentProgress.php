@@ -37,7 +37,7 @@ class DocumentProgress
                         : 'Paper form: print it and bring it to the VPSD office.'];
 
             return [
-                'title' => $workspace->template?->name ? Str::title(str_replace('_', ' ', $workspace->template->name)) : 'Untitled document',
+                'title' => $workspace->template?->name ? TemplateName::display($workspace->template->name) : 'Untitled document',
                 'href' => route('student.documents.show', $workspace->workspace_id),
                 'paperless' => false,
                 'issued' => false,
@@ -60,14 +60,14 @@ class DocumentProgress
             $status === 'draft' => ['you', 0, 'Not sent yet. Finish the form and submit it.'],
             $status === 'action_required' => ['you', 1,
                 'The office asked for changes' . ($workspace->workflow_note ? ': ' . Str::limit($workspace->workflow_note, 90) : '.')],
-            $status === 'submitted' => ['office', 1, 'The VPSD office will check it. Nothing to do yet.'],
+            $status === 'submitted' => ['office', 1, 'Your document is waiting to be reviewed by the VPSD office.'],
             $signing => ['signing', 2,
                 'Signed ' . $workspace->approved_count . ' of ' . $workspace->approvals_count . '.'
-                    . ($current ? ' Waiting for ' . ($current->role->label ?? $current->label) . '.' : '')],
-            $status === 'under_review' => ['office', 1, 'The VPSD office is checking it. Nothing to do yet.'],
-            $status === 'approved' => ['office', 3, 'Everyone has signed. The VPSD office will finish it.'],
+                    . ($current ? ' Waiting for the signature of the ' . ($current->role->label ?? $current->label) . '. They are notified automatically.' : '')],
+            $status === 'under_review' => ['office', 1, 'The VPSD office is reviewing your document.'],
+            $status === 'approved' => ['office', 3, 'Your document has been fully signed and is ready for issuance by the VPSD office.'],
             $status === 'completed' => ['done', 4,
-                'Completed' . ($finishedAt ? ' ' . $finishedAt->format('M j, Y') : '') . '. Open it to download the PDF.'],
+                'Completed' . ($finishedAt ? ' on ' . $finishedAt->format('M j, Y') : '') . '. Open the document to download its PDF copy.'],
             $status === 'rejected' => ['closed', 0, $workspace->workflow_note ? Str::limit($workspace->workflow_note, 100) : 'This transaction was rejected.'],
             $status === 'voided' => ['closed', 0, $workspace->void_reason ? Str::limit($workspace->void_reason, 100) : 'Voided by the VPSD office.'],
             default => ['office', 1, ''],

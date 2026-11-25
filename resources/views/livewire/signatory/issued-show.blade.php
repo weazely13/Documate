@@ -74,7 +74,7 @@
             @if ($seal)
                 <section class="rounded-2xl border p-4 shadow-sm sm:p-5 {{ $seal['valid'] ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50' }}">
                     <h3 class="text-sm font-semibold {{ $seal['valid'] ? 'text-emerald-800' : 'text-rose-800' }}">{{ $seal['valid'] ? 'Seal intact' : 'Seal check failed' }}</h3>
-                    <p class="mt-0.5 break-all text-xs {{ $seal['valid'] ? 'text-emerald-700' : 'text-rose-700' }}">Fingerprint {{ $seal['fingerprint'] }}</p>
+                    <p class="mt-0.5 break-all text-xs {{ $seal['valid'] ? 'text-emerald-700' : 'text-rose-700' }}">Digital fingerprint {{ $seal['fingerprint'] }}</p>
                     @if ($ws->verification_token)
                         <a href="{{ route('document.verify', $ws->verification_token) }}" target="_blank" rel="noopener"
                            class="mt-2 inline-flex min-h-[44px] items-center text-sm font-semibold text-[#2A57B4] hover:underline">Open the public verification page</a>

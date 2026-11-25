@@ -35,10 +35,10 @@ class Index extends Component
 
     public const TABS = [
         // In the order a request finishes (the queue cards show them in this order)
-        'issuance' => 'Issuance',
-        'signing' => 'Signing',
-        'action_required' => 'Revision',
-        'attention' => 'Review',
+        'issuance' => 'For Issuance',
+        'signing' => 'For Signing',
+        'action_required' => 'For Revision',
+        'attention' => 'For Review',
     ];
 
     /** Tabs whose waiting time is the office's (or a signatory's) to act on, so it is flagged. */
@@ -48,8 +48,8 @@ class Index extends Component
     public const SORTS = [
         'student' => 'Student',
         'status' => 'Status',
-        'waiting' => 'Time elapsed',
-        'risk' => 'AI suggestion',
+        'waiting' => 'Processing period',
+        'risk' => 'AI findings',
     ];
 
     /** AI filter: key => label. */
@@ -194,7 +194,7 @@ class Index extends Component
             ->filter()->sort()->all();
 
         return [
-            'elapsed' => ['today' => 'Today', 'recent' => 'Recent', 'slow' => 'Slow', 'late' => 'Late', 'overdue' => 'Overdue'],
+            'elapsed' => ['today' => 'New', 'recent' => 'Recent', 'slow' => 'Pending', 'late' => 'Delayed', 'overdue' => 'Overdue'],
             'docs' => $docs,
             'years' => ['1' => '1st year', '2' => '2nd year', '3' => '3rd year', '4' => '4th year'],
             'programs' => \App\Models\Program::query()->orderBy('name')->pluck('name', 'id')->all(),
@@ -409,7 +409,7 @@ class Index extends Component
 
         return match (true) {
             ! $doc => 'This document type is no longer available.',
-            (bool) $doc->reviewerFields() => 'This document needs a few details from the office first. Open the record to fill them in.',
+            (bool) $doc->reviewerFields() => 'This document needs a few details from the office first. Open the record to fill them out.',
             Show::identityCheckNeeded($ws) => 'The rater has to be checked by hand first. Open the record to confirm who they are.',
             default => null,
         };
@@ -473,7 +473,7 @@ class Index extends Component
             'waiting:desc' => 'Newest',
             'student:asc' => 'Name',
             'status:asc' => 'Status',
-            'risk:asc' => 'AI suggestion',
+            'risk:asc' => 'AI findings',
         ];
         // A header click can pick an order not listed: name it so the menu still shows it.
         if ($this->sort !== '' && ! isset($options[$this->sort])) {

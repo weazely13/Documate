@@ -32,10 +32,11 @@ enum TransactionStatus: string
     {
         return match ($this) {
             self::Completed => 'emerald',
-            self::Approved => 'green',
-            self::Submitted => 'amber',        // "Pending": the same amber as every other Pending
-            self::UnderReview => 'indigo',
-            self::ActionRequired => 'orange',
+            self::Submitted => 'yellow',       // Pending: waiting to be reviewed
+            self::UnderReview => 'blue',       // Reviewing: being reviewed
+            // (Signing, not a stored status, is purple: StatusStyle::transaction)
+            self::ActionRequired => 'orange',  // Revision: needs changes before it can go on
+            self::Approved => 'green',         // Signed: ready to issue to the student
             self::Rejected => 'rose',
             self::Voided => 'slate',
             self::Draft => 'slate',

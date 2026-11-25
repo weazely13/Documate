@@ -1,5 +1,5 @@
 {{-- Trend chart for the Reports page: one soft area per series over days, weeks or months.
-     The checkboxes above it hide and show series; hovering a column shows its numbers.
+     The checkboxes above it hide and show series (an optional $aside, such as the date pill, ends their row); hovering a column shows its numbers.
      Expects $trend = ['unit' => day|week|month|year, 'buckets' => [[label, dates, …]], 'series' => [[key, label, colour, values[]]]], $empty,
      and optionally $comparison = ['label', 'dates' => [], 'series' => [key => values]], drawn as dashed lines.
      With $trend['axes'] = 'dual' (two metrics compared), each series gets its own scale: the first on the left, the second on the right. --}}
@@ -39,6 +39,9 @@
         @endforeach
         @if ($cmp)
             <span class="inline-flex items-center gap-1.5 text-xs text-slate-500"><span class="w-4 border-t-2 border-dashed border-slate-400"></span>{{ $cmp['label'] }}</span>
+        @endif
+        @if (! empty($aside))
+            <span class="ml-auto">{!! $aside !!}</span>
         @endif
     </div>
 

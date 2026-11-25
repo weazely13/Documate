@@ -23,14 +23,13 @@
     $partNo = 0;
     $part = function () use (&$partNo) { return ['I', 'II', 'III', 'IV', 'V', 'VI'][$partNo++] ?? (string) $partNo; };
 
-    // Filled in on the form itself (<x-doc.sheet>): blank lines with their captions under them, as on paper.
+    // Filled out on the form itself (<x-doc.sheet>): blank lines with their captions under them, as on paper.
     $D = \App\Support\DocSheet::class;
     $box = 'mt-1 ' . $D::LINE;
     $bare = $D::INPUT;
     // Used by the report-specific layouts (issue-paper/*) for their own inputs and textareas.
     $input = $D::FIELD;
     $caption = $D::CAPTION;
-    $help = $D::HINT;
     $err = $D::ERROR;
     $partHead = 'flex items-baseline gap-2 ' . $D::HEADING;
 
@@ -79,12 +78,12 @@
         <div class="flex items-center justify-between gap-3">
             @if ($showPicker)
                 {{-- The title is the picker: the admin switches the document from here. Switching clears the answers,
-                     so it asks first when some are filled in. --}}
+                     so it asks first when some are filled out. --}}
                 @php $filled = collect($this->values)->filter(fn ($v) => $v !== null && $v !== '' && $v !== false)->isNotEmpty() || $studentId; @endphp
                 <h1 class="min-w-0" x-data="{ prev: @js($type) }">
                     <label for="issue-doc" class="sr-only">Document to issue</label>
                     <select id="issue-doc" wire:key="issue-doc-{{ $type }}" title="Choose the document to issue"
-                            @change="if (@js((bool) $filled) && ! confirm('Switch documents? The answers you have filled in will be cleared.')) { $el.value = prev } else { prev = $el.value; $wire.set('type', $el.value) }"
+                            @change="if (@js((bool) $filled) && ! confirm('Switch documents? The answers you have filled out will be cleared.')) { $el.value = prev } else { prev = $el.value; $wire.set('type', $el.value) }"
                             class="block max-w-full cursor-pointer truncate rounded-lg border-0 bg-transparent py-1 pl-1.5 pr-9 -ml-1.5 text-lg font-semibold tracking-[-0.015em] text-slate-900 shadow-none transition-colors hover:bg-slate-100 focus:ring-2 focus:ring-[#2A57B4]/30 sm:text-xl">
                         @foreach ($this->documentChoices as $key => [$docName, $docDesc])
                             <option value="{{ $key }}" @selected($key === $type) class="text-base font-normal">{{ $docName }}</option>
@@ -174,7 +173,7 @@
          from the title at the top of the page. --}}
 
     @php
-        // Filled in on the printed page (resources/js/pdf-fill.js): the blanks the PDF prints, and which editor an error belongs to.
+        // Filled out on the printed page (resources/js/pdf-fill.js): the blanks the PDF prints, and which editor an error belongs to.
         $printed = \App\Support\PdfFill::printed($document);
         $editorFor = function (string $key) use ($document): ?string {
             if (! str_starts_with($key, 'values.')) {
@@ -194,7 +193,7 @@
           @fill-open.window="$event.detail.name && placed[$event.detail.name] && open($event.detail.name)"
           aria-labelledby="issue-form-title">
         <template data-errors="{{ json_encode($errorEditors) }}"></template>
-        <h2 id="issue-form-title" class="sr-only">Fill in the {{ $kindWord }}: click a blank on the page</h2>
+        <h2 id="issue-form-title" class="sr-only">Fill out the {{ $kindWord }}: click a blank on the page</h2>
 
         {{-- Before you start: what this document is and how to fill it in. Opens with the page (reopen it from the info button). --}}
         @include('livewire.workflow._intro-modal', [
@@ -203,7 +202,7 @@
             'lead' => $document->description(),
             'items' => array_values(array_filter([
                 $document->issuedToSelf() ? null : 'Pick the student first: their details print on the form.',
-                'Click a blue blank on the form to fill it in.',
+                'Click a blue blank on the form to fill it out.',
                 ($document->issuedBySignatory() || $staffIssued) ? 'Your profile e-signature is applied for you.' : null,
                 $staffIssued ? 'The student is notified once you issue it.' : 'It goes straight to signing; the student is notified.',
                 'Nothing is saved until you issue it.',
@@ -297,7 +296,7 @@
 
         {{-- The printed page itself: click a blue blank to fill it in. What you see is what prints. --}}
         <div>
-            <x-doc.pdf-page :label="$document->name() . ': click a blank to fill it in'" />
+            <x-doc.pdf-page :label="$document->name() . ': click a blank to fill it out'" />
         </div>
 
         {{-- What the page does not print (and each blank's editor): a short list under the page --}}
@@ -318,7 +317,7 @@
                         $xShow = $dep ? '$wire.values.' . array_key_first($dep) . ' === ' . json_encode($dep[array_key_first($dep)]) : null;
                         $required = $f['required'] ?? false;
                         $hasError = $errors->has("values.$name") || (($f['salutation'] ?? null) && $errors->has('values.' . $f['salutation']));
-                        $describedBy = trim((! empty($f['help']) ? "h-$name " : '') . ($hasError ? "e-$name" : ''));
+                        $describedBy = $hasError ? "e-$name" : '';
                         $titleKey = $f['salutation'] ?? null;
                         $captionHtml = e($f['label']) . ($required ? '<span class="not-italic text-rose-600" aria-hidden="true"> *</span><span class="sr-only">(required)</span>' : '');
                         $wide = ! $isShort($name, $f) || in_array($kind, ['checkbox', 'radio', 'textarea'], true);
@@ -392,7 +391,6 @@
                                 <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
                             @endif
                         @endif
-                        @if (! empty($f['help'])) <p id="h-{{ $name }}" class="{{ $help }}">{{ $f['help'] }}</p> @endif
                         @error("values.$name") <p id="e-{{ $name }}" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
                     </div>
                     </x-doc.pop>

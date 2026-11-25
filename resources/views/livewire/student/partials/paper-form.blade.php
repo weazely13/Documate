@@ -1,4 +1,4 @@
-{{-- A paper form (template), filled in right on the page: each blank on the form image is the place to type.
+{{-- A paper form (template), filled out right on the page: each blank on the form image is the place to type.
      On a narrow screen the page is too small to type on, so tapping a blank opens it large at the foot of the
      screen (with Back / Next through the blanks).
 
@@ -113,7 +113,7 @@
                 new ResizeObserver(fit).observe(frame);
             },
           }">
-        <h2 id="pf-title" class="sr-only">Fill in the form: type in each blank</h2>
+        <h2 id="pf-title" class="sr-only">Fill out the form: type in each blank</h2>
 
 
         <div x-ref="previewFrame" class="overflow-hidden rounded-xl bg-[#e7e5e1] p-1.5 sm:p-3">
@@ -224,7 +224,7 @@
             <div class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:flex sm:justify-end">
                 @if ($blanks)
                     <button type="button" @click="edit(blanks[0].name)" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 sm:hidden" x-show="small">
-                        <i class="bx bx-edit-alt text-base" aria-hidden="true"></i><span class="sr-only">Fill in, one blank at a time</span>
+                        <i class="bx bx-edit-alt text-base" aria-hidden="true"></i><span class="sr-only">Fill out, one blank at a time</span>
                     </button>
                 @endif
                 <button type="button" @if ($preview) disabled @else @click="saveWorkspace()" @endif

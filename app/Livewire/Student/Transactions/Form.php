@@ -25,7 +25,7 @@ use Livewire\WithFileUploads;
 use App\Models\User;
 
 /**
- * One page for a student's digital transaction: fill in -> save draft -> submit -> track.
+ * One page for a student's digital transaction: fill out -> save draft -> submit -> track.
  *   student.transactions.new  /student/transactions/new/{type}
  *   student.transactions.show /student/transactions/{workspace}
  * The form comes from App\Workflow\Documents (code), not from the template editor.

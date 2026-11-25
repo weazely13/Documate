@@ -53,7 +53,7 @@
             @foreach (AppointmentsIndex::FILTERS as $key => $label)
                 @php $on = $filter === $key; @endphp
                 <button type="button" wire:click="setFilter('{{ $key }}')" @if ($on) aria-current="page" @endif class="{{ $segS($on && $viewMode === 'list') }}">
-                    @if ($key === 'past')<span class="sm:hidden">Past</span><span class="hidden sm:inline">{{ $label }}</span>@else{{ $label }}@endif
+                    @if ($key === 'past')<span class="sm:hidden">History</span><span class="hidden sm:inline">{{ $label }}</span>@else{{ $label }}@endif
                     <span class="rounded-full px-1.5 text-[11px] tabular-nums max-sm:hidden {{ $on && $viewMode === 'list' ? 'bg-[#e2e9f7] text-[#1E4090]' : 'bg-white/80 text-slate-600' }}">{{ $counts[$key] }}</span>
                 </button>
             @endforeach
@@ -124,7 +124,7 @@
                 </li>
             @empty
                 <li class="px-6 py-14 text-center text-sm text-slate-500">
-                    {{ trim($search) !== '' ? 'No record match your search.' : ($filter === 'past' ? 'No past visits yet.' : 'No upcoming visits.') }}
+                    {{ trim($search) !== '' ? 'No records match your search.' : ($filter === 'past' ? 'No history yet.' : 'No upcoming visits.') }}
                     @if ($filter !== 'past' && trim($search) === '')
                         <a href="{{ route('student.appointments.new') }}" wire:navigate class="ml-1 font-medium text-[#2A57B4] hover:underline">Book an appointment</a>
                     @endif

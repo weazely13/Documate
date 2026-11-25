@@ -76,7 +76,7 @@ class WorkflowNotification extends Notification
 
         return new self(
             $what === 'resubmitted' ? 'Transaction resubmitted' : 'New transaction submitted',
-            ($what === 'resubmitted' ? 'resubmitted' : 'submitted') . " a {$doc} ({$ws->transaction_code}) for review.",
+            ($what === 'resubmitted' ? 'resubmitted' : 'submitted') . ' ' . (preg_match('/^[aeiou]/i', $doc) ? 'an' : 'a') . " {$doc} ({$ws->transaction_code}) for review.",
             route('admin.workflow.show', $ws->workspace_id),
             $what === 'resubmitted' ? 'bx-refresh' : 'bx-file-blank',
             'text-blue-600 bg-blue-100',

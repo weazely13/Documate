@@ -12,7 +12,7 @@
     @livewireStyles
 </head>
 <body class="min-h-screen bg-slate-50 antialiased">
-    {{-- Wider while the signer fills in, so the live document preview fits beside the form. --}}
+    {{-- Wider while the signer fills out, so the live document preview fits beside the form. --}}
     <div class="mx-auto {{ ($wide ?? false) ? 'max-w-xl xl:max-w-[1280px]' : 'max-w-xl' }} px-4 py-8">
         <div class="mb-5 flex items-center gap-3">
             <img src="{{ asset('images/favicon.png') }}" class="h-9 w-9 object-contain" alt="DocuMate">

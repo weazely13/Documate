@@ -106,7 +106,7 @@
                             $vlmChecks = [
                                 'matches_document' => 'Matches this document type',
                                 'readable' => 'Photo is clear and readable',
-                                'fields_complete' => 'All required fields filled in',
+                                'fields_complete' => 'All required fields filled out',
                                 'has_signature_or_stamp' => 'Signature or stamp detected',
                                 'fields_match_expected' => 'Field values match what was entered',
                             ];

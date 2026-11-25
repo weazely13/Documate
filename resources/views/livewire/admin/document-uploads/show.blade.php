@@ -425,7 +425,7 @@
         <div class="min-w-0 lg:sticky lg:top-4 lg:self-start">
             <div class="mb-2 flex items-center justify-between gap-2">
                 <div>
-                    <h2 class="text-sm font-semibold text-slate-900">The form as the student filled it in</h2>
+                    <h2 class="text-sm font-semibold text-slate-900">The form as the student filled it out</h2>
                     <p class="text-xs text-slate-500">The uploaded photo is checked against this page.</p>
                 </div>
             </div>

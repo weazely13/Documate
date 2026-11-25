@@ -28,6 +28,8 @@ final class StatusStyle
         'blue' => 'bg-blue-50 text-[#2A57B4] ring-blue-200',
         'indigo' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
         'violet' => 'bg-violet-50 text-violet-700 ring-violet-200',
+        'purple' => 'bg-purple-50 text-purple-700 ring-purple-200',
+        'yellow' => 'bg-yellow-50 text-yellow-800 ring-yellow-300',
         'amber' => 'bg-amber-50 text-amber-700 ring-amber-200',
         'orange' => 'bg-orange-50 text-orange-700 ring-orange-200',
         'rose' => 'bg-rose-50 text-rose-700 ring-rose-200',
@@ -41,6 +43,8 @@ final class StatusStyle
         'blue' => 'bg-[#2A57B4]',
         'indigo' => 'bg-indigo-500',
         'violet' => 'bg-violet-500',
+        'purple' => 'bg-purple-500',
+        'yellow' => 'bg-yellow-400',
         'amber' => 'bg-amber-500',
         'orange' => 'bg-orange-500',
         'rose' => 'bg-rose-500',
@@ -54,6 +58,8 @@ final class StatusStyle
         'blue' => ['#DBEAFE', '#1E40AF'],
         'indigo' => ['#E0E7FF', '#3730A3'],
         'violet' => ['#EDE9FE', '#5B21B6'],
+        'purple' => ['#F3E8FF', '#6B21A8'],
+        'yellow' => ['#FEF9C3', '#854D0E'],
         'amber' => ['#FEF3C7', '#92400E'],
         'orange' => ['#FFEDD5', '#9A3412'],
         'rose' => ['#FFE4E6', '#9F1239'],
@@ -117,7 +123,7 @@ final class StatusStyle
     public static function transaction(TransactionStatus|string|null $state): array
     {
         if ($state === self::SIGNING) {
-            return ['label' => 'Signing', 'tone' => 'violet'];
+            return ['label' => 'Signing', 'tone' => 'purple'];
         }
         $status = $state instanceof TransactionStatus ? $state : TransactionStatus::tryFrom((string) $state);
 
@@ -127,7 +133,7 @@ final class StatusStyle
 
         return (string) $state === 'completed'
             ? ['label' => 'Completed', 'tone' => 'emerald']
-            : ['label' => 'Pending', 'tone' => 'amber'];
+            : ['label' => 'Pending', 'tone' => 'yellow'];
     }
 
     /** A paper form (no workflow) is Pending until it is completed. */
@@ -183,7 +189,7 @@ final class StatusStyle
         $label = (string) $label;
         $tone = match (true) {
             isset(self::CLEARANCE[$label]) => self::CLEARANCE[$label][0],
-            $label === 'Signing' => 'violet',
+            $label === 'Signing' => 'purple',
             default => collect(TransactionStatus::cases())->first(fn ($s) => $s->label() === $label)?->tone()
                 ?? collect(self::APPOINTMENT)->first(fn ($a) => $a[0] === $label)[1] ?? 'slate',
         };

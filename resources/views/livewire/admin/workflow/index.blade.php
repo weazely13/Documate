@@ -22,10 +22,10 @@
     // Where the transaction is on its way (phone cards): [current step, labels, current tone: ring + text].
     $stageFor = function ($row) use ($tab) {
         return match (true) {
-            $tab === 'action_required' => [0, ['Revision', 'Signing', 'Finish'], ['ring-amber-500', 'text-amber-800']],
-            $tab === 'issuance' => [2, ['Review', 'Signing', 'Issue'], ['ring-emerald-600', 'text-emerald-700']],
-            $tab === 'signing' => [1, ['Review', (int) $row->approved_count . '/' . (int) $row->approvals_count . ' signed', 'Finish'], ['ring-violet-600', 'text-violet-800']],
-            $row->workflow_status?->value === 'approved' => [2, ['Review', 'Signing', 'Ready'], ['ring-emerald-600', 'text-emerald-700']],
+            $tab === 'action_required' => [0, ['Revision', 'Signing', 'Finish'], ['ring-orange-500', 'text-orange-800']],
+            $tab === 'issuance' => [2, ['Review', 'Signing', 'Issue'], ['ring-green-600', 'text-green-700']],
+            $tab === 'signing' => [1, ['Review', (int) $row->approved_count . '/' . (int) $row->approvals_count . ' signed', 'Finish'], ['ring-purple-600', 'text-purple-800']],
+            $row->workflow_status?->value === 'approved' => [2, ['Review', 'Signing', 'Ready'], ['ring-green-600', 'text-green-700']],
             default => [0, ['Review', 'Signing', 'Finish'], ['ring-[#2A57B4]', 'text-[#1E4090]']],
         };
     };
@@ -67,22 +67,22 @@
         default => 'text-slate-500',
     };
 
-    // Time elapsed, in school days: [dot, word, range, what it means]
+    // Processing period, in school days: [dot, word, range, what it means]
     $legend = \App\Support\WaitingTime::legend();
     // What each status pill on this page means: the system-wide word and colour (StatusStyle), in the order work moves.
     $statusLegend = collect([
-        'submitted' => 'Sent by the student. The office has not opened it yet.',
-        'under_review' => 'The office is checking the answers.',
-        'signing' => 'Sent to the signatories. Waiting for their signatures.',
-        'action_required' => 'Sent back to the student to fix and resubmit.',
-        'approved' => 'Everyone has signed. Ready for the office to complete and issue.',
+        'submitted' => 'Document is waiting to be reviewed.',
+        'under_review' => 'Document is being reviewed.',
+        'signing' => 'Document is waiting to be signed by the signatory.',
+        'action_required' => 'Document requires revisions before proceeding.',
+        'approved' => 'The form has been signed and is ready to be issued to the student.',
     ])->map(function ($meaning, $state) {
         $st = \App\Support\StatusStyle::transaction($state);
 
         return [\App\Support\StatusStyle::DOTS[$st['tone']] ?? 'bg-slate-400', $st['label'], '', $meaning];
     })->values()->all();
 
-    // What each AI suggestion pill means: [dot, word, '', meaning], in the pills' colours.
+    // What each AI findings pill means: [dot, word, '', meaning], in the pills' colours.
     $aiLegend = [
         ['bg-emerald-500', 'Clear', '', 'Nothing looks wrong with the answers.'],
         ['bg-amber-500', 'Flagged', '', 'Something may be off. Open it and take a closer look.'],
@@ -99,16 +99,16 @@
 
 <div class="mx-auto max-w-[1440px] space-y-5" @if ($polling) wire:poll.5s @endif>
 
-    <h1 class="sr-only">{{ $viewingFlagged ? 'Flagged' : $tabs[$tab] }}</h1>
+    <h1 class="sr-only">{{ $viewingFlagged ? 'AI Flagged' : $tabs[$tab] }}</h1>
 
     {{-- Queue cards, in the order a request finishes: Issuance (signed, or issued by a signatory: the office issues
          it), Signing, Revision, Review, then the AI's Flagged shortlist. [key, label, icon, hint] --}}
     @php
         $cards = [
-            ['issuance', 'Issuance', 'bx-badge-check', 'Signed, ready to issue'],
-            ['signing', 'Signing', 'bx-pen', 'With the signers'],
-            ['action_required', 'Revision', 'bx-hourglass', 'With the student to fix'],
-            ['attention', 'Review', 'bx-time-five', 'For the office to check'],
+            ['issuance', 'For Issuance', 'bx-badge-check', 'Signed, ready to issue'],
+            ['signing', 'For Signing', 'bx-pen', 'With the signers'],
+            ['action_required', 'For Revision', 'bx-hourglass', 'With the student to fix'],
+            ['attention', 'For Review', 'bx-time-five', 'For the office to check'],
         ];
     @endphp
     <nav class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5" aria-label="Queues">
@@ -163,7 +163,7 @@
                     @endforeach
                 </span>
             </span>
-            <span class="mt-2 block text-sm font-semibold leading-tight text-slate-900 sm:text-[15px]">Flagged</span>
+            <span class="mt-2 block text-sm font-semibold leading-tight text-slate-900 sm:text-[15px]">AI Flagged</span>
             <span class="mt-0.5 block truncate text-xs text-slate-600">{{ $flaggedCount ? 'AI says check these' : 'Nothing flagged' }}</span>
         </button>
     </nav>
@@ -179,7 +179,7 @@
                 @php $fsel = 'h-9 w-full py-0 text-sm [@media(pointer:coarse)]:h-11 ' . $field; @endphp
                 <x-admin.filters-popup :count="$activeFilters" reset="resetFilters">
                         <label class="block min-w-0">
-                            <span class="mb-1 block text-xs font-medium text-slate-600">Time elapsed</span>
+                            <span class="mb-1 block text-xs font-medium text-slate-600">Processing period</span>
                             <select wire:model.live="elapsed" class="{{ $fsel }}">
                                 <option value="">All</option>
                                 @foreach ($filterOptions['elapsed'] as $key => $label)
@@ -188,7 +188,7 @@
                             </select>
                         </label>
                         <label class="block min-w-0">
-                            <span class="mb-1 block text-xs font-medium text-slate-600">AI suggestion</span>
+                            <span class="mb-1 block text-xs font-medium text-slate-600">AI findings</span>
                             <select wire:model.live="ai" class="{{ $fsel }}">
                                 @foreach ($aiFilters as $key => $label)
                                     <option value="{{ $key }}">{{ $label }}</option>
@@ -255,13 +255,13 @@
                             <x-admin.sort-th key="student" label="Student" :sort="$sortKey" :dir="$sortDir" class="!py-2.5" />
                             <th scope="col" class="px-4 py-2.5 text-left font-medium text-slate-500">Document</th>
                             <x-admin.sort-th key="status" label="Status" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
-                                <x-admin.legend-tip label="What the statuses mean" note="Where each request is in its workflow." :items="$statusLegend" />
+                                <x-admin.legend-tip label="What the statuses mean" note="Indicates the current progress of the document." :items="$statusLegend" />
                             </x-admin.sort-th>
-                            <x-admin.sort-th key="risk" label="AI suggestion" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
-                                <x-admin.legend-tip label="What the AI suggestions mean" note="The AI reads the answers before you do. It only suggests: you make the decision." :items="$aiLegend" />
+                            <x-admin.sort-th key="risk" label="AI findings" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
+                                <x-admin.legend-tip label="What the AI findings mean" note="The AI reads the answers before you do. It only suggests: you make the decision." :items="$aiLegend" />
                             </x-admin.sort-th>
-                            <x-admin.sort-th key="waiting" label="Time elapsed" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
-                                <x-admin.legend-tip label="What the time words mean" note="Time elapsed, in school days (d). Weekends do not count." :items="$legend" />
+                            <x-admin.sort-th key="waiting" label="Processing period" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
+                                <x-admin.legend-tip label="What the processing period means" note="Number of school days the document has been waiting. Weekends do not count." :items="$legend" />
                             </x-admin.sort-th>
                         </tr>
                     </thead>
@@ -314,7 +314,7 @@
                                             {{ $aiPill[0] }}
                                         </span>
                                     @else
-                                        <span class="text-xs text-slate-500">Filled in by staff</span>
+                                        <span class="text-xs text-slate-500">Filled out by staff</span>
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3">
@@ -435,7 +435,7 @@
                           class="mt-1 w-full rounded-lg border-slate-300 px-3 py-2.5 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm"></textarea>
                 <p id="decision-hint" class="mt-1 text-xs text-slate-500">
                     @if ($message !== '' && $message === ($panel['ws']->ai_findings['message'] ?? null))
-                        Filled in from the AI suggestion. Read it and edit before sending.
+                        Filled out from the AI suggestion. Read it and edit before sending.
                     @else
                         Up to 500 characters.
                     @endif

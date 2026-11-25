@@ -29,16 +29,16 @@ class ChatScreen
             'Open an appointment or a document waiting for your signature.',
         ]],
         'student.dashboard' => ['Home', 'The student home.', ['Start a transaction, continue a draft, or check appointments.']],
-        'student.new-transaction' => ['New transaction', 'Pick a form to request, or fill in the paper form that is open.', [
-            'Paper forms: fill in every item (required ones have *), check the preview on the right, then Save as PDF, print it, sign where needed and bring it to the VPSD office.',
+        'student.new-transaction' => ['New transaction', 'Pick a form to request, or fill out the paper form that is open.', [
+            'Paper forms: fill out every item (required ones have *), check the preview on the right, then Save as PDF, print it, sign where needed and bring it to the VPSD office.',
             'Save as draft keeps your answers to finish later.',
             'The info button shows the form\'s instructions.',
         ]],
         'student.new-transaction.edit' => ['Paper form', 'Editing a saved paper form.', [
             'Update your answers, then Save as draft or Save as PDF.',
         ]],
-        'student.transactions.new' => ['Online form', 'Filling in an online (paperless) form that the VPSD office reviews and signatories sign online.', [
-            'Fill in the request details; details from your account are filled in for you.',
+        'student.transactions.new' => ['Online form', 'Filling out an online (paperless) form that the VPSD office reviews and signatories sign online.', [
+            'Fill out the request details; details from your account are filled out for you.',
             'Save as draft to finish later, or tick the consent box and Submit to the VPSD office.',
             'The preview shows the document as it will be printed.',
         ]],
@@ -89,8 +89,8 @@ class ChatScreen
         'admin.workflow.show' => ['Review a transaction', 'Checking one online transaction before it goes for signing.', [
             'Read the answers and the AI check, then decide: send for signing, ask the student for changes, or reject.',
         ]],
-        'admin.workflow.issue' => ['Issue a document', 'The office issues a document to a student (a report or slip the office fills in).', [
-            'Choose the document, find the student, fill in the form, then issue it; save a draft to finish later.',
+        'admin.workflow.issue' => ['Issue a document', 'The office issues a document to a student (a report or slip the office fills out).', [
+            'Choose the document, find the student, fill out the form, then issue it; save a draft to finish later.',
         ]],
         'admin.appointments.index' => ['Appointments', 'The office calendar of student visits, by month, week, day or list.', [
             'Approve or reject requests, see today\'s queue, mark visits attended or missed, and, on the calendar, set how many appointments each session allows.',
@@ -101,10 +101,10 @@ class ChatScreen
         ]],
         'admin.transactions.online' => ['Transaction record', 'A finished or ongoing online transaction, read-only.', ['See the details, answers, signatures and history; download the PDF when completed.']],
         'admin.transactions.show' => ['Transaction record', 'A paper transaction, read-only.', ['See the details, the AI review of the uploaded photo, the appointment and the history.']],
-        'admin.templates' => ['Templates', 'The paper forms students fill in, print and bring to the office.', [
+        'admin.templates' => ['Templates', 'The paper forms students fill out, print and bring to the office.', [
             'Start a new template from an image or a PDF, open one in the editor, duplicate, publish or delete it.',
         ]],
-        'admin.templates.editor' => ['Template editor', 'Placing the blanks students fill in on a paper form.', [
+        'admin.templates.editor' => ['Template editor', 'Placing the blanks students fill out on a paper form.', [
             'Add Text, Number, Paragraph or Date fields from the toolbar and drag them onto the blanks; Automatic fields are filled from the student\'s profile.',
             'Select several with Shift-click or by dragging; right-click to group; Ctrl+Z to undo.',
             'Use Preview to see the form as students do, then make it Public.',
@@ -254,7 +254,7 @@ class ChatScreen
                         'Form: ' . $t->name . ' (paper form' . ($isStaff ? ', ' . ($t->status === 'active' ? 'public' : 'private') : '') . ')',
                         $t->description ? 'About it: ' . $t->description : null,
                         'Fields: ' . $fields->count() . ' (' . $fields->where('required', true)->count() . ' required, '
-                            . $fields->where('source_type', 'system')->count() . ' filled in from the profile)',
+                            . $fields->where('source_type', 'system')->count() . ' filled out from the profile)',
                     ]));
 
                 case 'student.transactions.new':

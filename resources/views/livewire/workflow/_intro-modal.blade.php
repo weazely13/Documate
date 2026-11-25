@@ -48,7 +48,7 @@
                 @if (! empty($steps))
                     {{-- How the transaction goes, start to finish, numbered in order --}}
                     <div class="px-5 pt-4">
-                        <h3 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">How it goes</h3>
+                        <h3 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">How it works?</h3>
                         <ol class="mt-3 space-y-3">
                             @foreach ($steps as $i => [$stepTitle, $stepText])
                                 <li class="flex gap-3">
@@ -87,7 +87,7 @@
                     </label>
                     <button type="button" x-ref="start" @click="close()"
                             class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-[#2A57B4] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#24499A] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:min-h-9 sm:py-1.5 [@media(pointer:coarse)]:min-h-11">
-                        {{ $startLabel ?? 'Start filling in' }} <i class="bx bx-right-arrow-alt text-base" aria-hidden="true"></i>
+                        {{ $startLabel ?? 'Start' }} <i class="bx bx-right-arrow-alt text-base" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>

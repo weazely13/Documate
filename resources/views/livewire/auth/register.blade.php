@@ -464,7 +464,7 @@
 
     <div class="bg-white p-6 rounded-2xl text-center shadow-2xl">
         <h2 class="text-red-600 font-semibold mb-2">Incomplete Form</h2>
-        <p class="mb-4 text-gray-600">Please fill all required fields correctly.</p>
+        <p class="mb-4 text-gray-600">Please fill out all required fields correctly.</p>
         <button @click="showError=false"
             class="px-6 py-2 bg-[#2A57B4] hover:opacity-90 text-white rounded-lg transition">
             OK

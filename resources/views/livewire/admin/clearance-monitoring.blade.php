@@ -22,19 +22,19 @@
         <x-admin.alert message="Choose a semester under Filters to view and tag clearance records." type="warning" />
     @endunless
 
-    {{-- Summary cards: each status in its pill's colours (StatusStyle::CLEARANCE: slate, amber, emerald, rose), the count
+    {{-- Summary cards: Cleared, Pending, Uncleared, Untagged, each in its pill's colours (StatusStyle::CLEARANCE), the count
          with a few of its students beside it. Selecting one filters the list; the selected card gets a darker outline. --}}
     @php
         // [status key, label, icon, card (idle), card (selected), label text]
         $summaryCards = [
-            [\App\Livewire\Admin\ClearanceMonitoring::STATUS_NOT_TAGGED, 'Untagged', 'bx-circle',
-                'bg-slate-100 border-slate-200 hover:border-slate-300', 'bg-slate-100 border-slate-500 ring-1 ring-slate-500', 'text-slate-600'],
-            ['Pending', 'Pending', 'bx-time-five',
-                'bg-amber-50 border-amber-200 hover:border-amber-300', 'bg-amber-50 border-amber-500 ring-1 ring-amber-500', 'text-amber-700'],
             ['Cleared', 'Cleared', 'bx-check-shield',
                 'bg-emerald-50 border-emerald-200 hover:border-emerald-300', 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500', 'text-emerald-700'],
+            ['Pending', 'Pending', 'bx-time-five',
+                'bg-amber-50 border-amber-200 hover:border-amber-300', 'bg-amber-50 border-amber-500 ring-1 ring-amber-500', 'text-amber-700'],
             ['Uncleared', 'Uncleared', 'bx-x-circle',
                 'bg-rose-50 border-rose-200 hover:border-rose-300', 'bg-rose-50 border-rose-500 ring-1 ring-rose-500', 'text-rose-700'],
+            [\App\Livewire\Admin\ClearanceMonitoring::STATUS_NOT_TAGGED, 'Untagged', 'bx-circle',
+                'bg-slate-100 border-slate-200 hover:border-slate-300', 'bg-slate-100 border-slate-500 ring-1 ring-slate-500', 'text-slate-600'],
         ];
     @endphp
     <nav class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Clearance status">

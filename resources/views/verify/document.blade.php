@@ -10,7 +10,7 @@
 @php
     $state = ! $found ? 'missing' : (($voided ?? false) ? 'voided' : ($report['valid'] ? 'valid' : 'failed'));
     $tone = [
-        'valid' => ['#d9f3e1', '#065f46', '#059669', 'bx-badge-check', 'Genuine and unaltered', 'VERIFIED'],
+        'valid' => ['#d9f3e1', '#065f46', '#059669', 'bx-badge-check', 'Verified and Authentic', 'VERIFIED'],
         'voided' => ['#fde0ec', '#9f1239', '#be123c', 'bx-block', 'Voided by the VPSD office', 'VOIDED'],
         'failed' => ['#fde0ec', '#9f1239', '#be123c', 'bx-error-alt', 'Does not match its seal', 'NOT VALID'],
         'missing' => ['#ecebe7', '#273951', '#66707f', 'bx-search-alt', 'No record found', 'NO RECORD'],
@@ -32,7 +32,7 @@
                         <p class="mt-2 max-w-2xl text-[15px] leading-relaxed" style="color: {{ $fg }}">
                             @switch($state)
                                 @case('valid')
-                                    This document was issued through DocuMate. Its contents and every signature match the sealed record, and nothing has changed since it was signed.
+                                    This document was issued through DocuMate. Its contents and every signature match the sealed record, and no changes made after signing.
                                     @break
                                 @case('voided')
                                     The VPSD office withdrew this document{{ $voidedAt ? ' on ' . $voidedAt->format('F j, Y') : '' }}. Do not accept it.
@@ -42,7 +42,7 @@
                                     The record behind this code no longer matches its seal. Do not accept this document, and let the VPSD office know.
                                     @break
                                 @default
-                                    This link doesn't match any finished document. Check that the whole QR code was scanned or the full link was copied. Until then, don't treat the document as genuine.
+                                    This link doesn't match any finished document. Check that the whole QR code was scanned or the full link was copied. Until then, don't treat the document as authentic.
                             @endswitch
                         </p>
                     </div>
@@ -64,7 +64,7 @@
                             <img src="{{ asset('images/lnulogo.png') }}" alt="" class="h-10 w-10 object-contain">
                             <div class="min-w-0 leading-tight">
                                 <p class="truncate text-sm font-semibold text-[#0d253d]">{{ $documentName }}</p>
-                                <p class="truncate text-xs text-[#66707f]">The sealed record, as kept by the VPSD office</p>
+                                <p class="truncate text-xs text-[#66707f]">This sealed copy serves as the official VPSD record.</p>
                             </div>
                         </div>
                         <dl class="mt-5 space-y-3 text-sm">
@@ -83,12 +83,12 @@
                                 <dd class="border-b border-[#e7e5e1] pb-1 font-medium text-[#0d253d]">{{ $ws->issued_at?->format('F j, Y · g:i A') ?? '—' }}</dd>
                             </div>
                             <div class="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
-                                <dt class="text-[#66707f]">Fingerprint</dt>
+                                <dt class="text-[#66707f]">Digital fingerprint</dt>
                                 <dd class="border-b border-[#e7e5e1] pb-1 font-mono font-semibold tracking-wide text-[#0d253d]">{{ $report['fingerprint'] }}</dd>
                             </div>
                         </dl>
                         <p class="mt-5 rounded-lg bg-[#fef3c7] px-3.5 py-2.5 text-[13px] leading-relaxed text-[#78350f]">
-                            Compare every line, and the fingerprint, with the copy in your hands. If anything differs, the copy was changed.
+                            Compare the details and digital fingerprint with your copy. Any difference may indicate that the document has been altered.
                         </p>
                     </article>
 
@@ -119,10 +119,10 @@
 
                         {{-- Checks --}}
                         <section class="rounded-xl border border-[#e7e5e1] bg-white">
-                            <h2 class="border-b border-[#e7e5e1] px-5 py-3.5 text-[15px] font-semibold text-[#0d253d]">What was checked</h2>
+                            <h2 class="border-b border-[#e7e5e1] px-5 py-3.5 text-[15px] font-semibold text-[#0d253d]">What was checked?</h2>
                             <ul class="space-y-3 px-5 py-4 text-sm">
                                 @foreach ([
-                                    [$report['content_ok'], 'The answers match the sealed fingerprint'],
+                                    [$report['content_ok'], 'The answers match the sealed digital fingerprint'],
                                     [$report['signers_ok'], 'Every signature and its image are intact'],
                                     [$report['audit_ok'], 'The history of this document has not been altered'],
                                 ] as [$ok, $label])

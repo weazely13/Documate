@@ -19,25 +19,25 @@ class WaitingTime
     ];
 
     /**
-     * Time elapsed in one plain word, the same everywhere (Workflow Review, its legend, the record page):
-     * Today (under a school day) · Recent (1–2) · Slow (3–4) · Late (5–6) · Overdue (7+).
+     * The processing period in one plain word, the same everywhere (Workflow Review, its legend, the record page):
+     * New (within 24 hours) · Recent (1–2 school days) · Pending (3–4) · Delayed (5–6) · Overdue (7+).
      */
     public const LABELS = [
         'overdue' => 'Overdue',
-        'urgent' => 'Late',
-        'follow_up' => 'Slow',
+        'urgent' => 'Delayed',
+        'follow_up' => 'Pending',
         'due' => 'Recent',
     ];
 
-    public const TODAY = 'Today';
+    public const TODAY = 'New';
 
     /** What each word means, for the pop-out on a time label and the legend. Keyed by level ('' = Today). */
     public const MEANINGS = [
-        '' => ['under 1 school day', 'Came in today. Nothing is late yet.'],
+        '' => ['within 24 hours', 'Just came in. Nothing is late yet.'],
         'due' => ['1–2 school days', 'Still on track. Handle it this week.'],
         'follow_up' => ['3–4 school days', 'Taking a while. Follow it up soon.'],
         'urgent' => ['5–6 school days', 'Running late. Act on it today.'],
-        'overdue' => ['7+ school days', 'Past the 7-day limit. Act on it now.'],
+        'overdue' => ['7 or more school days', 'Past the 7-day limit. Act on it now.'],
     ];
 
     /** Time-elapsed filter: word key => [at least, under] school days (null = no bound). */
@@ -49,7 +49,7 @@ class WaitingTime
         'overdue' => [7, null],
     ];
 
-    /** The legend: [dot, word, range, meaning] for every level, from Today to Overdue. */
+    /** The legend: [dot, word, range, meaning] for every level, from New to Overdue. */
     public static function legend(): array
     {
         $rows = [];

@@ -5,14 +5,13 @@
     $editable = $this->isEditable;
     $document = $this->document;
 
-    // Filled in on the form itself (<x-doc.sheet>): each answer is a blank line with its caption under it, as on paper.
+    // Filled out on the form itself (<x-doc.sheet>): each answer is a blank line with its caption under it, as on paper.
     $D = \App\Support\DocSheet::class;
     $box = 'mt-1 ' . $D::LINE;
     $boxLocked = 'mt-1 relative flex min-w-0 items-center gap-2 border-b border-dashed border-slate-300';
     $bare = $D::INPUT;
     $label = 'block text-[13px] font-medium text-slate-700';
     $caption = $D::CAPTION;
-    $help = $D::HINT;
     $err = $D::ERROR;
 
     $signedCount = $approvals->where('status', ApprovalStatus::Approved)->count();
@@ -22,17 +21,19 @@
     // Amber = the student has to act.
     $nextText = match (true) {
         ! $ws || $status === TransactionStatus::Draft => null,
-        $status === TransactionStatus::ActionRequired => 'Your next step: update the form below and resubmit.' . ($ws->workflow_note ? "\n" . '"' . $ws->workflow_note . '" (VPSD office)' : ' The VPSD office asked for changes.'),
+        $status === TransactionStatus::ActionRequired => 'The VPSD office requires revision in your document.' . ($ws->workflow_note ? "\n" . '"' . $ws->workflow_note . '" (VPSD office)' : ''),
         $status === TransactionStatus::Rejected => $ws->workflow_note ?: 'This transaction was rejected.',
         $status === TransactionStatus::Voided => $ws->void_reason ?: 'Voided by the VPSD office.',
-        $status === TransactionStatus::Completed => 'Signed and finished. Save your copy as a PDF. Print it only if a paper copy is required.',
-        $status === TransactionStatus::Approved => $afterReviewNote ?: 'Everyone has signed. The VPSD office will finish it.',
-        $status === TransactionStatus::UnderReview && $approvals->isNotEmpty() => 'Signed ' . $signedCount . ' of ' . $approvals->count() . '.' . ($waitingOn ? ' Waiting for ' . ($waitingOn->role->label ?? $waitingOn->label) . '. They are notified automatically.' : '') . ($afterReviewNote ? "\n" . $afterReviewNote : ''),
-        default => $afterReviewNote ?: 'The VPSD office is checking your submission. Nothing to do yet.',
+        $status === TransactionStatus::Completed => 'Your document has been completed. Save a copy as a PDF and print it only if a physical copy is required.',
+        $status === TransactionStatus::Approved => $afterReviewNote ?: 'Your document has been fully signed and is ready for issuance by the VPSD office.',
+        $status === TransactionStatus::UnderReview && $approvals->isNotEmpty() => 'Signed ' . $signedCount . ' of ' . $approvals->count() . '.' . ($waitingOn ? ' Waiting for the signature of the ' . ($waitingOn->role->label ?? $waitingOn->label) . '. They are notified automatically.' : '') . ($afterReviewNote ? "\n" . $afterReviewNote : ''),
+        $status === TransactionStatus::Submitted => $afterReviewNote ?: 'Your document is waiting to be reviewed by the VPSD office.',
+        default => $afterReviewNote ?: 'The VPSD office is reviewing your document.',
     };
     $nextTone = $nextText !== null ? $status->tone() : null;
     $toneBox = [
         'amber' => 'bg-amber-50 text-amber-900',
+        'yellow' => 'bg-yellow-50 text-yellow-900',
         'rose' => 'bg-rose-50 text-rose-900',
         'slate' => 'bg-slate-100 text-slate-800',
         'emerald' => 'bg-emerald-50 text-emerald-900',
@@ -45,7 +46,7 @@
     $closed = in_array($status, [TransactionStatus::Rejected, TransactionStatus::Voided], true);
 
     // "How this works" as a checklist: which guide steps are done, and which one is current.
-    // Steps: 0 fill in, 1 submit, 2 VPSD review, 3 signatures, 4 final verification, 5 download.
+    // Steps: 0 fill out, 1 submit, 2 VPSD review, 3 signatures, 4 final verification, 5 download.
     $guide = $document->issuedByOffice() ? [] : $document->guide($ws?->field_values ?? $values);
     $guideDone = match (true) {
         $status === TransactionStatus::Completed => 5,
@@ -56,7 +57,7 @@
     };
     $guideAmber = $status === TransactionStatus::ActionRequired;
 
-    // Filled in on the printed page (resources/js/pdf-fill.js): the blanks the PDF prints, and which editor an error belongs to.
+    // Filled out on the printed page (resources/js/pdf-fill.js): the blanks the PDF prints, and which editor an error belongs to.
     $printed = \App\Support\PdfFill::printed($document);
     $editorFor = function (string $key) use ($document): ?string {
         if ($key === 'nomineeId') {
@@ -96,7 +97,7 @@
     $chainSteps = rescue(fn () => $document->chain($values), [], false);
     $needs = array_values(array_filter([
         $document->requiresOfficer() ? 'An officer record in your account (your organization adviser or the VPSD office adds it).' : null,
-        $needsSig ? 'Your e-signature saved in your profile. It is applied to the form for you.' : null,
+        $needsSig ? 'The e-signature saved in your profile. It is applied to the form for you.' : null,
         $document->requiresItemPhoto() ? 'A clear photo of the item (JPG or PNG, up to 10 MB).' : null,
         collect($chainSteps)->contains(fn ($s) => ($s['type'] ?? '') === 'external') ? 'The title, full name and email address of each person who signs for you.' : null,
         $hasPicker ? 'The name, email or student number of each student you will list. Each must have a DocuMate account.' : null,
@@ -336,7 +337,7 @@
             @endunless
 
             @if ($nextText !== null)
-                <div class="rounded-xl px-4 py-3.5 {{ $toneBox[$nextTone] ?? $toneBox['slate'] }}" @if ($nextTone === 'amber') role="status" @endif>
+                <div class="rounded-xl px-4 py-3.5 {{ $toneBox[$nextTone] ?? $toneBox['slate'] }}" @if ($nextTone === 'orange') role="status" @endif>
                     <p><x-status-badge :workspace="$ws" /></p>
                     <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed opacity-90">{{ $nextText }}</p>
 
@@ -409,7 +410,7 @@
           @fill-open.window="$event.detail.name && placed[$event.detail.name] && open($event.detail.name)"
           aria-labelledby="form-title">
         <template x-ref="errs" data-errors="{{ json_encode($errorEditors) }}"></template>
-        <h2 id="form-title" class="sr-only">{{ $editable ? 'Fill in the form' : 'Your answers' }}</h2>
+        <h2 id="form-title" class="sr-only">{{ $editable ? 'Fill out the form' : 'Your answers' }}</h2>
 
         {{-- Before you start: a popup that opens with the form (reopen it from the info button). --}}
         @if ($editable)
@@ -428,7 +429,7 @@
 
         {{-- The printed page itself: tap a blue blank to fill it in. What you see is what prints. --}}
         <div data-tour="form-details">
-            <x-doc.pdf-page :label="$document->name() . ($editable ? ': tap a blank to fill it in' : '')" />
+            <x-doc.pdf-page :label="$document->name() . ($editable ? ': tap a blank to fill it out' : '')" />
         </div>
 
         {{-- Your details print from your account --}}
@@ -445,7 +446,7 @@
             @elseif ($editable)
                 {{-- Saves what was typed as a draft before leaving for the profile --}}
                 <p class="flex flex-wrap items-center justify-between gap-x-3 text-xs text-slate-500">
-                    <span class="inline-flex items-center gap-1"><i class="bx bx-lock-alt" aria-hidden="true"></i>Your name and program print from your profile.</span>
+                    <span class="inline-flex items-center gap-1"><i class="bx bx-lock-alt" aria-hidden="true"></i>Your name and program are automatically filled from your profile.</span>
                     <button type="button" wire:click="saveAndEditProfile" wire:loading.attr="disabled" wire:target="saveAndEditProfile"
                             class="inline-flex min-h-8 items-center gap-1 rounded font-medium text-[#2A57B4] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2A57B4]">
                         <i class="bx bx-loader-alt animate-spin" aria-hidden="true" wire:loading wire:target="saveAndEditProfile"></i> Edit in profile
@@ -533,10 +534,9 @@
                             <i class="bx bx-search text-base text-slate-400" aria-hidden="true"></i>
                             <input id="f-nominee" type="search" wire:model.live.debounce.300ms="nomineeSearch" autocomplete="off" @keydown.enter.prevent
                                    placeholder="Type a name or student number" class="{{ $bare }}"
-                                   aria-describedby="h-nominee @error('nomineeId') e-nominee @enderror" @error('nomineeId') aria-invalid="true" @enderror>
+                                   @error('nomineeId') aria-describedby="e-nominee" @enderror @error('nomineeId') aria-invalid="true" @enderror>
                         </div>
                         <label for="f-nominee" class="{{ $caption }}">Nominee <span class="not-italic text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
-                        <p id="h-nominee" class="{{ $help }}">Pick the student from the list.</p>
 
                         @if (strlen($nomineeSearch) >= 2)
                             <div class="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg" role="list" aria-label="Matching students">
@@ -584,7 +584,7 @@
                         $titleKey = $f['salutation'] ?? null;
                         $icon = $fieldIcon($name, $f);
                         $hasError = $errors->has("values.$name") || ($titleKey && $errors->has("values.$titleKey"));
-                        $describedBy = trim((! empty($f['help']) ? "h-$name " : '') . ($hasError ? "e-$name" : ''));
+                        $describedBy = $hasError ? "e-$name" : '';
                         $isEmail = str_ends_with($name, '_email');
                     @endphp
                     @continue(! empty($f['staff_only']) || ! empty($f['hidden']) || ! empty($f['salutation_of']))
@@ -630,7 +630,6 @@
                                 </p>
                                 <span class="text-xs tabular-nums text-slate-500" aria-live="polite">{{ count($list) }} of {{ $max }} added</span>
                             </div>
-                            @if (! empty($f['help']) && $editable) <p id="h-{{ $name }}" class="{{ $help }}">{{ $f['help'] }}</p> @endif
 
                             @if ($list)
                                 <ol class="mt-2 space-y-2" aria-labelledby="l-{{ $name }}">
@@ -710,7 +709,6 @@
                                     <p class="{{ $D::VALUE }}">{{ $f['option_labels'][$values[$name] ?? ''] ?? ($values[$name] ?? '—') }}</p>
                                 @endif
                             </fieldset>
-                            @if (! empty($f['help']) && $editable) <p id="h-{{ $name }}" class="{{ $help }}">{{ $f['help'] }}</p> @endif
 
                         @else
                             @php
@@ -796,7 +794,6 @@
                                     <label for="f-{{ $name }}" class="{{ $caption }}">{!! $captionHtml !!}</label>
                                 @endif
 
-                                @if (! empty($f['help'])) <p id="h-{{ $name }}" class="{{ $help }}">{{ $f['help'] }}</p> @endif
                                 @if ($isEmail && ! empty($values[$name]) && \App\Services\Workflow\ExternalSigning::accountFor($values[$name], auth()->id()))
                                     <p class="mt-1 text-xs font-medium text-emerald-700">Has a DocuMate account: signs from there, no email link.</p>
                                 @endif
@@ -870,7 +867,7 @@
                            aria-required="true" aria-describedby="consent-text @error('consent') e-consent @enderror"
                            @error('consent') aria-invalid="true" @enderror>
                     <span id="consent-text" class="{{ $errors->has('consent') ? 'text-rose-700' : '' }}">
-                        This is true, and LNU may share it with the signers for this request (Data Privacy Act of 2012).
+                        By confirming, I acknowledge that this information is accurate and may be shared with the signatories handling my request, in accordance with the Data Privacy Act of 2012.
                     </span>
                 </label>
                 @error('consent') <p id="e-consent" class="{{ $err }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
@@ -879,7 +876,7 @@
                     {{-- Phones: step through the blanks on the page, one at a time --}}
                     <button type="button" @click="start()" x-show="order.length" x-cloak
                             class="inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-lg border border-[#2A57B4]/40 bg-[#2A57B4]/5 px-3 text-sm font-medium text-[#2A57B4] hover:bg-[#2A57B4]/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:min-h-9">
-                        <i class="bx bx-edit-alt text-base" aria-hidden="true"></i> Fill in
+                        <i class="bx bx-edit-alt text-base" aria-hidden="true"></i> Fill out
                     </button>
                     <button type="button" wire:click="saveDraft" wire:loading.attr="disabled" wire:target="saveDraft,submit"
                             class="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 disabled:opacity-50 sm:min-h-9 sm:flex-none">
@@ -945,14 +942,14 @@
     {{-- "How this works": a guided tour of this form, from the question mark in the header --}}
     @php
         $tourSteps = array_values(array_filter([
-            ['target' => 'form-head', 'title' => $document->name(), 'text' => 'You fill this in right on the form. Here is how.'],
+            ['target' => 'form-head', 'title' => $document->name(), 'text' => 'Fill out the form directly on this page. Let us show you how!'],
             ['target' => 'form-status', 'title' => 'Where it stands', 'text' => 'After you submit: VPSD checks it, signers sign, then you download it.'],
-            ['target' => 'form-student', 'title' => 'Your details', 'text' => 'Printed from your account. Wrong? Use Edit in profile.'],
-            ['target' => 'form-details', 'type' => 'Sample answer', 'title' => 'Type on the lines', 'text' => 'Type each answer on its line, like this sample. * means required.'],
-            ['target' => 'form-preview', 'title' => 'The printed copy', 'text' => 'PDF shows exactly how it prints. Nothing is saved.'],
+            ['target' => 'form-student', 'title' => 'Your details', 'text' => 'Your details are filled in automatically from your account. Need to make changes? Go to Edit Profile.'],
+            ['target' => 'form-details', 'type' => 'Sample answer', 'title' => 'Filling Out the Form', 'text' => 'Enter your answers in the spaces provided. Fields marked with an asterisk (*) are required.'],
+            ['target' => 'form-preview', 'title' => 'Preview Your Form', 'text' => 'See how your completed form will look when printed. Previewing does not save or submit your form.'],
             ['target' => 'form-actions', 'title' => 'Save or submit', 'text' => 'Save a draft to finish later. Tick the box, then Submit.'],
-            $guide ? ['target' => 'form-help', 'title' => 'Steps and checklist', 'text' => 'Tap the question mark anytime to see this tour again.', 'cta' => ['label' => 'See the steps and checklist', 'event' => 'open-guide']]
-                   : ['target' => 'form-help', 'title' => 'Need this again?', 'text' => 'Tap the question mark anytime to see this tour again.'],
+            $guide ? ['target' => 'form-help', 'title' => 'Need Help?', 'text' => 'Tap the question mark (?) anytime to revisit this tour.', 'cta' => ['label' => 'See the steps and checklist', 'event' => 'open-guide']]
+                   : ['target' => 'form-help', 'title' => 'Need Help?', 'text' => 'Tap the question mark (?) anytime to revisit this tour.'],
         ]));
     @endphp
     <x-dm.tour key="documate.tour.form.v2" :steps="$tourSteps" :auto="false" />

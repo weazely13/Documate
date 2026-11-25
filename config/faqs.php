@@ -130,7 +130,7 @@ return [
         ],
         [
             'q' => 'How do I complete a paper template in New Transaction?',
-            'a' => 'Choose a form marked Print in New Transaction, fill in the editable fields, and select Save to Workspace to keep your draft. Select Save PDF to generate the completed document. Follow any instructions printed on the form or provided by the responsible office for physical signatures, delivery, or appointments; these steps vary by form.',
+            'a' => 'Choose a form marked Print in New Transaction, fill out the editable fields, and select Save to Workspace to keep your draft. Select Save PDF to generate the completed document. Follow any instructions printed on the form or provided by the responsible office for physical signatures, delivery, or appointments; these steps vary by form.',
             'keywords' => ['paper template', 'print form', 'form marked print', 'paper form', 'template', 'save to workspace', 'save pdf', 'generate pdf', 'print', 'physical form', 'hard copy', 'completed document', 'paper copy'],
         ],
         [

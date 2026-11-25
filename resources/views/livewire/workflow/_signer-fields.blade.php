@@ -1,5 +1,5 @@
 {{-- Needs: $fields (WorkflowDocument::signerFields($values)). Binds to "answers.<field>" on the component.
-     What the signer fills in while signing (ratings, scores, comments), as blanks on the form (App\Support\DocSheet).
+     What the signer fills out while signing (ratings, scores, comments), as blanks on the form (App\Support\DocSheet).
      Fields that share a 'group' (e.g. one interviewee's three scores) sit together under the group's name. --}}
 @php
     $D = \App\Support\DocSheet::class;
@@ -21,7 +21,7 @@
                 $label = $group !== '' ? trim(\Illuminate\Support\Str::after($f['label'], '—')) : $f['label'];
                 $required = (bool) ($f['required'] ?? false);
                 $hasError = $errors->has("answers.$name");
-                $describedBy = trim((! empty($f['help']) ? "sfh-$name " : '') . ($hasError ? "sfe-$name" : ''));
+                $describedBy = $hasError ? "sfe-$name" : '';
                 $aria = ($describedBy ? 'aria-describedby="' . e($describedBy) . '" ' : '') . ($hasError ? 'aria-invalid="true" ' : '') . ($required ? 'aria-required="true"' : '');
                 $req = $required ? '<span class="not-italic text-rose-600" aria-hidden="true"> *</span><span class="sr-only">(required)</span>' : '';
                 $wide = $group === '' && in_array($type, ['radio', 'textarea'], true);
@@ -65,7 +65,6 @@
                     <label for="sf-{{ $name }}" class="{{ $D::CAPTION }}">{{ $label }}{!! $req !!}</label>
                 @endif
 
-                @if (! empty($f['help'])) <p id="sfh-{{ $name }}" class="{{ $D::HINT }}">{{ $f['help'] }}</p> @endif
                 @error("answers.$name") <p id="sfe-{{ $name }}" class="{{ $D::ERROR }}"><i class="bx bx-error-circle mt-px" aria-hidden="true"></i>{{ $message }}</p> @enderror
             </div>
         @endforeach

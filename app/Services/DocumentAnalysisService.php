@@ -87,7 +87,7 @@ class DocumentAnalysisService
             ? <<<TXT
 You have been given TWO images:
 - Image 1: a photo of the physical document, taken and uploaded by the VPSD secretary/admin at the office after the student's visit, so it becomes the student's online copy.
-- Image 2: a reference render of exactly what the document should contain — this shows the correct, expected value for every field, generated from what the student entered digitally when filling in the form.
+- Image 2: a reference render of exactly what the document should contain — this shows the correct, expected value for every field, generated from what the student entered digitally when filling out the form.
 
 Use Image 2 as ground truth for what each field's value should read. Compare it directly against what you see written/printed in Image 1 for the corresponding field. This is a much stronger signal than reasoning from a text list alone, so prioritize the visual comparison between the two images over the text list below.
 TXT
@@ -100,7 +100,7 @@ You are helping the VPSD (Office of the Vice President for Student Development) 
 
 1. Decide what Image 1 actually shows. Set "matches_document" to true ONLY if Image 1 is a photo or scan of a "{$documentName}" form, meaning the same form title, section headings and field layout as the reference. Set it to FALSE if Image 1 is any of these: a different kind of document, a screenshot of a website or app, a selfie or random photo, a blank page, or a plain screenshot with no form in it. If matches_document is false, also set readable, fields_complete, has_signature_or_stamp and fields_match_expected to false.
 2. Transcribe all readable text from Image 1, preserving structure.
-3. Check whether these fields/blanks appear filled in on Image 1: {$fieldsList}. List any that look blank or missing.
+3. Check whether these fields/blanks appear filled out on Image 1: {$fieldsList}. List any that look blank or missing.
 4. Note whether an official signature and/or stamp/seal is visible on Image 1.
 5. Note anything suspicious, tampered, or inconsistent that reduces confidence in authenticity.
 6. For each of the fields below, state what you actually see written/printed for it on Image 1, and whether it matches the expected value (from Image 2 if provided, otherwise from the text below). Treat minor differences in spacing, capitalization, or date formatting (e.g. "Jan 5, 2026" vs "01/05/2026") as a match. Only flag it as NOT matching if the substantive content is genuinely different (a different name, a different number, a different date, etc). If a field is blank or illegible on Image 1, mark it as not matching and say why.

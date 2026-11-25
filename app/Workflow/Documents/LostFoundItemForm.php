@@ -64,7 +64,7 @@ final class LostFoundItemForm extends WorkflowDocument
 
     public function studentNote(): ?string
     {
-        return 'Take a clear photo of the item. The photo is kept by the VPSD office to identify the item. It is not printed on the form.';
+        return 'Take a clear photo of the LOST AND/OR FOUND item. The photo is kept by the VPSD office to identify the item. It is not printed on the form.';
     }
 
     public function pdfView(): string

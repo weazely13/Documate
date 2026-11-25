@@ -490,8 +490,9 @@
             </div>
     </div>
 
-    {{-- ===================== AI QUESTIONS ===================== --}}
-    <div class="flex flex-wrap gap-2" role="group" aria-label="Ask AI about this report">
+    {{-- ===================== AI QUESTIONS, with the Show charts toggle on the same row (below them on phones) ===================== --}}
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 flex-1 flex-wrap gap-2" role="group" aria-label="Ask AI about this report">
         @foreach ($aiSuggestions as $q)
             <button type="button" @click="ask(@js($q))" :disabled="pending"
                 class="inline-flex min-h-10 max-w-full items-center gap-2 rounded-full bg-slate-100 px-3.5 py-1.5 text-left text-[13px] font-medium text-slate-800 transition hover:bg-slate-200 disabled:opacity-60 sm:px-4 sm:text-sm">
@@ -502,62 +503,62 @@
             <i class="bx bx-message-square-dots text-base" aria-hidden="true"></i>Ask something else
         </button>
     </div>
+    <label class="self-end inline-flex h-10 shrink-0 cursor-pointer sm:self-auto select-none items-center gap-2.5 pl-1 text-sm text-slate-600">
+        Show charts
+        <input type="checkbox" wire:model.live="showChart" class="peer sr-only">
+        <span class="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition peer-checked:bg-slate-900 peer-focus-visible:ring-2 peer-focus-visible:ring-[#2A57B4] peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" aria-hidden="true"></span>
+    </label>
+    </div>
         </div>
 
         <div class="min-w-0 space-y-4 px-4 pb-24 md:px-6 md:pb-8">
 
-        {{-- ===================== CHART: the status chart on the left, the trend (with its title) on the right ===================== --}}
+        {{-- ===================== CHART: the status chart on the left, the trend on the right, their tops level.
+             The trend card holds its own title and chart type / grouping menus; its date pill sits on the series row. ===================== --}}
         @if ($showChart)
+        @php
+            $datePill = '<span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium tabular-nums text-slate-600"><i class="bx bx-calendar" aria-hidden="true"></i>'
+                . e($tab === 'clearance' ? ($semesterDates ?? ($semesterLabel ?? 'No semester')) : $rangeLabel) . '</span>';
+        @endphp
         <div class="grid gap-4 lg:grid-cols-[19rem_minmax(0,1fr)] 2xl:grid-cols-[22rem_minmax(0,1fr)]">
-            <div class="min-w-0 space-y-4 lg:col-start-2 lg:row-start-1">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="text-lg font-semibold text-slate-900">{{ in_array($compare, ['metric', 'item'], true) && $compareTitle ? 'Compare ' . $compareTitle : $chartTitle }}@if (! in_array($compare, ['metric', 'item'], true)){{ $tab === 'forms' && $selectedForm ? ': ' . $selectedForm['label'] : ($tab === 'organizations' && $org ? ': ' . $org : ($tab === 'clearance' && $clearanceOrg !== '' ? ': ' . $clearanceOrg : '')) }}@endif</h2>
-                <div class="flex flex-wrap items-center gap-2">
-                    <label class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
-                        <i class="bx {{ $chartType === 'bar' ? 'bx-bar-chart-alt-2' : 'bx-line-chart' }} text-lg text-slate-600" aria-hidden="true"></i>
-                        <span class="sr-only">Chart type</span>
-                        <select wire:model.live="chartType" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
-                            <option value="line">Line chart</option>
-                            <option value="bar">Bar chart</option>
-                        </select>
-                    </label>
-                    <label class="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
-                        <span class="sr-only">Group by</span>
-                        <select wire:model.live="interval" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
-                            <option value="auto">Auto ({{ ['day' => 'daily', 'week' => 'weekly', 'month' => 'monthly', 'year' => 'yearly'][$trend['unit']] }})</option>
-                            <option value="day">Daily</option>
-                            <option value="week">Weekly</option>
-                            <option value="month">Monthly</option>
-                            <option value="year">Yearly</option>
-                        </select>
-                    </label>
-                    <label class="inline-flex h-10 cursor-pointer select-none items-center gap-2.5 pl-1 text-sm text-slate-600">
-                        Show charts
-                        <input type="checkbox" wire:model.live="showChart" class="peer sr-only">
-                        <span class="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition peer-checked:bg-slate-900 peer-focus-visible:ring-2 peer-focus-visible:ring-[#2A57B4] peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" aria-hidden="true"></span>
-                    </label>
-                </div>
-            </div>
-                <section wire:key="chart-{{ $tab }}-{{ $chartType }}-{{ $trend['unit'] }}-{{ $compare }}" class="{{ $card }} p-4 sm:p-5" aria-labelledby="trend-title">
-                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <h3 id="trend-title" class="{{ $cardTitle }}">Trend</h3>
-                        <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium tabular-nums text-slate-600">
-                            <i class="bx bx-calendar" aria-hidden="true"></i>{{ $tab === 'clearance' ? ($semesterDates ?? ($semesterLabel ?? 'No semester')) : $rangeLabel }}
-                        </span>
+            <section wire:key="chart-{{ $tab }}-{{ $chartType }}-{{ $trend['unit'] }}-{{ $compare }}" class="{{ $card }} p-4 sm:p-5 lg:col-start-2 lg:row-start-1" aria-labelledby="trend-title">
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <h2 id="trend-title" class="{{ $cardTitle }}">{{ in_array($compare, ['metric', 'item'], true) && $compareTitle ? 'Compare ' . $compareTitle : $chartTitle }}@if (! in_array($compare, ['metric', 'item'], true)){{ $tab === 'forms' && $selectedForm ? ': ' . $selectedForm['label'] : ($tab === 'organizations' && $org ? ': ' . $org : ($tab === 'clearance' && $clearanceOrg !== '' ? ': ' . $clearanceOrg : '')) }}@endif</h2>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
+                            <i class="bx {{ $chartType === 'bar' ? 'bx-bar-chart-alt-2' : 'bx-line-chart' }} text-lg text-slate-600" aria-hidden="true"></i>
+                            <span class="sr-only">Chart type</span>
+                            <select wire:model.live="chartType" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
+                                <option value="line">Line chart</option>
+                                <option value="bar">Bar chart</option>
+                            </select>
+                        </label>
+                        <label class="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
+                            <span class="sr-only">Group by</span>
+                            <select wire:model.live="interval" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
+                                <option value="auto">Auto ({{ ['day' => 'daily', 'week' => 'weekly', 'month' => 'monthly', 'year' => 'yearly'][$trend['unit']] }})</option>
+                                <option value="day">Daily</option>
+                                <option value="week">Weekly</option>
+                                <option value="month">Monthly</option>
+                                <option value="year">Yearly</option>
+                            </select>
+                        </label>
                     </div>
-                    @if ($chartType === 'bar')
-                        @include('livewire.admin.partials.reports-bars', [
-                            'empty' => $tab === 'clearance' ? 'No clearance status has been set this semester yet.' : 'No requests were filed in this period.',
-                        ])
-                    @else
-                        @include('livewire.admin.partials.reports-trend', [
-                            'empty' => $tab === 'clearance' ? 'No clearance status has been set this semester yet.' : 'No requests were filed in this period.',
-                        ])
-                    @endif
-                </section>
-            </div>
+                </div>
+                @if ($chartType === 'bar')
+                    @include('livewire.admin.partials.reports-bars', [
+                        'empty' => $tab === 'clearance' ? 'No clearance status has been set this semester yet.' : 'No requests were filed in this period.',
+                        'aside' => $datePill,
+                    ])
+                @else
+                    @include('livewire.admin.partials.reports-trend', [
+                        'empty' => $tab === 'clearance' ? 'No clearance status has been set this semester yet.' : 'No requests were filed in this period.',
+                        'aside' => $datePill,
+                    ])
+                @endif
+            </section>
 
-            {{-- ===================== STATUS CHART (left of the trend, as tall as its title and card) =====================
+            {{-- ===================== STATUS CHART (left of the trend, as tall as the trend card) =====================
                  On wide screens its content is laid over the cell, so the trend alone sets the height
                  and a long list scrolls inside. --}}
             <section wire:key="side-{{ $tab }}" class="{{ $card }} relative flex flex-col lg:col-start-1 lg:row-start-1 lg:min-h-[20rem]" aria-labelledby="side-title">
@@ -575,7 +576,7 @@
                                 default => ' of ' . $fmt($sl['of']) . ' requests',
                             } . ' (' . $sl['share'] . '%)', $slices);
                         @endphp
-                        <h3 id="side-title" class="{{ $cardTitle }}">{{ match ($pieMode) { 'orgs' => 'Cleared students by organization', 'statuses' => 'Clearance of ' . $org, default => 'Requests by status' } }}</h3>
+                        <h3 id="side-title" class="{{ $cardTitle }} flex min-h-9 items-center">{{ match ($pieMode) { 'orgs' => 'Cleared students by organization', 'statuses' => 'Clearance of ' . $org, default => 'Requests by status' } }}</h3>
                         <p class="{{ $cardNote }}">
                             @if ($pieMode === 'orgs')
                                 {{ $fmt($pieTotal) }} of {{ $fmt($sideChart['members']) }} students cleared{{ $semesterLabel ? ', ' . $semesterLabel : '' }}. Point at a slice for its numbers; click to follow it.
@@ -624,7 +625,7 @@
                         </div>
                     @else
                         @php $yearRows = $sideChart['rows']; @endphp
-                        <h3 id="side-title" class="{{ $cardTitle }}">Cleared by year level</h3>
+                        <h3 id="side-title" class="{{ $cardTitle }} flex min-h-9 items-center">Cleared by year level</h3>
                         <p class="{{ $cardNote }}">Share of each year level’s students who are cleared{{ $clearanceOrg !== '' ? ', in ' . $clearanceOrg : '' }}, {{ $semesterLabel ?? 'no semester' }}. Overall: {{ $fmt($sideChart['cleared']) }} of {{ $fmt($sideChart['total']) }} ({{ $pct($sideChart['cleared'], $sideChart['total']) }}%).</p>
                         @if ($yearRows)
                             <div class="mt-4 flex h-56 min-h-0 flex-1 items-stretch gap-2 border-b border-slate-200 sm:gap-3 lg:h-auto" role="list" aria-label="Cleared by year level">
@@ -653,35 +654,6 @@
                     @endif
                 </div>
             </section>
-        </div>
-        @else
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-slate-900">{{ in_array($compare, ['metric', 'item'], true) && $compareTitle ? 'Compare ' . $compareTitle : $chartTitle }}@if (! in_array($compare, ['metric', 'item'], true)){{ $tab === 'forms' && $selectedForm ? ': ' . $selectedForm['label'] : ($tab === 'organizations' && $org ? ': ' . $org : ($tab === 'clearance' && $clearanceOrg !== '' ? ': ' . $clearanceOrg : '')) }}@endif</h2>
-            <div class="flex flex-wrap items-center gap-2">
-                <label class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
-                    <i class="bx {{ $chartType === 'bar' ? 'bx-bar-chart-alt-2' : 'bx-line-chart' }} text-lg text-slate-600" aria-hidden="true"></i>
-                    <span class="sr-only">Chart type</span>
-                    <select wire:model.live="chartType" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
-                        <option value="line">Line chart</option>
-                        <option value="bar">Bar chart</option>
-                    </select>
-                </label>
-                <label class="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white pl-3 pr-1 text-sm shadow-sm">
-                    <span class="sr-only">Group by</span>
-                    <select wire:model.live="interval" class="h-full cursor-pointer border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-medium text-slate-800 focus:ring-0">
-                        <option value="auto">Auto ({{ ['day' => 'daily', 'week' => 'weekly', 'month' => 'monthly', 'year' => 'yearly'][$trend['unit']] }})</option>
-                        <option value="day">Daily</option>
-                        <option value="week">Weekly</option>
-                        <option value="month">Monthly</option>
-                        <option value="year">Yearly</option>
-                    </select>
-                </label>
-                <label class="inline-flex h-10 cursor-pointer select-none items-center gap-2.5 pl-1 text-sm text-slate-600">
-                    Show charts
-                    <input type="checkbox" wire:model.live="showChart" class="peer sr-only">
-                    <span class="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition peer-checked:bg-slate-900 peer-focus-visible:ring-2 peer-focus-visible:ring-[#2A57B4] peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" aria-hidden="true"></span>
-                </label>
-            </div>
         </div>
         @endif
 

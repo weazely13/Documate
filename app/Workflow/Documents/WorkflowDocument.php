@@ -135,7 +135,7 @@ abstract class WorkflowDocument
     {
         return $values;
     }
-    /** Fields the VPSD reviewer fills in before sending for signing (not the student). */
+    /** Fields the VPSD reviewer fills out before sending for signing (not the student). */
     public function reviewerFields(): array
     {
         return [];
@@ -147,7 +147,7 @@ abstract class WorkflowDocument
     }
 
     /**
-     * Fields the person signing a step fills in while they sign (ratings, scores), same format as fields().
+     * Fields the person signing a step fills out while they sign (ratings, scores), same format as fields().
      * Their answers are kept in their sealed approval, because the student's answers lock at the first signature.
      */
     public function signerFields(array $values = []): array
@@ -162,7 +162,7 @@ abstract class WorkflowDocument
     }
 
     /**
-     * Validates what the signer filled in and returns what is stored in their approval.
+     * Validates what the signer filled out and returns what is stored in their approval.
      *
      * @throws \Illuminate\Validation\ValidationException keyed "answers.<field>"
      */
@@ -224,7 +224,7 @@ abstract class WorkflowDocument
         ];
     }
     /**
-     * Account details the system fills in. Shown read-only on the student form,
+     * Account details the system fills out. Shown read-only on the student form,
      * and checked for presence before the student can submit.
      * key in the student snapshot => label.
      */
@@ -271,7 +271,7 @@ abstract class WorkflowDocument
     {
         return false;
     }
-    /** True when the VPSD office fills in and issues this document TO a student (the student never starts it). */
+    /** True when the VPSD office fills out and issues this document TO a student (the student never starts it). */
     public function issuedByOffice(): bool
     {
         return false;
@@ -287,7 +287,7 @@ abstract class WorkflowDocument
     abstract public function formCode(): string;
 
     /**
-     * What the student fills in. name => [label, type (text|textarea|date), required, max?, rules?, placeholder?, help?]
+     * What the student fills out. name => [label, type (text|textarea|date), required, max?, rules?, placeholder?, help?]
      * Student details (name, program, year, section) are NOT listed: they come from the account.
      */
     abstract public function fields(): array;
@@ -446,7 +446,7 @@ abstract class WorkflowDocument
         return ['remarks' => 'inspection_remarks', 'date' => 'inspection_date'];
     }
 
-    /** The label of the remarks box the signer fills in. */
+    /** The label of the remarks box the signer fills out. */
     public function inspectionLabel(?string $roleKey): string
     {
         return 'Inspection remarks';
@@ -535,7 +535,7 @@ abstract class WorkflowDocument
         $steps = [];
 
         // Six steps, always in this order: the form page's "How this works" ticks them off by position.
-        $fill = 'Click or tap each blue blank on the form and type your answer. Your name, program, year and section print from your profile.';
+        $fill = 'Click or tap each blue field and enter the required information. Your name, program, year level, and section are automatically filled in from your profile.';
         if ($this->requiresOfficer()) {
             $fill = 'Confirm that you are an officer of a student organization. ' . $fill;
         }
@@ -548,10 +548,10 @@ abstract class WorkflowDocument
         if ($this->requiresStudentSignature()) {
             $fill .= ' Your profile e-signature is applied, so add it in your profile first.';
         }
-        $steps[] = ['Fill in the form', $fill];
+        $steps[] = ['Fill Out the Form', $fill];
 
-        $steps[] = ['Submit it', 'Save a draft anytime. Tick the consent box and submit: it goes to the VPSD office. No printing or scanning.'];
-        $steps[] = ['VPSD office review', 'The VPSD office checks it. If something needs fixing, you are notified: edit it and resubmit. A rejection ends the request.'];
+        $steps[] = ['Submit Your Request', 'Save your form as a draft if you want to finish it later. When ready, check the consent box and submit your request. It will be sent directly to the VPSD office.'];
+        $steps[] = ['VPSD Office Review', 'The office will review your submission. If corrections are needed, you will receive a notification. Update the form and submit it again. If your request is rejected, the process ends.'];
 
         try {
             $chain = $this->chain($values);
@@ -570,14 +570,14 @@ abstract class WorkflowDocument
                     $lines[] = $letter . $s['label'] . ': gets an email link (no account needed)';
                 } else {
                     $role = SignatoryRole::where('key', $s['role'] ?? '')->value('label') ?: ($s['label'] ?? '');
-                    $lines[] = $letter . $s['label'] . ': ' . $role;
+                    $lines[] = $letter . $s['label'] . (strcasecmp(trim($s['label'] ?? ''), trim($role)) === 0 ? '' : ': ' . $role);
                 }
             }
-            $steps[] = ['Signatures, in order', "Each signer is notified in turn. Follow it on this page.\n" . implode("\n", $lines)];
+            $steps[] = ['Required Signatures', "Your document will be sent to the authorized signatories in the following order. Each signatory will be notified when it is their turn to sign.\n" . implode("\n", $lines)];
         }
 
-        $steps[] = ['Final check', 'Once everyone has signed, the VPSD office does the final check and marks it Completed.'];
-        $steps[] = ['Download your copy', 'The official PDF opens on this page. Print it only if a paper copy is required. Anyone can verify it with its QR code.'];
+        $steps[] = ['Final Processing', 'Once all required signatures are complete, the office will issue the document to you.'];
+        $steps[] = ['Download', 'Your completed document will be available on this page. Download your copy and print it only if a physical copy is required. You can also verify its authenticity using the QR code.'];
 
         return $steps;
     }

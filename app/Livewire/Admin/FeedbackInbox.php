@@ -16,12 +16,15 @@ class FeedbackInbox extends Component
 
     public const PER_PAGE = 50;
 
-    /** The list's dropdown: which feedback to show. There is no status to work through: replying is optional. */
+    /**
+     * The summary cards, which are also the list's filters, in their order: Responses (the ones the office replied to),
+     * Inbox (every one), Unread and Ratings (the ones that came with a star rating). Replying is optional.
+     */
     public const TABS = [
-        'all' => 'All feedback',
+        'replied' => 'Responses',
+        'all' => 'Inbox',
         'unread' => 'Unread',
-        'replied' => 'Replied',
-        'unreplied' => 'No reply',
+        'rated' => 'Ratings',
     ];
 
     #[Url(except: 'all')]
@@ -84,6 +87,13 @@ class FeedbackInbox extends Component
     }
 
     public function updatingTab(): void { $this->resetPage(); }
+
+    /** A summary card: show that feedback; the card already in use goes back to the whole inbox. */
+    public function setTab(string $tab): void
+    {
+        $this->tab = isset(self::TABS[$tab]) && $this->tab !== $tab ? $tab : 'all';
+        $this->resetPage();
+    }
     public function updatingSearch(): void { $this->resetPage(); }
 
     public function select(int $id): void
@@ -174,13 +184,17 @@ class FeedbackInbox extends Component
         return match ($tab) {
             'unread' => $query->unread(),
             'replied' => $query->whereNotNull('replied_at'),
-            'unreplied' => $query->whereNull('replied_at'),
+            'rated' => $query->whereNotNull('rating'),
             default => $query,
         };
     }
 
     public function render()
     {
+        if (! isset(self::TABS[$this->tab])) {
+            $this->tab = 'all';
+        }
+
         $counts = collect(self::TABS)->map(fn ($label, $key) => $this->forTab($this->query(), $key)->count());
 
         $reports = $this->forTab($this->query(), $this->tab)->with('user.role');
@@ -192,12 +206,9 @@ class FeedbackInbox extends Component
 
         $reports = $reports->latest('id')->paginate(self::PER_PAGE);
 
+        // The Ratings card shows the average of the ratings it lists (the search applies, as it does to the counts).
         $stats = [
-            'unread' => FeedbackReport::unread()->count(),
-            'received_30' => FeedbackReport::where('created_at', '>=', now()->subDays(30))->count(),
-            'replied_30' => FeedbackReport::where('replied_at', '>=', now()->subDays(30))->count(),
-            'avg_rating' => FeedbackReport::whereNotNull('rating')->where('created_at', '>=', now()->subDays(30))->avg('rating'),
-            'ratings' => FeedbackReport::whereNotNull('rating')->where('created_at', '>=', now()->subDays(30))->count(),
+            'avg_rating' => $this->forTab($this->query(), 'rated')->avg('rating'),
         ];
 
         return view('livewire.admin.feedback-inbox', [

@@ -14,11 +14,11 @@ final class Legends
     public static function transactionStatuses(): array
     {
         return collect([
-            'submitted' => 'Sent by the student. The office has not opened it yet.',
-            'under_review' => 'The office is checking the answers.',
-            StatusStyle::SIGNING => 'Sent to the signatories. Waiting for their signatures.',
-            'action_required' => 'Sent back to the student to fix and resubmit.',
-            'approved' => 'Everyone has signed. Ready for the office to complete and issue.',
+            'submitted' => 'Document is waiting to be reviewed.',
+            'under_review' => 'Document is being reviewed.',
+            StatusStyle::SIGNING => 'Document is waiting to be signed by the signatory.',
+            'action_required' => 'Document requires revisions before proceeding.',
+            'approved' => 'The form has been signed and is ready to be issued to the student.',
             'pending' => 'A paper form that has not been marked complete yet.',
             'completed' => 'Finished. The record is sealed and the official copy can be issued.',
             'rejected' => 'Turned down. The student would need to start a new transaction.',
@@ -34,7 +34,7 @@ final class Legends
     public static function modes(): array
     {
         return [
-            ['bg-[#2A57B4]', 'Online', '', 'Filled in and signed in DocuMate, start to finish.'],
+            ['bg-[#2A57B4]', 'Online', '', 'Filled out and signed in DocuMate, start to finish.'],
             ['bg-slate-400', 'Paper', '', 'A printed form, scanned and uploaded to DocuMate.'],
         ];
     }

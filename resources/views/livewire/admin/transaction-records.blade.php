@@ -67,7 +67,7 @@
             {{-- How the archive is filed, with Office logbooks on the same line --}}
             <div class="mb-4 flex items-center justify-between gap-2">
                 <div class="flex min-w-0 flex-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:flex-none" role="tablist" aria-label="File the archive by">
-                    @foreach (['folder' => ['bxs-folder', 'By folder', 'Folders'], 'student' => ['bxs-user-account', 'By student', 'Students'], 'all' => ['bxs-file', 'All documents', 'All']] as $b => [$bIcon, $bLabel, $bShort])
+                    @foreach (['all' => ['bxs-file', 'All Documents', 'All'], 'folder' => ['bxs-folder', 'Forms', 'Forms'], 'student' => ['bxs-user-account', 'Students', 'Students']] as $b => [$bIcon, $bLabel, $bShort])
                         <button type="button" role="tab" wire:click="setBy('{{ $b }}')" aria-selected="{{ $by === $b ? 'true' : 'false' }}"
                                 class="inline-flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-2 text-sm font-medium transition sm:flex-none sm:px-4 [@media(pointer:coarse)]:h-11 {{ $focus }}
                                     {{ $by === $b ? 'bg-[#2A57B4] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">

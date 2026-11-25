@@ -1,6 +1,6 @@
 {{-- Bar chart for the Reports page: the same days, weeks, months or years as the line chart, one
      group of bars per step and a bar per series. With a comparison, a paler bar stands beside each.
-     The checkboxes hide and show series; hovering a group shows its numbers.
+     The checkboxes hide and show series (an optional $aside, such as the date pill, ends their row); hovering a group shows its numbers.
      Expects $trend (see reports-trend; 'axes' => 'dual' gives each of two series its own scale),
      $comparison (null or ['label', 'dates' => [], 'series' => [key => values]]), $empty. --}}
 @php
@@ -44,6 +44,9 @@
         @endforeach
         @if ($cmp)
             <span class="inline-flex items-center gap-1.5 text-xs text-slate-500"><span class="h-2.5 w-2.5 rounded-sm bg-slate-400/40"></span>Paler bars: {{ $cmp['label'] }}</span>
+        @endif
+        @if (! empty($aside))
+            <span class="ml-auto">{!! $aside !!}</span>
         @endif
     </div>
 

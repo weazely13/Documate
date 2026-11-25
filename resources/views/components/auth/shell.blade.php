@@ -65,7 +65,7 @@
     {{-- Brand side: polygons --}}
     <aside class="relative hidden overflow-hidden bg-[#1e4090] lg:block" aria-label="About DocuMate"
            x-data="{ i: 0, slides: [
-                ['Request forms online', 'Permits, slips and clearances from your phone. Your details are filled in for you.'],
+                ['Request forms online', 'Permits, slips and clearances from your phone. Your details are filled out for you.'],
                 ['Follow every signature', 'See who has signed and who is next, without asking at the window.'],
                 ['A copy anyone can check', 'Finished documents are sealed, with a QR code that proves they are genuine.'],
            ] }"

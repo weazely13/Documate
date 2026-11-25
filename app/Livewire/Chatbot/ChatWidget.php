@@ -33,7 +33,7 @@ class ChatWidget extends Component
         if ($ws instanceof \App\Models\StudentDocumentWorkspace) {
             $name = $ws->documentName() ?: $ws->template?->name;
             if ($name) {
-                $this->pageLabel = \Illuminate\Support\Str::limit(\Illuminate\Support\Str::title(str_replace('_', ' ', $name)), 48);
+                $this->pageLabel = \Illuminate\Support\Str::limit(\App\Support\TemplateName::display($name), 48);
             }
         }
 

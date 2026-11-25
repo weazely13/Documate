@@ -29,7 +29,7 @@ class IssueDraft extends Model
         return DocumentRegistry::find($this->document_type);
     }
 
-    /** Answers filled in so far, for "x of y filled" on the cards. */
+    /** Answers filled out so far, for "x of y filled" on the cards. */
     public function filledCount(): int
     {
         return collect($this->field_values ?? [])->filter(fn ($v) => $v !== null && $v !== '' && $v !== false)->count();

@@ -2,11 +2,10 @@
     $slotInput = 'block w-full min-w-0 border-0 border-b border-slate-400 bg-transparent px-0.5 py-1.5 text-base font-medium text-slate-900 outline-none focus:border-[#2A57B4] focus:bg-[#2A57B4]/[0.04] focus:ring-0 sm:text-[15px]';
 @endphp
 <div wire:key="f-{{ $name }}">
-    <fieldset id="f-{{ $name }}" tabindex="-1" @if (! empty($f['help'])) aria-describedby="h-{{ $name }}" @endif>
+    <fieldset id="f-{{ $name }}" tabindex="-1">
         <legend class="block text-[13px] font-medium text-slate-700">
             {{ $f['label'] }} @if ($editable)<span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(required)</span>@endif
         </legend>
-        @if ($editable && ! empty($f['help'])) <p id="h-{{ $name }}" class="mt-1 text-xs leading-relaxed text-slate-500">{{ $f['help'] }}</p> @endif
 
         @if ($editable)
             <ol class="mt-2 space-y-2">

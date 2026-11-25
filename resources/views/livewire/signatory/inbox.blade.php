@@ -30,7 +30,7 @@
         {{-- Tabs and filters, one line --}}
         <div class="relative flex items-center gap-1.5 border-b border-slate-200 p-2 sm:gap-2 sm:p-3">
             <div class="inline-flex shrink-0 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Inbox">
-                @foreach (['waiting' => ['Waiting', $waitingTotal, 'bx-time-five'], 'history' => ['Decisions', $history->total(), 'bx-history']] as $key => [$text, $count, $icon])
+                @foreach (['waiting' => ['Pending', $waitingTotal, 'bx-time-five'], 'history' => ['Actions', $history->total(), 'bx-history']] as $key => [$text, $count, $icon])
                     <button type="button" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}" wire:click="$set('tab', '{{ $key }}')" wire:key="inbox-tab-{{ $key }}"
                             class="inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-sm transition-colors sm:gap-1.5 sm:px-3 [@media(pointer:coarse)]:min-h-10 {{ $focus }} {{ $tab === $key ? 'bg-white font-medium text-[#24499A] shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
                         {{ $text }}
@@ -53,14 +53,14 @@
                     @endforeach
                 </select>
             </label>
-            <label class="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 sm:hidden [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" title="{{ $tab === 'waiting' ? 'Order' : 'Result' }}">
+            <label class="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 sm:hidden [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" title="{{ $tab === 'waiting' ? 'Sort' : 'Result' }}">
                 <i class="bx {{ $tab === 'waiting' ? 'bx-sort' : 'bx-filter-alt' }} text-lg" aria-hidden="true"></i>
                 @if (($tab === 'waiting' && $sort !== 'oldest') || ($tab === 'history' && $result !== 'all'))<span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#2A57B4] ring-2 ring-white" aria-hidden="true"></span>@endif
-                <span class="sr-only">{{ $tab === 'waiting' ? 'Order' : 'Result' }}</span>
+                <span class="sr-only">{{ $tab === 'waiting' ? 'Sort' : 'Result' }}</span>
                 @if ($tab === 'waiting')
                     <select wire:model.live="sort" class="{{ $control }} absolute inset-0 h-full w-full cursor-pointer opacity-0">
-                        <option value="oldest">Oldest first</option>
-                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest</option>
+                        <option value="newest">Latest</option>
                     </select>
                 @else
                     <select wire:model.live="result" class="{{ $control }} absolute inset-0 h-full w-full cursor-pointer opacity-0">
@@ -87,10 +87,10 @@
                 </select>
             </label>
             @if ($tab === 'waiting')
-                <label class="flex items-center gap-2 text-xs text-slate-500">Order
+                <label class="flex items-center gap-2 text-xs text-slate-500">Sort
                     <select wire:model.live="sort" class="{{ $control }} w-36 pl-3 pr-8">
-                        <option value="oldest">Oldest first</option>
-                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest</option>
+                        <option value="newest">Latest</option>
                     </select>
                 </label>
             @else

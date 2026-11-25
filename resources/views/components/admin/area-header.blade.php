@@ -10,7 +10,7 @@
         'documents' => [
             'title' => 'Templates & Uploads',
             'tabs' => [
-                'templates' => ['Templates', route('admin.templates'), 'Paper forms students fill in, print and bring to the office.'],
+                'templates' => ['Templates', route('admin.templates'), 'Paper forms students fill out, print and bring to the office.'],
                 'uploads' => ['Uploads', route('admin.document-uploads.index'), 'Photos of paper forms students had signed at the office.'],
             ],
         ],

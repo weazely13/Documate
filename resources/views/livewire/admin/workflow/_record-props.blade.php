@@ -38,7 +38,7 @@
     @endforeach
     @if (! empty($waiting))
         <div class="{{ $row }}">
-            <dt class="text-slate-500">Time elapsed</dt>
+            <dt class="text-slate-500">Processing period</dt>
             <dd>
                 <x-dm.time-elapsed :w="$waiting" class="{{ $waitClass }}" />
             </dd>

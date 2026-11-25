@@ -1,9 +1,9 @@
-{{-- "Waiting for your sign" on Home (students who also sign, and signing accounts), inside the sky.
+{{-- "Waiting for your signature" on Home (students who also sign, and signing accounts), inside the sky.
      Needs: $signing (TransactionApproval collection, with workspace.user and role), $signingTotal. --}}
 <section class="mx-auto {{ $width ?? 'max-w-4xl' }} text-left" aria-labelledby="home-sign-title">
     <div class="flex items-baseline justify-between gap-4">
         <h2 id="home-sign-title" class="text-base font-semibold text-slate-900 group-data-[ink=light]/greet:text-white">
-            Waiting for your sign
+            Waiting for your signature
             @if ($signingTotal)<span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 align-middle text-xs font-semibold tabular-nums text-amber-800">{{ $signingTotal }}</span>@endif
         </h2>
         <a href="{{ route('signatory.inbox') }}" wire:navigate class="text-sm font-semibold text-[#2A57B4] hover:text-[#1E4090] group-data-[ink=light]/greet:text-white group-data-[ink=light]/greet:hover:text-blue-100">Signing inbox &rarr;</a>

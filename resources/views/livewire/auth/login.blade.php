@@ -8,7 +8,7 @@
 
         <div class="mx-auto w-full max-w-[24rem] lg:mx-0">
             <h1 class="text-[1.75rem] font-semibold tracking-[-0.025em] text-[#0d253d] sm:text-[2rem]">Sign in</h1>
-            <p class="mt-1.5 text-[15px] text-[#66707f]">Welcome back. Use your student number or the email on your account.</p>
+            <p class="mt-1.5 text-[15px] text-[#66707f]">Welcome back! Use your student number or your registered email address.</p>
 
             @if (session('status'))
                 <div class="mt-5 flex gap-2.5 rounded-lg bg-[#d9f3e1] px-3.5 py-3 text-sm text-[#065f46]" role="status">

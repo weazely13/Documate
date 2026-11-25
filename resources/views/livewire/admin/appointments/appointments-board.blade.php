@@ -613,7 +613,7 @@
                         <textarea wire:model="reasonText" rows="3" maxlength="500" aria-label="Your reason"
                                   class="mt-2 w-full rounded-lg border-slate-300 px-3 py-2.5 text-base shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 sm:text-sm"></textarea>
                         @if ($dialog === 'reject' && $oneAppt && $reasonText !== '' && $reasonText === ($oneAppt->ai_findings['summary'] ?? null))
-                            <p class="mt-1 text-xs text-slate-500">Filled in from the AI summary. Edit it before sending.</p>
+                            <p class="mt-1 text-xs text-slate-500">Filled out from the AI summary. Edit it before sending.</p>
                         @endif
                     @endif
                     @error('reasonText') <p class="mt-1 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror

@@ -292,7 +292,7 @@ class NewAppointment extends Component
         $this->step = 4;
     }
 
-    /** Back to an earlier step (never forward past what has been filled in). */
+    /** Back to an earlier step (never forward past what has been filled out). */
     public function goToStep(int $step): void
     {
         if ($step >= 1 && $step < $this->step) {

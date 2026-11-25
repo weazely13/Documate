@@ -121,7 +121,7 @@
         <div class="mt-3 rounded-lg bg-slate-50 px-3 py-2.5">
             <p class="text-xs font-medium text-slate-500">Suggested note to the {{ $issuedDoc ? 'issuer' : 'student' }}</p>
             <p class="mt-0.5 text-sm text-slate-700">{{ $ai['message'] }}</p>
-            <p class="mt-1 text-xs text-slate-500">It is filled in for you when you choose {{ $rec === 'reject' ? 'For Rejection' : 'For Revision' }}. You can edit it first.</p>
+            <p class="mt-1 text-xs text-slate-500">It is filled out for you when you choose {{ $rec === 'reject' ? 'For Rejection' : 'For Revision' }}. You can edit it first.</p>
         </div>
     @endif
 

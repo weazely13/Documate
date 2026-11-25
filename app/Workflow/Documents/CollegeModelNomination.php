@@ -45,6 +45,6 @@ class CollegeModelNomination extends CollegeModelNominationBase
 
     public function studentNote(): ?string
     {
-        return 'Search for the nominee. Their college, program, year and section are filled in from their profile. You are the nominator, and your profile e-signature is applied. The VPSD office then does the final verification.';
+        return 'Search for the nominee. Their college, program, year and section are filled out from their profile. You are the nominator, and your profile e-signature is applied. The VPSD office then does the final verification.';
     }
 }

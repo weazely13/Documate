@@ -62,7 +62,7 @@
                     'rating' => 'You were invited to rate a student.',
                     'review' => 'You were asked to review and sign a committee report.',
                     'consent' => 'You were asked to give your consent for a student.',
-                    'form' => 'You were asked to fill in and sign a form for a student.',
+                    'form' => 'You were asked to fill out and sign a form for a student.',
                     'recommend' => 'You were asked to recommend a student for Student Assistantship.',
                     default => 'You were asked to recommend approval of a student activity.',
                 } }} Type the email address that received the invitation
@@ -106,7 +106,7 @@
             @error('email') <p class="mt-2 text-sm font-medium text-rose-600">{{ $message }}</p> @enderror
         </section>
 
-    {{-- ===== Step 3: review, fill in and sign (same layout as the student transaction form) ===== --}}
+    {{-- ===== Step 3: review, fill out and sign (same layout as the student transaction form) ===== --}}
     @else
         @php
             $box = 'relative mt-1 flex min-w-0 items-center gap-2.5 rounded-lg border border-slate-300 bg-white px-3.5 shadow-sm transition focus-within:border-[#2A57B4] focus-within:ring-[3px] focus-within:ring-[#2A57B4]/20';
@@ -120,7 +120,7 @@
             $intro = match ($kind) {
                 'rating' => 'This is to inform the Office of the Vice President for Student Development that I personally know ' . $student . ($program ? ', a ' . $program . ' student of Leyte Normal University' : '') . '. Based on my honest assessment of his/her interpersonal relations with classmates and teachers, I am giving him/her the rating below.',
                 'review' => 'As a member of the Discipline Committee, please review this report concerning ' . $student . ($program ? ' (' . $program . ')' : '') . ', then sign below.',
-                'form' => $student . ($program ? ' (' . $program . ')' : '') . ' named you as their ' . (strtolower($signerRole) ?: 'signer') . '. Please fill in the form below, then sign.',
+                'form' => $student . ($program ? ' (' . $program . ')' : '') . ' named you as their ' . (strtolower($signerRole) ?: 'signer') . '. Please fill out the form below, then sign.',
                 'recommend' => $student . ($program ? ', a ' . $program . ' student of Leyte Normal University,' : '') . ' asks you to recommend them to the Office of the Vice President for Student Development for Student Assistantship.',
                 'consent' => 'This is to inform the Office of the Vice President for Student Development that ' . $student . ', my ' . ($relationship ?: 'son/daughter/ward') . ', is a/an ' . $program . ' student of Leyte Normal University, and that I am allowing him/her to work as student assistant in your institution.',
                 'guardian' => $student . ($program ? ' (' . $program . ')' : '') . ' filed the complaint below with the Office of the Vice President for Student Development. Please read it, then sign as parent/guardian.',
@@ -210,7 +210,7 @@
                 'lead' => $documentName . ($signerRole ? ' · signing as ' . $signerRole : ''),
                 'items' => array_values(array_filter([
                     'Read the request details. Greyed-out fields come from the student\'s request and cannot be changed here.',
-                    'The full document is shown beside the form (or under "Preview document" on smaller screens) and fills in as you answer.',
+                    'The full document is shown beside the form (or under "Preview document" on smaller screens) and fills out as you answer.',
                     $hasResponse ? 'Fields marked * are required.' : null,
                     'Type your name with your title as it should be printed. A handwritten signature image is optional.',
                     'Submitting asks you to confirm. Your verified email, the time and a security seal are recorded.',
@@ -341,7 +341,7 @@
                 <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <button type="button" wire:click="$toggle('declining')" aria-expanded="{{ $declining ? 'true' : 'false' }}" aria-controls="ext-decline-panel"
                             class="inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#2A57B4]/30 sm:min-h-9">
-                        {{ match ($kind) { 'rating' => 'I cannot rate this student', 'review' => 'I cannot sign this report', 'consent' => 'I cannot give consent', 'form' => 'I cannot fill in this form', 'recommend' => 'I cannot recommend this student', 'guardian', 'witness' => 'I cannot sign this complaint', default => 'I cannot approve this request' } }}
+                        {{ match ($kind) { 'rating' => 'I cannot rate this student', 'review' => 'I cannot sign this report', 'consent' => 'I cannot give consent', 'form' => 'I cannot fill out this form', 'recommend' => 'I cannot recommend this student', 'guardian', 'witness' => 'I cannot sign this complaint', default => 'I cannot approve this request' } }}
                     </button>
                     <button type="submit" wire:loading.attr="disabled" wire:target="submit"
                             class="{{ $primary }} w-full min-h-11 shadow-sm sm:w-auto sm:min-h-9">

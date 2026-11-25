@@ -11,9 +11,9 @@
         <i class="bx bx-message-square-dots pointer-events-none absolute -right-4 -top-6 text-[9rem] text-white/10" aria-hidden="true"></i>
         <p class="text-xs font-semibold uppercase tracking-widest text-blue-100">OVPSD · Help desk</p>
         <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Feedback</h1>
-        <p class="mt-1.5 max-w-xl text-sm text-blue-100">Tell the office what's working and what could be better in DocuMate. Replies appear on this page and in your notifications.</p>
+        <p class="mt-1.5 max-w-xl text-sm text-blue-100">Share your feedback on what works well and what can be improved in DocuMate. Responses will appear on this page and in your notifications.</p>
         <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1"><i class="bx bx-bell"></i>Replies come to your notifications</span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1"><i class="bx bx-bell"></i>Responses come to your notifications</span>
             <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-400/90 px-3 py-1 text-amber-950"><i class="bx bxs-star"></i>Your rating helps us improve</span>
         </div>
     </div>
@@ -181,7 +181,7 @@
                 <div class="px-5 py-12 text-center">
                     <i class="bx bx-message-square-dots text-4xl text-slate-300"></i>
                     <p class="mt-2 text-sm font-medium text-slate-700">Nothing sent yet</p>
-                    <p class="mt-1 text-xs text-slate-500">Feedback you send will show up here with the office's replies.</p>
+                    <p class="mt-1 text-xs text-slate-500">Your feedback and the office's response show up here.</p>
                 </div>
             @endforelse
         </section>

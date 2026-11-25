@@ -29,7 +29,7 @@
                         {{ $displayTitle }}
                     </h2>
                 </div>
-                <p class="text-xs text-slate-500 truncate">Live queue tracking & appointment details</p>
+                <p class="text-xs text-slate-500 truncate">Live queue tracking and appointment details</p>
             </div>
         </div>
 

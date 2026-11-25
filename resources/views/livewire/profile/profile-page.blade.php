@@ -4,11 +4,11 @@
     $done = $this->completeness;
 
     $tabs = array_filter([
-        'profile' => ['Profile', 'bx-user', 'Name, contact and photo'],
-        'academic' => $isStudentSide ? ['Academic', 'bx-book-open', 'College, program and section'] : null,
-        'password' => ['Password', 'bx-lock-alt', 'Change how you sign in'],
-        'signature' => ['E-signature', 'bx-pen', 'Your signature for documents'],
-        'account' => ['Account', 'bx-shield-quarter', 'Status, role and verification'],
+        'profile' => ['Profile', 'bx-user'],
+        'academic' => $isStudentSide ? ['Academic', 'bx-book-open'] : null,
+        'password' => ['Password', 'bx-lock-alt'],
+        'signature' => ['E-signature', 'bx-pen'],
+        'account' => ['Account', 'bx-shield-quarter'],
     ]);
 
     // After a failed save, open the tab that holds the first problem
@@ -80,16 +80,13 @@
             {{-- Desktop: a plain menu (no box around it), then the completeness and Save / Discard --}}
             <div class="hidden lg:block">
                 <nav class="p-2" aria-label="Settings sections">
-                    @foreach ($tabs as $key => [$name, $icon, $hint])
+                    @foreach ($tabs as $key => [$name, $icon])
                         <button type="button" @click="go('{{ $key }}')" :aria-current="tab === '{{ $key }}' ? 'page' : null"
                                 class="group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition"
                                 :class="tab === '{{ $key }}' ? 'bg-[#e2e9f7]' : 'hover:bg-[#f5f4f2]'">
                             <span x-show="tab === '{{ $key }}'" class="absolute -left-2 top-2 bottom-2 w-[3px] rounded-r-full bg-[#2a57b4]" aria-hidden="true"></span>
                             <i class="bx {{ $icon }} text-lg" :class="tab === '{{ $key }}' ? 'text-[#2a57b4]' : 'text-[#9a978f] group-hover:text-[#4a5568]'" aria-hidden="true"></i>
-                            <span class="min-w-0">
-                                <span class="block text-sm font-medium" :class="tab === '{{ $key }}' ? 'text-[#1e4090]' : 'text-[#273951]'">{{ $name }}</span>
-                                <span class="block truncate text-xs text-[#66707f]">{{ $hint }}</span>
-                            </span>
+                            <span class="min-w-0 text-sm font-medium" :class="tab === '{{ $key }}' ? 'text-[#1e4090]' : 'text-[#273951]'">{{ $name }}</span>
                         </button>
                     @endforeach
                 </nav>
@@ -106,7 +103,7 @@
                     @if ($done['missing'])
                         <p class="mt-2 text-xs leading-relaxed text-[#66707f]">Still missing: {{ implode(', ', $done['missing']) }}.</p>
                     @else
-                        <p class="mt-2 text-xs text-[#66707f]">Everything your forms need is filled in.</p>
+                        <p class="mt-2 text-xs text-[#66707f]">Everything your forms need is filled out.</p>
                     @endif
                 </div>
             </div>
@@ -542,7 +539,7 @@
                                                 @foreach ($docs as $i => $d)
                                                     <li @if ($i >= 6) x-show="all" x-cloak @endif>
                                                         <a href="{{ route('signatory.inbox', ['type' => $d['key']]) }}" wire:navigate
-                                                           title="{{ $d['as'] ? 'You sign as ' . $d['as'] : $d['name'] }}"
+                                                           title="{{ $d['as'] ? 'Your line on the form: ' . $d['as'] : $d['name'] }}"
                                                            class="inline-flex max-w-full items-center rounded-md bg-[#f5f4f2] px-2 py-1 text-xs text-[#273951] hover:bg-[#ecebe7]">{{ $d['name'] }}</a>
                                                     </li>
                                                 @endforeach

@@ -54,7 +54,7 @@
         </div>
     @endif
 
-    {{-- Wide screens: the document (and anything to fill in) on the left; on the right the actions at the top,
+    {{-- Wide screens: the document (and anything to fill out) on the left; on the right the actions at the top,
          then the approval chain, then the checkpoints. Narrow: stacked in the same order. --}}
     <div class="space-y-4 sm:space-y-5 xl:grid xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start xl:gap-6 xl:space-y-0">
 
@@ -71,7 +71,7 @@
 
 
 
-    {{-- Your part: what the signer fills in (remarks, rating, scores), right on the form, before signing. --}}
+    {{-- Your part: what the signer fills out (remarks, rating, scores), right on the form, before signing. --}}
     @php
         $D = \App\Support\DocSheet::class;
         $needsRemarks = $document->signerRecordsInspection();
@@ -337,7 +337,7 @@
                     @endif
 
                     @if ($fillsIn)
-                        <p class="mt-3 flex items-center gap-1.5 text-xs text-emerald-700"><i class="bx bx-check-circle" aria-hidden="true"></i>Your part is filled in.</p>
+                        <p class="mt-3 flex items-center gap-1.5 text-xs text-emerald-700"><i class="bx bx-check-circle" aria-hidden="true"></i>Your part is filled out.</p>
                     @endif
 
                     <label for="sign-password" class="mt-4 block text-sm font-medium text-slate-700">Your password</label>

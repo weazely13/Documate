@@ -10,7 +10,7 @@
 <div class="space-y-4">
     <div class="rounded-xl border border-blue-100 bg-blue-50/60 p-3.5">
         <div class="flex items-center justify-between gap-2">
-            <p class="text-[11px] font-semibold text-[#2A57B4]">Filled in from your account</p>
+            <p class="text-[11px] font-semibold text-[#2A57B4]">Filled out from your account</p>
             <span class="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-blue-100">Read-only</span>
         </div>
         <dl class="mt-2.5 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">

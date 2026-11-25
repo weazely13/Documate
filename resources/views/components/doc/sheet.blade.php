@@ -1,4 +1,4 @@
-{{-- A form as a sheet of paper: the LNU letterhead, the form's title and code, then whatever is filled in on it.
+{{-- A form as a sheet of paper: the LNU letterhead, the form's title and code, then whatever is filled out on it.
      The fill-in pages for students, issuers and signers all use it, so what people type on looks like what prints.
      <x-doc.sheet title="Admission Slip Form" code="LNU-VPSD-001"> … </x-doc.sheet>
      Inside, use the classes in App\Support\DocSheet (blank lines, captions, printed values). --}}

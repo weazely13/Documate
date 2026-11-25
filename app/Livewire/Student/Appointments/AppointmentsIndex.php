@@ -17,7 +17,7 @@ class AppointmentsIndex extends Component
 {
     public const FILTERS = [
         'upcoming' => 'Upcoming',
-        'past' => 'Past visits',
+        'past' => 'History',
     ];
 
     #[Url(as: 'show', except: 'upcoming')]

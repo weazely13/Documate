@@ -62,7 +62,7 @@ class ExternalSigning
     {
         $approval->loadMissing('workspace');
 
-        // The signer fills in the document's own fields (e.g. the ten evaluation criteria).
+        // The signer fills out the document's own fields (e.g. the ten evaluation criteria).
         if (\App\Workflow\Documents\DocumentRegistry::find($approval->workspace?->document_type)?->signerFields($approval->workspace?->field_values ?? [])) {
             return 'form';
         }

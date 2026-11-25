@@ -1,5 +1,5 @@
 /**
- * Fill in a transaction right on its printed page.
+ * Fill out a transaction right on its printed page.
  *
  * The page is the real PDF layout (the component's previewDocument(), the same HTML Dompdf prints), shown in an
  * iframe scaled to the screen. The PDF templates mark each printed blank with data-f="<field>" (several fields:
@@ -164,7 +164,7 @@ export default function pdfFill(config = {}) {
                 if (names.includes(this.active)) el.classList.add('dm-on');
                 el.setAttribute('role', 'button');
                 el.setAttribute('tabindex', '0');
-                el.setAttribute('aria-label', 'Fill in');
+                el.setAttribute('aria-label', 'Fill out');
                 const go = (e) => { e.preventDefault(); this.open(names[0]); };
                 el.addEventListener('click', go);
                 el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') go(e); });

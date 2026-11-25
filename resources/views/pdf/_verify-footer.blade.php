@@ -42,7 +42,7 @@
                 </div>
             </td>
             <td class="vf-mid">
-                <div class="vf-head">Check that this document is genuine</div>
+                <div class="vf-head">Verify that this document is authentic</div>
                 <div class="vf-how">Scan the QR code, or enter both codes at <strong>{{ $vfLookup }}</strong></div>
                 <table class="vf-fields" style="width:auto;">
                     <tr>
@@ -51,7 +51,7 @@
                             <span class="vf-val">@if ($code){{ $code }}@else<span class="ph-text">assigned on submit</span>@endif</span>
                         </td>
                         <td>
-                            <div class="vf-lbl">FINGERPRINT</div>
+                            <div class="vf-lbl">DIGITAL FINGERPRINT</div>
                             <span class="vf-val">@if ($fingerprint){{ $fingerprint }}@elseif ($preview ?? false)<span class="ph-text">assigned when issued</span>@else&mdash;@endif</span>
                         </td>
                     </tr>
