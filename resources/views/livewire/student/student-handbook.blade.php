@@ -214,7 +214,6 @@
         .handbook-text .hb-person { display: inline-flex; align-items: center; gap: .6rem; width: calc(50% - .5rem); margin: 0 .5rem .6rem 0; vertical-align: top; }
         @media (max-width: 640px) { .handbook-text .hb-person { width: 100%; } }
         .handbook-text .hb-person-icon { display: grid; place-items: center; flex-shrink: 0; width: 2rem; height: 2rem; border-radius: 9999px; background: #e2e9f7; color: #2A57B4; }
-        .handbook-text .hb-person-cred { display: block; color: #64748b; font-size: .82rem; font-weight: 400; }
 
         /* Search */
         .handbook-text mark { background: #fde68a; color: inherit; border-radius: .2rem; padding: 0 .1rem; }

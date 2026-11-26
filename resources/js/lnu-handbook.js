@@ -533,7 +533,7 @@ export function lnuHandbook() {
                 }
                 if (mode === 'people' && ['text', 'title'].includes(b.type)) {
                     const [name, ...cred] = b.text.split(/,\s*/);
-                    out.push(`<div class="hb-person"${id(b)}><span class="hb-person-icon"><i class="bx bx-user"></i></span><span><strong>${name}</strong>${cred.length ? `<span class="hb-person-cred">${cred.join(', ')}</span>` : ''}</span></div>`);
+                    out.push(`<div class="hb-person"${id(b)}><span class="hb-person-icon"><i class="bx bx-user"></i></span><strong>${[name, ...cred].join(', ')}</strong></div>`);
                     continue;
                 }
                 if (!['text', 'title'].includes(b.type) || b.type === 'caps') mode = null;
