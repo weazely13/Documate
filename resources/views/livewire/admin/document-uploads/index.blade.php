@@ -29,7 +29,7 @@
     {{-- One line: Filters (status and visit date, the Workflow Review pop-up), the filing tabs, the search, then the view --}}
     @php $fsel = 'h-9 w-full rounded-lg border-slate-300 bg-white py-0 text-sm shadow-sm focus:border-[#2A57B4] focus:ring-[#2A57B4]/20 [@media(pointer:coarse)]:h-11'; @endphp
     <div class="relative mb-6 flex items-center gap-2">
-        <x-admin.filters-popup :count="(int) ($filter !== 'needs_action') + (int) ($dateFrom !== '' || $dateTo !== '')" reset="resetFilters">
+        <x-admin.filters-popup :count="(int) ($filter !== 'all') + (int) ($dateFrom !== '' || $dateTo !== '')" reset="resetFilters">
             <label class="col-span-2 block">
                 <span class="mb-1 block text-xs font-medium text-slate-600">Status</span>
                 <select wire:model.live="filter" class="{{ $fsel }}">

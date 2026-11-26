@@ -16,14 +16,15 @@ use Livewire\Component;
 class DocumentUploadsIndex extends Component
 {
     public const STATUSES = [
+        'all' => 'All',
         'needs_action' => 'Needs action',
         'reviewing' => 'Being checked',
         'verified' => 'Verified',
-        'all' => 'All',
     ];
 
-    #[Url(as: 'filter', except: 'needs_action')]
-    public string $filter = 'needs_action';
+    /** Opens on All: every upload, whatever its status. */
+    #[Url(as: 'filter', except: 'all')]
+    public string $filter = 'all';
 
     #[Url(as: 'by', except: 'folder')]
     public string $by = 'folder';
@@ -92,10 +93,10 @@ class DocumentUploadsIndex extends Component
         $this->currentPage = 1;
     }
 
-    /** The Filters pop-up's Reset: back to "Needs action", any date (the search stays). */
+    /** The Filters pop-up's Reset: back to All, any date (the search stays). */
     public function resetFilters(): void
     {
-        $this->filter = 'needs_action';
+        $this->filter = 'all';
         $this->dateFrom = $this->dateTo = '';
         $this->currentPage = 1;
     }
@@ -165,7 +166,7 @@ class DocumentUploadsIndex extends Component
     {
         $all = $this->rows();
         $counts = collect(self::STATUSES)->map(fn ($l, $k) => $k === 'all' ? $all->count() : $all->where('state', $k)->count());
-        $this->filter = array_key_exists($this->filter, self::STATUSES) ? $this->filter : 'needs_action';
+        $this->filter = array_key_exists($this->filter, self::STATUSES) ? $this->filter : 'all';
         $records = $this->filter === 'all' ? $all : $all->where('state', $this->filter)->values();
 
         $folders = $records->groupBy('type')->map(fn ($g, $type) => [
