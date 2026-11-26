@@ -5,7 +5,7 @@
     $dt = 'text-sm text-slate-500';
     $dd = 'min-w-0 break-words text-sm text-slate-900';
     $hasReview = $ocrText || $analysisSummary || $hasContentAnalysis || $rejectionReason;
-    $tabs = ['details' => 'Details'] + ($hasReview ? ['review' => 'AI review'] : []) + ['appointment' => 'Appointment', 'history' => 'History'];
+    $tabs = ['details' => 'Details'] + ($hasReview ? ['review' => 'AI Findings'] : []) + ['appointment' => 'Appointment', 'history' => 'History'];
     $idLabel = '#' . str_pad((string) $workspace->workspace_id, 4, '0', STR_PAD_LEFT);
 @endphp
 
@@ -79,10 +79,6 @@
             @if ($hasReview)
                 <div x-show="tab === 'review'" x-cloak role="tabpanel" class="pt-4">
 
-                    @if ($analysisStatus)
-                        <p class="mb-4"><span class="{{ \App\Support\StatusStyle::classes($isDocApproved ? 'emerald' : ($isTechnicalFailure ? 'slate' : ($analysisStatus === 'rejected' ? 'rose' : 'amber'))) }}">{{ $isDocApproved ? 'Approved' : ($isTechnicalFailure ? 'Review failed, retry needed' : ($analysisStatus === 'rejected' ? 'Rejected' : 'Pending review')) }}</span></p>
-                    @endif
-
                     @if ($rejectionReason)
                         <div class="rounded-lg border px-4 py-3 text-sm {{ $isTechnicalFailure ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-red-200 bg-red-50 text-red-800' }}">
                             @if ($isTechnicalFailure)
@@ -97,94 +93,11 @@
                         </div>
                     @endif
 
-                    @if ($analysisSummary)
-                        <p class="{{ $rejectionReason ? 'mt-4' : '' }} rounded-lg bg-gray-50 p-3 text-sm italic text-gray-600">"{{ $analysisSummary }}"</p>
-                    @endif
-
-                    @if ($hasContentAnalysis)
-                        @php
-                            $vlmChecks = [
-                                'matches_document' => 'Matches this document type',
-                                'readable' => 'Photo is clear and readable',
-                                'fields_complete' => 'All required fields filled out',
-                                'has_signature_or_stamp' => 'Signature or stamp detected',
-                                'fields_match_expected' => 'Field values match what was entered',
-                            ];
-                        @endphp
-                        <div class="mt-4 grid gap-2 sm:grid-cols-2">
-                            @foreach ($vlmChecks as $key => $label)
-                                @php $pass = (bool) ($analysisData[$key] ?? ($key === 'fields_match_expected')); @endphp
-                                <div class="flex items-center gap-2 text-sm">
-                                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full {{ $pass ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600' }}">
-                                        <i class='bx {{ $pass ? "bx-check" : "bx-x" }} text-sm'></i>
-                                    </span>
-                                    <span class="{{ $pass ? 'text-gray-700' : 'text-gray-500' }}">{{ $label }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        @if (!empty($analysisData['missing_fields']))
-                            <div class="mt-4">
-                                <p class="text-xs font-medium text-amber-700">Missing or blank fields</p>
-                                <div class="mt-1.5 flex flex-wrap gap-1.5">
-                                    @foreach ($analysisData['missing_fields'] as $field)
-                                        <span class="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-700">{{ $field }}</span>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-
-                        @if (!empty($analysisData['field_matches']))
-                            <div class="mt-5">
-                                <p class="mb-2 text-xs font-medium text-gray-500">Field verification</p>
-                                <div class="overflow-hidden rounded-lg border border-gray-200">
-                                    <div class="overflow-x-auto">
-                                        <table class="w-full text-xs">
-                                            <thead class="border-b border-gray-100 bg-gray-50 font-medium text-gray-500">
-                                                <tr>
-                                                    <th class="px-4 py-2.5 text-left">Field</th>
-                                                    <th class="px-4 py-2.5 text-left">Student entered</th>
-                                                    <th class="px-4 py-2.5 text-left">Found on photo</th>
-                                                    <th class="px-4 py-2.5 text-center">Match</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-gray-100">
-                                                @foreach ($analysisData['field_matches'] as $fm)
-                                                    <tr class="{{ ($fm['matches'] ?? true) ? '' : 'bg-rose-50/60' }}">
-                                                        <td class="px-4 py-2.5 font-medium text-gray-700">{{ $fm['label'] ?? '' }}</td>
-                                                        <td class="px-4 py-2.5 text-gray-600">{{ $fm['expected_value'] ?? '—' }}</td>
-                                                        <td class="px-4 py-2.5 text-gray-600">{{ $fm['found_value'] ?? '—' }}</td>
-                                                        <td class="px-4 py-2.5 text-center">
-                                                            @if ($fm['matches'] ?? false)
-                                                                <i class='bx bx-check-circle text-base text-emerald-600'></i>
-                                                            @else
-                                                                <i class='bx bx-x-circle text-base text-rose-600'></i>
-                                                            @endif
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if (!empty($analysisData['authenticity_notes']))
-                            <div class="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-                                <i class='bx bx-info-circle mt-0.5 shrink-0'></i>
-                                <span>{{ $analysisData['authenticity_notes'] }}</span>
-                            </div>
-                        @endif
-                    @endif
-
-                    @if ($ocrText)
-                        <details class="group mt-4">
-                            <summary class="cursor-pointer text-xs font-medium text-gray-500 group-open:text-gray-800">View extracted text</summary>
-                            <p class="mt-2 whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm text-gray-600">{{ $ocrText }}</p>
-                        </details>
-                    @endif
-                                </div>
+                    {{-- AI findings: the same partial as the admin's upload page and the student's My Documents --}}
+                    <div class="{{ $rejectionReason ? 'mt-4' : '' }}">
+                        @include('partials.photo-ai-findings', ['ws' => $workspace])
+                    </div>
+                </div>
             @endif
 
             <div x-show="tab === 'appointment'" x-cloak role="tabpanel">
