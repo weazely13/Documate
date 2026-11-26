@@ -61,14 +61,34 @@ class WaitingTime
         return $rows;
     }
 
+    /** The processing period pill (word only, no day count), by level ('' = New). */
+    public const PILLS = [
+        '' => 'bg-slate-100 text-slate-600 ring-slate-200',
+        'due' => 'bg-yellow-50 text-yellow-800 ring-yellow-300',
+        'follow_up' => 'bg-orange-50 text-orange-700 ring-orange-200',
+        'urgent' => 'bg-red-50 text-red-700 ring-red-200',
+        'overdue' => 'bg-red-100 text-red-900 ring-red-300',
+    ];
+
+    /** The word on the pill: the level's word, or "With student" when the time is the student's (not flagged). */
+    public static function pillWord(array $w): string
+    {
+        return $w['word'] ?? 'With student';
+    }
+
+    public static function pillClasses(array $w): string
+    {
+        return $w['word'] ? self::PILLS[$w['level'] ?? ''] : self::PILLS[''];
+    }
+
     public static function dot(?string $level): string
     {
         return match ($level) {
             'overdue' => 'bg-red-900',
-            'urgent' => 'bg-red-600',
+            'urgent' => 'bg-red-500',
             'follow_up' => 'bg-orange-500',
-            'due' => 'bg-amber-300',
-            default => 'bg-slate-300',
+            'due' => 'bg-yellow-400',
+            default => 'bg-slate-400',
         };
     }
 

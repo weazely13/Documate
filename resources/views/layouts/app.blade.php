@@ -94,7 +94,7 @@
             $signItems[] = ['Signing Inbox', 'bx-pen', 'signatory.inbox', ['signatory.inbox', 'signatory.show'], \App\Models\TransactionApproval::assignableTo(auth()->user())->count()];
             if (count(auth()->user()->issuableDocuments()) > 0) {
                 if (! $ownAccount) {
-                    $signItems[] = ['Issue a Report', 'bx-file', 'signatory.issue', ['signatory.issue'], 0];
+                    $signItems[] = ['Issue a Document', 'bx-file', 'signatory.issue', ['signatory.issue'], 0];
                 }
                 $signItems[] = ['Issued Documents', 'bx-folder-open', 'signatory.issued', ['signatory.issued*'], \App\Support\NavCounts::issuedNeedingChanges(auth()->user())];
             }

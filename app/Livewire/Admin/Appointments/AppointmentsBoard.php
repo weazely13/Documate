@@ -66,11 +66,9 @@ class AppointmentsBoard extends Component
     public string $filterYear = '';
     public string $filterProgram = '';
 
-    /** The All tab's AI suggestion filter: the same words as the table's AI pills. (No "Unchecked": an appointment's
-        check is never empty; a new one starts as Checking.) */
+    /** The All tab's AI findings filter: the same words as the table's AI pills (AiFinding). */
     public const AI_FILTERS = [
-        'clear' => 'Clear', 'flagged' => 'Flagged', 'mismatch' => 'Mismatch', 'reject' => 'Reject',
-        'checking' => 'Checking', 'failed' => 'Failed',
+        'unchecked' => 'Unchecked', 'flagged' => 'Flagged', 'revision' => 'Revision', 'cleared' => 'Cleared',
     ];
 
     private const FILTERS = ['filterFrom', 'filterTo', 'filterStatus', 'filterAi', 'filterYear', 'filterProgram'];
@@ -246,32 +244,23 @@ class AppointmentsBoard extends Component
     }
 
     /**
-     * The AI suggestion filter, matching the table's pills exactly (the board's $aiFor): Checking, Failed and
-     * Unchecked by the check's state; once checked, Reject (the AI would reject), then Mismatch (purpose does not fit),
-     * then Flagged, else Clear.
+     * The AI findings filter, matching the table's pills exactly (AiFinding::key): Unchecked while not checked
+     * (or still running, or failed); once checked, Revision (the AI would send it back or reject it, or the purpose
+     * does not fit the document), then Flagged, else Cleared.
      */
     private function applyAiFilter(Builder $q, string $f): void
     {
         $mysql = DB::connection()->getDriverName() === 'mysql';
-        $isReject = fn ($w) => $w->where('ai_findings->recommendation', 'reject');
-        $notReject = fn ($w) => $w->where(fn ($x) => $x->whereNull('ai_findings->recommendation')->orWhere('ai_findings->recommendation', '!=', 'reject'));
         $misfit = fn ($w) => $mysql
             ? $w->whereJsonContains('ai_findings->relevance->relevant', false)
             : $w->whereRaw("json_extract(ai_findings, '$.relevance.relevant') = 0");
         $fits = fn ($w) => $w->where(fn ($x) => $x->whereNull('ai_findings->relevance->relevant')->orWhere(fn ($y) => $mysql
             ? $y->whereJsonDoesntContain('ai_findings->relevance->relevant', false)
             : $y->whereRaw("json_extract(ai_findings, '$.relevance.relevant') != 0")));
-        $checked = fn ($w) => $w->whereNotNull('ai_flag')->whereNotIn('ai_flag', ['pending', 'review_failed']);
 
-        match ($f) {
-            'checking' => $q->where('ai_flag', 'pending'),
-            'failed' => $q->where('ai_flag', 'review_failed'),
-            'reject' => $isReject($checked($q)),
-            'mismatch' => $misfit($notReject($checked($q))),
-            'flagged' => $fits($notReject($checked($q)))->where('ai_flag', 'flagged'),
-            'clear' => $fits($notReject($checked($q)))->where('ai_flag', '!=', 'flagged'),
-            default => null,
-        };
+        if (array_key_exists($f, self::AI_FILTERS)) {
+            \App\Support\AiFinding::where($q, $f, $misfit, $fits);
+        }
     }
 
     /** A column header: ascending, then descending, then back to the default order. */

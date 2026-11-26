@@ -17,21 +17,9 @@
         return [$s['label'] . ($a->status === 'approved' && $a->queue_number ? ' · #' . $a->queue_number : ''), \App\Support\StatusStyle::TONES[$s['tone']]];
     };
 
-    // AI check as a compact pill: [text, classes, spinning?].
-    $aiFor = function ($a) {
-        $rec = $a->ai_findings['recommendation'] ?? null;
-        $fits = $a->ai_findings['relevance']['relevant'] ?? true;
-
-        return match (true) {
-            $a->ai_flag === 'pending' => ['Checking', 'bg-sky-50 text-[#1E4090] ring-sky-200', true],
-            $a->ai_flag === 'review_failed' => ['Failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200', false],
-            $a->ai_flag === null => ['Unchecked', 'bg-slate-100 text-slate-600 ring-slate-200', false],
-            $rec === 'reject' => ['Reject', 'bg-rose-50 text-rose-800 ring-rose-200', false],
-            ! $fits => ['Mismatch', 'bg-amber-50 text-amber-800 ring-amber-200', false],
-            $a->ai_flag === 'flagged' => ['Flagged', 'bg-amber-50 text-amber-800 ring-amber-200', false],
-            default => ['Clear', 'bg-emerald-50 text-emerald-800 ring-emerald-200', false],
-        };
-    };
+    // AI findings as a compact pill (AiFinding, the same words everywhere): [word, classes, icon or null, hover text].
+    // A purpose that does not fit the document picked reads Revision: the student has to correct it.
+    $aiFor = fn ($a) => \App\Support\AiFinding::badge($a->ai_flag, $a->ai_findings, (bool) ($a->ai_findings['relevance']['relevant'] ?? true));
 
     // Calendar event cards: tinted by where the visit stands.
     $eventTint = fn ($a) => match ($a->status) {
@@ -107,7 +95,7 @@
                     </select>
                 </label>
                 <label class="block min-w-0">
-                    <span class="mb-1 block text-xs font-medium text-slate-600">AI suggestion</span>
+                    <span class="mb-1 block text-xs font-medium text-slate-600">AI Findings</span>
                     <select wire:model.live="filterAi" class="{{ $fsel }}">
                         <option value="">All</option>
                         @foreach ($opts['ai'] as $v => $l)

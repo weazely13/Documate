@@ -32,14 +32,7 @@
 
         return [StatusStyle::DOTS[$s['tone']] ?? 'bg-slate-400', $s['label'], '', $meaning];
     })->values()->all();
-    $aiLegend = [
-        ['bg-emerald-500', 'Clear', '', 'The purpose and the details look fine.'],
-        ['bg-amber-500', 'Flagged', '', 'Something may be off. Open it and take a closer look.'],
-        ['bg-amber-500', 'Mismatch', '', 'The purpose does not fit the office or the document picked.'],
-        ['bg-rose-500', 'Reject', '', 'The AI would reject it, for example for made-up or unrelated details.'],
-        ['bg-sky-500', 'Checking', '', 'The check is running or waiting its turn. It usually takes a few seconds.'],
-        ['bg-orange-500', 'Failed', '', 'The check could not finish. Run it again from the selection bar.'],
-    ];
+    $aiLegend = \App\Support\AiFinding::legend();
 @endphp
 
 {{-- min-h keeps a full working area under the rows, so a short list never sits cramped against the bulk bar or the page end. --}}
@@ -73,10 +66,10 @@
                 @else
                     <th scope="col" class="{{ $th }}">Session</th>
                 @endif
-                {{-- Under 60rem of table the AI suggestion sits under the status pill, so Student and Purpose keep room to read --}}
+                {{-- Under 60rem of table the AI findings sit under the status pill, so Student and Purpose keep room to read --}}
                 <th scope="col" class="hidden [@container(min-width:60rem)]:table-cell {{ $th }}">
-                    <span class="inline-flex items-center gap-1 whitespace-nowrap">AI suggestion
-                        <x-admin.legend-tip label="What the AI suggestions mean" note="The AI reads each request before you do. It only suggests: you make the decision." :items="$aiLegend" />
+                    <span class="inline-flex items-center gap-1 whitespace-nowrap">AI Findings
+                        <x-admin.legend-tip label="What the AI findings mean" :note="\App\Support\AiFinding::NOTE" :items="$aiLegend" />
                     </span>
                 </th>
                 @if ($sortable)
@@ -97,7 +90,7 @@
             @forelse ($rows as $a)
                 @php
                     [$sText, $sPill] = $statusFor($a);
-                    [$aText, $aPill, $spin] = $aiFor($a);
+                    [$aText, $aPill, $spin, $aTitle] = $aiFor($a);
                     $url = route('admin.appointments.show', $a->appointment_id);
                 @endphp
                 <tr wire:key="ar-{{ $a->appointment_id }}" class="cursor-pointer transition-colors hover:bg-slate-50" onclick="Livewire.navigate('{{ $url }}')">
@@ -146,16 +139,16 @@
                     </td>
                     <td class="hidden whitespace-nowrap px-4 py-3 [@container(min-width:60rem)]:table-cell">
                         <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $aPill }}"
-                              @if (! empty($a->ai_findings['summary'])) title="{{ $a->ai_findings['summary'] }}" @endif>
-                            @if ($spin) <i class="bx bx-loader-alt bx-spin text-sm" aria-hidden="true"></i> @endif{{ $aText }}
+                              @if ($aTitle) title="{{ $aTitle }}" @endif>
+                            @if ($spin) <i class="bx {{ $spin }} text-sm" aria-hidden="true"></i> @endif{{ $aText }}
                         </span>
                     </td>
                     <td class="whitespace-nowrap px-4 py-3">
                         <span class="{{ StatusStyle::BADGE }} {{ $sPill }}">{{ $sText }}</span>
                         <span class="mt-1.5 flex [@container(min-width:60rem)]:hidden">
                             <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $aPill }}"
-                                  @if (! empty($a->ai_findings['summary'])) title="{{ $a->ai_findings['summary'] }}" @endif>
-                                @if ($spin) <i class="bx bx-loader-alt bx-spin text-sm" aria-hidden="true"></i> @endif<span class="sr-only">AI suggestion:</span> {{ $aText }}
+                                  @if ($aTitle) title="{{ $aTitle }}" @endif>
+                                @if ($spin) <i class="bx {{ $spin }} text-sm" aria-hidden="true"></i> @endif<span class="sr-only">AI findings:</span> {{ $aText }}
                             </span>
                         </span>
                     </td>
@@ -196,7 +189,7 @@
     @forelse ($rows as $a)
         @php
             [$sText, $sPill] = $statusFor($a);
-            [$aText, $aPill, $spin] = $aiFor($a);
+            [$aText, $aPill, $spin, $aTitle] = $aiFor($a);
             $url = route('admin.appointments.show', $a->appointment_id);
         @endphp
         <li wire:key="ac-{{ $a->appointment_id }}" class="relative flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white">
@@ -221,7 +214,7 @@
                 <span class="mt-3 flex flex-wrap items-center gap-1.5">
                     <span class="{{ StatusStyle::BADGE }} {{ $sPill }}">{{ $sText }}</span>
                     <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $aPill }}">
-                        @if ($spin) <i class="bx bx-loader-alt bx-spin text-sm" aria-hidden="true"></i> @endif<span class="sr-only">AI suggestion:</span> {{ $aText }}
+                        @if ($spin) <i class="bx {{ $spin }} text-sm" aria-hidden="true"></i> @endif<span class="sr-only">AI findings:</span> {{ $aText }}
                     </span>
                 </span>
             </a>

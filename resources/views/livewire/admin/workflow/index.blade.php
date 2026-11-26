@@ -30,23 +30,8 @@
         };
     };
 
-    // The AI check as a compact pill: [text, classes, icon] or null when it does not apply.
-    $aiFor = function ($row) {
-        if (! ($row->ai_applies ?? true)) {
-            return null;
-        }
-        $rec = $row->ai_findings['recommendation'] ?? null;
-
-        return match (true) {
-            $row->ai_flag === 'pending' => ['Checking', 'bg-sky-50 text-[#1E4090] ring-sky-200', 'bx-loader-alt bx-spin'],
-            $row->ai_flag === 'review_failed' => ['Failed', 'bg-[#fdece3] text-[#b4471a] ring-orange-200', 'bx-error-circle'],
-            $row->ai_flag === null => ['Unchecked', 'bg-slate-100 text-slate-600 ring-slate-200', null],
-            $rec === 'reject' => ['Reject', 'bg-rose-50 text-rose-800 ring-rose-200', null],
-            $rec === 'request_changes' => ['Revise', 'bg-amber-50 text-amber-800 ring-amber-200', null],
-            $row->ai_flag === 'flagged' => ['Flagged', 'bg-amber-50 text-amber-800 ring-amber-200', null],
-            default => ['Clear', 'bg-emerald-50 text-emerald-800 ring-emerald-200', null],
-        };
-    };
+    // The AI findings pill (AiFinding, the same words everywhere): [word, classes, icon, hover text] or null when it does not apply.
+    $aiFor = fn ($row) => ($row->ai_applies ?? true) ? \App\Support\AiFinding::badge($row->ai_flag, $row->ai_findings) : null;
 
     $nameFor = fn ($row) => $row->field_values['student_name'] ?? (($row->user?->full_name ?? '') ?: '-');
 
@@ -68,7 +53,7 @@
     };
 
     // Processing period, in school days: [dot, word, range, what it means]
-    $legend = \App\Support\WaitingTime::legend();
+    $legend = collect(\App\Support\WaitingTime::legend())->map(fn ($r) => [$r[0], $r[1], $r[2], ''])->all();
     // What each status pill on this page means: the system-wide word and colour (StatusStyle), in the order work moves.
     $statusLegend = collect([
         'submitted' => 'Document is waiting to be reviewed.',
@@ -83,18 +68,10 @@
     })->values()->all();
 
     // What each AI findings pill means: [dot, word, '', meaning], in the pills' colours.
-    $aiLegend = [
-        ['bg-emerald-500', 'Clear', '', 'Nothing looks wrong with the answers.'],
-        ['bg-amber-500', 'Flagged', '', 'Something may be off. Open it and take a closer look.'],
-        ['bg-amber-500', 'Revise', '', 'The AI would send it back to the student for revision.'],
-        ['bg-rose-500', 'Reject', '', 'The AI would reject it, for example for made-up or unrelated answers.'],
-        ['bg-slate-400', 'Unchecked', '', 'Not checked yet. Run it with the robot icon in the side panel.'],
-        ['bg-sky-500', 'Checking', '', 'The check is running. It usually takes a few seconds.'],
-        ['bg-orange-500', 'Failed', '', 'The check could not finish. Run it again from the side panel.'],
-    ];
+    $aiLegend = \App\Support\AiFinding::legend();
 
     $pageIds = $rows->getCollection()->map(fn ($r) => (string) $r->workspace_id)->values();
-    $viewingFlagged = $tab === 'attention' && $ai === 'flagged';
+    $viewingFlagged = $tab === 'attention' && $ai === 'attention';
 @endphp
 
 <div class="mx-auto max-w-[1440px] space-y-5" @if ($polling) wire:poll.5s @endif>
@@ -258,7 +235,7 @@
                                 <x-admin.legend-tip label="What the statuses mean" note="Indicates the current progress of the document." :items="$statusLegend" />
                             </x-admin.sort-th>
                             <x-admin.sort-th key="risk" label="AI findings" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
-                                <x-admin.legend-tip label="What the AI findings mean" note="The AI reads the answers before you do. It only suggests: you make the decision." :items="$aiLegend" />
+                                <x-admin.legend-tip label="What the AI findings mean" :note="\App\Support\AiFinding::NOTE" :items="$aiLegend" />
                             </x-admin.sort-th>
                             <x-admin.sort-th key="waiting" label="Processing period" :sort="$sortKey" :dir="$sortDir" class="!py-2.5">
                                 <x-admin.legend-tip label="What the processing period means" note="Number of school days the document has been waiting. Weekends do not count." :items="$legend" />
@@ -309,7 +286,7 @@
                                 <td class="whitespace-nowrap px-4 py-3">
                                     @if ($aiPill)
                                         <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 {{ $aiPill[1] }}"
-                                              @if (! empty($row->ai_findings['summary'])) title="{{ $row->ai_findings['summary'] }}" @endif>
+                                              @if ($aiPill[3]) title="{{ $aiPill[3] }}" @endif>
                                             @if ($aiPill[2]) <i class="bx {{ $aiPill[2] }} text-sm" aria-hidden="true"></i> @endif
                                             {{ $aiPill[0] }}
                                         </span>
@@ -318,7 +295,7 @@
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3">
-                                    <x-dm.time-elapsed :w="$row->waiting" class="{{ $waitStyle($row->waiting) }}" />
+                                    <x-dm.wait-pill :w="$row->waiting" />
                                 </td>
                             </tr>
                         @empty
@@ -387,7 +364,7 @@
                             </ol>
 
                             <span class="mt-4 flex w-full items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
-                                <x-dm.time-elapsed :w="$row->waiting" class="{{ $waitStyle($row->waiting) }}" />
+                                <x-dm.wait-pill :w="$row->waiting" />
                                 <span class="inline-flex items-center text-xs font-medium text-[#2A57B4]">Details <i class="bx bx-chevron-right text-base" aria-hidden="true"></i></span>
                             </span>
                         </button>

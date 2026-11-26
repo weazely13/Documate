@@ -1,21 +1,13 @@
 {{-- One row of My documents, in the same shape as a row of the student's Appointments list:
-     a date tile, the title and its details, the next step, then the status pill and the row's menu.
+     a preview, the title and its details, then the status pill and the row's menu.
      Needs: $workspace, $issuer (label or null), $focus. --}}
 @php
     $idStr = (string) $workspace->workspace_id;
     $wf = $workspace->usesWorkflow();
 
     [
-        'title' => $title, 'href' => $href, 'issued' => $issued, 'state' => $state,
-        'tone' => $tone, 'step' => $step, 'next' => $next, 'closed' => $closed,
+        'title' => $title, 'href' => $href, 'issued' => $issued, 'state' => $state, 'closed' => $closed,
     ] = \App\Support\DocumentProgress::describe($workspace);
-
-    $nextTone = match ($tone) {
-        'you' => 'text-amber-800',
-        'done' => 'text-emerald-800',
-        'closed' => 'text-slate-500',
-        default => 'text-[#1E4090]',
-    };
 
     $deletable = ! $wf && ! $workspace->isCompleted();
 
@@ -24,7 +16,6 @@
         ? ($workspace->field_values['student_name'] ?? 'another student')
         : null;
     if ($sharedBy) {
-        $next = null;
         $deletable = false;
     }
 
@@ -62,22 +53,6 @@
             @elseif ($issued) · Issued by <span class="font-medium text-slate-700">{{ $issuer ?? 'the VPSD office' }}</span>
             @endif
         </p>
-        @if ($next)
-            <p class="mt-1 flex items-start gap-1.5 text-xs {{ $nextTone }}">
-                @unless ($closed)
-                    <span class="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-current {{ $tone === 'you' ? 'animate-pulse motion-reduce:animate-none' : '' }}" aria-hidden="true"></span>
-                @endunless
-                <span>{{ $next }}</span>
-            </p>
-        @endif
-        {{-- The four steps are the paperless journey; a paper form is handled at the office, so it has none --}}
-        @if ($wf && ! $closed)
-            <span class="mt-2 grid max-w-[9rem] grid-cols-4 gap-1" role="img" aria-label="Step {{ $step }} of 4">
-                @for ($i = 1; $i <= 4; $i++)
-                    <span class="h-1 rounded-full {{ $i <= $step ? 'bg-emerald-500' : ($i === $step + 1 && $tone !== 'done' ? ($tone === 'you' ? 'bg-amber-400' : 'bg-[#2A57B4]') : 'bg-slate-200') }}"></span>
-                @endfor
-            </span>
-        @endif
         <x-status-badge :status="$state" class="mt-2 sm:hidden" />
     </div>
 

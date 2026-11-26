@@ -116,8 +116,9 @@
 
 {{-- Statement --}}
 <div class="ln" style="margin-top:12pt;">
-    <div class="lbl" style="left:28pt; width:152pt;">I would like to file a complaint against</div>
-    <div data-f="respondent" class="val" style="left:182pt; width:170pt; font-size:{{ $fit($respondent, 170) }}pt;">{{ $respondent }}</div>
+    {{-- The label is about 165pt wide at 10pt: room for all of it, so "against" is never cut --}}
+    <div class="lbl" style="left:28pt; width:170pt;">I would like to file a complaint against</div>
+    <div data-f="respondent" class="val" style="left:200pt; width:152pt; font-size:{{ $fit($respondent, 152) }}pt;">{{ $respondent }}</div>
     <div class="lbl" style="left:356pt; width:131pt;">for the reason/s cited below:</div>
 </div>
 

@@ -109,7 +109,7 @@
                 @else
                     <dl class="divide-y divide-slate-100">
                         @foreach ($answers as $a)
-                            <div class="{{ $row }}"><dt class="{{ $dt }}">{{ $a['label'] }}@if ($a['retired'])<span class="mt-0.5 block text-[11px] text-amber-700">No longer on the form</span>@endif</dt><dd class="{{ $dd }} whitespace-pre-line">{{ $a['value'] }}</dd></div>
+                            <div class="{{ $row }}"><dt class="{{ $dt }}">{{ $a['label'] }}</dt><dd class="{{ $dd }} whitespace-pre-line">{{ $a['value'] }}</dd></div>
                         @endforeach
                     </dl>
                 @endif

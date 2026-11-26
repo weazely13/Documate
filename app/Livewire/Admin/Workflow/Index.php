@@ -8,6 +8,7 @@ use App\Jobs\ReviewTransactionSubmission;
 use App\Models\StudentDocumentWorkspace;
 use App\Models\User;
 use App\Services\Workflow\TransactionWorkflow;
+use App\Support\AiFinding;
 use App\Support\Issuers;
 use App\Support\ReviewQueue;
 use App\Support\WaitingTime;
@@ -52,12 +53,14 @@ class Index extends Component
         'risk' => 'AI findings',
     ];
 
-    /** AI filter: key => label. */
+    /** AI filter: key => label, the AiFinding words. "attention" is the AI Flagged card: Flagged or Revision. */
     public const AI_FILTERS = [
         '' => 'All',
-        'flagged' => 'Flagged',
-        'clean' => 'Clear',
         'unchecked' => 'Unchecked',
+        'flagged' => 'Flagged',
+        'revision' => 'Revision',
+        'cleared' => 'Cleared',
+        'attention' => 'Flagged or Revision',
     ];
 
     /** Most transactions the AI check is queued for in one click. */
@@ -212,7 +215,7 @@ class Index extends Component
     public function showFlagged(): void
     {
         $this->tab = 'attention';
-        $this->ai = 'flagged';
+        $this->ai = 'attention';
         $this->picked = [];
         $this->resetPage();
     }
@@ -530,12 +533,17 @@ class Index extends Component
     private function applyAiFilter(Builder $q): void
     {
         match ($this->ai) {
-            'flagged' => $q->where('ai_flag', 'flagged'),
-            'clean' => $q->where('ai_flag', 'clean'),
-            'unchecked' => $q->whereNotIn('document_type', self::uncheckedKeys())
-                ->where(fn ($w) => $w->whereNull('ai_flag')->orWhereIn('ai_flag', ['review_failed', 'pending'])),
+            'attention' => self::needsALook($q),
+            'unchecked' => AiFinding::where($q->whereNotIn('document_type', self::uncheckedKeys()), 'unchecked'),
+            'flagged', 'revision', 'cleared' => AiFinding::where($q, $this->ai),
             default => null,
         };
+    }
+
+    /** The AI Flagged card: what the AI wants a person to look at (its pill reads Flagged or Revision). */
+    private static function needsALook(Builder $q): Builder
+    {
+        return $q->where(fn ($w) => AiFinding::where($w, 'flagged')->orWhere(fn ($y) => AiFinding::where($y, 'revision')));
     }
 
     /* ------------------------------ render ---------------------------- */
@@ -610,7 +618,7 @@ class Index extends Component
         $lateCounts = collect(self::FLAGGED_TABS)
             ->mapWithKeys(fn ($key) => [$key => ReviewQueue::apply(ReviewQueue::overdue(), $key)->count()]);
 
-        $flaggedQuery = ReviewQueue::query('attention')->where('ai_flag', 'flagged');
+        $flaggedQuery = self::needsALook(ReviewQueue::query('attention'));
         $flaggedCount = (clone $flaggedQuery)->count();
         $flaggedFaces = (clone $flaggedQuery)->with('user')->latest('ai_reviewed_at')->limit(3)->get();
 

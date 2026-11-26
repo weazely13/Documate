@@ -1,28 +1,19 @@
-{{-- One card of My documents in grid view: a large preview of the document, then its title, status and next step.
+{{-- One card of My documents in grid view: a large preview of the document, then its title and status.
      Same card shape as Home > Explore. Needs: $workspace, $issuer (label or null), $focus. --}}
 @php
     $idStr = (string) $workspace->workspace_id;
     $wf = $workspace->usesWorkflow();
 
     [
-        'title' => $title, 'href' => $href, 'issued' => $issued, 'state' => $state,
-        'tone' => $tone, 'step' => $step, 'next' => $next, 'closed' => $closed,
+        'title' => $title, 'href' => $href, 'issued' => $issued, 'state' => $state, 'closed' => $closed,
     ] = \App\Support\DocumentProgress::describe($workspace);
     [$thumb, $thumbIsImage] = \App\Support\DocumentProgress::thumbnail($workspace);
-
-    $nextTone = match ($tone) {
-        'you' => 'text-amber-800',
-        'done' => 'text-emerald-800',
-        'closed' => 'text-slate-500',
-        default => 'text-slate-600',
-    };
 
     $deletable = ! $wf && ! $workspace->isCompleted();
     $sharedBy = (int) $workspace->user_id !== (int) auth()->id()
         ? ($workspace->field_values['student_name'] ?? 'another student')
         : null;
     if ($sharedBy) {
-        $next = null;
         $deletable = false;
     }
 @endphp
@@ -50,17 +41,6 @@
             @if ($wf && $workspace->transaction_code)<span class="font-mono tabular-nums">{{ $workspace->transaction_code }}</span>@else Print form @endif
             @if ($sharedBy) · by {{ $sharedBy }} @elseif ($issued) · {{ $issuer ?? 'VPSD office' }} @endif
         </p>
-        @if ($next)
-            <p class="mt-1.5 line-clamp-2 text-xs leading-snug {{ $nextTone }}">{{ $next }}</p>
-        @endif
-        {{-- The four steps are the paperless journey; a paper form is handled at the office, so it has none --}}
-        @if ($wf && ! $closed)
-            <span class="mt-auto grid grid-cols-4 gap-1 pt-2.5" role="img" aria-label="Step {{ $step }} of 4">
-                @for ($i = 1; $i <= 4; $i++)
-                    <span class="h-1 rounded-full {{ $i <= $step ? 'bg-emerald-500' : ($i === $step + 1 && $tone !== 'done' ? ($tone === 'you' ? 'bg-amber-400' : 'bg-[#2A57B4]') : 'bg-slate-200') }}"></span>
-                @endfor
-            </span>
-        @endif
     </div>
 
     @if ($deletable)

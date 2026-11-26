@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Appointment;
 use App\Models\DocumentScanEvent;
 use App\Models\StudentDocumentWorkspace;
+use App\Support\AiFinding;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -166,14 +167,12 @@ class ScanStatusBar extends Component
                 'running' => $ws->ai_flag === 'pending',
                 'tone' => match ($ws->ai_flag) {
                     'pending' => 'run',
-                    'clean' => 'done',
-                    'flagged' => 'warn',
+                    'clean', 'flagged' => AiFinding::key($ws->ai_flag, $ws->ai_findings) === 'cleared' ? 'done' : 'warn',
                     default => 'bad',
                 },
                 'status' => match ($ws->ai_flag) {
                     'pending' => 'Checking the submission…',
-                    'clean' => 'Pre-check passed',
-                    'flagged' => 'Flagged for a closer look',
+                    'clean', 'flagged' => AiFinding::word(AiFinding::key($ws->ai_flag, $ws->ai_findings)),
                     default => 'Pre-check failed',
                 },
                 'who' => $ws->user?->full_name ?? 'Unknown student',
@@ -195,14 +194,12 @@ class ScanStatusBar extends Component
                 'running' => $a->ai_flag === 'pending',
                 'tone' => match ($a->ai_flag) {
                     'pending' => 'run',
-                    'clean' => 'done',
-                    'flagged' => 'warn',
+                    'clean', 'flagged' => AiFinding::key($a->ai_flag, $a->ai_findings, (bool) ($a->ai_findings['relevance']['relevant'] ?? true)) === 'cleared' ? 'done' : 'warn',
                     default => 'bad',
                 },
                 'status' => match ($a->ai_flag) {
                     'pending' => 'Checking the request…',
-                    'clean' => 'Clear',
-                    'flagged' => 'Flagged',
+                    'clean', 'flagged' => AiFinding::word(AiFinding::key($a->ai_flag, $a->ai_findings, (bool) ($a->ai_findings['relevance']['relevant'] ?? true))),
                     default => 'Check failed',
                 },
                 'who' => $a->user?->full_name ?? 'Unknown student',

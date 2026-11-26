@@ -19,7 +19,7 @@
                 @foreach ($items as [$dot, $word, $range, $meaning])
                     <li class="flex items-start gap-2">
                         <span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full {{ $dot }}" aria-hidden="true"></span>
-                        <span><span class="font-semibold text-slate-900">{{ $word }}</span>@if ($range) <span class="text-slate-500">· {{ $range }}</span>@endif <span class="block text-xs text-slate-500">{{ $meaning }}</span></span>
+                        <span><span class="font-semibold text-slate-900">{{ $word }}</span>@if ($range) <span class="text-slate-500">· {{ $range }}</span>@endif @if ($meaning)<span class="block text-xs text-slate-500">{{ $meaning }}</span>@endif</span>
                     </li>
                 @endforeach
             </ul>

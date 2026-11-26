@@ -52,7 +52,7 @@ class Issue extends Component
         $docs = $this->officeDocuments();
         abort_if(empty($docs), 404);
         // The admin picks the document here, whichever way they came in (Workflow review's "Issue a document" or the
-        // sidebar's "Issue a Report"). Dedicated signatories pick it on their Home / Explore first.
+        // sidebar's "Issue a Document"). Dedicated signatories pick it on their Home / Explore first.
         $this->showPicker = count($docs) > 1
             && (request()->routeIs('admin.workflow.issue') || Auth::user()->isAdmin());
 
