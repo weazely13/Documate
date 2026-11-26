@@ -1,23 +1,17 @@
 {{-- One row of My documents, in the same shape as a row of the student's Appointments list:
-     a preview, the title and its details, then the status pill and the row's menu.
+     a preview, the title and its details, then the status pill. The whole row opens the document.
      Needs: $workspace, $issuer (label or null), $focus. --}}
 @php
-    $idStr = (string) $workspace->workspace_id;
     $wf = $workspace->usesWorkflow();
 
     [
         'title' => $title, 'href' => $href, 'issued' => $issued, 'state' => $state, 'closed' => $closed,
     ] = \App\Support\DocumentProgress::describe($workspace);
 
-    $deletable = ! $wf && ! $workspace->isCompleted();
-
     // Another student's transaction that lists this student: a read-only copy.
     $sharedBy = (int) $workspace->user_id !== (int) auth()->id()
         ? ($workspace->field_values['student_name'] ?? 'another student')
         : null;
-    if ($sharedBy) {
-        $deletable = false;
-    }
 
     [$thumb, $thumbIsImage] = \App\Support\DocumentProgress::thumbnail($workspace);
 
@@ -60,20 +54,5 @@
         <x-status-badge :status="$state" />
     </div>
 
-    @if ($deletable)
-        <div x-data="{ open: false }" class="relative z-10 shrink-0 self-center" @click.outside="open = false" @keydown.escape="open = false">
-            <button type="button" @click="open = !open" :aria-expanded="open" aria-label="More options for {{ $title }}"
-                    class="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 {{ $focus }}">
-                <i class="bx bx-dots-horizontal-rounded text-xl" aria-hidden="true"></i>
-            </button>
-            <div x-show="open" x-cloak x-transition.opacity
-                 class="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-lg">
-                <a href="{{ $href }}" wire:navigate class="block px-4 py-2.5 text-slate-700 hover:bg-slate-50">Open</a>
-                <button type="button" wire:click="confirmDelete('{{ $idStr }}')" @click="open = false"
-                        class="block w-full px-4 py-2.5 text-left text-rose-700 hover:bg-rose-50">Delete</button>
-            </div>
-        </div>
-    @else
-        <i class="bx bx-chevron-right shrink-0 self-center text-xl text-slate-400" aria-hidden="true"></i>
-    @endif
+    <i class="bx bx-chevron-right shrink-0 self-center text-xl text-slate-400" aria-hidden="true"></i>
 </li>
